@@ -10,7 +10,7 @@ import SwiftUI
  .card (H:84), the Me tab's FIRST CLASS segment: corners of 24, a 2pt cream border, padding
  18 18 16 (the border outside it), 14 between the words and the stamp. The words, 8 apart: the
  eyebrow (an 8pt wax-gold dot and FIRST CLASS in mono 600 10 at .16em in gold), the headline in
- the letter serif 24/1.15 in ink, the list of what it brings in system 13/1.5 in sub, and the
+ system 600 24/1.15 in ink, the list of what it brings in system 13/1.5 in sub, and the
  call to action as an ink pill (system 600 13 in white, padding 10 14, corners of 14), 4 lower.
  The stamp: 78 × 96, white, corners of 8, a 2pt dotted wax-gold edge, turned 4°, the bird 43
  across over 1ST in mono 600 9 at .1em in gold.
@@ -48,7 +48,7 @@ public struct KFirstClassCard: View {
   /// - Parameters:
   ///   - variant: .card (Me) or .banner (Settings)
   ///   - eyebrow: FIRST CLASS
-  ///   - headline: the owner's line, in the letter serif
+  ///   - headline: the owner's line, in system 600
   ///   - sub: what it brings (line breaks allowed)
   ///   - cta: the call to action, e.g. "See First Class →"
   ///   - stampLabel: the word on the stamp, 1ST
@@ -113,7 +113,7 @@ public struct KFirstClassCard: View {
           .fixedSize(horizontal: false, vertical: large)
       }
       Text(headline)
-        .kText(isCard ? .letterHeadline : .letterBanner)
+        .kText(isCard ? .system(24, .semibold, lineHeight: 1.15) : .system(19, .semibold, lineHeight: 1.2))
         .foregroundStyle(KBrand.inkOnBrand)
         .fixedSize(horizontal: false, vertical: true)
       Text(sub)
@@ -176,7 +176,7 @@ public struct KFirstClassCard: View {
  From the top:
  - THE HERO, outside the scroll view: the gradient #FFF3D6 → cream, the 420 dashed gold arc, the
    courier flying (120, her look, bobbing 8pt over 2.6s on a layer of its own), the 30 gold seal
-   1ST, the title in the serif 34 and the line under it in 14 sub. It collapses (330 → 130 in 4a's
+   1ST, the title in system 700 34 and the line under it in 14 sub. It collapses (330 → 130 in 4a's
    phone, which counts its 54 status bar; here everything is measured from the close row, 4a's
    60) when the page has scrolled past 70 and would still have more than 90 to scroll once
    collapsed, and opens again under 16: every value moves together over .45s
@@ -508,7 +508,7 @@ public struct KPaywallScreen: View {
   private func titleBlockView(width: CGFloat) -> some View {
     VStack(spacing: 16) {
       Text(content.title)
-        .kText(.letter(34, lineHeight: 1.05))
+        .kText(.system(34, .bold, lineHeight: 1.05))
         .foregroundStyle(KPW.ink)
         .multilineTextAlignment(.center)
         .lineLimit(2)
@@ -733,7 +733,7 @@ public struct KPaywallScreen: View {
         }
       }
       Text(content.cfTagline)
-        .kText(.letter(14, italic: true))
+        .kText(.system(14, lineHeight: 1.4))
         .foregroundStyle(KPW.sub)
         .fixedSize(horizontal: false, vertical: true)
       VStack(alignment: .leading, spacing: 12) {
@@ -756,7 +756,7 @@ public struct KPaywallScreen: View {
       }
       Rectangle().fill(KBrand.creamBorder).frame(height: 1.5)
       Text(content.cfFoot)
-        .kText(.letter(14, italic: true))
+        .kText(.system(14, lineHeight: 1.4))
         .foregroundStyle(KBrand.goldText)
         .fixedSize(horizontal: false, vertical: true)
     }

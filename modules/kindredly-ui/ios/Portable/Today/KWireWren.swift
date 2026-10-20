@@ -583,7 +583,8 @@ private struct KWrenFlap: ViewModifier {
 
 /*
  THE ARRIVAL BUBBLE: sf, a 2 ln outline, corners of 16, a hard 3/3 ln shadow, padding 10 14; her
- line in the serif, italic 15 at 1.3, ink, at most 3 lines and 232 wide. Centred on her, kept 16
+ line in the reader's Letter font, italic 15 at 1.3 (upright in Garamond and SF Mono), ink, at
+ most 3 lines (4 in a roomier face: KLetterFace.fitLines) and 232 wide. Centred on her, kept 16
  from either edge, its 10 × 7 tail pointing down at her with its tip 6 over her head. It pops in
  (scale .7 → 1 from the tail, with opacity, .3s) 400ms after it is wanted, and goes with a .25s
  fade; under Reduce Motion it only fades.
@@ -606,6 +607,8 @@ private struct KArrivalBubble: View {
   let tipY: CGFloat
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  /// the reader's Letter font: Wren's line is set in it (upright in Garamond and SF Mono)
+  @Environment(\.kLetterFace) private var face
   @State private var visible = false
   @State private var popped = false
   /// the line last shown, kept while the bubble fades after TS clears it
@@ -654,9 +657,11 @@ private struct KArrivalBubble: View {
 
   private func bubble(tipX: CGFloat) -> some View {
     Text(shownLine)
-      .kText(.letter(15, italic: true, lineHeight: 1.3))
+      .kText(.content(15, italic: true, lineHeight: 1.3))
       .foregroundStyle(theme.ink)
-      .lineLimit(3)
+      // a roomier face (SF Mono wider, Garamond taller) gets a fourth line rather than a cut; the
+      // bubble grows up from its tail
+      .lineLimit(face.fitLines(3))
       .multilineTextAlignment(.leading)
       .layoutMaxWidth(Self.maxText)
       // padding 10 14 inside the 2 outline, and the tail's room under it

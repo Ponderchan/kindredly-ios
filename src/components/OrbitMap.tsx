@@ -15,7 +15,7 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import { useIsFocused } from "expo-router";
-import { PF } from "../theme/post";
+import { PFM } from "../theme/post";
 import { useTheme } from "../lib/theme";
 import { MosaicId } from "./MosaicId";
 import { Frost } from "./Frost";
@@ -166,7 +166,7 @@ export function OrbitMap({ items, empty, flat, line = true }: { items: OrbitVM[]
 
       {empty && (
         <Label x={CX} y={CY + 13}>
-          <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 2, color: tk.mute }}>{t("ui.you")}</Text>
+          <Text style={{ ...PFM.monoMed, fontSize: 10, letterSpacing: 2, color: tk.mute }}>{t("ui.you")}</Text>
         </Label>
       )}
     </View>

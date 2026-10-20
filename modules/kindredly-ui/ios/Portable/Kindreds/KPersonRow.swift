@@ -7,7 +7,7 @@ import SwiftUI
  list of people is drawn. The owner kept the current sizes (2026-10-15; foundation batch 1:
  "keep all current row sizes, take only the colours from 10a"):
 
-   [face 52] 14 [ name 17/600 ink · progress mono 11 sub ............ time 13 mute ]
+   [face 52] 14 [ name 17/600 ink · progress mono 11 sub ...... time mono 11 mute ]
                 [ TAG  TAG  You: their last words, two lines at 15/20 in sub  | badge ]
                 ───────────────────────────── 1pt line under the words (H:65) ──
 
@@ -22,7 +22,8 @@ import SwiftUI
  - time: always mute (the owner keeps blue for the kindred number and YOUR TURN); "" hides it.
  - tags lead the preview, each in its own tone (ind YOUR TURN, mute THEIR TURN, brass SWAP
    NAMES? / THEY WENT FIRST (wax gold on Midnight), postal red CLOSES IN n DAYS), then
-   youPrefix ("You: ") in ink, then the words. Every string arrives translated and cased.
+   youPrefix ("You: ") in ink, then the words. Every string arrives translated and cased. The
+   tags and the badge are labels, in SF Mono; the words stay system.
  - trailing: the badge (ind with the page colour on it, 20 high, "9+") or a link-coloured word
    ("Rekindle ›") that is NOT a button: a tap anywhere on the row opens it.
  - dim: the face at .45 (a quiet room, a closed account).
@@ -222,7 +223,8 @@ public struct KPersonRow: View, Equatable {
   static let name = KTextStyle.system(17, .semibold)
   /// the mark and the sign beside the 17pt name (KWhoMarks)
   static let markSize: CGFloat = 14
-  static let time = KTextStyle.system(13)
+  /// the time is a label: SF Mono, as the n/5 beside it
+  static let time = KTextStyle.monoTime
   static let progress = KTextStyle.mono(11, .medium)
   static let preview = KTextStyle.system(15, lineHeight: 20.0 / 15.0)
   static let link = KTextStyle.system(13, .semibold)
@@ -374,7 +376,7 @@ public struct KPersonRow: View, Equatable {
     var text = Text(verbatim: "")
     for tag in row.tags {
       text = text + Text(verbatim: tag.text + "  ")
-        .font(.system(size: tagSize, weight: .semibold))
+        .font(.system(size: tagSize, weight: .semibold, design: .monospaced))
         .tracking(0.3)
         .foregroundColor(tag.color(theme))
     }
@@ -392,7 +394,7 @@ public struct KPersonRow: View, Equatable {
   private var trailing: some View {
     if !row.badge.isEmpty {
       Text(verbatim: row.badge)
-        .font(.system(size: badgeText, weight: .semibold))
+        .font(.system(size: badgeText, weight: .semibold, design: .monospaced))
         .foregroundStyle(theme.bg)
         .lineLimit(1)
         .padding(.horizontal, 6)

@@ -34,9 +34,9 @@ import Svg, { Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { MONO, PF } from "../../theme/post";
+import { MONO, PFM, letterFitLines, letterFitSize } from "../../theme/post";
 import { BRAND, THEMES, type ThemeKey } from "../../theme/themes";
-import { letterFamily, useLetterFamily, useTheme } from "../../lib/theme";
+import { useLetterFamily, useLetterFont, useTheme } from "../../lib/theme";
 import { t, useLang } from "../../lib/i18n";
 import { useScreenInsets, useTabBarAway } from "../../lib/screen-insets";
 import { dismissKeyboard } from "../../lib/keyboard";
@@ -84,9 +84,8 @@ import "../../data/strings-today3d";
      (act.pass), the card going out kept as it was drawn. Bring back (the
      ⋯) plays it in reverse; a letter that leaves under the thumb
      (answered, blocked, taken back) goes out up as a pass does. No
-     re-entry while a card moves. The title follows the pull and locks
-     once a letter has been passed (the model says so: it survives a
-     relaunch).
+     re-entry while a card moves. The title stays the page title through
+     the pull and after a pass (owner, 10-20: no postmark morph).
    - the band under it (the owner's 2026-10-16 pick, image 2 of his option
      sheet): NEXT on a translucent disc with the letters left today, REPLY
      on ink, and Wren (her own look: WrenBird reads her skin, accessory and
@@ -223,8 +222,6 @@ const NEST = { x: 53, y: WINDOW_TOP + 33 };
 /** the arrival bubble's tail tip, band-local: its box sits 6 over her head, the tail reaches down 5 */
 const BUBBLE_TIP = GROUND_Y - GROUND_SIZE / 2 - 6 + 5;
 
-const NEWSREADER = letterFamily("newsreader");
-const NEWSREADER_ITALIC = letterFamily("newsreader", true);
 
 /* the first of what she brought back opens the way your letter folded, in reverse */
 const UNFOLD = { scaleY: 0.55, opacity: 0.5, delay: 140, duration: 520 };
@@ -527,10 +524,6 @@ export function TodayRN({ model }: { model: TodayModel }) {
   const dragY = useSharedValue(0);
   const dragP = useSharedValue(0);
   const curiousSV = useSharedValue(false);
-  const lock = useSharedValue(view.titleLocked ? 1 : 0);
-  useEffect(() => {
-    lock.value = withTiming(view.titleLocked ? 1 : 0, SPRING_BACK);
-  }, [view.titleLocked, lock]);
 
   // a transition took the pull with it: the new card starts at rest
   useLayoutEffect(() => {
@@ -622,8 +615,6 @@ export function TodayRN({ model }: { model: TodayModel }) {
       return;
     }
     releaseRef.current = { id, y, opacity };
-    // the title holds where the pull left it, then locks
-    if (dragP.value > lock.value) lock.value = dragP.value;
     if (countRef.current > 1) {
       setPassCurious(true);
       if (curiousTimer.current) clearTimeout(curiousTimer.current);
@@ -814,7 +805,7 @@ export function TodayRN({ model }: { model: TodayModel }) {
         {flow.letter && <WrenLetterRN letter={view.wrenLetter} animateIn={flow.playing} reduce={reduce} wilt={view.wren.wilt} />}
       </Animated.View>
 
-      <HeaderRN title={view.strings.title} safeTop={insets.top} width={W} lock={lock} dragP={dragP} />
+      <HeaderRN title={view.strings.title} safeTop={insets.top} />
 
       <BandRN
         width={W}
@@ -947,30 +938,24 @@ function Ground({ w, h, color }: { w: number; h: number; color: string }) {
   );
 }
 
-/* ── the title: follows the pull, locks once a letter has been passed ── */
+/* ── the title: the main tabs' page title (System 700 22, leading), as Notes,
+   Kindreds and Me; it no longer shrinks into a centred postmark with the
+   pull or once a letter has been passed (owner, 10-20) ── */
 
-function HeaderRN({ title, safeTop, width, lock, dragP }: { title: string; safeTop: number; width: number; lock: SharedValue<number>; dragP: SharedValue<number> }) {
+function HeaderRN({ title, safeTop }: { title: string; safeTop: number }) {
   const { t: tk } = useTheme();
-  const [box, setBox] = useState<{ x: number; w: number } | null>(null);
-  // to the middle of the band, measured (AUJOURD'HUI is not TODAY)
-  const shift = box ? width / 2 - (box.x + box.w / 2) : 0;
-  const style = useAnimatedStyle(() => {
-    const p = Math.max(lock.value, dragP.value);
-    return { transform: [{ translateX: shift * p }, { translateY: -9 * p }, { scale: 1 - 0.5 * p }] };
-  });
   return (
     <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: safeTop + BAND, backgroundColor: tk.bg }}>
       <View style={{ position: "absolute", top: safeTop, left: 0, right: 0, height: BAND, paddingHorizontal: 22, flexDirection: "row", alignItems: "center" }}>
-        <Animated.Text
-          onLayout={(e) => setBox({ x: e.nativeEvent.layout.x, w: e.nativeEvent.layout.width })}
+        <Text
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.7}
           accessibilityRole="header"
-          style={[{ flexShrink: 1, fontFamily: PF.letter, fontWeight: "600", fontSize: 22, letterSpacing: 0.88, color: tk.ink }, style]}
+          style={{ flexShrink: 1, fontWeight: "700", fontSize: 22, color: tk.ink }}
         >
           {title}
-        </Animated.Text>
+        </Text>
       </View>
     </View>
   );
@@ -1052,7 +1037,7 @@ function StatusCard({ kind, strings }: { kind: "loading" | "offline"; strings: T
         ) : (
           <View accessible>
             <Text style={{ fontSize: 20, fontWeight: "600", color: tk.ink, textAlign: "center" }}>{strings.offlineTitle}</Text>
-            <Text style={[{ fontSize: 18, lineHeight: 25, color: tk.sub, textAlign: "center", marginTop: 10 }, NEWSREADER]}>{strings.offlineBody}</Text>
+            <Text style={{ fontSize: 18, fontWeight: "400", lineHeight: 25, color: tk.sub, textAlign: "center", marginTop: 10 }}>{strings.offlineBody}</Text>
           </View>
         )}
       </InkPanel>
@@ -1160,7 +1145,7 @@ function CardFace({
               <WhoFaceView face={card.who.face} size={WHO_FACE} />
               <View style={{ flex: 1, gap: 2 }}>
                 <WhoName name={card.who.name} marks={card.who} style={{ fontSize: 17, fontWeight: "600", color: tk.ink }} />
-                <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: MONO.title, letterSpacing: 0.88, color: tk.sub }}>
+                <Text numberOfLines={1} style={{ ...PFM.monoMed, fontSize: MONO.title, letterSpacing: 0.88, color: tk.sub }}>
                   {card.when}
                 </Text>
               </View>
@@ -1168,7 +1153,7 @@ function CardFace({
           ) : (
             <>
               <MosaicId seed={letter?.author ?? null} cell={4.8} gap={1} />
-              <Text numberOfLines={1} style={{ flex: 1, fontFamily: PF.monoMed, fontSize: 12, letterSpacing: 0.96, color: tk.sub }}>
+              <Text numberOfLines={1} style={{ flex: 1, ...PFM.monoMed, fontSize: 12, letterSpacing: 0.96, color: tk.sub }}>
                 {card.postmark}
               </Text>
             </>
@@ -1220,7 +1205,7 @@ function CardFace({
         </View>
         {folded && (
           <Pressable disabled={still} onPress={() => act("unfold")} hitSlop={10} style={({ pressed }) => ({ alignSelf: "center", paddingVertical: 6, paddingHorizontal: 12, marginTop: 2, opacity: pressed ? 0.6 : 1 })}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.5, color: tk.ind }}>{s.unfold}</Text>
+            <Text style={{ fontWeight: "600", fontSize: 14, color: tk.ind }}>{s.unfold}</Text>
           </Pressable>
         )}
 
@@ -1257,7 +1242,7 @@ function VoiceBlockRN({ card, letter, model, italic, still }: { card: CardVM; le
   const unavailable = still || !card.voiceReady || (mine && !!st?.failed);
   return (
     <View>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.5, color: tk.ind, marginBottom: 14 }}>{model.view.strings.voiceLetter}</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: MONO.title, letterSpacing: 1.5, color: tk.ind, marginBottom: 14 }}>{model.view.strings.voiceLetter}</Text>
       <View pointerEvents={unavailable ? "none" : "auto"} style={{ opacity: !still && unavailable ? 0.45 : 1 }}>
         <AudioCardView
           playing={playing}
@@ -1326,7 +1311,8 @@ function BandRN({
   const glass = dark
     ? { backgroundColor: "rgba(26,24,48,0.5)", borderColor: "rgba(255,255,255,0.18)", shadowColor: "#000000", shadowOpacity: 0.5 }
     : { backgroundColor: "rgba(255,255,255,0.45)", borderColor: "rgba(255,255,255,0.75)", shadowColor: "#1E1B35", shadowOpacity: 0.35 };
-  const label = { fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 1.6 };
+  // the buttons' captions: System 500 11, as the Swift band's (owner, 10-20)
+  const label = { fontWeight: "500" as const, fontSize: 11, letterSpacing: 0.22 };
 
   return (
     <Animated.View
@@ -1361,7 +1347,7 @@ function BandRN({
               glass,
             ]}
           >
-            <Text maxFontSizeMultiplier={1} style={{ fontFamily: PF.monoSemi, fontSize: 16, color: tk.ink }}>
+            <Text maxFontSizeMultiplier={1} style={{ ...PFM.monoSemi, fontSize: 16, color: tk.ink }}>
               {ready ? String(left) : ""}
             </Text>
           </Pressable>
@@ -1589,12 +1575,14 @@ const BUBBLE_IN = new Keyframe({
 
 function ArrivalBubble({ line, bottom }: { line: string; bottom: number }) {
   const { t: tk } = useTheme();
+  const key = useLetterFont();
+  const italic = useLetterFamily(true);
   return (
     <View pointerEvents="none" style={{ position: "absolute", left: 16, right: 16, bottom, alignItems: "center" }}>
       <Animated.View entering={BUBBLE_IN} exiting={FadeOut.duration(250)} style={{ maxWidth: 232, alignItems: "center", transformOrigin: "bottom" }}>
         <StickerBox fill={tk.sf} stroke={tk.ln} lineWidth={2} radius={16} shadow={tk.ln} offset={3} faceStyle={{ paddingVertical: 10, paddingHorizontal: 14 }}>
-          {/* her line, in Newsreader italic whatever the Letter font (Wren's lines aren't letters) */}
-          <Text accessible numberOfLines={3} style={[{ fontSize: 15, lineHeight: 19.5, color: tk.ink }, NEWSREADER_ITALIC]}>
+          {/* her line, in the reader's Letter font (italic where it has one); a roomier face gets a fourth line */}
+          <Text accessible numberOfLines={letterFitLines(key, 3)} style={[{ fontSize: 15, lineHeight: 19.5, color: tk.ink }, italic]}>
             {line}
           </Text>
         </StickerBox>
@@ -1616,6 +1604,8 @@ const CHIP_IN = new Keyframe({
 
 function WrenLetterRN({ letter, animateIn, reduce, wilt }: { letter: WrenLetterVM; animateIn: boolean; reduce: boolean; wilt: boolean }) {
   const { t: tk, dark } = useTheme();
+  const letterKey = useLetterFont();
+  const letterFace = useLetterFamily();
   const moving = animateIn && !reduce;
   const y = useSharedValue(moving ? 70 : 0);
   const s = useSharedValue(moving ? 0.98 : 1);
@@ -1675,8 +1665,10 @@ function WrenLetterRN({ letter, animateIn, reduce, wilt }: { letter: WrenLetterV
 
   const cardStyle = useAnimatedStyle(() => ({ opacity: o.value, transform: [{ translateY: y.value + bounce.value }, { scale: s.value }] }));
   const bagStyle = useAnimatedStyle(() => ({ transform: [{ translateX: jigX.value }, { rotate: `${jigR.value}deg` }] }));
-  const lineStyle = [{ fontSize: 20, lineHeight: 26, color: tk.ink }, NEWSREADER];
-  const mono = (size: number, tracking: number) => ({ fontFamily: PF.monoSemi, fontSize: size, letterSpacing: size * tracking });
+  // her lines in the reader's Letter font, a step smaller in a roomier one (no ViewThatFits here)
+  const lineSize = letterFitSize(letterKey, 20);
+  const lineStyle = [{ fontSize: lineSize, lineHeight: Math.round(lineSize * 1.3), color: tk.ink }, letterFace];
+  const mono = (size: number, tracking: number) => ({ ...PFM.monoSemi, fontSize: size, letterSpacing: size * tracking });
   // the bag takes what is left (14 above, 8 below) and stands aside under 96
   const bagH = bagRoom - 14 - 8;
   const footValue = [letter.foot, letter.countdown].filter((x) => x !== "").join(" ");
@@ -1739,7 +1731,7 @@ function WrenLetterRN({ letter, animateIn, reduce, wilt }: { letter: WrenLetterV
                 {notYet > 0 && (
                   <View pointerEvents="none" style={{ position: "absolute", bottom: 20, left: -40, right: -40, alignItems: "center" }}>
                     <Animated.View key={notYet} entering={reduce ? FadeIn.duration(200) : CHIP_IN} exiting={FadeOut.duration(200)} style={{ backgroundColor: tk.ink, borderRadius: 12, paddingVertical: 7, paddingHorizontal: 11 }}>
-                      <Text numberOfLines={1} style={[mono(10, 0.12), { color: tk.bg }]}>
+                      <Text numberOfLines={1} style={{ fontWeight: "600", fontSize: 12, color: tk.bg }}>
                         {letter.notYet}
                       </Text>
                     </Animated.View>
@@ -1765,7 +1757,7 @@ function WrenLetterRN({ letter, animateIn, reduce, wilt }: { letter: WrenLetterV
       {chip > 0 && (
         <View pointerEvents="none" style={{ position: "absolute", bottom: -16, left: 0, right: 0, alignItems: "center" }}>
           <Animated.View key={chip} entering={reduce ? FadeIn.duration(200) : CHIP_IN} exiting={FadeOut.duration(200)} style={{ backgroundColor: tk.ink, borderRadius: 14, paddingVertical: 8, paddingHorizontal: 14 }}>
-            <Text numberOfLines={1} style={[mono(11, 0.14), { color: tk.bg }]}>
+            <Text numberOfLines={1} style={{ fontWeight: "600", fontSize: 13, color: tk.bg }}>
               {letter.chip}
             </Text>
           </Animated.View>
@@ -1885,7 +1877,7 @@ function FlightWindowRN({ model, top, shown, looping, reduce, onTap }: { model: 
         </Animated.View>
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text maxFontSizeMultiplier={1.2} numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: sky.text, opacity: 0.62 }}>
+        <Text maxFontSizeMultiplier={1.2} numberOfLines={1} style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.2, color: sky.text, opacity: 0.62 }}>
           {model.eyebrow}
         </Text>
         <Text maxFontSizeMultiplier={1.2} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: 15, fontWeight: "600", color: sky.text, marginTop: 3 }}>

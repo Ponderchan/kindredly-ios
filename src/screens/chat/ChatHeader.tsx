@@ -1,9 +1,9 @@
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { t, useLang } from "../../lib/i18n";
-import { useTheme } from "../../lib/theme";
+import { useLetterFamily, useTheme } from "../../lib/theme";
 import { BRAND } from "../../theme/themes";
-import { PF } from "../../theme/post";
+import { PFM } from "../../theme/post";
 import type { ThreadDetail } from "../../lib/db";
 import type { ThreadToneKey } from "../../lib/thread-state";
 import { AvatarImage } from "../../components/AvatarImage";
@@ -82,6 +82,8 @@ export function ChatHeader({
   useLang();
   const insets = useSafeAreaInsets();
   const { t: tk } = useTheme();
+  // "Wren found you two" is her line: the reader's Letter font's italic
+  const wrenFace = useLetterFamily(true);
   const tone = state ? (state.toneKey === "ind" ? tk.ind : state.toneKey === "brass" ? BRAND.brassSeal : tk.mute) : tk.mute;
   const gone = !!detail?.gone;
   const seed = detail?.other || null;
@@ -125,21 +127,21 @@ export function ChatHeader({
             {variant === "room" ? (
               <>
                 {!!subtitle && (
-                  <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.1, color: tk.mute, marginTop: 2 }}>
+                  <Text numberOfLines={1} style={{ ...PFM.monoMed, fontSize: 10, letterSpacing: 1.1, color: tk.mute, marginTop: 2 }}>
                     {subtitle}
                   </Text>
                 )}
                 {/* she carried every letter that got you here, and the room says so once */}
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 }} accessible accessibilityLabel={t("rm.foundYouTwo", { wren })}>
                   <WrenBird size={13} mood="content" />
-                  <Text numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 12, color: tk.sub }}>
+                  <Text numberOfLines={1} style={{ flexShrink: 1, ...wrenFace, fontSize: 12, color: tk.sub }}>
                     {t("rm.foundYouTwo", { wren })}
                   </Text>
                 </View>
               </>
             ) : (
               !!state && (
-                <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1, color: tone, marginTop: 2 }}>
+                <Text numberOfLines={1} style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1, color: tone, marginTop: 2 }}>
                   {state.label}
                 </Text>
               )
@@ -155,7 +157,7 @@ export function ChatHeader({
             accessibilityLabel={t("lore.title")}
             style={({ pressed }) => ({ width: 34, height: 40, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.5 : 1 })}
           >
-            <Text style={{ fontFamily: PF.mono, fontSize: 16, color: tk.sub }}>❞</Text>
+            <Text style={{ ...PFM.mono, fontSize: 16, color: tk.sub }}>❞</Text>
           </Pressable>
         ) : null}
         {/* a touch on the ⋯ puts the keyboard away before its card rises over the screen */}

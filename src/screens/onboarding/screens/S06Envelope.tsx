@@ -32,6 +32,7 @@ import * as haptics from "../parts/haptics";
 import { AcidKey } from "../parts/keys";
 import { NEST_EGG } from "../parts/nest-egg";
 import { EDGE, FONT, OB, SHADOW, TYPE } from "../parts/tokens";
+import { useLetterFamily } from "../../../lib/theme";
 import type { ObScreenProps } from "../types";
 import { nestEggRect } from "./s01-geometry";
 import { AIR_BAND, AirmailPaper, DocketDate, Docket, ENV_PAD_Y, docketMetrics } from "./s06-envelope-front";
@@ -90,6 +91,8 @@ const NAME_CHAR = 42;
 
 export default function S06Envelope(props: ObScreenProps) {
   const { draft, uid } = props;
+  // the envelope's handwriting (the address, the name still coming) is content: the letter font's italic
+  const said = useLetterFamily(true);
   const { width: sw } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const reduce = useReducedMotion();
@@ -199,7 +202,7 @@ export default function S06Envelope(props: ObScreenProps) {
       </View>
     </FittedName>
   ) : (
-    <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ fontFamily: FONT.letterItalic, fontSize: 16, lineHeight: 21, color: OB.inkSoft }}>{t("ob2.envelope.thinking")}</Text>
+    <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ ...said, fontSize: 16, lineHeight: 21, color: OB.inkSoft }}>{t("ob2.envelope.thinking")}</Text>
   );
 
   const markLabel = draft.pronoun === "he" ? t("id.ob.mark.he") : t("id.ob.mark.she");
@@ -281,6 +284,7 @@ export default function S06Envelope(props: ObScreenProps) {
 
 function EnvelopeCard({ face, name, date, stamp }: { face: React.ReactNode; name: React.ReactNode; date: React.ReactNode; stamp: React.ReactNode }) {
   const [w, setW] = useState(0);
+  const said = useLetterFamily(true);
   const m = docketMetrics(K);
   const h = 2 * AIR_BAND + 2 * ENV_PAD_Y + m.rowH + TO_GAP + TO_H + 6;
   return (
@@ -290,7 +294,7 @@ function EnvelopeCard({ face, name, date, stamp }: { face: React.ReactNode; name
         {w > 0 && (
           <AirmailPaper w={w - 2 * EDGE} h={h - 2 * EDGE} radius={17}>
             <Docket k={K} face={face} name={name} date={date} stamp={stamp} />
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ marginTop: TO_GAP, height: TO_H, fontFamily: FONT.letterItalic, fontSize: 16, color: OB.ink }}>
+            <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ marginTop: TO_GAP, height: TO_H, ...said, fontSize: 16, color: OB.ink }}>
               {t("ob2.envelope.to")}
             </Text>
           </AirmailPaper>
@@ -379,11 +383,11 @@ function SwitchRow({ glyph, on, a11y, onToggle }: { glyph: LineIconName; on: boo
       style={{ height: 41, flexDirection: "row", alignItems: "center", paddingHorizontal: 14 }}
     >
       <View style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
-        {!!label[0] && <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ fontFamily: FONT.semi, fontSize: 15, color: OB.ink }}>{label[0]}</Text>}
+        {!!label[0] && <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ ...FONT.semi, fontSize: 15, color: OB.ink }}>{label[0]}</Text>}
         <View style={{ marginRight: 7, marginLeft: label[0] ? 4 : 0 }}>
           <LineIcon name={glyph} size={16} stroke={2} color={OB.ink} />
         </View>
-        <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ flexShrink: 1, fontFamily: FONT.semi, fontSize: 15, color: OB.ink }}>{(label[1] ?? "").trim()}</Text>
+        <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ flexShrink: 1, ...FONT.semi, fontSize: 15, color: OB.ink }}>{(label[1] ?? "").trim()}</Text>
       </View>
       <Toggle on={on} />
     </Pressable>
@@ -472,7 +476,7 @@ function SignatureLine({ clock, still }: { clock: SharedValue<number>; still: bo
   });
   return (
     <View style={{ height: 30, marginTop: 4, flexDirection: "row", alignItems: "flex-end" }}>
-      <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ fontFamily: FONT.mono, fontSize: 13, color: OB.ink, marginRight: 6, marginBottom: 1 }}>×</Text>
+      <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ ...FONT.mono, fontSize: 13, color: OB.ink, marginRight: 6, marginBottom: 1 }}>×</Text>
       <View style={{ flex: 1, height: 2, marginBottom: 4 }} onLayout={(e) => setLineW(e.nativeEvent.layout.width)}>
         <Svg width={lineW} height={2}>
           <Line x1={0} y1={1} x2={lineW} y2={1} stroke={OB.ink} strokeWidth={1.5} strokeDasharray="4 3" />

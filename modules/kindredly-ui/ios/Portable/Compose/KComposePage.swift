@@ -7,8 +7,8 @@ import SwiftUI
  It LOOKS AS THE APP STORE PAGE DID (owner, 2026-10-18: "the composer as it was", the sticker-zine
  desk of compose.tsx before 10a, which ComposeRN draws too); everything it does is 10a step 5's.
  From the top, on the theme's page colour, 22 in from the sides unless said:
- - the top row, 20 in and 8 under the status bar: the ✕ in IBM Plex Mono 17 in its 42 box (the
-   guarded way out: there is no edge swipe), TO A STRANGER in Plex Mono 600 12 at 1.6, centred in
+ - the top row, 20 in and 8 under the status bar: the ✕ in SF Mono 17 in its 42 box (the
+   guarded way out: there is no edge swipe), TO A STRANGER as a secondary title (System 500 17), centred in
    what is left, and the stamp corner tilted 8° in its 50pt of room (a tap opens the stamps).
    Stamps v2 (owner, 2026-10-18): what sits in it is the stamp itself at the ladder's
    composeCorner, 40×48, your own stamp so flat (no letter tilt, no postmark); before one is
@@ -16,23 +16,23 @@ import SwiftUI
    44 dashed square used to be, so choosing a stamp fills the outline it was promised. The
    toolbar's stamp key shows the same stamp once chosen (KComposeToolbar, D11);
  - Wren's row, 14 down: Wren bare in a 46 frame (a React Native island drawing her at 38: her
-   skin, her mood, her breathing are hers to draw) and, 10 from her, her line in Fraunces italic
-   14 on 20, sub;
- - a 1pt line 12 under her, then 8 down the editor: Inter 19 on 30, ink, an ind caret, the spark
+   skin, her mood, her breathing are hers to draw) and, 10 from her, her line in the writer's
+   Letter font, italic where it has one, 14 on 20, sub;
+ - a 1pt line 12 under her, then 8 down the editor: the writer's Letter font 19 on 30, ink, an ind caret, the spark
    as the placeholder in the old lavender (#B9B3D8) on the light themes and mute on the dark
    ones. It is a TextEditor (UITextView), which keeps its own caret in view as a long letter
    grows, so the caret never slips under the toolbar the way a growing TextField in a ScrollView
    does. While speaking, the Recorder (an island) and the line that travels with it take its
    place;
- - the question, when one is attached: a 1pt line along its top, its label in Plex Mono 9.5 at
-   1.2 in mute, 7 above a one-line field of 140 in the system face at 16.5, padding 22 and 12;
+ - the question, when one is attached: a 1pt line along its top, its label in SF Mono 9.5 at
+   1.2 in mute, 7 above a one-line field of 140 in the writer's Letter font at 16.5, padding 22 and 12;
  - the daily-cap panel when the day's letters are spent: a plain box with a 1pt ink edge, its
-   line in system 600 15, why replies stay free in system 13 sub, the link in Plex Mono 500 11.5
+   line in system 600 15, why replies stay free in system 13 sub, the link in SF Mono 500 11.5
    at 1 in ind. It is drawn only while the keyboard and the trays are away: it never takes the
    editor's height on a small phone (on an SE with the keyboard up it would leave the editor one
    line), and NONE LEFT TODAY stays on the small line above the toolbar while the writer types;
  - the small line above the toolbar, 24 in: the count near the ceiling and, for a free writer,
-   "N LEFT TODAY", in Plex Mono 11, right-aligned (owner question 6's default);
+   "N LEFT TODAY", in SF Mono 11, right-aligned (owner question 6's default);
  - the toolbar, 18 in, 10 above it and 24 below (10 over a tray): the round keys, +, the paper
    and the stamp (the chosen stamp itself once there is one, D11), and the wide key that fills toward the floor with
    the count beside its label (KComposeToolbar);
@@ -43,13 +43,16 @@ import SwiftUI
  Any other paper is previewed while writing: its sheet (KPaperSurface, the receipt's teeth left
  off) behind the editor, 16 from the page's sides, 8 under Wren's rule and 8 above the small line
  over the toolbar, the question inside it under the letter when one is attached, the words
- edge + 16 in. The words take the paper's face (the serif in the writer's Letter font 21 on 1.5;
- Plex Mono 500 17 on 1.6; the system face 19 on 1.35, those two at −.01em), in the paper's ink,
+ edge + 16 in. The words are in the writer's Letter font whatever the paper (owner's type system,
+ 10-20: a paper keeps its colour, texture and size only): 21 on 1.5 on the serif sheets, 17 on
+ 1.6 on the receipt (the prototype's mono sheet), 19 on 1.35 on the sticky note, in the paper's ink,
  the caret #3A34D6, the placeholder the ink at .45; the riso's shadow stays off the editor. A
  paper keeps its own colours in every theme (KPaper.cardTheme). A change of paper eases over
  .35s. A voice letter carries no paper: while speaking the page is as it always was.
- The three faces 10a's type (KType) doesn't carry, Plex Mono at 400, Inter and Fraunces italic,
- are set here by KComposeType; the system face and Plex Mono 500 and 600 by .kText.
+ THE TYPE (owner's type system, 10-20): what you write and Wren's line are content, in the
+ writer's Letter font (.kText(.content)); the title is a secondary title (System 500 17,
+ centred); the small lines are labels in SF Mono (KComposeType, at 400 and 500); the voice note,
+ a whole sentence, is System. No Inter, no Fraunces.
 
  THE KEYBOARD. The page sits in a Host that keeps the keyboard's safe area (ignoreSafeArea
  "container"), so the whole stack is shortened by the keyboard and the toolbar, the last thing in
@@ -498,7 +501,7 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   @State private var fullHeight: CGFloat = 0
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-  /// one written line (Inter 19 on 30) at the reader's Dynamic Type setting: the editor never
+  /// one written line (19 on 30, the Letter font) at the reader's Dynamic Type setting: the editor never
   /// gets less than two of them (see THE EDITOR'S FLOOR)
   @ScaledMetric private var writingLine: CGFloat
 
@@ -529,7 +532,8 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
     self.actions = actions
     self.wren = wren()
     self.recorder = recorder()
-    _writingLine = ScaledMetric(wrappedValue: KComposeType.writing.lineHeight ?? 30, relativeTo: KComposeType.writing.textStyle)
+    // the writing style's line height is a multiple of its size: 19 × 30/19 = 30
+    _writingLine = ScaledMetric(wrappedValue: KComposeType.writing.size * (KComposeType.writing.lineHeight ?? 30.0 / 19.0), relativeTo: KComposeType.writing.textStyle)
   }
 
   /// the keyboard covers part of the page (a hardware keyboard covers none)
@@ -664,8 +668,9 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
       .buttonStyle(KAsIsButtonStyle())
       .accessibilityLabel(content.strings.closeLabel)
 
+      // a secondary title: System 500 17, centred, the string as written (never upper-cased here)
       Text(content.strings.title)
-        .kText(.mono(12, .semibold, tracking: 1.6 / 12))
+        .kText(.secondaryTitle)
         .foregroundStyle(theme.ink)
         .lineLimit(1)
         // the longer languages (A UN EXTRAÑO, AN EINEN FREMDEN) shrink before they would run
@@ -731,17 +736,17 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   /// the words' inset inside the sheet: its edge (border-box) and the paper's 16
   private var sheetInset: CGFloat { content.paper.edge.width + KPaper.padding }
 
-  /// The writing face on a paper (§5.3): the serif in the writer's Letter font 21 on 1.5, Plex
-  /// Mono 500 17 on 1.6, the system face 19 on 1.35 (those two carry the paper's tracking).
+  /// The writing face on a paper (§5.3): always the writer's Letter font (the paper no longer
+  /// overrides it), at the paper's size: 21 on 1.5 on the serif sheets, 17 on 1.6 on the receipt,
+  /// 19 on 1.35 on the sticky note.
   private var paperWriting: KTextStyle {
-    let paper = content.paper
-    switch paper.face {
+    switch content.paper.face {
     case .letter:
-      return KTextStyle(face: .serif, size: 21, lineHeight: 1.5, followsLetterFont: true)
+      return .content(21, lineHeight: 1.5)
     case .mono:
-      return KTextStyle(face: .monoMedium, size: 17, weight: .medium, tracking: paper.tracking, lineHeight: 1.6)
+      return .content(17, lineHeight: 1.6)
     case .system:
-      return KTextStyle(face: .system, size: 19, weight: .regular, tracking: paper.tracking, lineHeight: 1.35)
+      return .content(19, lineHeight: 1.35)
     }
   }
 
@@ -802,9 +807,11 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
             .composeText(.voiceNote)
             .foregroundStyle(theme.mute)
             .fixedSize(horizontal: false, vertical: true)
+          // the caption is words for the letter: the Letter font
           KField(
             controller: driver.body,
             placeholder: content.strings.captionPlaceholder,
+            style: .contentInput,
             axis: .vertical,
             lines: 1...4,
             returnSends: false,
@@ -843,7 +850,8 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
       KField(
         controller: driver.ask,
         placeholder: content.strings.askPlaceholder,
-        style: .system(16.5),
+        // the question is the writer's own words: the Letter font
+        style: .content(16.5),
         axis: .horizontal,
         lines: nil,
         returnSends: false,
@@ -930,38 +938,36 @@ enum KComposeAsk {
 }
 
 /*
- THE APP STORE PAGE'S TYPE (src/theme/post PF; owner, 2026-10-18). Three of its faces aren't
- among 10a's (KType): IBM Plex Mono at 400 (the ✕, the small mono lines, the count beside the
- key's label), Inter (where you write: PF.writing) and Fraunces italic (Wren's line:
- PF.serifItalic); and it sets Plex Mono 500 at 11.5 (the pill, the cap panel's link). All are
- embedded in the app by PostScript name (assets/fonts, app.json expo-font, UIAppFonts) and found
- by that name, so Fraunces-Italic comes out italic without asking for the trait (React Native
- picks a face by family and style, so it needs fontStyle "italic" as well). They are set at a
- fixed size scaled by the text style's Dynamic Type factor, not by Font.custom(_:size:relativeTo:),
- which rounds a fractional size up to the whole point (9.5, 10.5 and 11.5 came out 10, 11 and
- 12, 4% wide); the factor is read as @ScaledMetric's 100, since a size read straight from it is
- rounded to the pixel (9.5 came out 9.67).
- CJK falls through to the system face, as it does in React Native.
+ THE APP STORE PAGE'S SMALL TYPE (src/theme/post PF; owner, 2026-10-18; faces from the owner's
+ type system, 10-20). compose.tsx sets its small lines in a mono at 400 (the ✕, the question's
+ label, the counts) and 500 at 11.5 (the pill, the cap panel's link), at fractional sizes 10a's
+ roles (KType) don't carry; they are SF Mono now, the system monospaced design, at those weights.
+ The voice note is a whole sentence, so it is System. What you write and Wren's line are content
+ and go through .kText(.content) (KComposeEditor, KComposeWrenLine), not through here.
+ They are set at a fixed size scaled by the text style's Dynamic Type factor, read as
+ @ScaledMetric's 100 (a size read straight from it is rounded to the pixel: 9.5 came out 9.67).
  Sizes, letter spacing and line heights are compose.tsx's, in points, and scale with Dynamic
  Type as React Native's text does: the line height as KTextModifier does it, the room React
- Native adds over the face's own line (hhea: Plex Mono 1.3, Inter 1.21, Fraunces 1.233) between
- the lines and half of it above and below, as its Text centres a line in its height; except
- where you write, where React Native's TextInput puts all of it above each line (leadingAbove),
- so the first line sits as low as it did.
+ Native adds over the face's own line (SF Pro and SF Mono 1.19) between the lines and half of it
+ above and below, as its Text centres a line in its height.
  */
 struct KComposeType: Equatable {
-  enum Face: String {
-    case mono = "IBMPlexMono-Regular"
-    case monoMedium = "IBMPlexMono-Medium"
-    case writing = "Inter-Regular"
-    case wren = "Fraunces-Italic"
+  enum Face {
+    /// SF Mono 400
+    case mono
+    /// SF Mono 500
+    case monoMedium
+    /// SF Pro 400 (a sentence, not a label)
+    case system
 
-    /// the face's own line height, a multiple of its size (hhea ascender + descender)
-    var natural: CGFloat {
+    /// the face's own line height, a multiple of its size
+    var natural: CGFloat { 1.19 }
+
+    func font(size: CGFloat) -> Font {
       switch self {
-      case .mono, .monoMedium: return 1.3
-      case .writing: return 1.21
-      case .wren: return 1.233
+      case .mono: return .system(size: size, weight: .regular, design: .monospaced)
+      case .monoMedium: return .system(size: size, weight: .medium, design: .monospaced)
+      case .system: return .system(size: size, weight: .regular)
       }
     }
   }
@@ -972,21 +978,14 @@ struct KComposeType: Equatable {
   var tracking: CGFloat = 0
   /// line height in points (React Native's lineHeight); nil for the face's own
   var lineHeight: CGFloat?
-  /// the extra line height goes above the first line, as React Native's TextInput sets it
-  /// (its Text centres the line instead)
-  var leadingAbove = false
 
   /// the text style its Dynamic Type scaling follows
   var textStyle: Font.TextStyle { KType.textStyle(near: size) }
 
   /// the ✕
   static let close = KComposeType(face: .mono, size: 17)
-  /// Wren's line
-  static let wrenLine = KComposeType(face: .wren, size: 14, lineHeight: 20)
-  /// the letter as it is written
-  static let writing = KComposeType(face: .writing, size: 19, lineHeight: 30, leadingAbove: true)
-  /// the note under the Recorder
-  static let voiceNote = KComposeType(face: .mono, size: 10, tracking: 0.6, lineHeight: 17)
+  /// the note under the Recorder: a sentence, System
+  static let voiceNote = KComposeType(face: .system, size: 13, lineHeight: 18)
   /// the question's label
   static let askLabel = KComposeType(face: .mono, size: 9.5, tracking: 1.2)
   /// the count near the ceiling, the letters left today
@@ -998,6 +997,11 @@ struct KComposeType: Equatable {
   static let pillName = KComposeType(face: .monoMedium, size: 11.5, tracking: 0.2)
   /// the cap panel's link to First Class
   static let capLink = KComposeType(face: .monoMedium, size: 11.5, tracking: 1)
+
+  /// the letter as it is written (Plain): the Letter font, 19 on 30
+  static let writing = KTextStyle.content(19, lineHeight: 30.0 / 19.0)
+  /// Wren's line: the Letter font, italic where the face has one, 14 on 20
+  static let wrenLine = KTextStyle.content(14, italic: true, lineHeight: 20.0 / 14.0)
 
   /// the placeholders' lavender on the light themes (compose.tsx; the dark themes use mute)
   static let placeholderLight = Color(hex: "#B9B3D8")
@@ -1019,16 +1023,15 @@ struct KComposeTypeModifier: ViewModifier {
     let size = type.size * scale
     let leading = type.lineHeight.map { max(0, $0 * scale - type.face.natural * size) } ?? 0
     return content
-      .font(.custom(type.face.rawValue, fixedSize: size))
+      .font(type.face.font(size: size))
       .tracking(type.tracking * scale)
       .lineSpacing(leading)
-      .padding(.top, type.leadingAbove ? leading : leading / 2)
-      .padding(.bottom, type.leadingAbove ? 0 : leading / 2)
+      .padding(.vertical, leading / 2)
   }
 }
 
 extension View {
-  /// Sets text in one of the App Store page's faces: Text("✕").composeText(.close).
+  /// Sets text in one of the App Store page's small faces: Text("✕").composeText(.close).
   func composeText(_ type: KComposeType) -> some View {
     modifier(KComposeTypeModifier(type))
   }
@@ -1045,12 +1048,14 @@ private struct KComposeWrenLine: View {
   let theme: KTheme
   @ObservedObject var driver: KComposeDriver
   var lines: Int? = nil
+  /// the writer's Letter font: a roomier one (SF Mono, Garamond) keeps one more line while tight
+  @Environment(\.kLetterFace) private var face
 
   var body: some View {
     Text(driver.live.wrenLine)
-      .composeText(.wrenLine)
+      .kText(KComposeType.wrenLine)
       .foregroundStyle(theme.sub)
-      .lineLimit(lines)
+      .lineLimit(lines.map { face.fitLines($0) })
       .fixedSize(horizontal: false, vertical: true)
       .frame(maxWidth: .infinity, alignment: .leading)
       .dynamicTypeSize(...DynamicTypeSize.accessibility1)
@@ -1058,7 +1063,7 @@ private struct KComposeWrenLine: View {
 }
 
 /// The small line above the toolbar: the count near the ceiling, and the free writer's letters
-/// left today, right-aligned in Plex Mono 11. Nothing at all when neither shows.
+/// left today, right-aligned in SF Mono 11. Nothing at all when neither shows.
 private struct KComposeNoteLine: View {
   let theme: KTheme
   @ObservedObject var driver: KComposeDriver

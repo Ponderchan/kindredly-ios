@@ -4,8 +4,8 @@ import SwiftUI
 
 /*
  SHE SAYS IT ONCE, IN THE PAGE (WrenSaysOnce.tsx, drawn by Swift): the reader's own Wren at 22 and
- one line in the serif's italic, 13.5/20 in sub. Not an overlay: nothing is covered and nothing
- must be dismissed to go on. A tap closes it.
+ one line in the reader's Letter font, italic where the face has one, 13.5/20 in sub. Not an
+ overlay: nothing is covered and nothing must be dismissed to go on. A tap closes it.
 
  Whether it shows is decided in TS (useWrenOnce: once per account, then for the rest of the
  session until tapped, kept in a store so a remount or a renderer flip can't bring back a line
@@ -15,12 +15,12 @@ import SwiftUI
  The bird is a snapshot of her real art (bird-images.ts, pose "content"), a transparent PNG drawn
  on nothing; until it lands the line simply has an empty 22pt place beside it.
 
- The type is KTextStyle.letter: Wren's lines stay in Newsreader whatever the reader's Letter font
- (KType: the Letter font reaches only letters being read, owner question 1).
+ The type is KTextStyle.content: Wren's lines are content and follow the reader's Letter font
+ (upright in Garamond and SF Mono, which have no italic).
  */
 public struct KWrenLine: View {
   static let bird: CGFloat = 22
-  static let line = KTextStyle.letter(13.5, italic: true, lineHeight: 20.0 / 13.5)
+  static let line = KTextStyle.content(13.5, italic: true, lineHeight: 20.0 / 13.5)
 
   private let theme: KTheme
   private let bird: KImageRef?

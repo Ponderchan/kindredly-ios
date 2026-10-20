@@ -17,12 +17,12 @@ import SwiftUI
  outline, corners of 28 and a hard 6/6 ln shadow, padding 16 inside the outline (border-box),
  its pieces 10 apart (H:129). The prompts call for a soft popover here (P:84); the mock wins
  (tokens-10a.md §11 item 4).
- - a header row: the title in mono 600 .16em (NEW in the mock, H:130), and on the right, if one
-   is given, a link in ind, mono 600 .12em (the mock's RECENT ›). The mock sets both at 12;
-   KMonoSizes sizes them (owner question 2: 11);
+ - a header row: the title as the secondary title, System 500 17 centred, as written (NEW in the
+   mock, H:130, there in mono capitals; titles are System, owner 2026-10-20), and on the right, if
+   one is given, a link in ind, System 600 14 (the mock's RECENT ›; a link is a button);
  - the choices as KChoiceCards, two to a row, 10 apart (H:131-133, Kit/KChoiceCard.swift):
-   corners of 18, a 2pt ln outline, a hard 3/3 ln shadow, the glyph 28 across, the title in mono
-   capitals and the subtitle in the letter serif's italic, both cards in a row one height.
+   corners of 18, a 2pt ln outline, a hard 3/3 ln shadow, the glyph 28 across, the title and the
+   subtitle in System, both cards in a row one height.
 
  The two fills are the mock's: the letter card lav2 (the only place the mock uses lav2) and the
  note card #F6E7C6, the happy mood's fill, the same in every theme (KChoiceCard's lavender and
@@ -105,7 +105,7 @@ public struct KPlusPanel: View {
   private let onAction: (String) -> Void
 
   /// - Parameters:
-  ///   - title: the header, e.g. NEW; set in capitals
+  ///   - title: the header, e.g. New; set as written
   ///   - link: the header's link on the right, or nil for none
   ///   - cards: the choices, two to a row
   ///   - onAction: a card or the link was tapped, with its key
@@ -144,20 +144,22 @@ public struct KPlusPanel: View {
   }
 
   private var header: some View {
-    HStack(alignment: .firstTextBaseline, spacing: 8) {
+    // the title centred as every sheet's is (the secondary title), the link on the right over it
+    ZStack(alignment: .trailing) {
       Text(title)
-        .textCase(.uppercase)
-        .kText(.monoHeader)
+        .kText(.secondaryTitle)
         .foregroundStyle(theme.ink)
         .lineLimit(1)
+        .minimumScaleFactor(0.8)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, link == nil ? 0 : 56)
         .accessibilityAddTraits(.isHeader)
-      Spacer(minLength: 8)
       if let link {
         Button {
           onAction(link.key)
         } label: {
           Text(link.title)
-            .kText(.monoLink)
+            .kText(.system(14, .semibold))
             .foregroundStyle(theme.ind)
             .lineLimit(1)
             .fixedSize()
@@ -216,7 +218,7 @@ public extension KMotion {
    taller) over .45s on cubic-bezier(.3,1,.3,1), its content held at the top and clipped, so it
    reads as the sheet being pulled up rather than sliding in;
  - inside, top to bottom: a 40 × 6 handle in line, 10 down; 16 below it Wren 44 (the user's own,
-   from the caller's snapshot) and 12 beside her the ask in the letter serif's italic 17/1.3;
+   from the caller's snapshot) and 12 beside her the ask in the Letter font's italic 17/1.3;
    18 below, the letter row; 10 below, the note row; 14 below, the footnote in mono 9 at .14em,
    faint, centred;
  - the letter row: 72 tall, a 2.5 ln outline, corners of 20, a hard 3/3 ln shadow, padding 0 16
@@ -386,7 +388,7 @@ struct KPublishSheet: View {
         KImage(model.bird, size: CGSize(width: 44, height: 44), contentMode: .fit, placeholder: .clear)
           .accessibilityHidden(true)
         Text(model.ask)
-          .kText(.letter(17, italic: true, lineHeight: 1.3))
+          .kText(.content(17, italic: true, lineHeight: 1.3))
           .foregroundStyle(theme.ink)
           .fixedSize(horizontal: false, vertical: true)
           .frame(maxWidth: .infinity, alignment: .leading)

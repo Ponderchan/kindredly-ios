@@ -588,7 +588,7 @@ public struct KKindredsScreen: View {
             .strokeBorder(theme.faint, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
             .frame(width: 42, height: 42)
           Text(text)
-            .kText(.letter(13.5, lineHeight: 19.0 / 13.5))
+            .kText(.system(13.5, lineHeight: 19.0 / 13.5))
             .foregroundStyle(theme.sub)
             .multilineTextAlignment(.leading)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -605,11 +605,12 @@ public struct KKindredsScreen: View {
       } label: {
         VStack(alignment: .leading, spacing: 8) {
           Text(text)
-            .kText(.letter(14, italic: true, lineHeight: 20.0 / 14))
+            .kText(.system(14, lineHeight: 20.0 / 14))
             .foregroundStyle(theme.sub)
             .multilineTextAlignment(.leading)
+          // the way in is a button's words: system, as a row's trailing link
           Text(link)
-            .kText(Self.monoLine)
+            .kText(KPersonRow.link)
             .foregroundStyle(theme.ind)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

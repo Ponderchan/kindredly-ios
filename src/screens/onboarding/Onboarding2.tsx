@@ -428,7 +428,7 @@ export default function Onboarding2() {
         )}
         {demo && (
           <View pointerEvents="none" style={{ position: "absolute", top: insets.top + 12, right: 12, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: OB.ink }}>
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ fontFamily: FONT.monoSemi, fontSize: 9, letterSpacing: 1.4, color: OB.acid }}>DEMO</Text>
+            <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ ...FONT.monoSemi, fontSize: 9, letterSpacing: 1.4, color: OB.acid }}>DEMO</Text>
           </View>
         )}
       </Ground>

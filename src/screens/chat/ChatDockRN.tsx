@@ -6,9 +6,9 @@ import { InkPanel } from "../../components/10a/InkPanel";
 import { StickerBox } from "../../components/10a/StickerBox";
 import { GlyphInput } from "../../components/GlyphInput";
 import { WrenBird } from "../../components/WrenBird";
-import { useTheme } from "../../lib/theme";
+import { useLetterFamily, useTheme } from "../../lib/theme";
 import { BRAND } from "../../theme/themes";
-import { MONO, PF } from "../../theme/post";
+import { MONO, PFM } from "../../theme/post";
 import "../../data/strings-a11y-chat"; // rm.askNeedsPrompt (build-items roomComposer)
 
 /* THE DOCK, IN REACT NATIVE (10a step 5, slice chat-rn): everything above
@@ -17,13 +17,13 @@ import "../../data/strings-a11y-chat"; // rm.askNeedsPrompt (build-items roomCom
    buildRoomDock / buildLettersDock — every word and every rule there), in
    KDock's order and look, on the theme:
 
-     1. the closing line and its one link
+     1. the closing line (System: a sentence) and its one link
      2. Wren's notice (soft, corners 16; her bird, WREN NOTICED and the
-        evidence in mono 9, the ×, the line in system 15, the #word as an
-        aura label)
+        evidence in mono 9, the ×, the line in the Letter font at 15, the
+        #word as an aura label)
      3. the sign door (pen-pal chat), above the status line as it always
         stood: a capsule, gold on cream with a wax shadow when they went
-        first, plain mono when I did
+        first, plain when I did (System: a button)
      4. the status line: over the limit in postmark red, a slow send or no
         connection in mute (the slow note was a toast under the keyboard:
         spec bug 8)
@@ -74,6 +74,8 @@ export type DockAboveProps = {
 /** 1-6, in a scroll view at most 40% of the screen tall */
 export function DockAbove({ dock, status, statusAlarm, onDock, prompt, signHint }: DockAboveProps) {
   const { t: tk } = useTheme();
+  // Wren's notice, the quoted line and the question are content: the reader's Letter font
+  const face = useLetterFamily();
   const { height } = useWindowDimensions();
   /* a refusal in the postmark red is said as it turns red (accessibilityLiveRegion is Android's
      only); not on every keystroke that moves "12 over" to "13 over" */
@@ -87,9 +89,9 @@ export function DockAbove({ dock, status, statusAlarm, onDock, prompt, signHint 
     <ScrollView style={{ maxHeight: Math.max(120, Math.round(height * 0.4)), flexGrow: 0 }} bounces={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: 8 }}>
       {!!dock.closingText && (
         <Pressable onPress={() => onDock("closingLink")} accessibilityRole="link" style={{ paddingHorizontal: 10, marginBottom: 8, gap: 4 }}>
-          <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, lineHeight: 16, letterSpacing: 0.2, color: tk.sub }}>{dock.closingText}</Text>
+          <Text style={{ fontSize: 13, lineHeight: 18, color: tk.sub }}>{dock.closingText}</Text>
           {!!dock.closingLink && (
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.12, color: tk.ind }}>{dock.closingLink} ›</Text>
+            <Text style={{ fontSize: 12, fontWeight: "600", color: tk.ind }}>{dock.closingLink} ›</Text>
           )}
         </Pressable>
       )}
@@ -98,16 +100,16 @@ export function DockAbove({ dock, status, statusAlarm, onDock, prompt, signHint 
         <View style={{ marginBottom: 10, borderRadius: 16, backgroundColor: tk.soft, paddingHorizontal: 14, paddingVertical: 12, gap: 8 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <WrenBird size={20} mood="curious" />
-            <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: MONO.small, letterSpacing: MONO.small * 0.12, color: tk.mute }}>
+            <Text numberOfLines={1} style={{ ...PFM.monoMed, fontSize: MONO.small, letterSpacing: MONO.small * 0.12, color: tk.mute }}>
               {dock.notice.label}
             </Text>
             <View style={{ flex: 1 }} />
-            <Text numberOfLines={1} ellipsizeMode="head" style={{ flexShrink: 1, fontFamily: PF.monoMed, fontSize: MONO.small, letterSpacing: MONO.small * 0.1, color: tk.mute }}>
+            <Text numberOfLines={1} ellipsizeMode="head" style={{ flexShrink: 1, ...PFM.monoMed, fontSize: MONO.small, letterSpacing: MONO.small * 0.1, color: tk.mute }}>
               {dock.notice.evidence}
             </Text>
             <DockClose label={dock.notice.closeLabel} onPress={() => onDock("noticeClose")} />
           </View>
-          <Text style={{ fontSize: 15, lineHeight: 22.5, color: tk.ink }}>{dock.notice.line}</Text>
+          <Text style={{ ...face, fontSize: 15, lineHeight: 22.5, color: tk.ink }}>{dock.notice.line}</Text>
           {!!dock.notice.word && (
             // the aura label: no fill, no shadow
             <View style={{ alignSelf: "flex-start", borderWidth: 1.5, borderColor: tk.ind, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 5 }}>
@@ -121,7 +123,7 @@ export function DockAbove({ dock, status, statusAlarm, onDock, prompt, signHint 
 
       {!!status && (
         <Text
-          style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.12, color: statusAlarm ? BRAND.postRed : tk.mute, textAlign: "center", marginBottom: 6 }}
+          style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.12, color: statusAlarm ? BRAND.postRed : tk.mute, textAlign: "center", marginBottom: 6 }}
         >
           {status}
         </Text>
@@ -132,10 +134,10 @@ export function DockAbove({ dock, status, statusAlarm, onDock, prompt, signHint 
         <View onAccessibilityEscape={() => onDock("replyClose")} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 10, marginBottom: 8 }}>
           <View style={{ width: 2, alignSelf: "stretch", backgroundColor: tk.ind }} />
           <View accessible style={{ flex: 1, gap: 2 }}>
-            <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.12, color: tk.ind }}>
+            <Text numberOfLines={1} style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.12, color: tk.ind }}>
               {dock.replyLabel}
             </Text>
-            <Text numberOfLines={1} style={{ fontSize: 14, color: tk.sub }}>
+            <Text numberOfLines={1} style={{ ...face, fontSize: 14, color: tk.sub }}>
               {dock.replyExcerpt}
             </Text>
           </View>
@@ -150,7 +152,7 @@ export function DockAbove({ dock, status, statusAlarm, onDock, prompt, signHint 
           style={{ marginBottom: 8, padding: 12, borderRadius: 16, backgroundColor: tk.lav2, borderWidth: 1.5, borderColor: tk.ind, gap: 7 }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.12, color: tk.ind }}>{dock.mode.title}</Text>
+            <Text style={{ flex: 1, ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.12, color: tk.ind }}>{dock.mode.title}</Text>
             <DockClose label={dock.mode.closeLabel} onPress={() => onDock("modeClose")} />
           </View>
           {dock.mode.showsPrompt && prompt && (
@@ -162,10 +164,10 @@ export function DockAbove({ dock, status, statusAlarm, onDock, prompt, signHint 
               onFocus={prompt.onFocus}
               placeholder={dock.mode.promptPlaceholder}
               placeholderTextColor={tk.mute}
-              style={{ fontSize: 15.5, color: tk.ink, paddingVertical: 2 }}
+              style={{ ...face, fontSize: 15.5, color: tk.ink, paddingVertical: 2 }}
             />
           )}
-          {!!dock.mode.promptText && <Text style={{ fontSize: 15.5, lineHeight: 22, color: tk.ink }}>{dock.mode.promptText}</Text>}
+          {!!dock.mode.promptText && <Text style={{ ...face, fontSize: 15.5, lineHeight: 22, color: tk.ink }}>{dock.mode.promptText}</Text>}
         </View>
       )}
     </ScrollView>
@@ -177,7 +179,7 @@ function SignDoor({ dock, onDock, hint }: { dock: KChatDock; onDock: (action: KC
   const { t: tk } = useTheme();
   if (dock.signDoor === "waiting") {
     return (
-      <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.12, color: tk.mute, textAlign: "center", marginBottom: 10 }}>{dock.signLabel}</Text>
+      <Text style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.12, color: tk.mute, textAlign: "center", marginBottom: 10 }}>{dock.signLabel}</Text>
     );
   }
   // the one warm signal in the product: theirs is in, yours is asked for — the First Class chip's gold
@@ -196,7 +198,7 @@ function SignDoor({ dock, onDock, hint }: { dock: KChatDock; onDock: (action: KC
             pressed={pressed}
             faceStyle={{ paddingHorizontal: 14, paddingVertical: 8 }}
           >
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.12, color: gold ? BRAND.goldText : tk.ink, textAlign: "center" }}>{dock.signLabel}</Text>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: gold ? BRAND.goldText : tk.ink, textAlign: "center" }}>{dock.signLabel}</Text>
           </StickerBox>
         )}
       </Pressable>
@@ -208,7 +210,7 @@ function SignDoor({ dock, onDock, hint }: { dock: KChatDock; onDock: (action: KC
 export function GoneLine({ text }: { text: string }) {
   const { t: tk } = useTheme();
   return (
-    <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, lineHeight: 17, letterSpacing: 0.3, color: tk.mute, textAlign: "center", paddingHorizontal: 14, paddingTop: 6, paddingBottom: 12 }}>{text}</Text>
+    <Text style={{ fontSize: 13, lineHeight: 18, color: tk.mute, textAlign: "center", paddingHorizontal: 14, paddingTop: 6, paddingBottom: 12 }}>{text}</Text>
   );
 }
 
@@ -219,7 +221,7 @@ export function ExpiredCard({ dock, onDock }: { dock: KChatDock; onDock: (action
     <InkPanel variant="me" style={{ marginRight: 5, marginBottom: 11, marginTop: 4 }} contentStyle={{ gap: 8 }}>
       <View accessible style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <WrenBird size={20} mood="think" />
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.small, letterSpacing: MONO.small * 0.12, color: tk.mute }}>{dock.expiredLabel}</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: MONO.small, letterSpacing: MONO.small * 0.12, color: tk.mute }}>{dock.expiredLabel}</Text>
       </View>
       <Text style={{ fontSize: 15, lineHeight: 22, color: tk.ink }}>{dock.expiredBody}</Text>
       <Pressable

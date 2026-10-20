@@ -9,7 +9,7 @@ import { EnvelopeArt } from "../EnvelopeArt";
 import { STAMPS, getStamp, sname } from "../../data/stamps";
 import { OPENING_MIN } from "../../lib/weighted-count";
 import { stampHeight } from "../../lib/stamp-frame";
-import { P, PF } from "../../theme/post";
+import { P, PFM } from "../../theme/post";
 import { TOPIC_TAG_INK, TOPIC_TAG_NEUTRAL } from "../10a/kit";
 import { t } from "../../lib/i18n";
 
@@ -107,10 +107,10 @@ function Count({ s }: { s: number }) {
             <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: keyW, height: kh, borderWidth: 1, borderColor: P.ink12, overflow: "hidden", justifyContent: "center" }, filling]}>
               <Animated.View style={[{ position: "absolute", left: 0, top: 0, bottom: 0, backgroundColor: P.penWash }, wash]} />
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: s * 0.022, paddingHorizontal: s * 0.03 }}>
-                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: labelSize, letterSpacing: 1.2, color: P.ink40 }}>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ flexShrink: 1, ...PFM.monoSemi, fontSize: labelSize, letterSpacing: 1.2, color: P.ink40 }}>
                   {t("cp.travel")}
                 </Text>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: labelSize * 0.9, color: P.ink60 }}>
+                <Text style={{ ...PFM.monoSemi, fontSize: labelSize * 0.9, color: P.ink60 }}>
                   {Math.min(n, OPENING_MIN)}/{OPENING_MIN}
                 </Text>
               </View>
@@ -124,7 +124,7 @@ function Count({ s }: { s: number }) {
               </Animated.View>
               {/* two lines allowed: it "SCEGLI UN FRANCOBOLLO DELL'UMORE" is
                   32 characters, and the key here is half a phone wide */}
-              <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={{ marginLeft: s * 0.06, marginRight: s * 0.025, textAlign: "center", fontFamily: PF.monoSemi, fontSize: labelSize, letterSpacing: 1.2, color: "#FFFFFF" }}>
+              <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={{ marginLeft: s * 0.06, marginRight: s * 0.025, textAlign: "center", ...PFM.monoSemi, fontSize: labelSize, letterSpacing: 1.2, color: "#FFFFFF" }}>
                 {t("cp.needStamp")}
               </Text>
             </Animated.View>
@@ -166,7 +166,7 @@ function FanStamp({ id, i, s, w, cy, fan, pick }: { id: string; i: number; s: nu
         <Stamp id={id} width={w} dark={false} />
       </View>
       {/* two lines: de "Hat meinen Tag gerettet" won't fit one at this size */}
-      <Animated.Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={[{ width: box, marginTop: s * 0.006, textAlign: "center", fontFamily: PF.monoSemi, fontSize: s * 0.032, letterSpacing: 0.4, color: stamp?.nameLight ?? P.ink }, name]}>
+      <Animated.Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={[{ width: box, marginTop: s * 0.006, textAlign: "center", ...PFM.monoSemi, fontSize: s * 0.032, letterSpacing: 0.4, color: stamp?.nameLight ?? P.ink }, name]}>
         {sname(stamp?.name).toUpperCase()}
       </Animated.Text>
     </Animated.View>
@@ -182,7 +182,7 @@ function Suggest({ s }: { s: number }) {
     <View style={{ width: s, height: s }}>
       <View style={{ position: "absolute", left: 0, right: 0, top: s * 0.15, alignItems: "center" }}>
         <Rise delay={100} dy={s * 0.04}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: s * 0.038, letterSpacing: 1.8, color: P.ink60 }}>{t("cp.forThisLetter")}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: s * 0.038, letterSpacing: 1.8, color: P.ink60 }}>{t("cp.forThisLetter")}</Text>
         </Rise>
       </View>
       {SUGGESTED.map((id, i) => (
@@ -284,12 +284,12 @@ function Land({ s }: { s: number }) {
             <View style={{ height: kh, maxWidth: ew * 0.46, borderRadius: kh / 2, borderWidth: bw, borderColor: TOPIC_TAG_INK, backgroundColor: stamp?.color ?? TOPIC_TAG_NEUTRAL, paddingHorizontal: s * 0.03, alignItems: "center", justifyContent: "center" }}>
               {/* two lines allowed: de/it names run to 23 characters and the
                   pill here is narrower than the real one (148pt) */}
-              <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={{ textAlign: "center", fontFamily: PF.monoMed, fontSize: s * 0.036, color: TOPIC_TAG_INK }}>
+              <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={{ textAlign: "center", ...PFM.monoMed, fontSize: s * 0.036, color: TOPIC_TAG_INK }}>
                 #{sname(stamp?.name).toLowerCase()}
               </Text>
             </View>
             <View style={{ flex: 1, height: kh, backgroundColor: P.ink, alignItems: "center", justifyContent: "center", paddingHorizontal: s * 0.025 }}>
-              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55} style={{ fontFamily: PF.monoSemi, fontSize: s * 0.038, letterSpacing: 1.2, color: "#FFFFFF" }}>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55} style={{ ...PFM.monoSemi, fontSize: s * 0.038, letterSpacing: 1.2, color: "#FFFFFF" }}>
                 {t("cp.travel")}
               </Text>
             </View>

@@ -7,7 +7,7 @@ import {
   useAudioRecorder,
 } from "expo-audio";
 import { t, useLang } from "../lib/i18n";
-import { F } from "../theme/tokens";
+import { PFM } from "../theme/post";
 import { useTheme } from "../lib/theme";
 import { fmt } from "../lib/format";
 import "../data/strings-a11y-compose";
@@ -103,7 +103,7 @@ export function Recorder({
             <View key={i} style={{ width: 3, height: h, borderRadius: 2, backgroundColor: tk.ind, opacity: 0.65 }} />
           ))}
         </View>
-        <Text style={{ fontFamily: F.sansBold, fontSize: 12.5, color: tk.ind }}>{fmt(doneDur || 0)}</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: 12.5, color: tk.ind }}>{fmt(doneDur || 0)}</Text>
         {/* a11y cm-6: named, and a 44 box (it was the 13pt ✕ and 8 of slop, about 29); the
             negative margin keeps the row as it was drawn */}
         <Pressable
@@ -148,7 +148,7 @@ export function Recorder({
           />
         ))}
       </View>
-      <Text accessibilityLabel={t("rc.a11y.time", { t: fmt(dur), max: fmt(maxS) })} style={{ fontFamily: F.sansBold, fontSize: 12.5, color: rec ? RECORDING : tk.ind }}>
+      <Text accessibilityLabel={t("rc.a11y.time", { t: fmt(dur), max: fmt(maxS) })} style={{ ...PFM.monoSemi, fontSize: 12.5, color: rec ? RECORDING : tk.ind }}>
         {fmt(dur)} / {fmt(maxS)}
       </Text>
     </View>

@@ -1,14 +1,15 @@
 import type { ReactNode } from "react";
 import { Pressable, Text, View, type ViewStyle } from "react-native";
-import { MONO, PF } from "../theme/post";
+import { MONO, PF, PFM } from "../theme/post";
 import { useTheme } from "../lib/theme";
 
-/* EVERY TAB'S PLATE. The tab's name in capitals with the tab's one fact or
+/* EVERY TAB'S PLATE. The tab's name with the tab's one fact or
    control on the right. Today, Notes, Kindreds and Me wear the same one;
    only the + has none, because it isn't a place.
 
-   10a: the name is the mock's page title — system 600 at 22 with .04em of
-   tracking (H:61, 71) — and the rule under it is gone on all four tabs
+   10a: the name is the page title — system 700 at 22, leading, the same on
+   all four tabs (owner, 2026-10-20; KTextStyle.pageTitle in Swift) — and
+   the rule under it is gone on all four tabs
    (the owner's call): the page's own ground does the separating now. It
    paints from the theme. A long name in some languages (SEELENVERWANDTE,
    AUJOURD'HUI) shrinks to fit its line, to .7, rather than pushing the
@@ -61,7 +62,7 @@ export function TabHeader({
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.6}
-        style={{ fontFamily: PF.monoMed, fontSize: MONO.title, letterSpacing: 1.3, color: rightTone === "ind" ? tk.ind : tk.mute, textAlign: "right" }}
+        style={{ ...PFM.monoMed, fontSize: MONO.title, letterSpacing: 1.3, color: rightTone === "ind" ? tk.ind : tk.mute, textAlign: "right" }}
       >
         {rightLabel}
       </Text>
@@ -88,7 +89,7 @@ export function TabHeader({
         adjustsFontSizeToFit
         minimumFontScale={0.7}
         accessibilityRole="header"
-        style={{ flexShrink: 1, fontFamily: PF.letter, fontWeight: "600", fontSize: 22, letterSpacing: 0.88, color }}
+        style={{ flexShrink: 1, fontFamily: PF.letter, fontWeight: "700", fontSize: 22, color }}
       >
         {title}
       </Text>

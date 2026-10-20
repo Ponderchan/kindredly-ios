@@ -1,9 +1,9 @@
 import { forwardRef } from "react";
 import { Pressable, Text, View, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
 import { GlyphInput } from "../GlyphInput";
-import { useTheme } from "../../lib/theme";
+import { useLetterFamily, useTheme } from "../../lib/theme";
 import { BRAND } from "../../theme/themes";
-import { PF } from "../../theme/post";
+import { PFM } from "../../theme/post";
 import { LineIcon } from "./LineIcon";
 import { StickerBox } from "./StickerBox";
 import { FIELD_FONT_CAP, useComposerField, type ComposerFieldHandle } from "./useComposerField";
@@ -112,6 +112,8 @@ export const ReplyBar = forwardRef<ReplyBarHandle, ReplyBarProps>(function Reply
   ref,
 ) {
   const { t: tk } = useTheme();
+  // what is typed here is a reply, so it is in the reader's Letter font (KReplyBar: content: true)
+  const face = useLetterFamily();
   const f = useComposerField(ref, initialText, onChangeText);
 
   const state = sendKeyState({ hasWords: f.hasWords, canSend, held });
@@ -132,7 +134,7 @@ export const ReplyBar = forwardRef<ReplyBarHandle, ReplyBarProps>(function Reply
   return (
     <View style={[{ gap: REPLY_BAR.hintGap }, style]}>
       {showsHint && !!hint && (
-        <Text numberOfLines={2} maxFontSizeMultiplier={2} style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: hintWarn ? BRAND.postRed : tk.sub, paddingLeft: 6 }}>
+        <Text numberOfLines={2} maxFontSizeMultiplier={2} style={{ ...PFM.monoMed, fontSize: 10, letterSpacing: 1.4, color: hintWarn ? BRAND.postRed : tk.sub, paddingLeft: 6 }}>
           {hint}
         </Text>
       )}
@@ -174,6 +176,7 @@ export const ReplyBar = forwardRef<ReplyBarHandle, ReplyBarProps>(function Reply
             paddingTop: REPLY_BAR_PAD,
             paddingBottom: REPLY_BAR_PAD,
             paddingHorizontal: 0,
+            ...face,
             fontSize,
             lineHeight,
             color: tk.ink,

@@ -4,7 +4,7 @@ import Svg, { G, Path } from "react-native-svg";
 import { LaunchMarkArt, POST_BLUE } from "../../../components/LaunchAnimation";
 import { LineIcon, type LineIconName } from "../../../components/10a/LineIcon";
 import { STAMP_V3_FRAME_D, STAMP_V3_INK } from "../../../lib/stamp-frame";
-import { PF } from "../../../theme/post";
+import { PFM } from "../../../theme/post";
 import { OB } from "../parts/tokens";
 import { OB_MAX_FONT } from "../parts/tokens";
 
@@ -182,7 +182,7 @@ export function NameMarks({
 export function DocketDate({ text, k, style }: { text: string; k: number; style?: StyleProp<ViewStyle> }) {
   return (
     <View style={style}>
-      <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: 11 * k, letterSpacing: 0.88 * k, color: OB.inkSoft }}>
+      <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ ...PFM.monoMed, fontSize: 11 * k, letterSpacing: 0.88 * k, color: OB.inkSoft }}>
         {text}
       </Text>
     </View>

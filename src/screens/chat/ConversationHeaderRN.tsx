@@ -14,7 +14,7 @@ import type { FrostSpec } from "../../lib/frost";
 import { useTheme } from "../../lib/theme";
 import { COLS, ROWS, VEIL_MASK, maskHas } from "../../lib/mosaic";
 import { BRAND } from "../../theme/themes";
-import { PF } from "../../theme/post";
+import { PFM } from "../../theme/post";
 import { ReachBand } from "./ReachBand";
 
 /* THE CONVERSATION'S HEADER, IN REACT NATIVE (chat composers, the owner's
@@ -112,7 +112,7 @@ export function ConversationHeaderRN({
           maxFontSizeMultiplier={2.2}
         />
         {!!model.sub && (
-          <Text numberOfLines={1} maxFontSizeMultiplier={2.2} style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.2, color: subColor }}>
+          <Text numberOfLines={1} maxFontSizeMultiplier={2.2} style={{ ...PFM.monoMed, fontSize: 10, letterSpacing: 1.2, color: subColor }}>
             {model.sub}
           </Text>
         )}

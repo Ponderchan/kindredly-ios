@@ -1,5 +1,5 @@
 import { Text, type StyleProp, type ViewStyle } from "react-native";
-import { PF } from "../../theme/post";
+import { PFM } from "../../theme/post";
 import { useTheme } from "../../lib/theme";
 import { StickerBox } from "./StickerBox";
 import { TOPIC_TAG_SIZE, topicTagLook } from "./kit";
@@ -50,7 +50,7 @@ export function TopicTag({
       style={style}
       faceStyle={{ paddingVertical: 6, paddingHorizontal: 12 }}
     >
-      <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: TOPIC_TAG_SIZE, letterSpacing: 0.2, color: look.text }}>
+      <Text numberOfLines={1} style={{ ...PFM.monoSemi, fontSize: TOPIC_TAG_SIZE, letterSpacing: 0.2, color: look.text }}>
         {name}
       </Text>
     </StickerBox>

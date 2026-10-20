@@ -21,7 +21,9 @@ import { getLang, t, useLang } from "../../../lib/i18n";
 import { openPrivacy, openTerms } from "../../../lib/legal";
 import { monthsShort } from "../../../lib/format";
 import Svg, { Circle, Ellipse, G, Path, Rect } from "react-native-svg";
-import { F2, Y as Y_ART } from "../../../theme/y2k";
+import { Y as Y_ART } from "../../../theme/y2k";
+import { useLetterFamily, useLetterFont } from "../../../lib/theme";
+import { letterFitLines } from "../../../theme/post";
 import { FIXED_INK, useEggOS, type EggPalette, type EggSkin } from "../../../lib/egg-os";
 import { Wheel } from "../../../components/Wheel";
 import { useAuth } from "../../../lib/auth";
@@ -144,7 +146,7 @@ const CARDS = [0, 1, 2] as const;
 /* the welcome headline + sub, shared by the visible copy and the off-screen
    measuring pass so the two can never drift apart. Functions of the console
    palette, so they're coloured by the theme in effect. */
-const headStyle = (Y: EggPalette) => ({ fontFamily: F2.serif, fontSize: 29, color: Y.ink, textAlign: "center" as const, marginTop: 18, lineHeight: 36 });
+const headStyle = (Y: EggPalette) => ({ fontWeight: "700" as const, fontSize: 29, color: Y.ink, textAlign: "center" as const, marginTop: 18, lineHeight: 36 });
 const subStyle = (Y: EggPalette, mono: EggSkin["mono"]) => [mono(11, "r"), { color: Y.dim, textAlign: "center" as const, marginTop: 8, lineHeight: 18, letterSpacing: 0.2 }];
 
 /* the sealed list's inline short forms live in the catalog as ob.sealed.<key>;
@@ -171,6 +173,10 @@ const EGG_STATUS_STEPS: Step[] = ["username", "you", "cakeday", "avatar"];
 export default function Onboarding() {
   // the console skin in the theme's colours; tk is the 10a tokens (t is the catalog's)
   const { Y, bevel, card, key: keyBtn, tag, mono, t: tk, dark } = useEggOS();
+  // what is written here (the cue, the letter, the words fed to the egg) is content: the reader's
+  // letter font's italic (upright in Garamond / SF Mono); names, choices and headlines are the system font
+  const letterKey = useLetterFont();
+  const said = useLetterFamily(true);
   const router = useRouter();
   const lang = useLang(); // repaint when the reader changes language
   const auth = useAuth();
@@ -569,7 +575,7 @@ export default function Onboarding() {
             </View>
 
             <Text style={headStyle(Y)}>
-              {t("ob.door.h")} <Text style={{ fontFamily: F2.serifItalic, fontStyle: "italic" }}>{t("ob.door.hi")}</Text>
+              {t("ob.door.h")} <Text style={{ fontStyle: "italic" }}>{t("ob.door.hi")}</Text>
             </Text>
             <Text style={subStyle(Y, mono)}>{t("ob.door.s")}</Text>
           </View>
@@ -759,7 +765,7 @@ export default function Onboarding() {
                 placeholder={t("ob.username.placeholder")}
                 placeholderTextColor={Y.faint}
                 keyboardAppearance={dark ? "dark" : "light"}
-                style={{ flex: 1, fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 21, color: Y.ink }}
+                style={{ flex: 1, fontWeight: "500", fontSize: 21, color: Y.ink }}
               />
             </View>
           </Animated.View>
@@ -815,7 +821,7 @@ export default function Onboarding() {
                   >
                     {on ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: Y.onFill }} /> : null}
                   </View>
-                  <Text style={{ fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 20, color: on ? Y.onFill : Y.ink }}>{t(`pr.${p.id}`)}</Text>
+                  <Text style={{ fontWeight: "500", fontSize: 20, color: on ? Y.onFill : Y.ink }}>{t(`pr.${p.id}`)}</Text>
                 </Pressable>
               </Animated.View>
             );
@@ -1013,7 +1019,7 @@ export default function Onboarding() {
                   placeholder={t("ob.naming.placeholder")}
                   placeholderTextColor={Y.faint}
                   keyboardAppearance={dark ? "dark" : "light"}
-                  style={{ flex: 1, fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 21, color: Y.ink }}
+                  style={{ flex: 1, fontWeight: "500", fontSize: 21, color: Y.ink }}
                 />
                 {/* the dice, in the box: roll a name */}
                 <Pressable
@@ -1175,7 +1181,7 @@ export default function Onboarding() {
                   <Animated.View key={`${i}-${th.slice(0, 8)}`} entering={ZoomIn.duration(360).easing(Easing.out(Easing.back(1.6)))} style={{ position: "absolute", top: o.top, left: o.left, right: o.right, maxWidth: 124 }}>
                     <View style={{ transform: [{ rotate: o.rot }] }}>
                       <Pressable onPress={() => setThoughts((arr) => arr.filter((_, j) => j !== i))} style={[card, bevel(2, 2), { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5 }]}>
-                        <Text numberOfLines={1} style={{ fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 12, color: Y.ink }}>
+                        <Text numberOfLines={1} style={{ ...said, fontSize: 12, color: Y.ink }}>
                           {th}
                         </Text>
                       </Pressable>
@@ -1188,10 +1194,10 @@ export default function Onboarding() {
             {/* ONE LINE OF HEADLINE, whatever the language — it shrinks to fit
                 rather than dropping a word onto a line of its own. The grey
                 line under it is a chip, not loose type (owner, 2026-09-19). */}
-            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72} style={{ fontFamily: F2.serif, fontSize: 23, lineHeight: 30, color: Y.ink, textAlign: "center", paddingHorizontal: 22 }}>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72} style={{ fontWeight: "700", fontSize: 23, lineHeight: 30, color: Y.ink, textAlign: "center", paddingHorizontal: 22 }}>
               {n === 0 ? (
                 <>
-                  {t("ob.write.plain")} <Text style={{ fontFamily: F2.serifItalic, fontStyle: "italic" }}>{t("ob.write.em")}</Text>
+                  {t("ob.write.plain")} <Text style={{ fontStyle: "italic" }}>{t("ob.write.em")}</Text>
                 </>
               ) : (
                 t(`ob.write.t${Math.min(n, FEED_COUNT)}`)
@@ -1217,7 +1223,7 @@ export default function Onboarding() {
                   style={{ marginTop: 14, height: 36, borderRadius: 999, backgroundColor: "#FFF3D6", borderWidth: 2, borderColor: Y.ln, flexDirection: "row", alignItems: "center", paddingLeft: 12, paddingRight: 4 }}
                 >
                   <Text style={[mono(9, "b"), { color: "#8A6A1F", letterSpacing: 1.6 }]}>{t("ob.cue.label")}</Text>
-                  <Text numberOfLines={1} style={{ flex: 1, marginLeft: 8, marginRight: 6, fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 13.5, color: Y.fixedInk }}>
+                  <Text numberOfLines={1} style={{ flex: 1, marginLeft: 8, marginRight: 6, ...said, fontSize: 13.5, color: Y.fixedInk }}>
                     {t(`ob.cue.${(cue % CUE_COUNT) + 1}`)}
                   </Text>
                   <Animated.View style={[spinStyle, { width: 26, height: 26, borderRadius: 13, backgroundColor: Y.panel, borderWidth: 2, borderColor: Y.ln, alignItems: "center", justifyContent: "center" }]}>
@@ -1248,7 +1254,7 @@ export default function Onboarding() {
                     placeholder={t("ob.write.ph")}
                     placeholderTextColor={Y.faint}
                     keyboardAppearance={dark ? "dark" : "light"}
-                    style={{ fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 17, lineHeight: 28, color: Y.ink, minHeight: 84, paddingTop: 0, marginTop: 0 }}
+                    style={{ ...said, fontSize: 17, lineHeight: 28, color: Y.ink, minHeight: 84, paddingTop: 0, marginTop: 0 }}
                   />
                   <View style={{ position: "absolute", left: 14, bottom: 15, flexDirection: "row", alignItems: "center" }}>
                     <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: hearDot, marginRight: 6 }} />
@@ -1317,10 +1323,10 @@ export default function Onboarding() {
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 22 }}>
           {!flying ? (
             <>
-              <Animated.Text entering={FadeIn.duration(400)} style={{ fontFamily: F2.serif, fontSize: 31, color: Y.ink, textAlign: "center" }}>
+              <Animated.Text entering={FadeIn.duration(400)} style={{ fontWeight: "700", fontSize: 31, color: Y.ink, textAlign: "center" }}>
                 {/* the emphasis lands on the possessive in English and on the
                     courier's name elsewhere — grammar decides, per language */}
-                {t("ob.flight.plain", { name: her })} <Text style={{ fontFamily: F2.serifItalic, fontStyle: "italic" }}>{t("ob.flight.em", { name: her })}</Text>
+                {t("ob.flight.plain", { name: her })} <Text style={{ fontStyle: "italic" }}>{t("ob.flight.em", { name: her })}</Text>
               </Animated.Text>
               <Text style={[mono(10, "b"), { color: Y.dim, marginTop: 10, letterSpacing: 0.6, textAlign: "center" }]}>{t(travels ? "ob.flight.sub" : "ob.flight.subKept")}</Text>
 
@@ -1330,7 +1336,7 @@ export default function Onboarding() {
                 </Animated.View>
                 {/* the letter is the words they just fed — real, not an icon */}
                 <View style={[card, bevel(4, 4), { maxWidth: 300, marginTop: -8, paddingHorizontal: 16, paddingVertical: 13, transform: [{ rotate: "-2deg" }] }]}>
-                  <Text numberOfLines={3} style={{ fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 15, lineHeight: 22, color: Y.ink }}>
+                  <Text numberOfLines={letterFitLines(letterKey, 3)} style={{ ...said, fontSize: 15, lineHeight: 22, color: Y.ink }}>
                     {opener}
                   </Text>
                   <Text style={[mono(8.5, "b"), { color: Y.faint, marginTop: 8 }]}>{t("ob.carriedBy", { name: her.toUpperCase() })}</Text>
@@ -1378,7 +1384,7 @@ export default function Onboarding() {
             {!born ? (
               <>
                 <Text style={[mono(10, "b"), { color: Y.dim, letterSpacing: 2 }]}>{t("ob.hatch.eyebrow")}</Text>
-                <Text style={{ fontFamily: F2.serif, fontSize: 30, lineHeight: 35, color: Y.ink, marginTop: 8 }}>{t("ob.hatch.title")}</Text>
+                <Text style={{ fontWeight: "700", fontSize: 30, lineHeight: 35, color: Y.ink, marginTop: 8 }}>{t("ob.hatch.title")}</Text>
                 <View style={{ marginTop: 12 }}>
                   {readItems.map((label, i) => {
                     const done = readProg * readItems.length > i + 0.5;
@@ -1396,8 +1402,8 @@ export default function Onboarding() {
                 {/* THE HEADLINE IS THE EVENT. Then one plain line that says
                     where the bubble came from and what it caught — the
                     dimension as a phrase in a sentence, never a tag. */}
-                <Text style={{ fontFamily: F2.serif, fontSize: 34, lineHeight: 39, color: Y.ink }}>
-                  {t("ob.hatched.plain")} <Text style={{ fontFamily: F2.serifItalic, fontStyle: "italic" }}>{t("ob.hatched.em")}</Text>
+                <Text style={{ fontWeight: "700", fontSize: 34, lineHeight: 39, color: Y.ink }}>
+                  {t("ob.hatched.plain")} <Text style={{ fontStyle: "italic" }}>{t("ob.hatched.em")}</Text>
                 </Text>
                 <Text style={[mono(11, "r"), { color: Y.dim, marginTop: 10, lineHeight: 17, letterSpacing: 0.2 }]}>
                   {saidFirst ? t("ob.born.word", { dim: dimPhrase }) : t("ob.born.noWord", { dim: dimPhrase })}
@@ -1571,8 +1577,8 @@ function Head({ plain, em, sub }: { plain: string; em: string; sub: string }) {
   const { Y, mono } = useEggOS();
   return (
     <Animated.View entering={FadeInDown.duration(420)} style={{ paddingHorizontal: 18, paddingTop: 12 }}>
-      <Text style={{ fontFamily: F2.serif, fontSize: 26, color: Y.ink, textAlign: "center", lineHeight: 33 }}>
-        {plain} <Text style={{ fontFamily: F2.serifItalic, fontStyle: "italic" }}>{em}</Text>
+      <Text style={{ fontWeight: "700", fontSize: 26, color: Y.ink, textAlign: "center", lineHeight: 33 }}>
+        {plain} <Text style={{ fontStyle: "italic" }}>{em}</Text>
       </Text>
       {!!sub && <Text style={[mono(11, "r"), { color: Y.dim, textAlign: "center", marginTop: 9, lineHeight: 18, letterSpacing: 0.2 }]}>{sub}</Text>}
     </Animated.View>
@@ -1886,7 +1892,7 @@ function BarRow({ d }: { d: DimScore }) {
   const col = d.locked ? Y.brass : Y.blue;
   return (
     <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
-      <Text style={{ width: 118, fontFamily: F2.serif, fontSize: 15.5, color: Y.ink }}>{d.label}</Text>
+      <Text style={{ width: 118, fontWeight: "500", fontSize: 15.5, color: Y.ink }}>{d.label}</Text>
       {/* the track: the pale accent fill */}
       <View style={{ flex: 1, height: 7, borderRadius: 4, backgroundColor: tk.lav, marginHorizontal: 10, overflow: "hidden" }}>
         <View style={{ width: `${d.score}%`, height: 7, borderRadius: 4, backgroundColor: col, opacity: d.locked ? 1 : 0.85 }} />

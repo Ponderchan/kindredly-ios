@@ -12,7 +12,7 @@ import { Envelope, Kindreds, Me, Notes } from "../PostTabBar";
 import { STARTER_STAMPS } from "../../data/stamps";
 import { OPENING_MIN } from "../../lib/weighted-count";
 import { stampHeight } from "../../lib/stamp-frame";
-import { P, PF } from "../../theme/post";
+import { P, PF, PFM } from "../../theme/post";
 import { t, useLang } from "../../lib/i18n";
 
 /* HOW LETTERS TRAVEL — the reel (owner, 2026-10-11: "大的清楚的动态演示").
@@ -164,8 +164,8 @@ const Open = memo(function Open({ s }: { s: number }) {
 
       {/* the composer slides in over all of it */}
       <Animated.View style={[{ position: "absolute", left: 5 * u, top: 9 * u, width: 90 * u, height: 96 * u, backgroundColor: "#FFFFFF", borderRadius: 5 * u, borderWidth: 2, borderColor: LINE_INK, overflow: "hidden" }, sheetSt]}>
-        <Text style={{ position: "absolute", left: 5 * u, top: 4 * u, fontFamily: PF.mono, fontSize: 5 * u, color: P.ink }}>✕</Text>
-        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ position: "absolute", left: 15 * u, right: 24 * u, top: 5.4 * u, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 3.8 * u, letterSpacing: 0.3 * u, color: P.ink }}>
+        <Text style={{ position: "absolute", left: 5 * u, top: 4 * u, ...PFM.mono, fontSize: 5 * u, color: P.ink }}>✕</Text>
+        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ position: "absolute", left: 15 * u, right: 24 * u, top: 5.4 * u, textAlign: "center", ...PFM.monoSemi, fontSize: 3.8 * u, letterSpacing: 0.3 * u, color: P.ink }}>
           {t("cp.header")}
         </Text>
         {/* the corner where the stamp goes, still empty */}
@@ -270,15 +270,15 @@ function Writing({ u }: { u: number }) {
       <View style={{ position: "absolute", left: 5 * u, right: 5 * u, top: 66 * u, height: 14 * u, borderWidth: 1, borderColor: P.ink12, overflow: "hidden", justifyContent: "center" }}>
         <View style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${Math.round((c / OPENING_MIN) * 100)}%`, backgroundColor: P.penWash }} />
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 2 * u, paddingHorizontal: 3 * u }}>
-          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: 4 * u, letterSpacing: 0.35 * u, color: P.ink40 }}>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ flexShrink: 1, ...PFM.monoSemi, fontSize: 4 * u, letterSpacing: 0.35 * u, color: P.ink40 }}>
             {t("cp.travel")}
           </Text>
-          <Text style={{ fontFamily: PF.mono, fontSize: 3.4 * u, color: P.ink40 }}>
+          <Text style={{ ...PFM.mono, fontSize: 3.4 * u, color: P.ink40 }}>
             {c}/{OPENING_MIN}
           </Text>
         </View>
         <Animated.View style={[{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: P.pen, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 * u }, readySt]}>
-          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ fontFamily: PF.monoSemi, fontSize: 4 * u, letterSpacing: 0.35 * u, color: "#FFFFFF" }}>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ ...PFM.monoSemi, fontSize: 4 * u, letterSpacing: 0.35 * u, color: "#FFFFFF" }}>
             {t("cp.needStamp")}
           </Text>
         </Animated.View>
@@ -405,7 +405,7 @@ const StampScene = memo(function StampScene({ s }: { s: number }) {
 
       {/* the key, solid ink now: both doors open */}
       <Animated.View style={[{ position: "absolute", left: 14 * u, right: 14 * u, top: 79 * u, height: 13 * u, backgroundColor: P.ink, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 * u }, key]}>
-        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ fontFamily: PF.monoSemi, fontSize: 4.2 * u, letterSpacing: 0.4 * u, color: "#FFFFFF" }}>
+        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ ...PFM.monoSemi, fontSize: 4.2 * u, letterSpacing: 0.4 * u, color: "#FFFFFF" }}>
           {t("cp.travel")}
         </Text>
       </Animated.View>
@@ -484,7 +484,7 @@ function DeskTile({ u, cx, seed, you = false, dropAt, tilt = 0 }: { u: number; c
         </Animated.View>
       )}
       {you && (
-        <Text numberOfLines={1} style={{ position: "absolute", left: -T * 0.3, width: T * 1.6, top: T + 1.6 * u, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 3.4 * u, letterSpacing: 0.3 * u, color: P.pen }}>
+        <Text numberOfLines={1} style={{ position: "absolute", left: -T * 0.3, width: T * 1.6, top: T + 1.6 * u, textAlign: "center", ...PFM.monoSemi, fontSize: 3.4 * u, letterSpacing: 0.3 * u, color: P.pen }}>
           {t("ui.you")}
         </Text>
       )}
@@ -540,7 +540,7 @@ function Shutter({ u, w, h }: { u: number; w: number; h: number }) {
       {Array.from({ length: 10 }, (_, k) => (
         <View key={k} style={{ position: "absolute", left: 0, right: 0, top: (k + 1) * 6 * u, height: 1, backgroundColor: "rgba(255,255,255,0.10)" }} />
       ))}
-      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ paddingHorizontal: 5 * u, fontFamily: PF.monoSemi, fontSize: 5 * u, letterSpacing: 0.3 * u, color: "#FFFFFF" }}>
+      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ paddingHorizontal: 5 * u, ...PFM.monoSemi, fontSize: 5 * u, letterSpacing: 0.3 * u, color: "#FFFFFF" }}>
         {t("ga.closed")}
       </Text>
       <View style={{ position: "absolute", bottom: 2.5 * u, left: w / 2 - 7 * u, width: 14 * u, height: 1.4 * u, borderRadius: 0.7 * u, backgroundColor: "rgba(255,255,255,0.35)" }} />
@@ -552,7 +552,7 @@ function Shutter({ u, w, h }: { u: number; w: number; h: number }) {
 function LeftLabel({ u }: { u: number }) {
   const n = useCount(DAY, 0, READ_EVERY, READ_T0);
   return (
-    <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ position: "absolute", left: 5 * u, right: 5 * u, top: 4.2 * u, fontFamily: PF.monoSemi, fontSize: 6 * u, letterSpacing: 0.25 * u, color: P.ink }}>
+    <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ position: "absolute", left: 5 * u, right: 5 * u, top: 4.2 * u, ...PFM.monoSemi, fontSize: 6 * u, letterSpacing: 0.25 * u, color: P.ink }}>
       {t("ga.left", { n })}
     </Text>
   );

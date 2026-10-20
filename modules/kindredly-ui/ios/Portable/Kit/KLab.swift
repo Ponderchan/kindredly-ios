@@ -1127,9 +1127,10 @@ public struct KStampPressCamera: View {
       .buttonStyle(KPressScaleStyle())
       .accessibilityLabel(cropping != nil ? strings.back : strings.close)
       Spacer()
+      // a secondary page's title: system 500 17 (KBackBar's), on the dark camera
       Text(strings.title)
-        .kText(.mono(10, tracking: 0.16))
-        .foregroundStyle(Color.white.opacity(0.7))
+        .kText(.secondaryTitle)
+        .foregroundStyle(Color.white.opacity(0.85))
         .lineLimit(1)
         .dynamicTypeSize(...DynamicTypeSize.xxLarge)
         .accessibilityAddTraits(.isHeader)
@@ -1281,8 +1282,9 @@ public struct KStampPressCamera: View {
     VStack(spacing: 14) {
       // the slot the pressed stamp slides out of
       Rectangle().fill(Color.white.opacity(0.25)).frame(width: sw, height: 2)
+      // the hints are labels (mono); "no camera here" is a sentence (system)
       Text(cropping != nil ? strings.cropHint : (camera.access == .noLens ? strings.noCamera : strings.hint))
-        .kText(.mono(10, tracking: 0.14))
+        .kText(cropping == nil && camera.access == .noLens ? .system(13) : .mono(10, tracking: 0.14))
         .foregroundStyle(Color.white.opacity(0.8))
         .multilineTextAlignment(.center)
         .dynamicTypeSize(...DynamicTypeSize.xxLarge)
@@ -1290,7 +1292,7 @@ public struct KStampPressCamera: View {
         .overlay {
           if failedShown {
             Text(strings.failed)
-              .kText(.mono(10, tracking: 0.14))
+              .kText(.system(13))
               .foregroundStyle(Color.white)
               .multilineTextAlignment(.center)
               .dynamicTypeSize(...DynamicTypeSize.xxLarge)

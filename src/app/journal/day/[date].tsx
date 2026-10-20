@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { PF } from "../../../theme/post";
+import { PFM } from "../../../theme/post";
 import { useP } from "../../../lib/theme";
 import { BackChevron } from "../../../components/10a/BackChevron";
 import { SealedEntry } from "../../../components/SealedEntry";
@@ -51,8 +51,9 @@ export default function SealedDay() {
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
       <View style={{ height: 52, paddingBottom: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: 56 }}>
         <BackChevron onPress={goBack} color={P.ink} />
-        <Text accessibilityRole="header" numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.4, color: P.ink }}>
-          {title.toLocaleUpperCase(localeTag())}
+        {/* the secondary title (SecondaryHeader's): System 500 17, centred, as written */}
+        <Text accessibilityRole="header" numberOfLines={1} style={{ flexShrink: 1, fontSize: 17, fontWeight: "500", color: P.ink }}>
+          {title}
         </Text>
       </View>
 
@@ -60,7 +61,7 @@ export default function SealedDay() {
         {day.map((e) => (
           <SealedEntry key={e.id} e={e} onPress={() => router.push(`/journal/${e.id}`)} />
         ))}
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 0.8, color: P.ink40, textAlign: "center", marginTop: 10 }}>
+        <Text style={{ ...PFM.monoMed, fontSize: 10, letterSpacing: 0.8, color: P.ink40, textAlign: "center", marginTop: 10 }}>
           {t("jd.onThisDay", { n: String(day.length) })}
         </Text>
       </ScrollView>

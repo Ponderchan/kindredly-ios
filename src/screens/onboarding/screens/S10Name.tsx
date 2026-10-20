@@ -21,7 +21,7 @@ import { OB_MAX_FONT } from "../parts/tokens";
    first thing you do FOR someone. The chick stands where it hatched, with
    a little name tag that fills in as you type (a chirp per letter), over
    "It needs a name." / "It'll sign every note it writes you."; the field
-   (Newsreader italic, "Otis" as its placeholder) with the dice in it; six
+   (the system font, "Otis" as its placeholder) with the dice in it; six
    idea chips (PIP · JUNO · OTIS · MOTH · BEA · FEN, all from lib/wren-name
    NAME_IDEAS); and AND OTIS GOES BY with she · he · they. It is "it" until
    here; every line after this screen uses the pronoun picked.
@@ -115,7 +115,7 @@ export default function S10Name(props: ObScreenProps) {
               returnKeyType="done"
               onSubmitEditing={go}
               accessibilityLabel={t("ob2.name.head")}
-              style={{ flex: 1, height: 54, fontFamily: FONT.letterItalic, fontSize: 23, color: OB.ink }}
+              style={{ flex: 1, height: 54, ...FONT.medium, fontSize: 23, color: OB.ink }}
             />
             <Pressable
               onPress={roll}
@@ -180,7 +180,7 @@ function Chip({ label, on, onPress, small = false }: { label: string; on: boolea
           justifyContent: "center",
         }}
       >
-        <Text maxFontSizeMultiplier={OB_MAX_FONT} style={small ? { fontFamily: FONT.bold, fontSize: 12, letterSpacing: 0.3, color: OB.ink } : { fontFamily: FONT.bold, fontSize: 17, color: OB.ink }}>{label}</Text>
+        <Text maxFontSizeMultiplier={OB_MAX_FONT} style={small ? { ...FONT.bold, fontSize: 12, letterSpacing: 0.3, color: OB.ink } : { ...FONT.bold, fontSize: 17, color: OB.ink }}>{label}</Text>
       </View>
     </Pressable>
   );

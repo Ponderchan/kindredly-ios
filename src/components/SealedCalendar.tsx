@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { PF } from "../theme/post";
+import { PFM } from "../theme/post";
 import { useTheme } from "../lib/theme";
 import { MoodChip } from "../screens/notes/notes-glyphs";
 import { moodArtKey, moodGroup } from "../data/moods";
@@ -48,7 +48,7 @@ export function SealedCalendar({
       {/* month nav */}
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6, marginBottom: 16 }}>
         <Chevron dir="left" enabled={month.canPrev} label={prevLabel} onPress={() => onStep(-1)} />
-        <Text accessibilityRole="header" style={{ flexShrink: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.54, color: tk.ink }}>
+        <Text accessibilityRole="header" style={{ flexShrink: 1, textAlign: "center", ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.54, color: tk.ink }}>
           {month.title}
         </Text>
         <Chevron dir="right" enabled={month.canNext} label={nextLabel} onPress={() => onStep(1)} />
@@ -57,7 +57,7 @@ export function SealedCalendar({
       {/* weekday header */}
       <View style={{ flexDirection: "row", marginBottom: 6 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {weekdays.map((w, i) => (
-          <Text key={i} style={{ flex: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 10, color: tk.faint }}>
+          <Text key={i} style={{ flex: 1, textAlign: "center", ...PFM.monoSemi, fontSize: 10, color: tk.faint }}>
             {w}
           </Text>
         ))}
@@ -84,7 +84,7 @@ export function SealedCalendar({
                     <DayMood mood={d.mood} />
                     {d.count > 1 && (
                       <View style={{ position: "absolute", right: -2, top: -2, minWidth: 15, height: 15, paddingHorizontal: 3, borderRadius: 4, backgroundColor: tk.ink, alignItems: "center", justifyContent: "center" }}>
-                        <Text style={{ color: tk.bg, fontSize: 9, fontFamily: PF.monoMed }}>{d.count}</Text>
+                        <Text style={{ color: tk.bg, fontSize: 9, ...PFM.monoMed }}>{d.count}</Text>
                       </View>
                     )}
                   </>
@@ -98,7 +98,7 @@ export function SealedCalendar({
       </View>
 
       {/* the month, summed — so an empty grid still says something */}
-      <Text accessibilityLabel={month.footerA11y} style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.2, color: tk.mute, textAlign: "center", marginTop: 8 }}>
+      <Text accessibilityLabel={month.footerA11y} style={{ ...PFM.monoMed, fontSize: 10, letterSpacing: 1.2, color: tk.mute, textAlign: "center", marginTop: 8 }}>
         {month.footer}
       </Text>
     </View>

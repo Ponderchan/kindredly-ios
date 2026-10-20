@@ -5,7 +5,7 @@ import SwiftUI
 /*
  R2 (owner, 2026-10-20, "Reply Bar" options: R2, the hairline capsule with the plane outside):
  a white capsule 46 tall, fully round, a 1pt #DAD8E6 line that turns ind while the field has focus,
- the field (system 16) and the emoji key inside it; the send key its own 46 circle 8 to its right —
+ the field (16 in the reader's Letter font) and the emoji key inside it; the send key its own 46 circle 8 to its right —
  lav with a faint plane while there is nothing to send (at .92), ind with a white plane once there
  is. No reply arrow, no outline, no shadow. The notes below describe the bar before R2.
 
@@ -24,7 +24,8 @@ import SwiftUI
    inside the outline (border-box), its four parts 6 apart.
  - THE REPLY ARROW (I1 replyArrow) 20 across in ink at 1.9: it only says "this is where you write
    back", and points the other way from the plane (one comes in, one goes out). Decorative.
- - THE FIELD: a KComposerField (Kit/KComposerField.swift): system 16 in ink, the placeholder in
+ - THE FIELD: a KComposerField (Kit/KComposerField.swift): 16 in the reader's Letter font (what
+   is typed is a letter: content: true), in ink, the placeholder in the same face in
    mute, the caret ind; one line growing to four (about 110 tall; three at the accessibility
    sizes), then it scrolls inside.
  - THE EMOJI KEY (KEmojiKey): 36 square, corners 10, the I1 face 22 in ink; it switches the
@@ -159,6 +160,8 @@ public struct KReplyBar: View {
           controller: controller,
           placeholder: placeholder,
           size: 16,
+          // what is typed here is a letter: the reader's Letter font
+          content: true,
           // at the accessibility sizes a line is ~40pt: three (two where the screen is tight), then
           // it scrolls inside
           maxLines: typeSize.isAccessibilitySize ? (tightRoom ? 2 : 3) : 4,

@@ -65,9 +65,9 @@ import SwiftUI
  was. Any other paper swaps the InkCard for the same column on its sheet (KPaperSurface: its fill,
  stripes, edge, shadow, the receipt's teeth, the sticky note's fold), inset by its edge and 16, and
  every piece inside is drawn in the paper's own colours whatever the theme (cardTheme(over:): light
- even on Midnight, so the stamp draws light too). The letter takes the paper's face and size
- (KPaper.cardSize / cardLine / letterStyle: the serif keeps its tiers, the receipt's mono and the
- sticky note's system face scale them), riso adds its red misprint, and the foot keeps 36 clear of
+ even on Midnight, so the stamp draws light too). The letter keeps the reader's Letter font and takes
+ the paper's size (KPaper.cardSize / cardLine / letterStyle: the serif sheets keep the tiers, the
+ receipt and the sticky note scale them; owner 10-20: the user's font wins), riso adds its red misprint, and the foot keeps 36 clear of
  the folded corner. The topic tag keeps the stamp's colour (stamps v3), its edge in the paper's ink.
  The geometry, the gestures, the fold and UNFOLD, the stamp and the menu are the same on every paper.
 
@@ -99,7 +99,10 @@ struct KLetterCard: View, Equatable {
   static let moreTarget: CGFloat = 44
   /// the stamp they pasted: the ladder's todayCard, 40 × 48
   static let stampWidth: CGFloat = KStampLadder.todayCard.w
+  /// the voice letter's label (a label: SF Mono)
   static let monoLabel = KTextStyle.monoReply
+  /// UNFOLD ↓ is a button: System, the string as written
+  static let unfoldStyle = KTextStyle.button
   /// the switch-off postmark, SEP.23 · NO.7273 (design Prompt 2: mono 12 at .08em in the sub colour)
   static let postmarkStyle = KTextStyle.mono(12, .medium, tracking: 0.08)
   /// the writer's name: system 600 17, one line
@@ -461,8 +464,8 @@ struct KCardText: View {
     return card.bodySize > 0 ? card.bodyLine * size / card.bodySize : card.bodyLine
   }
 
-  /// the letter's face: the reader's Letter font on Plain (and every serif paper), Plex Mono or
-  /// the system face where the paper says so (KPaper.letterStyle)
+  /// the letter's face: the reader's Letter font on every paper (KPaper.letterStyle); a paper
+  /// sets only its size and leading
   private var style: KTextStyle {
     card.paper.themed
       ? .letterRead(size, lineHeight: size > 0 ? line / size : nil, place: .todayCard)
@@ -518,7 +521,7 @@ struct KCardText: View {
       if folded {
         SwiftUI.Button(action: onUnfold) {
           Text(unfold)
-            .kText(KLetterCard.monoLabel)
+            .kText(KLetterCard.unfoldStyle)
             .foregroundStyle(theme.ind)
             .padding(.vertical, 6)
             .padding(.horizontal, 12)

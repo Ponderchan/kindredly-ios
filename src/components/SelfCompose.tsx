@@ -9,8 +9,8 @@ import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { getLang, t, useLang } from "../lib/i18n";
-import { PF } from "../theme/post";
-import { useP, useTheme, type PostPalette } from "../lib/theme";
+import { PFM } from "../theme/post";
+import { useLetterFamily, useP, useTheme, type PostPalette } from "../lib/theme";
 import { WrenBird } from "./WrenBird";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { MoodKeyGlyph, MoodTray, MoodTrayFlat } from "./MoodTray";
@@ -76,6 +76,10 @@ export function SelfCompose({
   useLang();
   const P = useP();
   const { t: tk, dark } = useTheme();
+  // the page and Wren's opener are content: the reader's Letter font (her line in its italic,
+  // upright in a face without one)
+  const face = useLetterFamily();
+  const wrenFace = useLetterFamily(true);
   const Z = zine(P);
   const wren = useWrenName();
   const [pIdx, setPIdx] = useState(0);
@@ -376,7 +380,7 @@ export function SelfCompose({
                   placeholderTextColor={tk.faint}
                   keyboardAppearance={dark ? "dark" : "light"}
                   multiline
-                  style={{ minHeight: 60, maxHeight: 180, color: Z.ink, fontFamily: PF.writing, fontSize: 19, lineHeight: 30, paddingTop: 6, paddingBottom: 8, textAlignVertical: "top" }}
+                  style={{ minHeight: 60, maxHeight: 180, color: Z.ink, ...face, fontSize: 19, lineHeight: 30, paddingTop: 6, paddingBottom: 8, textAlignVertical: "top" }}
                 />
               </View>
             )}
@@ -406,7 +410,7 @@ export function SelfCompose({
                     With a single picture there is no cover to choose, so
                     the line waits for a second one. */}
                 {photos.length >= 2 && (
-                  <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 12 }}>{t("sc.coverHint")}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: "400", color: P.ink40, marginTop: 12 }}>{t("sc.coverHint")}</Text>
                 )}
               </View>
             )}
@@ -438,7 +442,7 @@ export function SelfCompose({
                 <View style={{ width: 34, height: 34, alignItems: "center", justifyContent: "center" }}>
                   <WrenBird size={27} mood="content" />
                 </View>
-                <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 13.5, color: P.ink60, lineHeight: 19 }}>
+                <Text style={{ flex: 1, ...wrenFace, fontSize: 13.5, color: P.ink60, lineHeight: 19 }}>
                   “{openers[pIdx]}”
                 </Text>
               </Pressable>
@@ -469,7 +473,7 @@ export function SelfCompose({
                 style={{
                   minHeight: 328,
                   color: Z.ink,
-                  fontFamily: PF.writing,
+                  ...face,
                   fontSize: 19,
                   lineHeight: 30,
                   textAlignVertical: "top",
@@ -544,7 +548,7 @@ export function SelfCompose({
             }}
           >
             {hasSomething && !mood && !busy && !moodOpen && <Nudge color={tk.bg} />}
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.4, color: hasSomething && !busy ? tk.bg : P.ink40 }}>
+            <Text style={{ fontSize: 15, fontWeight: "600", letterSpacing: 0.4, color: hasSomething && !busy ? tk.bg : P.ink40 }}>
               {busy ? t("sc.sealing") : !mood && hasSomething ? t("sc.askMood") : t("sc.seal")}
             </Text>
           </Pressable>
@@ -614,7 +618,7 @@ function FrameViewer({ photos, index, onClose, onCover, onRemove }: { photos: Ph
           <BackChevron onPress={onClose} color="#FFFFFF" label={t("ob2.back")} />
           <Text
             accessibilityLabel={t(i === 0 && photos.length >= 2 ? "sc.a11y.photoCover" : "sc.a11y.photo", { i: i + 1, n: photos.length })}
-            style={{ flex: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.4, color: "#FFFFFF" }}
+            style={{ flex: 1, textAlign: "center", ...PFM.monoSemi, fontSize: 12, letterSpacing: 1.4, color: "#FFFFFF" }}
           >
             {i + 1}/{photos.length}
           </Text>
@@ -641,10 +645,10 @@ function FrameViewer({ photos, index, onClose, onCover, onRemove }: { photos: Ph
         </ScrollView>
         <View style={{ alignItems: "center", paddingBottom: insets.bottom + 18, paddingTop: 12 }}>
           {i === 0 ? (
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: "rgba(255,255,255,0.55)" }}>{t("sc.isCover")}</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: "rgba(255,255,255,0.55)" }}>{t("sc.isCover")}</Text>
           ) : (
             <Pressable onPress={() => onCover(i)} accessibilityRole="button" style={({ pressed }) => ({ borderWidth: 1.5, borderColor: "#FFFFFF", borderRadius: 999, paddingHorizontal: 18, paddingVertical: 10, opacity: pressed ? 0.6 : 1 })}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.4, color: "#FFFFFF" }}>{t("sc.makeCover")}</Text>
+              <Text style={{ fontSize: 14, fontWeight: "600", letterSpacing: 0.3, color: "#FFFFFF" }}>{t("sc.makeCover")}</Text>
             </Pressable>
           )}
         </View>

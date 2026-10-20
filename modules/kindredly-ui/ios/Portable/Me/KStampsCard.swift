@@ -194,7 +194,7 @@ struct KStampsFullCard: View {
         .foregroundStyle(theme.sub)
         .fixedSize(horizontal: false, vertical: true)
       Text(sub)
-        .kText(.letter(18))
+        .kText(.system(18, .semibold))
         .foregroundStyle(theme.ink)
         .fixedSize(horizontal: false, vertical: true)
       SwiftUI.Button(action: onCta) {
@@ -350,7 +350,7 @@ public struct KStampsCard: View {
               .modifier(KBreathing())
             VStack(alignment: .leading, spacing: 4) {
               Text(stamps.emptyTitle)
-                .kText(.letter(18))
+                .kText(.system(18, .semibold))
                 .foregroundStyle(theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
               Text(stamps.emptySub)

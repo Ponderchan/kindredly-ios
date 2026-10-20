@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from "react-native";
-import { MONO, PF } from "../theme/post";
+import { MONO, PFM } from "../theme/post";
 import { useTheme } from "../lib/theme";
 
 /* THE LANGUAGE PAIR — the owner's B1.
@@ -20,7 +20,7 @@ export function LangPair({ from, to, on, busy, onPress }: { from: string; to: st
   const { t: tk } = useTheme();
   const Side = ({ tag, lit }: { tag: string; lit: boolean }) => (
     <View style={{ paddingHorizontal: 11, paddingVertical: 6, backgroundColor: lit ? tk.ink : "transparent" }}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 0.9, color: lit ? tk.bg : tk.ink }}>{tag}</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: MONO.title, letterSpacing: 0.9, color: lit ? tk.bg : tk.ink }}>{tag}</Text>
     </View>
   );
   return (

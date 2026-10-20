@@ -2,8 +2,7 @@ import { forwardRef } from "react";
 import { Pressable, TextInput, View, type TextInputProps } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { GlyphInput } from "./GlyphInput";
-import { PF } from "../theme/post";
-import { useP, useTheme } from "../lib/theme";
+import { useLetterFamily, useP, useTheme } from "../lib/theme";
 import { fieldBox } from "../lib/field";
 
 /* THE CHAT FIELD (owner, 2026-09-20): a pill, and the moment there is a
@@ -12,13 +11,15 @@ import { fieldBox } from "../lib/field";
    with nothing to carry is a button that does nothing, and the pill is
    quieter without it. `canSend` can lag `text` (a reply that is not yet
    long enough, a send in flight): the arrow is there but dimmed, so the
-   hand learns the rule without a dialog. */
+   hand learns the rule without a dialog. What is typed is content, so it
+   is in the reader's Letter font. */
 export const ChatField = forwardRef<
   TextInput,
   TextInputProps & { text: string; canSend: boolean; onSend: () => void; lineHeight?: number }
 >(function ChatField({ text, canSend, onSend, lineHeight = 24, style, ...rest }, ref) {
   const P = useP();
   const { t: T, dark } = useTheme();
+  const face = useLetterFamily();
   return (
     <View style={{ flex: 1, flexDirection: "row", alignItems: "flex-end", borderRadius: 20, backgroundColor: T.soft, paddingLeft: 14, paddingRight: 5 }}>
       <GlyphInput
@@ -31,7 +32,7 @@ export const ChatField = forwardRef<
         placeholderTextColor={T.faint}
         keyboardAppearance={dark ? "dark" : "light"}
         {...rest}
-        style={[{ flex: 1, ...fieldBox(text, lineHeight, 110), paddingTop: 9, paddingBottom: 9, fontFamily: PF.writing, fontSize: 16, lineHeight, color: P.ink }, style]}
+        style={[{ flex: 1, ...fieldBox(text, lineHeight, 110), paddingTop: 9, paddingBottom: 9, ...face, fontSize: 16, lineHeight, color: P.ink }, style]}
       />
       {text.length > 0 && (
         <Pressable onPress={onSend} disabled={!canSend} hitSlop={6} style={({ pressed }) => ({ marginBottom: 6, opacity: !canSend ? 0.35 : pressed ? 0.7 : 1 })}>

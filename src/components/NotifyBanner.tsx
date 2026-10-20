@@ -9,7 +9,6 @@ import { registerForReplies } from "../lib/notify";
 import { replanLocal } from "../lib/local-push";
 import { useAuth } from "../lib/auth";
 import { useTheme } from "../lib/theme";
-import { MONO, PF } from "../theme/post";
 import { ROW_METRICS, noticeColors, notifyBannerShows } from "./10a/kit";
 
 /* TURN NOTIFICATIONS ON (owner, 2026-10-11, after another app's inbox).
@@ -199,7 +198,7 @@ export function NoticeBar({
             {text}
           </Text>
           {!!actionLabel && (
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: MONO.title * 0.12, color: c.ink, marginTop: 6 }}>{actionLabel}</Text>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: c.ink, marginTop: 6 }}>{actionLabel}</Text>
           )}
         </View>
       </Pressable>

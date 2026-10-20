@@ -11,7 +11,7 @@ import { useWrenName } from "../lib/wren-name";
 // as tr: this page's `t` is the theme's colours
 import { t as tr } from "../lib/i18n";
 import THEMES from "../theme/themes.json";
-import { PF } from "../theme/post";
+import { PFM } from "../theme/post";
 import "../data/strings-today3d"; // pub.* (the publish entry's words, for the samples' sheet and buttons)
 
 /* dev only — the 10a SwiftUI views (modules/kindredly-ui) as a native build draws them.
@@ -57,10 +57,10 @@ export default function UiLab() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.3, color: t.ind, margin: 16, marginBottom: 6 }}>UI LAB</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: 10.5, letterSpacing: 1.3, color: t.ind, margin: 16, marginBottom: 6 }}>UI LAB</Text>
 
         {/* the dev theme switch */}
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: t.mute, marginHorizontal: 16, marginBottom: 8 }}>
+        <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.4, color: t.mute, marginHorizontal: 16, marginBottom: 8 }}>
           THEME · {forced ? "FORCED" : "NORMAL"} · {THEMES.themes[key].name.toUpperCase()}
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginHorizontal: 16, marginBottom: 16 }}>
@@ -89,7 +89,7 @@ export default function UiLab() {
         </View>
 
         {/* the dev surface switch: try a Swift screen on real data before its key flips */}
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: t.mute, marginHorizontal: 16, marginBottom: 8 }}>
+        <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.4, color: t.mute, marginHorizontal: 16, marginBottom: 8 }}>
           SURFACES · TAP: DEFAULT → SWIFT → RN
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginHorizontal: 16, marginBottom: 16 }}>
@@ -108,7 +108,7 @@ export default function UiLab() {
               return (
                 // the page in the theme's own bg; the 16 gutter and the room below leave the 6/6 shadow its space, as the mock does
                 <View key={k} style={{ backgroundColor: kt.bg, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 22 }}>
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: kt.mute, marginBottom: 8 }}>{kt.name.toUpperCase()}</Text>
+                  <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.4, color: kt.mute, marginBottom: 8 }}>{kt.name.toUpperCase()}</Text>
                   <InkCardHost theme={k}>
                     <Text style={{ fontSize: 17, lineHeight: 24, color: kt.ink }}>
                       A line of React Native text inside a SwiftUI card, long enough to wrap at the card's edge.
@@ -121,7 +121,7 @@ export default function UiLab() {
 
         {native ? (
           <>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: t.mute, marginHorizontal: 16, marginTop: 20, marginBottom: 4 }}>
+            <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.4, color: t.mute, marginHorizontal: 16, marginTop: 20, marginBottom: 4 }}>
               GALLERY · {THEMES.themes[key].name.toUpperCase()}
             </Text>
             {/* the gallery paints its own page colour and gutter; it follows the theme in effect */}
@@ -131,7 +131,7 @@ export default function UiLab() {
 
         {native ? (
           <>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: t.mute, marginHorizontal: 16, marginTop: 20, marginBottom: 4 }}>TAB BAR · ONE PER THEME</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.4, color: t.mute, marginHorizontal: 16, marginTop: 20, marginBottom: 4 }}>TAB BAR · ONE PER THEME</Text>
             {isKindredlyUIViewAvailable("KTabBarView") ? (
               KEYS.map((k) => <TabBarSample key={k} theme={k} />)
             ) : (
@@ -174,7 +174,7 @@ function TabBarSample({ theme }: { theme: KThemeKey }) {
   return (
     <View style={{ backgroundColor: kt.bg, paddingTop: 12, overflow: "hidden" }}>
       <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, marginHorizontal: 16 }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: kt.mute }}>{kt.name.toUpperCase()} · + OPENS</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.4, color: kt.mute }}>{kt.name.toUpperCase()} · + OPENS</Text>
         {PANEL_STYLES.map((s) => (
           <LabChip key={s} label={s.toUpperCase()} on={style === s} colors={kt} onPress={() => pick(s)} />
         ))}

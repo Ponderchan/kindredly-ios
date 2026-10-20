@@ -158,7 +158,7 @@ export default function S11Address(props: ObScreenProps) {
             <Animated.View entering={FadeIn.duration(200)} style={{ marginRight: SHADOW }}>
               <View style={{ position: "absolute", left: SHADOW, top: SHADOW, right: -SHADOW, bottom: -SHADOW, borderRadius: 18, backgroundColor: OB.ink }} />
               <View style={{ borderRadius: 18, borderWidth: EDGE, borderColor: OB.ink, backgroundColor: OB.paper, padding: 18 }}>
-                <Text maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" style={{ fontFamily: FONT.head, fontSize: 21, lineHeight: 26, letterSpacing: -0.5, color: OB.ink }}>
+                <Text maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" style={{ ...FONT.head, fontSize: 21, lineHeight: 26, letterSpacing: -0.5, color: OB.ink }}>
                   {t("ob2.address.exists")}
                 </Text>
                 <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.lineSmall, { color: OB.inkSoft, marginTop: 6 }]}>{t("ob2.address.existsLine")}</Text>
@@ -199,7 +199,7 @@ export default function S11Address(props: ObScreenProps) {
               />
             </>
           )}
-          {failed && <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.small, { color: "#B3261E", textAlign: "center", marginTop: 10, fontFamily: FONT.semi }]}>{t("ob2.address.failed")}</Text>}
+          {failed && <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.small, { color: "#B3261E", textAlign: "center", marginTop: 10, ...FONT.semi }]}>{t("ob2.address.failed")}</Text>}
         </View>
 
         {!exists && (
@@ -222,11 +222,11 @@ function Terms() {
     <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.small, { color: OB.inkSoft, textAlign: "center", marginTop: 16 }]}>
       {parts.map((p, i) =>
         p === "{terms}" ? (
-          <Text maxFontSizeMultiplier={OB_MAX_FONT} key={i} onPress={() => void openTerms()} accessibilityRole="link" style={{ textDecorationLine: "underline", color: OB.ink, fontFamily: FONT.semi }}>
+          <Text maxFontSizeMultiplier={OB_MAX_FONT} key={i} onPress={() => void openTerms()} accessibilityRole="link" style={{ textDecorationLine: "underline", color: OB.ink, ...FONT.semi }}>
             {t("ob2.address.termsLink")}
           </Text>
         ) : p === "{privacy}" ? (
-          <Text maxFontSizeMultiplier={OB_MAX_FONT} key={i} onPress={() => void openPrivacy()} accessibilityRole="link" style={{ textDecorationLine: "underline", color: OB.ink, fontFamily: FONT.semi }}>
+          <Text maxFontSizeMultiplier={OB_MAX_FONT} key={i} onPress={() => void openPrivacy()} accessibilityRole="link" style={{ textDecorationLine: "underline", color: OB.ink, ...FONT.semi }}>
             {t("ob2.address.privacyLink")}
           </Text>
         ) : (

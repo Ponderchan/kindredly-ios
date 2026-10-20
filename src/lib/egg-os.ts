@@ -1,5 +1,5 @@
 import type { TextStyle, ViewStyle } from "react-native";
-import { PF } from "../theme/post";
+import { PFM } from "../theme/post";
 import { Y as Y_STATIC } from "../theme/y2k";
 import { THEMES, THEME_KEYS, type ThemeKey, type ThemeTokens } from "../theme/themes";
 import { useTheme } from "./theme";
@@ -126,7 +126,7 @@ function skinFor(t: ThemeTokens): EggSkin {
 
   /** mono chrome type: everything the console says about itself */
   const mono = (size = 11, weight: "r" | "m" | "b" = "m"): TextStyle => ({
-    fontFamily: weight === "b" ? PF.monoSemi : weight === "m" ? PF.monoMed : PF.mono,
+    ...(weight === "b" ? PFM.monoSemi : weight === "m" ? PFM.monoMed : PFM.mono),
     fontSize: size,
     letterSpacing: size <= 11 ? 1.4 : 0.8,
     color: Y.ink,

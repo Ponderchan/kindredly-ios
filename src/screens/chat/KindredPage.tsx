@@ -3,8 +3,8 @@ import { Pressable, ScrollView, Text, View, useWindowDimensions } from "react-na
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRouter, type Href } from "expo-router";
 import { getLang, t, useLang } from "../../lib/i18n";
-import { useLetterFamily, useTheme } from "../../lib/theme";
-import { MONO, PF } from "../../theme/post";
+import { useLetterFamily, useLetterFont, useTheme } from "../../lib/theme";
+import { letterFitLines, MONO, PFM } from "../../theme/post";
 import { archDescThird, archName, dimLabel, dimLineThird, dimSealedThird } from "../../lib/aura-copy";
 import { dLong, localeTag, penPalName } from "../../lib/format";
 import { developFor } from "../../lib/mosaic";
@@ -50,7 +50,7 @@ import "../../data/strings-a11y-chat"; // kd.resA11y, kd.resTogether
    is exactly where safety tools must not disappear (owner).
 
    10a, on the theme: the secondary header (H:90: the 36pt chevron, the
-   page's title in mono, the ⋯ on the right, no rule); the person on an
+   page's title in System 500 17 centred, the ⋯ on the right, no rule); the person on an
    InkCard (.me: 2.5 ln, corners 24, 5/5); what you've learned and how
    alike you write as soft groups (corners 16); the facts as grouped rows;
    the opening letter on an InkCard in the reader's Letter font (owner
@@ -90,6 +90,8 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
   const navigation = useNavigation();
   const { t: tk } = useTheme();
   const letterFace = useLetterFamily();
+  // the opening letter's five lines, six in a roomier face (SF Mono, Garamond)
+  const openingLines = letterFitLines(useLetterFont(), 5);
   const insets = useSafeAreaInsets();
   const isDemo = __DEV__ && !!id?.startsWith("demo-");
   const { detail, status } = useThreadDetail(id, { folds: false });
@@ -141,7 +143,7 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
   /* a member's face is a gold perforated stamp (C2); never a closed account */
   const stampUid = detail && kind !== "veil" && !detail.gone ? detail.other || null : null;
   const stamp = useMemberStamps([stampUid])(stampUid);
-  const label = { fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute } as const;
+  const label = { ...PFM.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute } as const;
 
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg, paddingTop: topInset ?? insets.top }}>
@@ -222,7 +224,7 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
                     <Text accessibilityRole="header" style={{ fontSize: 24, lineHeight: 30, fontWeight: "600", color: tk.ink }}>
                       {read?.archetype ? archName(read.archetype.id) : t("kd.stillVoice")}
                     </Text>
-                    <Text style={{ fontFamily: "Newsreader-Italic", fontStyle: "italic", fontSize: 14, lineHeight: 20, color: tk.sub, marginTop: 5 }}>
+                    <Text style={{ fontSize: 14, lineHeight: 20, color: tk.sub, marginTop: 5 }}>
                       {read?.archetype ? archDescThird(read.archetype.id) : t("kd.notEnough")}
                     </Text>
                   </>
@@ -275,7 +277,7 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
             <SoftGroup>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <Text style={label}>{t("kd.learned")}</Text>
-                <Text style={{ ...label, fontFamily: PF.monoSemi, color: tk.ind }}>{t(read.moments === 1 ? "kd.momentsOne" : "kd.momentsMany", { n: String(read.moments) })}</Text>
+                <Text style={{ ...label, ...PFM.monoSemi, color: tk.ind }}>{t(read.moments === 1 ? "kd.momentsOne" : "kd.momentsMany", { n: String(read.moments) })}</Text>
               </View>
               {read.found.map((d) => (
                 <Moment key={d.key} d={d} />
@@ -284,7 +286,7 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
                 <>
                   <View style={{ height: 1, backgroundColor: tk.line, marginTop: 14, marginBottom: 12 }} />
                   <Text style={label}>{t("kd.keepWriting")}</Text>
-                  <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, lineHeight: 19, color: tk.sub, marginTop: 6 }}>
+                  <Text style={{ ...PFM.monoMed, fontSize: MONO.title, lineHeight: 19, color: tk.sub, marginTop: 6 }}>
                     {read.sealed
                       .slice(0, 4)
                       .map((d) => `□ ${dimSealedThird(d.key).toLocaleLowerCase(locale)}`)
@@ -302,7 +304,7 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
             <SoftGroup>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <Text style={label}>{t("kd.howAlike")}</Text>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.figure, letterSpacing: 0.5, color: tk.ind }}>{res.score}%</Text>
+                <Text style={{ ...PFM.monoSemi, fontSize: MONO.figure, letterSpacing: 0.5, color: tk.ind }}>{res.score}%</Text>
               </View>
               <View style={{ marginTop: 14 }}>
                 {res.rows.map((r) => (
@@ -340,7 +342,7 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
               <Text style={label}>{t("kd.whereBegan")}</Text>
               {isVoiceLetter(opening, detail) && <VoiceOpeningCard voice={voice} />}
               {!!opening.body && (
-                <Text numberOfLines={5} style={[{ fontSize: 16, lineHeight: 24, color: isVoiceLetter(opening, detail) ? tk.sub : tk.ink }, letterFace]}>
+                <Text numberOfLines={openingLines} style={[{ fontSize: 16, lineHeight: 24, color: isVoiceLetter(opening, detail) ? tk.sub : tk.ink }, letterFace]}>
                   {opening.body}
                 </Text>
               )}
@@ -385,7 +387,7 @@ function BeganUnder({ name, stamp, letterId }: { name: string; stamp: string; le
   const { t: tk } = useTheme();
   return (
     <View style={{ flexShrink: 1, flexDirection: "row", alignItems: "center", gap: 8 }}>
-      <Text style={{ flexShrink: 1, fontFamily: PF.monoMed, fontSize: MONO.title, color: tk.sub }}>
+      <Text style={{ flexShrink: 1, ...PFM.monoMed, fontSize: MONO.title, color: tk.sub }}>
         {name}
       </Text>
       <Stamp id={stamp} width={BEGAN.w} delivered letterId={letterId} />
@@ -415,7 +417,7 @@ function FactRow({ label, value, last = false }: { label: string; value: ReactNo
     >
       <Text style={{ fontSize: 15, color: tk.ink }}>{label}</Text>
       {typeof value === "string" ? (
-        <Text style={{ flexShrink: 1, fontFamily: PF.monoMed, fontSize: MONO.title, color: tk.sub, textAlign: stack ? "left" : "right" }}>{value}</Text>
+        <Text style={{ flexShrink: 1, ...PFM.monoMed, fontSize: MONO.title, color: tk.sub, textAlign: stack ? "left" : "right" }}>{value}</Text>
       ) : (
         value
       )}
@@ -430,7 +432,7 @@ function Moment({ d }: { d: DimScore }) {
   return (
     <View style={{ marginTop: 14 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.2, color: tk.ink }}>{dimLabel(d.key).toUpperCase()}</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: 1.2, color: tk.ink }}>{dimLabel(d.key).toUpperCase()}</Text>
         <View style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: tk.line }}>
           <View style={{ width: `${d.score}%`, height: 3, borderRadius: 2, backgroundColor: tk.ind }} />
         </View>
@@ -457,7 +459,7 @@ function ResonanceLine({ r, locale }: { r: ResonanceRow; locale: string }) {
       accessible
       accessibilityLabel={spoken}
     >
-      <Text numberOfLines={stack ? undefined : 1} style={{ width: stack ? undefined : 86, fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: tk.sub }}>
+      <Text numberOfLines={stack ? undefined : 1} style={{ width: stack ? undefined : 86, ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: tk.sub }}>
         {dimLabel(r.key).toLocaleUpperCase(locale)}
       </Text>
       <View style={{ flex: stack ? undefined : 1, height: 12, justifyContent: "center" }}>

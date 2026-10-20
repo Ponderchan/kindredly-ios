@@ -5,7 +5,8 @@ import Reanimated, { Easing as REasing, cancelAnimation, useAnimatedProps, useSh
 import { useIsFocused } from "expo-router";
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, LinearGradient, Path, Polygon, Rect, Stop } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
-import { PF } from "../theme/post";
+import { PF, PFM, letterFamily, letterFitSize, type LetterFontKey } from "../theme/post";
+import { useLetterFont } from "../lib/theme";
 import { WrenBird, type WrenStage } from "./WrenBird";
 import type { WhereaboutsRead } from "../lib/whereabouts";
 import { WHEREABOUTS_META } from "../lib/whereabouts";
@@ -156,7 +157,8 @@ function Course({ w, P }: { w: number; P: Palette }) {
    the fallback's own frame. `framed` gives the frame a card with no corners,
    shadow or white ground of its own (the doubled corner and shadow the
    critic saw), the 10a band type (her name system 600 14, the time mono 500
-   10 at .7, the line system 13/1.4, the aside the serif italic 12 at .75,
+   10 at .7, the line 13/1.4 and the aside italic 12 at .75 in the reader's
+   letter font,
    Open system 600 13 in the hour's own button colours, which read on their
    own sky in every app theme — not the mock's sf on #1F5B3C, dark on dark in
    Midnight), the ink label shape for YOUR COURIER (corners 6; its 12pt is
@@ -165,9 +167,21 @@ function Course({ w, P }: { w: number; P: Palette }) {
    frame owns the tap (in SwiftUI, a Button over the scene, cancelled by a
    scroll, which an RN Pressable inside a SwiftUI scroll view is not). */
 const FRAMED_TYPE_MAX = 1.3;
-/* the band's two lines in the 10a frame: her line system 13/1.4, the aside the serif italic 12 at .75 */
-const BAND_LINE_10A = (color: string) => ({ fontSize: 13, lineHeight: 18.2, color });
-const BAND_ASIDE_10A = (color: string) => ({ fontFamily: "Newsreader-Italic", fontStyle: "italic" as const, fontSize: 12, color, opacity: 0.75 });
+/* Her line and its aside are Wren speaking: content, in the reader's letter
+   font (the aside italic where the face has one). The band is a fixed height,
+   so a roomier face (SF Mono, Garamond) steps down a size rather than being
+   cut (letterFitSize). In the 10a frame: the line 13/1.4, the aside 12 at .75;
+   without it: the line 13.5/18, the aside 11.5 at .6. */
+const BAND_LINE_10A = (color: string, key: LetterFontKey) => {
+  const size = letterFitSize(key, 13);
+  return { ...letterFamily(key), fontSize: size, lineHeight: Math.round(size * 14) / 10, color };
+};
+const BAND_ASIDE_10A = (color: string, key: LetterFontKey) => ({ ...letterFamily(key, true), fontSize: letterFitSize(key, 12), color, opacity: 0.75 });
+const BAND_LINE = (color: string, key: LetterFontKey) => {
+  const size = letterFitSize(key, 13.5);
+  return { ...letterFamily(key), fontSize: size, lineHeight: Math.round((size * 18) / 13.5), color };
+};
+const BAND_ASIDE = (color: string, key: LetterFontKey) => ({ ...letterFamily(key), fontSize: letterFitSize(key, 11.5), color, opacity: 0.6 });
 
 export function CourierCard({
   wren,
@@ -214,6 +228,7 @@ export function CourierCard({
 }) {
   const [w, setW] = useState(width ?? 0);
   const fontMax = framed ? FRAMED_TYPE_MAX : undefined;
+  const letterFont = useLetterFont();
   const lang = useLang(); // the diary is written in the reader's language — re-write it when that changes
   const light = daylight(hour);
   const P = PALETTE[light];
@@ -377,7 +392,7 @@ export function CourierCard({
           >
             <WrenBird size={44} mood="happy" stage={stage} accessory={accessory} pose={stage === "wren" ? "fly" : "perch"} letter={false} />
             <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: "#FFFFFF", borderWidth: 2, borderColor: "#1E1B35", alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, color: "#1E1B35" }}>K</Text>
+              <Text style={{ ...PFM.monoSemi, fontSize: 12, color: "#1E1B35" }}>K</Text>
             </View>
           </Animated.View>
         )}
@@ -403,16 +418,16 @@ export function CourierCard({
         {/* the chip, inside the scene */}
         {/* 12pt, not 9.5 — readers couldn't make it out (owner, 2026-09-23) */}
         <View style={{ position: "absolute", left: 12, top: 12, backgroundColor: P.chip, borderRadius: framed ? 6 : 999, paddingHorizontal: framed ? 9 : 12, paddingVertical: framed ? 5 : 6 }}>
-          <Text maxFontSizeMultiplier={fontMax} style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: framed ? 1.68 : 1.5, color: P.chipText }}>{t("me.sec.courier").toLocaleUpperCase()}</Text>
+          <Text maxFontSizeMultiplier={fontMax} style={{ ...PFM.monoSemi, fontSize: 12, letterSpacing: framed ? 1.68 : 1.5, color: P.chipText }}>{t("me.sec.courier").toLocaleUpperCase()}</Text>
         </View>
         {/* on her day off: a sticker beside the chip */}
         {playing && (
           <View style={{ position: "absolute", left: 12, top: 46, backgroundColor: "#C3E84F", borderWidth: 2, borderColor: "#1E1B35", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2, transform: [{ rotate: "-4deg" }] }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: "#1E1B35" }}>{t("ff.dayoff.tag")}</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.4, color: "#1E1B35" }}>{t("ff.dayoff.tag")}</Text>
           </View>
         )}
-        {!playing && <Text style={{ position: "absolute", left: 0, width: x0 * 2, top: ARC_Y + 14, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.4, color: GREEN.ink }}>{t("me.route.you")}</Text>}
-        {!playing && <Text style={{ position: "absolute", right: 0, width: (w - x1) * 2, top: ARC_Y + 14, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.4, color: GREEN.ink, opacity: where.state === "unsent" ? 0.4 : 1 }}>{t("me.route.somewhere")}</Text>}
+        {!playing && <Text style={{ position: "absolute", left: 0, width: x0 * 2, top: ARC_Y + 14, textAlign: "center", ...PFM.monoSemi, fontSize: 9, letterSpacing: 1.4, color: GREEN.ink }}>{t("me.route.you")}</Text>}
+        {!playing && <Text style={{ position: "absolute", right: 0, width: (w - x1) * 2, top: ARC_Y + 14, textAlign: "center", ...PFM.monoSemi, fontSize: 9, letterSpacing: 1.4, color: GREEN.ink, opacity: where.state === "unsent" ? 0.4 : 1 }}>{t("me.route.somewhere")}</Text>}
 
         {/* the second tier: a solid panel with a hard edge (the owner's V10) —
             two layers you see at a glance, not a fade */}
@@ -424,17 +439,17 @@ export function CourierCard({
           <View style={{ flex: 1, minWidth: 0, gap: framed ? 4 : 3 }}>
             <View style={{ flexDirection: "row", alignItems: "baseline", gap: framed ? 6 : 8 }}>
               <Text maxFontSizeMultiplier={fontMax} style={framed ? { fontSize: 14, fontWeight: "600", color: P.text } : { fontFamily: PF.letter, fontWeight: "700", fontSize: 16, letterSpacing: -0.3, color: P.text }}>{wren}</Text>
-              <Text maxFontSizeMultiplier={fontMax} style={framed ? { fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1, color: P.text, opacity: 0.7 } : { fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: P.text, opacity: 0.6 }}>{playing ? t("ff.dayoff.tag") : agoLabel(entry.at)}</Text>
+              <Text maxFontSizeMultiplier={fontMax} style={framed ? { ...PFM.monoMed, fontSize: 10, letterSpacing: 1, color: P.text, opacity: 0.7 } : { ...PFM.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: P.text, opacity: 0.6 }}>{playing ? t("ff.dayoff.tag") : agoLabel(entry.at)}</Text>
             </View>
             {playing ? (
               <>
-                <Text maxFontSizeMultiplier={fontMax} style={framed ? BAND_LINE_10A(P.text) : { fontFamily: PF.letter, fontSize: 13.5, lineHeight: 18, color: P.text }} numberOfLines={2}>{where.state === "delivery" ? t("ff.dayoff.lineCarrying") : t("ff.dayoff.line")}</Text>
-                <Text maxFontSizeMultiplier={fontMax} style={framed ? BAND_ASIDE_10A(P.text) : { fontFamily: PF.letter, fontSize: 11.5, color: P.text, opacity: 0.6 }} numberOfLines={1}>{best > 0 ? t("ff.dayoff.subBest", { n: best }) : t("ff.dayoff.sub")}</Text>
+                <Text maxFontSizeMultiplier={fontMax} style={framed ? BAND_LINE_10A(P.text, letterFont) : BAND_LINE(P.text, letterFont)} numberOfLines={2}>{where.state === "delivery" ? t("ff.dayoff.lineCarrying") : t("ff.dayoff.line")}</Text>
+                <Text maxFontSizeMultiplier={fontMax} style={framed ? BAND_ASIDE_10A(P.text, letterFont) : BAND_ASIDE(P.text, letterFont)} numberOfLines={1}>{best > 0 ? t("ff.dayoff.subBest", { n: best }) : t("ff.dayoff.sub")}</Text>
               </>
             ) : (
               <>
-                <Text maxFontSizeMultiplier={fontMax} style={framed ? BAND_LINE_10A(P.text) : { fontFamily: PF.letter, fontSize: 13.5, lineHeight: 18, color: P.text }} numberOfLines={2}>{hunger ? hunger.line : entry.line}</Text>
-                {!!(hunger ? hunger.sub : entry.sub) && <Text maxFontSizeMultiplier={fontMax} style={framed ? BAND_ASIDE_10A(P.text) : { fontFamily: PF.letter, fontSize: 11.5, color: P.text, opacity: 0.6 }} numberOfLines={1}>{hunger ? hunger.sub : entry.sub}</Text>}
+                <Text maxFontSizeMultiplier={fontMax} style={framed ? BAND_LINE_10A(P.text, letterFont) : BAND_LINE(P.text, letterFont)} numberOfLines={2}>{hunger ? hunger.line : entry.line}</Text>
+                {!!(hunger ? hunger.sub : entry.sub) && <Text maxFontSizeMultiplier={fontMax} style={framed ? BAND_ASIDE_10A(P.text, letterFont) : BAND_ASIDE(P.text, letterFont)} numberOfLines={1}>{hunger ? hunger.sub : entry.sub}</Text>}
               </>
             )}
           </View>

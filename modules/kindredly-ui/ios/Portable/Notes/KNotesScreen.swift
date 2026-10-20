@@ -134,7 +134,7 @@ public struct KNotesContent: Equatable, Sendable {
   public var recentGroups: [KMoodGroup] = []
   /// her first-visit line; "" when it doesn't show
   public var wrenLine = ""
-  /// the line is Notes E1's one-time "first one down…" (KNotesFirstLine, the system font)
+  /// the line is Notes E1's one-time "first one down…" (KNotesFirstLine, the Letter font)
   public var wrenFirst = false
   /// her bird at 22 and 26 (the 'content' snapshot); nil until it is captured
   public var bird: KImageRef?

@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { Image, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
-import { PF } from "../../theme/post";
+import { PFM } from "../../theme/post";
 import { useTheme } from "../../lib/theme";
 import type { ThemeTokens } from "../../theme/themes";
 import { keepsake } from "../../data/keepsakes";
@@ -171,10 +171,10 @@ function ProfileCardRN({
           }
         </StampAvatar>
         <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-          <Text numberOfLines={2} accessibilityRole="header" style={{ fontSize: 18, fontWeight: "600", color: tk.ink }}>
+          <Text numberOfLines={2} accessibilityRole="header" style={{ fontSize: 22, fontWeight: "700", color: tk.ink }}>
             {profile.name}
           </Text>
-          {!!profile.joined && <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.2, color: tk.mute }}>{profile.joined}</Text>}
+          {!!profile.joined && <Text style={{ ...PFM.monoMed, fontSize: 10, letterSpacing: 1.2, color: tk.mute }}>{profile.joined}</Text>}
           {profile.cofounderNo != null && (
             <View style={{ marginTop: 3 }}>
               <CofounderMark no={profile.cofounderNo} onDark={dark} />
@@ -199,8 +199,8 @@ function ProfileCardRN({
             <Svg width={16} height={16} viewBox="0 0 28 28" fill="none" stroke={s.glyph === "envelope" ? tk.ind : tk.ink} strokeWidth={2.4} strokeLinejoin="round">
               <Path d={s.glyph === "envelope" ? "M3 8h22v13H3z M3 9l11 8 11-8" : "M4 6h13v9H9l-4 4z M12 19h8l4 4V12h-3"} />
             </Svg>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 13, color: tk.ink }}>{s.count}</Text>
-            <Text numberOfLines={2} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: tk.mute, textAlign: "center" }}>
+            <Text style={{ ...PFM.monoSemi, fontSize: 13, color: tk.ink }}>{s.count}</Text>
+            <Text numberOfLines={2} style={{ flexShrink: 1, ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.2, color: tk.mute, textAlign: "center" }}>
               {s.unit}
             </Text>
           </Pressable>
@@ -215,8 +215,8 @@ function KeepsakesBlockRN({ keepsakes, tk, onBlock, onTile }: { keepsakes: Keeps
   return (
     <View style={{ margin: 12, marginTop: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 16, backgroundColor: tk.soft2, gap: 10 }}>
       <Pressable onPress={onBlock} accessibilityRole="button" accessibilityLabel={keepsakes.a11y} hitSlop={6} style={({ pressed }) => ({ flexDirection: "row", justifyContent: "space-between", alignItems: "center", opacity: pressed ? 0.6 : 1 })}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: tk.ink }}>{keepsakes.header}</Text>
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.2, color: tk.mute }}>{keepsakes.count}</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.4, color: tk.ink }}>{keepsakes.header}</Text>
+        <Text style={{ ...PFM.monoMed, fontSize: 10, letterSpacing: 1.2, color: tk.mute }}>{keepsakes.count}</Text>
       </Pressable>
       <View style={{ flexDirection: "row", gap: 10 }}>
         {keepsakes.tiles.map((k, i) => {
@@ -241,7 +241,7 @@ function KeepsakesBlockRN({ keepsakes, tk, onBlock, onTile }: { keepsakes: Keeps
           );
         })}
       </View>
-      <Text style={{ fontFamily: "Newsreader-Italic", fontStyle: "italic", fontSize: 12, lineHeight: 16.8, color: tk.sub, textAlign: "center" }}>{keepsakes.note}</Text>
+      <Text style={{ fontSize: 12, lineHeight: 16.8, color: tk.sub, textAlign: "center" }}>{keepsakes.note}</Text>
     </View>
   );
 }
@@ -265,13 +265,13 @@ function StampsCardRN({ stamps, tk, cardW, onEmpty }: { stamps: StampsVM; tk: Th
     <InkPanel variant="me" contentStyle={{ gap: 12 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <View style={{ backgroundColor: tk.ink, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: tk.bg }}>{stamps.label}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.4, color: tk.bg }}>{stamps.label}</Text>
         </View>
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.2, color: tk.mute }}>{stamps.count}</Text>
+        <Text style={{ ...PFM.monoMed, fontSize: 10, letterSpacing: 1.2, color: tk.mute }}>{stamps.count}</Text>
       </View>
       {stamps.empty ? (
         <View style={{ gap: 12, alignItems: "flex-start" }}>
-          <Text style={{ fontFamily: "Newsreader-Italic", fontStyle: "italic", fontSize: 13, color: tk.sub }}>{stamps.emptyText}</Text>
+          <Text style={{ fontSize: 13, color: tk.sub }}>{stamps.emptyText}</Text>
           <Pressable onPress={onEmpty} accessibilityRole="button" style={({ pressed }) => ({ backgroundColor: tk.sf, borderWidth: 2, borderColor: tk.ln, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, opacity: pressed ? 0.7 : 1 })}>
             <Text style={{ fontSize: 13, fontWeight: "600", color: tk.ink }}>{stamps.emptyCta}</Text>
           </Pressable>
@@ -282,7 +282,7 @@ function StampsCardRN({ stamps, tk, cardW, onEmpty }: { stamps: StampsVM; tk: Th
             <View key={c.id} accessible accessibilityRole="image" accessibilityLabel={c.a11y} style={{ width: cellW, alignItems: "center", gap: 6 }}>
               <Stamp id={c.id} width={stampW} />
               {!!c.date && (
-                <Text numberOfLines={1} style={{ maxWidth: cellW, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.9, color: tk.sub }}>
+                <Text numberOfLines={1} style={{ maxWidth: cellW, ...PFM.monoSemi, fontSize: 9, letterSpacing: 0.9, color: tk.sub }}>
                   {c.date}
                 </Text>
               )}

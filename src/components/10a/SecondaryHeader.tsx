@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { useRouter, type Href } from "expo-router";
-import { MONO, PF } from "../../theme/post";
 import { useTheme } from "../../lib/theme";
 import { useLang } from "../../lib/i18n";
 import { BackChevron } from "./BackChevron";
@@ -13,12 +12,11 @@ import { BackChevron } from "./BackChevron";
    (the owner took the rules away; the ground does the separating). The
    back key is the one BackChevron (a 36 box 12 from the left edge holding
    M15 6l-7 6 7 6, 18pt, stroke 2.2, in ink, a 44pt touch, named for
-   VoiceOver a11y.back), centred in the bar's height. The title is centred in mono 600 at 11
-   with .16em of tracking (the mock's 12, under owner question 2's 9/10/11
-   rule) and is the page's header for VoiceOver; pass it already cased as
-   the page wants it (the strings are written in capitals where the mock
-   draws them so). `right` sits 12 from the right edge — the mock's icon
-   buttons are 34 × 34 with 22pt glyphs.
+   VoiceOver a11y.back), centred in the bar's height. The title is centred in
+   the system font, 500 at 17, as written — not in capitals (owner,
+   2026-10-20; KTextStyle.secondaryTitle in Swift) — and is the page's
+   header for VoiceOver. `right` sits 12 from the right edge — the mock's
+   icon buttons are 34 × 34 with 22pt glyphs.
 
    Back goes back; with nowhere to go back to (a page opened from a push),
    it replaces to `fallbackHref`, Today by default. Not sticky by itself:
@@ -34,7 +32,7 @@ export function SecondaryHeader({
   ground,
   style,
 }: {
-  /** the centred mono title, as shown (may be empty) */
+  /** the centred title, as shown (may be empty) */
   title?: string;
   /** what the chevron does (default: back, or fallbackHref) */
   onBack?: () => void;
@@ -64,7 +62,7 @@ export function SecondaryHeader({
           adjustsFontSizeToFit
           minimumFontScale={0.75}
           accessibilityRole="header"
-          style={{ maxWidth: "64%", fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: MONO.title * 0.16, color: tk.ink, textAlign: "center" }}
+          style={{ maxWidth: "64%", fontWeight: "500", fontSize: 17, color: tk.ink, textAlign: "center" }}
         >
           {title}
         </Text>

@@ -1,4 +1,5 @@
 import { POST_BLUE } from "../../../components/LaunchAnimation";
+import { PFM } from "../../../theme/post";
 
 /* THE NEW ONBOARDING'S OWN COLOURS AND TYPE (storyboard §3 and §6 "Type").
    ────────────────────────────────────────────────────────────────────────
@@ -49,36 +50,42 @@ export const SHADOW = 4;
 export const KEY_H = 56;
 export const GUTTER = 24;
 
-/* the embedded faces (theme/post: PostScript names, registered by the build) */
+/* THE RUN'S FACES (the app's type, owner 2026-10-20: theme/post THE TYPE). Each is a style
+   FRAGMENT, family and weight together, spread into a style: `{ ...FONT.bold, fontSize: 17 }`.
+   The run's words are the system font (it was Inter) at the weights Inter had; its labels are
+   SF Mono (PFM). FONT.letter / letterItalic are the old fixed Newsreader: a field where someone
+   writes content takes the reader's Letter font (useLetterFamily in lib/theme) instead. */
 export const FONT = {
-  /** headlines: Inter 800 */
-  head: "Inter-ExtraBold",
-  /** keys and strong lines */
-  bold: "Inter-Bold",
-  /** the egg's voice and labels: Inter 600 */
-  semi: "Inter-SemiBold",
-  medium: "Inter-Medium",
-  /** body lines: Inter 400 */
-  body: "Inter-Regular",
-  /** the letter: Newsreader */
-  letter: "Newsreader-Regular",
-  letterItalic: "Newsreader-Italic",
-  /** small labels that are labels (AFTER FIVE LETTERS EACH, YOUR FIRST STAMP) */
-  mono: "IBMPlexMono-Medium",
-  monoSemi: "IBMPlexMono-SemiBold",
+  /** headlines: system 800 */
+  head: { fontWeight: "800" },
+  /** keys and strong lines: system 700 */
+  bold: { fontWeight: "700" },
+  /** the egg's voice and labels: system 600 */
+  semi: { fontWeight: "600" },
+  medium: { fontWeight: "500" },
+  /** body lines: system 400 */
+  body: { fontWeight: "400" },
+  /** OLD: the fixed Newsreader letter; content uses useLetterFamily */
+  letter: { fontFamily: "Newsreader-Regular" },
+  // the face alone, as it always was here (a call site says fontStyle "italic" itself)
+  letterItalic: { fontFamily: "Newsreader-Italic" },
+  /** small labels that are labels (AFTER FIVE LETTERS EACH, YOUR FIRST STAMP): SF Mono */
+  mono: PFM.monoMed,
+  monoSemi: PFM.monoSemi,
 } as const;
 
-/** The type set (§6): headlines Inter 800 28–30 at −0.8, lines Inter 15–16, the letter Newsreader 19–20, mono only for labels. */
+/** The type set (§6): headlines system 800 28–30 at −0.8, lines system 15–16, the letter 19–20, mono only for labels. */
 export const TYPE = {
-  headline: { fontFamily: FONT.head, fontSize: 29, lineHeight: 34, letterSpacing: -0.8 },
-  line: { fontFamily: FONT.body, fontSize: 16, lineHeight: 22 },
-  lineSmall: { fontFamily: FONT.body, fontSize: 15, lineHeight: 21 },
-  voice: { fontFamily: FONT.semi, fontSize: 13, lineHeight: 17 },
-  key: { fontFamily: FONT.bold, fontSize: 17, letterSpacing: -0.2 },
-  textKey: { fontFamily: FONT.semi, fontSize: 15 },
-  small: { fontFamily: FONT.body, fontSize: 12.5, lineHeight: 17 },
-  letter: { fontFamily: FONT.letter, fontSize: 19.5, lineHeight: 28 },
-  label: { fontFamily: FONT.monoSemi, fontSize: 10, letterSpacing: 1.8 },
+  headline: { ...FONT.head, fontSize: 29, lineHeight: 34, letterSpacing: -0.8 },
+  line: { ...FONT.body, fontSize: 16, lineHeight: 22 },
+  lineSmall: { ...FONT.body, fontSize: 15, lineHeight: 21 },
+  voice: { ...FONT.semi, fontSize: 13, lineHeight: 17 },
+  key: { ...FONT.bold, fontSize: 17, letterSpacing: -0.2 },
+  textKey: { ...FONT.semi, fontSize: 15 },
+  small: { ...FONT.body, fontSize: 12.5, lineHeight: 17 },
+  /** OLD fixed Newsreader: spread useLetterFamily() over it where it is content */
+  letter: { ...FONT.letter, fontSize: 19.5, lineHeight: 28 },
+  label: { ...FONT.monoSemi, fontSize: 10, letterSpacing: 1.8 },
 } as const;
 
 /** The ground's colour, and the colour of type standing directly on it. */

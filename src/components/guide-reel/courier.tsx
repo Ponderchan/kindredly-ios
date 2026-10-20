@@ -8,7 +8,7 @@ import { EGG_SHELLS, MARK_D, RIM, ShellGradient, type Shell } from "../EggShell"
 import { getWrenEgg, useWrenName } from "../../lib/wren-name";
 import { useWrenStage } from "../../lib/wren-stage";
 import { t } from "../../lib/i18n";
-import { P, PF } from "../../theme/post";
+import { P, PF, PFM } from "../../theme/post";
 import { Y } from "../../theme/y2k";
 
 /* THE COURIER'S REEL — five scenes, all of them her.
@@ -350,7 +350,7 @@ const Dress = memo(function Dress({ s }: { s: number }) {
           </View>
         </>
       )}
-      <Text style={{ position: "absolute", left: 0, right: 0, top: s * 0.69, textAlign: "center", fontFamily: PF.monoSemi, fontSize: s * 0.052, letterSpacing: s * 0.006, color: P.ink }}>
+      <Text style={{ position: "absolute", left: 0, right: 0, top: s * 0.69, textAlign: "center", ...PFM.monoSemi, fontSize: s * 0.052, letterSpacing: s * 0.006, color: P.ink }}>
         {t(`skin.${coat}.name`).toUpperCase()}
       </Text>
       <View style={{ position: "absolute", left: 0, right: 0, top: s * 0.79, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: s * 0.035 }}>
@@ -431,10 +431,10 @@ const LockScreen = memo(function LockScreen({ s }: { s: number }) {
             {replied ? <WrenBird size={BW} stage={stage} mood="delight" /> : <WrenBird size={BW} pose="fly" />}
           </View>
           <View style={{ flex: 1, marginLeft: s * 0.028 }}>
-            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontFamily: PF.monoSemi, fontSize: s * 0.032, letterSpacing: 0.4, color: replied ? BRASS_INK : P.ink60 }}>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ ...PFM.monoSemi, fontSize: s * 0.032, letterSpacing: 0.4, color: replied ? BRASS_INK : P.ink60 }}>
               {eyebrow}
             </Text>
-            <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75} style={{ fontFamily: PF.letterSerif, fontSize: s * 0.052, lineHeight: s * 0.064, color: P.ink, marginTop: s * 0.012 }}>
+            <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75} style={{ fontSize: s * 0.052, lineHeight: s * 0.064, fontWeight: "600", color: P.ink, marginTop: s * 0.012 }}>
               {head}
             </Text>
             {!replied && reads > 0 && (
@@ -454,7 +454,7 @@ const LockScreen = memo(function LockScreen({ s }: { s: number }) {
                   </PopIn>
                 </View>
               )}
-              <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75} style={{ flex: 1, fontFamily: PF.mono, fontSize: s * 0.033, lineHeight: s * 0.043, color: replied ? BRASS_INK : P.ink60 }}>
+              <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75} style={{ flex: 1, ...PFM.mono, fontSize: s * 0.033, lineHeight: s * 0.043, color: replied ? BRASS_INK : P.ink60 }}>
                 {said}
               </Text>
             </View>

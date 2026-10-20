@@ -7,7 +7,7 @@ import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/th
 import { useLang } from "../../lib/i18n";
 import { assetImageRef } from "../../lib/images";
 import { THEME_KEYS, THEMES, type ThemeKey } from "../../theme/themes";
-import { PF } from "../../theme/post";
+import { PFM } from "../../theme/post";
 import { demoJournal } from "../../data/demo";
 import { MOOD_IDS, type MoodId } from "../../data/moods";
 import type { JournalEntry } from "../../lib/journal";
@@ -231,7 +231,7 @@ function NotesLab() {
             <Chip label="PICKER" on={picker} onPress={() => setPicker((v) => !v)} />
             <Chip label="PUSH" on={push} onPress={() => setPush((v) => !v)} />
           </Row>
-          <Text style={{ fontFamily: PF.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>
+          <Text style={{ ...PFM.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>
             {`THEME ${themeLabel} (${key}) · ${native ? "SWIFTUI" : "REACT NATIVE"}${swiftAvailable ? "" : " (no KNotesView in this build)"} · ${model.notes.length} PAGES · ${model.view.toUpperCase()}${model.calendarOpen ? ` · CALENDAR ${model.month.key}` : ""}${films.landscape ? "" : " · FILMS LOADING"}${mood ? ` · MOOD ${mood}` : ""}`}
           </Text>
         </View>
@@ -259,7 +259,7 @@ function Chip({ label, on = false, onPress }: { label: string; on?: boolean; onP
       accessibilityState={{ selected: on }}
       style={({ pressed }) => ({ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 16, borderWidth: 1.5, borderColor: on ? tk.ink : tk.line, backgroundColor: on ? tk.ink : tk.sf, opacity: pressed ? 0.7 : 1 })}
     >
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 0.8, color: on ? tk.bg : tk.ink }}>{label}</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 0.8, color: on ? tk.bg : tk.ink }}>{label}</Text>
     </Pressable>
   );
 }

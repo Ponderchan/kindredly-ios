@@ -3,7 +3,7 @@ import { Animated, Easing, Pressable, ScrollView, Text, View, useWindowDimension
 import { useReducedMotion } from "react-native-reanimated";
 import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 import { t } from "../lib/i18n";
-import { MONO, P as STATIC_P, PF } from "../theme/post";
+import { MONO, P as STATIC_P, PFM } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
 import { STAMP_CATEGORIES, STAMPS, getStamp, sname, stampsByCat } from "../data/stamps";
 import { Stamp, StampSlot } from "./Stamp";
@@ -275,7 +275,7 @@ export function StampTray({
         </View>
         {/* its name, in its own ink — a stamp is a word as much as a picture; one line where it
             fits, more only for the long ones (never told anyone, mi ha fatto la giornata) */}
-        <Text numberOfLines={fit.lines} style={{ fontFamily: PF.monoMed, fontSize: fit.size, letterSpacing: 0.2, color: it.inkHex, marginTop: 2, maxWidth: room, textAlign: "center" }}>
+        <Text numberOfLines={fit.lines} style={{ ...PFM.monoMed, fontSize: fit.size, letterSpacing: 0.2, color: it.inkHex, marginTop: 2, maxWidth: room, textAlign: "center" }}>
           {it.name}
         </Text>
       </Pressable>
@@ -284,7 +284,7 @@ export function StampTray({
   const section = (key: string, label: string, items: TrayStamp[]) =>
     items.length ? (
       <View key={key} style={{ marginBottom: 6 }}>
-        <Text accessibilityRole="header" style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: P.ink40, paddingHorizontal: 6, marginTop: 10, marginBottom: 4 }}>{label}</Text>
+        <Text accessibilityRole="header" style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: P.ink40, paddingHorizontal: 6, marginTop: 10, marginBottom: 4 }}>{label}</Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap" }}>{items.map((it) => tile(it, key))}</View>
       </View>
     ) : null;
@@ -324,7 +324,7 @@ export function StampTray({
       <ScrollView key={shown} contentContainerStyle={{ paddingHorizontal: 10, paddingTop: 4, paddingBottom: 18 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {shown === "custom" && custom ? (
           <View style={{ marginBottom: 6 }}>
-            <Text accessibilityRole="header" style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: P.ink40, paddingHorizontal: 6, marginTop: 10, marginBottom: 4 }}>{t("cs2.tray.custom")}</Text>
+            <Text accessibilityRole="header" style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: P.ink40, paddingHorizontal: 6, marginTop: 10, marginBottom: 4 }}>{t("cs2.tray.custom")}</Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
               {/* the dashed +: the Stamp Press, or (Free at 3/3) the small card */}
               <Pressable
@@ -358,7 +358,7 @@ export function StampTray({
                     <View style={{ padding: 2, borderWidth: 2, borderColor: on ? P.pen : "transparent", borderRadius: 7 }}>
                       <Stamp id={it.id} width={TILE.w} />
                     </View>
-                    <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 0.2, color: tk.sub, marginTop: 2, maxWidth: room, textAlign: "center" }}>
+                    <Text numberOfLines={1} style={{ ...PFM.monoMed, fontSize: 9, letterSpacing: 0.2, color: tk.sub, marginTop: 2, maxWidth: room, textAlign: "center" }}>
                       {it.topic}
                     </Text>
                   </Pressable>
@@ -385,7 +385,7 @@ export function StampTray({
           <View accessibilityViewIsModal style={{ width: "100%", maxWidth: 300 }}>
             <View style={{ position: "absolute", left: 3, top: 3, right: -3, bottom: -3, backgroundColor: tk.dark ? tk.ln : tk.ink }} />
             <View style={{ backgroundColor: tk.sf, borderWidth: 2, borderColor: tk.ink, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 6 }}>
-              <Text accessibilityRole="header" style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.3, color: tk.ink }}>{fullTitle}</Text>
+              <Text accessibilityRole="header" style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.3, color: tk.ink }}>{fullTitle}</Text>
               <Pressable accessibilityRole="button" onPress={() => { setFullCard(false); onFullCta?.(); }} style={{ minHeight: 44, justifyContent: "center", marginTop: 6 }}>
                 <Text style={{ fontSize: 15, fontWeight: "600", color: tk.ind }}>{t("cs2.me.fullCta")}</Text>
               </Pressable>
@@ -441,7 +441,7 @@ export function MoreTray({
           </View>
         )}
       </View>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1, color: P.ink60, marginTop: 8, textAlign: "center" }}>{label}</Text>
+      <Text style={{ fontSize: 11, fontWeight: "500", color: P.ink60, marginTop: 8, textAlign: "center" }}>{label}</Text>
     </Pressable>
   );
   return (

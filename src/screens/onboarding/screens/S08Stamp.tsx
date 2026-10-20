@@ -298,7 +298,7 @@ function TraySheet({ selected, suggested, bottom, onPick, onClose }: { selected:
           style={{ backgroundColor: OB.paper, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: EDGE, borderBottomWidth: 0, borderColor: OB.ink, paddingBottom: bottom, overflow: "hidden" }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingLeft: GUTTER, paddingRight: 8, paddingTop: 10, paddingBottom: 4 }}>
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" style={{ fontFamily: FONT.head, fontSize: 19, letterSpacing: -0.4, color: OB.ink }}>
+            <Text maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" style={{ ...FONT.head, fontSize: 19, letterSpacing: -0.4, color: OB.ink }}>
               {t("ob2.stamp.trayHead")}
             </Text>
             <TextKey label={t("ob2.stamp.trayDone")} on="paper" onPress={onClose} />

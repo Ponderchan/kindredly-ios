@@ -1,5 +1,5 @@
 import { Text, View } from "react-native";
-import { PF } from "../theme/post";
+import { PFM } from "../theme/post";
 import { t, useLang } from "../lib/i18n";
 
 /* THE MARK. A cofounder is not a receipt, they are a number — so the
@@ -53,7 +53,7 @@ export function CofounderMark({
       <View style={{ width: lg ? 7 : 5, height: lg ? 7 : 5, backgroundColor: COFOUNDER_GOLD }} />
       <Text
         style={{
-          fontFamily: PF.monoSemi,
+          ...PFM.monoSemi,
           fontSize: lg ? 10.5 : 9,
           letterSpacing: lg ? 1.6 : 1.2,
           color: onDark ? COFOUNDER_INK_DARK : COFOUNDER_INK,

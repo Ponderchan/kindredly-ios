@@ -8,7 +8,7 @@ import { STAMPS } from "../../data/stamps";
 import { STAMP_LADDER, stampHeight, stampTierV3, tilt, type StampPlacement, type StampPlacementName } from "../../lib/stamp-frame";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
 import THEMES from "../../theme/themes.json";
-import { PF } from "../../theme/post";
+import { PFM } from "../../theme/post";
 
 /* dev only — STAMPS V3 IN REACT NATIVE (v3 B "character", owner 2026-10-19).
    kindredly:///dev/step5-stamp-art
@@ -51,8 +51,8 @@ const KEYS = Object.keys(THEMES.themes) as KThemeKey[];
 const SURFACES: KThemeKey[] = ["classic", "midnight"];
 
 // KType's monoSection (600 10 .14em) and monoCaption (500 10 .06em), as the gallery sets them
-const section: TextStyle = { fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4 };
-const captionStyle: TextStyle = { fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 0.6 };
+const section: TextStyle = { ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.4 };
+const captionStyle: TextStyle = { ...PFM.monoMed, fontSize: 10, letterSpacing: 0.6 };
 
 export default function Step5StampArt() {
   if (!__DEV__) return <Redirect href="/" />;

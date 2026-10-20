@@ -16,7 +16,7 @@ import SwiftUI
    │   └─────────────────────────────────────────┘     │
    └──────────────────────────────────────────────────┘
 
- EVERY WORD IS IN THE SYSTEM FONT (contract D12; the owner: "字体就不加别的 统一我们 default 字体
+ EVERY WORD OF THE EMPTY BLOCK IS IN THE SYSTEM FONT (contract D12; the owner: "字体就不加别的 统一我们 default 字体
  大一些"): the title, the mood line, the card's time and follow-up — no letter face, no italic, no
  mono on this screen. The words are TS's (strings-notes-empty.ts via KNotesStrings ne*).
 
@@ -32,7 +32,8 @@ import SwiftUI
  chosen is only this view's state: coming back without saving finds it still chosen.
 
  KNotesFirstLine is Notes E1's other half: after the first page, Wren's one-time "first one down.
- same time tomorrow?" in the Wren line's slot, in the system font on a soft bubble (KNotesScreen
+ same time tomorrow?" in the Wren line's slot, in the Letter font (her words are content, owner
+ 2026-10-20) on a soft bubble (KNotesScreen
  draws it instead of KNotesWrenLine when content.wrenFirst).
  */
 
@@ -199,11 +200,11 @@ private struct KNotesCaret: View {
 }
 
 /// Wren's one-time line after the first page (Notes E1, Prompt 3): her bird and the words in the
-/// system font on a soft bubble, in the Wren line's slot. A tap closes it (TS spends the flag when it
+/// Letter font on a soft bubble, in the Wren line's slot. A tap closes it (TS spends the flag when it
 /// first shows, so it never comes back).
 struct KNotesFirstLine: View {
   static let bird: CGFloat = 26
-  static let line = KTextStyle.system(16, lineHeight: 22.0 / 16)
+  static let line = KTextStyle.content(16, lineHeight: 22.0 / 16)
 
   let theme: KTheme
   let bird: KImageRef?

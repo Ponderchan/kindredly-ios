@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
-import { MONO, PF } from "../theme/post";
+import { MONO, PFM } from "../theme/post";
 import { useTheme } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
 import { keepsake } from "../data/keepsakes";
@@ -57,13 +57,13 @@ export default function Keepsakes() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }} edges={["top"]}>
       <SecondaryHeader
-        title={t("ka.title").toLocaleUpperCase()}
+        title={t("ka.title")}
         fallbackHref="/courier"
-        right={shelf ? <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, letterSpacing: 1.1, color: tk.mute, paddingHorizontal: 4 }}>{known.length}</Text> : undefined}
+        right={shelf ? <Text style={{ ...PFM.monoMed, fontSize: MONO.title, letterSpacing: 1.1, color: tk.mute, paddingHorizontal: 4 }}>{known.length}</Text> : undefined}
       />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
-        <Text style={{ fontFamily: PF.letterSerif, fontSize: 14, lineHeight: 20, color: tk.sub, marginBottom: 14 }}>{t("ka.lede", { wren })}</Text>
-        {shelf && shelf.length === 0 && <Text style={{ fontFamily: "Newsreader-Italic", fontStyle: "italic", fontSize: 14, color: tk.mute, marginTop: 20 }}>{t("ka.none", { wren })}</Text>}
+        <Text style={{ fontSize: 14, lineHeight: 20, color: tk.sub, marginBottom: 14 }}>{t("ka.lede", { wren })}</Text>
+        {shelf && shelf.length === 0 && <Text style={{ fontSize: 14, color: tk.mute, marginTop: 20 }}>{t("ka.none", { wren })}</Text>}
         {rows.map((row, ri) => (
           <View key={ri} style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
             {row.map((k) => {
@@ -83,7 +83,7 @@ export default function Keepsakes() {
                   <Text numberOfLines={2} style={{ fontSize: 12, fontWeight: "600", color: tk.ink, marginTop: 8, textAlign: "center" }}>
                     {name}
                   </Text>
-                  <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: MONO.small, letterSpacing: 0.6, color: tk.mute, marginTop: 4 }}>
+                  <Text numberOfLines={1} style={{ ...PFM.monoMed, fontSize: MONO.small, letterSpacing: 0.6, color: tk.mute, marginTop: 4 }}>
                     {k.evidence || dShort(k.at).toLocaleUpperCase()}
                   </Text>
                   {isNew && <View style={{ position: "absolute", top: 8, right: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: tk.ind }} />}

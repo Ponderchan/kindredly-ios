@@ -7,7 +7,7 @@ import { useWrenName } from "../lib/wren-name";
 import { useAuth } from "../lib/auth";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../lib/theme";
 import { THEME_KEYS, type ThemeKey } from "../theme/themes";
-import { PF } from "../theme/post";
+import { PFM } from "../theme/post";
 import { getLang, t, useLang } from "../lib/i18n";
 import { frostSpec } from "../lib/frost";
 import { strangerName } from "../lib/stranger-name";
@@ -95,7 +95,7 @@ export default function IntroPreview() {
     <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.2, color: tk.ind }}>INTRO PREVIEW</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.2, color: tk.ind }}>INTRO PREVIEW</Text>
           <Chip label="BACK" onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))} />
         </View>
         <Row label="CASE">
@@ -112,7 +112,7 @@ export default function IntroPreview() {
           <Chip label={forced ? forced.toUpperCase() : "APP"} on={!!forced} onPress={() => setDevThemeOverride(themeIndex + 1 < keys.length ? keys[themeIndex + 1] : null)} />
         </Row>
         <Pressable onPress={play} accessibilityRole="button" style={({ pressed }) => ({ backgroundColor: tk.ind, borderRadius: 14, paddingVertical: 14, alignItems: "center", opacity: pressed ? 0.85 : 1 })}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: tk.bg }}>PLAY</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.6, color: tk.bg }}>PLAY</Text>
         </Pressable>
       </ScrollView>
 
@@ -145,7 +145,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   const { t: tk } = useTheme();
   return (
     <View style={{ gap: 6 }}>
-      <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.2, color: tk.mute }}>{label}</Text>
+      <Text style={{ ...PFM.monoMed, fontSize: 10, letterSpacing: 1.2, color: tk.mute }}>{label}</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>{children}</View>
     </View>
   );
@@ -161,7 +161,7 @@ function Chip({ label, on = false, onPress }: { label: string; on?: boolean; onP
       hitSlop={4}
       style={({ pressed }) => ({ paddingVertical: 7, paddingHorizontal: 10, borderRadius: 16, borderWidth: 1.5, borderColor: tk.ln, backgroundColor: on ? tk.ink : tk.sf, opacity: pressed ? 0.6 : 1 })}
     >
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1, color: on ? tk.sf : tk.ink }}>{label}</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1, color: on ? tk.sf : tk.ink }}>{label}</Text>
     </Pressable>
   );
 }

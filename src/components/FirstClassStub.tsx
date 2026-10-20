@@ -1,6 +1,6 @@
 import { Pressable, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { PF } from "../theme/post";
+import { PFM } from "../theme/post";
 import { BRAND } from "../theme/themes";
 import type { FirstClass4aVM } from "../screens/me/me-model";
 import { WrenBird } from "./WrenBird";
@@ -12,7 +12,7 @@ import { WrenBird } from "./WrenBird";
    Cream paper (brand colours, the same in every theme): a 1.5 cream-border
    outline, corners of 24, padding 18 18 16, 14 between its parts:
    - the eyebrow: a 7pt wax-gold dot and FIRST CLASS in mono 10 at .18em, gold;
-   - the headline in the serif 26/1.1, 100 clear on the right for the stamp;
+   - the headline in System semibold 26/1.1, 100 clear on the right for the stamp;
    - the rows in system 14 (7 apart), each after a 16 gold check at stroke
      2.6, also 100 clear;
    - the foot: an ink button 40 tall (padding 0 16, corners 14, system 600
@@ -64,11 +64,11 @@ export function FirstClassCard({
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
         <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: BRAND.waxGold }} />
-        <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.8, color: BRAND.goldText }}>
+        <Text numberOfLines={1} style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.8, color: BRAND.goldText }}>
           {card.eyebrow.toLocaleUpperCase()}
         </Text>
       </View>
-      <Text style={{ fontFamily: PF.letterSerif, fontSize: 26, lineHeight: 28.6, color: BRAND.inkOnBrand, paddingRight: 100 }}>
+      <Text style={{ fontSize: 26, lineHeight: 28.6, fontWeight: "600", color: BRAND.inkOnBrand, paddingRight: 100 }}>
         {card.headline}
       </Text>
       <View style={{ gap: 7, paddingRight: 100 }}>
@@ -89,7 +89,7 @@ export function FirstClassCard({
         </View>
         <View style={{ flex: 1 }} />
         {card.trial ? (
-          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1, color: BRAND.goldText, flexShrink: 1 }}>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1, color: BRAND.goldText, flexShrink: 1 }}>
             {card.trial}
           </Text>
         ) : null}
@@ -129,7 +129,7 @@ export function FirstClassCard({
           <Text
             numberOfLines={1}
             maxFontSizeMultiplier={1}
-            style={{ position: "absolute", right: 5, bottom: 4, fontFamily: PF.monoSemi, fontSize: 8, color: BRAND.goldText }}
+            style={{ position: "absolute", right: 5, bottom: 4, ...PFM.monoSemi, fontSize: 8, color: BRAND.goldText }}
           >
             {card.stampLabel}
           </Text>

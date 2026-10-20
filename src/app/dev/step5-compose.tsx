@@ -7,7 +7,7 @@ import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/th
 import { getLang, setLang, t, useLang, type Lang } from "../../lib/i18n";
 import { OFFICIAL_NAME } from "../../lib/wren-desk";
 import { THEME_KEYS, THEMES, type ThemeKey } from "../../theme/themes";
-import { PF } from "../../theme/post";
+import { PFM } from "../../theme/post";
 import { LetterTravel } from "../../components/LetterTravel";
 import { LeaveSheet, type LeaveAction } from "../../components/LeaveSheet";
 import type { Draft } from "../../lib/drafts";
@@ -171,7 +171,7 @@ function ComposeLab() {
             <Chip label="FAIL" on={fail} onPress={() => setFail((v) => !v)} />
             <Chip label="CAP" on={cap} onPress={() => setCap((v) => !v)} />
           </Row>
-          <Text style={{ fontFamily: PF.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>
+          <Text style={{ ...PFM.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>
             {`THEME ${themeLabel} (${key}) · ${swift && swiftAvailable ? "SWIFTUI" : "REACT NATIVE"}${swiftAvailable ? "" : " (no KComposeView in this build)"}`}
           </Text>
         </View>
@@ -314,7 +314,7 @@ function Chip({ label, on = false, onPress }: { label: string; on?: boolean; onP
       accessibilityState={{ selected: on }}
       style={({ pressed }) => ({ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 16, borderWidth: 1.5, borderColor: on ? tk.ink : tk.line, backgroundColor: on ? tk.ink : tk.sf, opacity: pressed ? 0.7 : 1 })}
     >
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 0.8, color: on ? tk.bg : tk.ink }}>{label}</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 0.8, color: on ? tk.bg : tk.ink }}>{label}</Text>
     </Pressable>
   );
 }

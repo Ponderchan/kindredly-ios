@@ -14,8 +14,8 @@ import SwiftUI
    11 above and below;
  - panel: a rounded block (corners of 16, padding 14 16), as Settings sets it among its groups.
  Inside, left to right: an optional glyph (the bell, 16 across at stroke 2), the words (system
- 400 14/19, two lines at most), and under them, if given, an action line (mono 600 11 at .1em:
- "TURN ON IN SETTINGS ›"); the whole of that is one button (onTap). Then, if a closeLabel is
+ 400 14/19, two lines at most), and under them, if given, an action line (System 600 13, a
+ button: "Turn on in Settings ›"); the whole of that is one button (onTap). Then, if a closeLabel is
  given, the × (14 across at stroke 2.2), its own button with that label for VoiceOver.
 
  Every word comes from the caller, already translated. At the accessibility text sizes nothing
@@ -87,9 +87,9 @@ public struct KNoticeBar: View {
               .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
               .fixedSize(horizontal: false, vertical: true)
             if let actionLabel {
+              // a button's words: System, as the string has them (NotifyBanner.tsx)
               Text(actionLabel)
-                .textCase(.uppercase)
-                .kText(.monoAction)
+                .kText(.system(13, .semibold))
                 .foregroundStyle(theme.ind)
                 .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
                 .minimumScaleFactor(typeSize.isAccessibilitySize ? 1 : 0.8)

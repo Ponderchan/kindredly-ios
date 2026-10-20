@@ -8,7 +8,7 @@ import { cardShadow } from "./AuraCard";
 import { StickerBox } from "./10a/StickerBox";
 import { badgeCount } from "./10a/kit";
 import { createDeskStore } from "./10a/desk-store";
-import { MONO, PF } from "../theme/post";
+import { MONO, PF, PFM } from "../theme/post";
 import { useTheme } from "../lib/theme";
 import { getLang, t, useLang } from "../lib/i18n";
 import { sinceShort, listWhen } from "../lib/format";
@@ -211,7 +211,8 @@ export function WrenDeskRow({ inList = false, onUnread, hairline = false }: { in
             <Text numberOfLines={1} style={[row.name, { flex: 1 }]}>
               {OFFICIAL_NAME}
             </Text>
-            {!!ago && <Text style={row.time}>{ago}</Text>}
+            {/* the time is a label: SF Mono, as on every Kindreds row (KPersonRow) */}
+            {!!ago && <Text style={[row.time, { ...PFM.monoMed, fontSize: MONO.title }]}>{ago}</Text>}
           </View>
           <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
             <Text numberOfLines={2} style={[row.preview, { flex: 1 }]}>
@@ -219,7 +220,7 @@ export function WrenDeskRow({ inList = false, onUnread, hairline = false }: { in
             </Text>
             {unread > 0 && (
               <View style={row.badge}>
-                <Text style={row.badgeText}>{badgeCount(unread)}</Text>
+                <Text style={[row.badgeText, PFM.monoSemi]}>{badgeCount(unread)}</Text>
               </View>
             )}
           </View>
@@ -239,24 +240,24 @@ export function WrenDeskRow({ inList = false, onUnread, hairline = false }: { in
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
             <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 15, color: tk.ink }}>{OFFICIAL_NAME}</Text>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.small, letterSpacing: 1.2, color: tk.ind }}>{t("wo.tag").toUpperCase()}</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: MONO.small, letterSpacing: 1.2, color: tk.ind }}>{t("wo.tag").toUpperCase()}</Text>
             <View style={{ flex: 1 }} />
             {/* the time since her last post — or, while one is unopened, NEW */}
             {unread > 0 ? (
               <View style={{ backgroundColor: tk.ink, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999 }}>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.small, letterSpacing: 1.2, color: tk.bg }}>{t("wo.new")}</Text>
+                <Text style={{ ...PFM.monoSemi, fontSize: MONO.small, letterSpacing: 1.2, color: tk.bg }}>{t("wo.new")}</Text>
               </View>
             ) : (
-              !!ago && <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: tk.mute }}>{ago}</Text>
+              !!ago && <Text style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: tk.mute }}>{ago}</Text>
             )}
           </View>
-          <Text numberOfLines={1} style={{ fontFamily: PF.letterSerif, fontSize: 14, color: unread ? tk.ink : tk.sub, marginTop: 3 }}>
+          <Text numberOfLines={1} style={{ fontSize: 14, color: unread ? tk.ink : tk.sub, marginTop: 3 }}>
             {line}
           </Text>
         </View>
         {unread > 0 && (
           <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6, backgroundColor: tk.ink, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, color: tk.bg }}>{badgeCount(unread)}</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, color: tk.bg }}>{badgeCount(unread)}</Text>
           </View>
         )}
       </View>

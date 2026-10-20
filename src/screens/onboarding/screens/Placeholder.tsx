@@ -65,7 +65,7 @@ export function PBtn({ label, onPress, on, active = false }: { label: string; on
       accessibilityRole="button"
       style={({ pressed }) => ({ borderWidth: 1.5, borderColor: ink, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 12, backgroundColor: active ? ink : "transparent", opacity: pressed ? 0.6 : 1 })}
     >
-      <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ fontFamily: FONT.semi, fontSize: 14, color: active ? (g === "blue" ? "#5B55FF" : "#FFFFFF") : ink, textAlign: "center" }}>{label}</Text>
+      <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ ...FONT.semi, fontSize: 14, color: active ? (g === "blue" ? "#5B55FF" : "#FFFFFF") : ink, textAlign: "center" }}>{label}</Text>
     </Pressable>
   );
 }

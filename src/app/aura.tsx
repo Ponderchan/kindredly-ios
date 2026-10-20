@@ -4,8 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { storeAura, storeMode } from "../lib/dev-store";
 import { t as tr, useLang } from "../lib/i18n";
-import { PF } from "../theme/post";
-import { scrimColor, useP, useTheme } from "../lib/theme";
+import { letterFitLines, PF, PFM } from "../theme/post";
+import { scrimColor, useLetterFamily, useLetterFont, useP, useTheme } from "../lib/theme";
 import { BRAND, type ThemeTokens } from "../theme/themes";
 import { AuraCard, StickerChip, cardShadow } from "../components/AuraCard";
 import { GridIcon, ShareIcon } from "../components/Icons";
@@ -83,6 +83,8 @@ export default function AuraScreen() {
   useLang();
   const P = useP();
   const { t: tk, dark } = useTheme();
+  // your own words (the piece, the word you lean on, its sentence) are content: your letter font
+  const letter = useLetterFamily();
   const scrim = scrimColor(dark, 0.35);
   const router = useRouter();
   const { user, profile } = useAuth();
@@ -146,7 +148,7 @@ export default function AuraScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }} edges={["top"]}>
       <SecondaryHeader
-        title={tr("wa.title").toLocaleUpperCase()}
+        title={tr("wa.title")}
         fallbackHref="/(tabs)/me"
         right={
           <Pressable onPress={() => router.push("/aura-card")} hitSlop={6} accessibilityRole="button" accessibilityLabel={tr("ac.shareSm")} style={({ pressed }) => ({ width: 34, height: 34, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.5 : 1 })}>
@@ -175,7 +177,7 @@ export default function AuraScreen() {
       {aura && tab === "dims" && (
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 22, paddingTop: 16 }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: tk.mute }}>{tr("wa.dimOf", { i: idx + 1 })}</Text>
+            <Text style={{ ...PFM.mono, fontSize: 10.5, letterSpacing: 1.4, color: tk.mute }}>{tr("wa.dimOf", { i: idx + 1 })}</Text>
             <Pressable onPress={() => setGrid(true)} hitSlop={8} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
               <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 13, color: P.pen }}>{tr("wa.allDims")}</Text>
               <GridIcon size={18} color={P.pen} />
@@ -210,7 +212,7 @@ export default function AuraScreen() {
           <AuraSheet visible={!!reading} title={tr("wa.readTitle")} onClose={() => setReading(null)} scrim={scrim} tk={tk}>
             {reading && (
               <View style={{ marginTop: 14 }}>
-                <Text style={{ fontFamily: PF.letterSerif, fontSize: 17, lineHeight: 27, color: tk.ink }}>
+                <Text style={{ ...letter, fontSize: 17, lineHeight: 27, color: tk.ink }}>
                   {reading.text.slice(0, reading.start)}
                   <Text style={{ backgroundColor: tk.lav2, color: tk.ind }}>{reading.text.slice(reading.start, reading.end)}</Text>
                   {reading.text.slice(reading.end)}
@@ -232,7 +234,7 @@ export default function AuraScreen() {
                 const on = i === idx;
                 return (
                   <Pressable key={d} onPress={() => { setGrid(false); goto(i); }} accessibilityRole="button" accessibilityLabel={`${i + 1}. ${dimLabel(d)}`} accessibilityState={{ selected: on }} style={{ width: "31%", paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: on ? P.pen : tk.line, backgroundColor: on ? tk.lav2 : tk.sf, alignItems: "center", gap: 4 }}>
-                    <Text style={{ fontFamily: PF.serif, fontSize: 18, color: on ? P.pen : tk.ink }}>{String(i + 1).padStart(2, "0")}</Text>
+                    <Text style={{ ...PFM.mono, fontSize: 18, color: on ? P.pen : tk.ink }}>{String(i + 1).padStart(2, "0")}</Text>
                     <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: on ? P.pen : tk.sub, textAlign: "center" }} numberOfLines={1}>{dimLabel(d)}</Text>
                   </Pressable>
                 );
@@ -245,22 +247,22 @@ export default function AuraScreen() {
       {aura && tab === "habits" && (
         <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: tk.mute }}>{tr("wa.fromPieces", { n: aura.pieces })}</Text>
+            <Text style={{ ...PFM.mono, fontSize: 10.5, letterSpacing: 1.4, color: tk.mute }}>{tr("wa.fromPieces", { n: aura.pieces })}</Text>
             <Pressable onPress={() => setScope(true)} hitSlop={8} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <Text style={{ fontFamily: PF.letter, fontSize: 12.5, color: P.pen }}>{tr("wa.scope")}</Text>
-              <Text style={{ fontFamily: PF.mono, fontSize: 13, color: P.pen }}>≡</Text>
+              <Text style={{ ...PFM.mono, fontSize: 13, color: P.pen }}>≡</Text>
             </Pressable>
           </View>
 
           {/* the words you lean on */}
           <View style={[{ backgroundColor: tk.sf, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }, cardEdge(tk)]}>
-            <Text style={{ fontFamily: PF.serif, fontSize: 21, color: tk.ink }}>{tr("wa.words")}</Text>
+            <Text style={{ fontSize: 21, fontWeight: "700", color: tk.ink }}>{tr("wa.words")}</Text>
             {words.length ? (
               <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", alignItems: "baseline", columnGap: 16, rowGap: 8, marginTop: 16 }}>
                 {words.map(([w, c], i) => (
                   <Pressable key={w} onPress={() => setWord(word === w ? null : w)} hitSlop={4} style={{ flexDirection: "row", alignItems: "flex-start" }}>
-                    <Text style={{ fontFamily: PF.serif, fontSize: i < 2 ? 24 : i < 4 ? 20 : 17, color: word === w ? P.pen : i % 2 ? greenOn(tk) : tk.ind }}>{w}</Text>
-                    <Text style={{ fontFamily: PF.mono, fontSize: 9.5, color: tk.mute, marginLeft: 2 }}>{c}</Text>
+                    <Text style={{ ...letter, fontSize: i < 2 ? 24 : i < 4 ? 20 : 17, color: word === w ? P.pen : i % 2 ? greenOn(tk) : tk.ind }}>{w}</Text>
+                    <Text style={{ ...PFM.mono, fontSize: 9.5, color: tk.mute, marginLeft: 2 }}>{c}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -269,7 +271,7 @@ export default function AuraScreen() {
             )}
             {word && wordHit && (
               <View style={{ marginTop: 14, backgroundColor: tk.lav2, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12 }}>
-                <Text style={{ fontFamily: PF.letterSerif, fontSize: 15.5, lineHeight: 23, color: tk.ink }}>“{wordHit}”</Text>
+                <Text style={{ ...letter, fontSize: 15.5, lineHeight: 23, color: tk.ink }}>“{wordHit}”</Text>
               </View>
             )}
             <Text style={{ fontFamily: PF.letter, fontSize: 12, color: tk.mute, textAlign: "center", marginTop: 12 }}>{tr("wa.wordsHint")}</Text>
@@ -277,17 +279,17 @@ export default function AuraScreen() {
 
           {/* how you pause */}
           <View style={[{ backgroundColor: tk.sf, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }, cardEdge(tk)]}>
-            <Text style={{ fontFamily: PF.serif, fontSize: 21, color: tk.ink }}>{tr("wa.pauses")}</Text>
+            <Text style={{ fontSize: 21, fontWeight: "700", color: tk.ink }}>{tr("wa.pauses")}</Text>
             <View style={{ marginTop: 14, gap: 12 }}>
               {pauses.map(([label, c], i) => {
                 const max = Math.max(1, ...pauses.map((p) => p[1]));
                 return (
                   <View key={label} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                    <Text style={{ width: 44, fontFamily: PF.mono, fontSize: 12, color: tk.sub }}>{label}</Text>
+                    <Text style={{ width: 44, ...PFM.mono, fontSize: 12, color: tk.sub }}>{label}</Text>
                     <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: tk.lav, overflow: "hidden" }}>
                       <View style={{ width: `${Math.round((c / max) * 100)}%`, height: 6, backgroundColor: i === 0 ? tk.ind : tk.mute }} />
                     </View>
-                    <Text style={{ width: 28, textAlign: "right", fontFamily: PF.mono, fontSize: 12, color: tk.sub }}>{c}</Text>
+                    <Text style={{ width: 28, textAlign: "right", ...PFM.mono, fontSize: 12, color: tk.sub }}>{c}</Text>
                   </View>
                 );
               })}
@@ -298,7 +300,7 @@ export default function AuraScreen() {
           {/* the rest of the stickers: writing ones without a seat, then what the product counted */}
           {extras.length > 0 && (
             <View style={[{ backgroundColor: tk.sf, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }, cardEdge(tk)]}>
-              <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: tk.mute }}>{tr("us.more")}</Text>
+              <Text style={{ ...PFM.mono, fontSize: 10.5, letterSpacing: 1.4, color: tk.mute }}>{tr("us.more")}</Text>
               <View style={{ marginTop: 14, gap: 14 }}>
                 {extras.map((s, i) => (
                   <View key={s.stickerId} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -311,20 +313,20 @@ export default function AuraScreen() {
           )}
           {usageBy.length === 0 ? (
             <View style={[{ backgroundColor: tk.sf, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }, cardEdge(tk)]}>
-              <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: tk.mute }}>{usageGroupLabel("habit")}</Text>
+              <Text style={{ ...PFM.mono, fontSize: 10.5, letterSpacing: 1.4, color: tk.mute }}>{usageGroupLabel("habit")}</Text>
               <Text style={{ fontFamily: PF.letter, fontSize: 13.5, color: tk.sub, marginTop: 12 }}>{tr("us.none")}</Text>
             </View>
           ) : (
             usageBy.map(({ g, items }) => (
               <View key={g} style={[{ backgroundColor: tk.sf, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 18, marginTop: 12 }, cardShadow, { shadowOpacity: 0.05 }, cardEdge(tk)]}>
-                <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 1.4, color: tk.mute }}>{usageGroupLabel(g)}</Text>
+                <Text style={{ ...PFM.mono, fontSize: 10.5, letterSpacing: 1.4, color: tk.mute }}>{usageGroupLabel(g)}</Text>
                 <View style={{ marginTop: 14, gap: 14 }}>
                   {items.map((u, i) => (
                     <View key={u.id} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                       <StickerChip id={u.id} i={i} />
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontFamily: PF.letter, fontSize: 13, lineHeight: 18, color: tk.sub }}>{usageLine(u)}</Text>
-                        {u.private && <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.2, color: tk.mute, marginTop: 3 }}>🔒 {tr("us.private")}</Text>}
+                        {u.private && <Text style={{ ...PFM.mono, fontSize: 9, letterSpacing: 1.2, color: tk.mute, marginTop: 3 }}>🔒 {tr("us.private")}</Text>}
                       </View>
                     </View>
                   ))}
@@ -334,7 +336,7 @@ export default function AuraScreen() {
           )}
 
           <Pressable onPress={() => setScope(true)} accessibilityRole="button" accessibilityLabel={tr("wa.scopeRow")} style={[{ marginTop: 12, backgroundColor: tk.sf, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", gap: 10 }, cardEdge(tk)]}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 13, color: tk.sub }}>🔒</Text>
+            <Text style={{ ...PFM.mono, fontSize: 13, color: tk.sub }}>🔒</Text>
             <Text style={{ flex: 1, fontFamily: PF.letter, fontSize: 14, color: tk.ink }}>{tr("wa.scopeRow")}</Text>
             <Text style={{ fontFamily: PF.letter, fontSize: 16, color: tk.faint }}>›</Text>
           </Pressable>
@@ -390,6 +392,9 @@ interface Reading {
 function DimCard({ d, i, aura, onRead }: { d: DimKey; i: number; aura: Aura; onRead: (r: Reading) => void }) {
   const P = useP();
   const { t: tk } = useTheme();
+  // the quote is your own sentence: your letter font (its italic is upright in Garamond / SF Mono, and gets a line more there)
+  const letterKey = useLetterFont();
+  const quoteFace = useLetterFamily(true);
   const st = aura.stickers;
   const rep = st?.byDimension[d] ?? null;
   const obs = (st?.observations ?? []).filter((o) => o.dimension === d);
@@ -402,20 +407,20 @@ function DimCard({ d, i, aura, onRead }: { d: DimKey; i: number; aura: Aura; onR
     <View style={[{ flex: 1, backgroundColor: tk.sf, borderRadius: 18, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 18, marginRight: 0 }, cardShadow, cardEdge(tk)]}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: tk.lav2 }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 11, color: tk.ind }}>{String(i + 1).padStart(2, "0")}</Text>
+          <Text style={{ ...PFM.mono, fontSize: 11, color: tk.ind }}>{String(i + 1).padStart(2, "0")}</Text>
         </View>
         <Text style={{ fontFamily: PF.letter, fontSize: 12.5, color: tk.ind }}>{dimLabel(d)}</Text>
       </View>
-      <Text style={{ fontFamily: PF.serif, fontSize: 27, lineHeight: 33, color: tk.ink, marginTop: 14 }}>
+      <Text style={{ fontSize: 26, lineHeight: 32, fontWeight: "700", color: tk.ink, marginTop: 14 }}>
         {rep ? stickerName(rep.stickerId) : state === "balanced" ? tr("wa.noLean") : tr("wa.stillReading")}
       </Text>
       <Text style={{ fontFamily: PF.letter, fontSize: 14, lineHeight: 21, color: tk.sub, marginTop: 10 }}>
         {rep ? `${stickerLine(rep)} ${stickerCount(rep)}` : state === "balanced" ? tr("st.noLean") : tr("st.stillReading")}
       </Text>
-      {rep && <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: rep.state === "established" ? greenOn(tk) : tk.mute, marginTop: 8 }}>{observationState(rep.state)}</Text>}
+      {rep && <Text style={{ ...PFM.mono, fontSize: 9.5, letterSpacing: 1.2, color: rep.state === "established" ? greenOn(tk) : tk.mute, marginTop: 8 }}>{observationState(rep.state)}</Text>}
       {quote && ev && (
         <View style={{ marginTop: 16, backgroundColor: tk.lav2, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14 }}>
-          <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 17, lineHeight: 25, color: tk.ink }} numberOfLines={4}>“{quote}”</Text>
+          <Text style={{ ...quoteFace, fontSize: 17, lineHeight: 25, color: tk.ink }} numberOfLines={letterFitLines(letterKey, 4)}>“{quote}”</Text>
           <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: tk.mute, marginTop: 8 }}>{tr(`wa.quoteFrom.${ev.source}`, { d: when })}</Text>
         </View>
       )}
@@ -452,7 +457,9 @@ function AuraSheet({ visible, title, onClose, scrim, tk, children }: { visible: 
         <View style={[{ backgroundColor: tk.sf, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingTop: 14, maxHeight: "85%" }, sheetEdge(tk)]}>
           <View style={{ alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: tk.line }} />
           <View style={{ flexDirection: "row", alignItems: "center", marginTop: 16, paddingHorizontal: 22 }}>
-            <Text accessibilityRole="header" maxFontSizeMultiplier={1.6} style={{ flex: 1, fontFamily: PF.serif, fontSize: 22, color: tk.ink }}>{title}</Text>
+            {/* a sheet's title is a secondary title: system medium 17, centred (the spacer balances the ✕) */}
+            <View style={{ width: 18 }} />
+            <Text accessibilityRole="header" maxFontSizeMultiplier={1.6} style={{ flex: 1, fontSize: 17, fontWeight: "500", color: tk.ink, textAlign: "center" }}>{title}</Text>
             <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={tr("wren.trackClose")}>
               <Text maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.letter, fontSize: 18, color: tk.mute }}>✕</Text>
             </Pressable>

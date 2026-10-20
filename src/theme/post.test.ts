@@ -30,7 +30,7 @@ ok("four values in all", LETTER_FONT_KEYS.join() === "newsreader,newyork,garamon
 ok("Garamond is embedded on this build", GARAMOND_READY === true);
 ok("Settings offers all four", LETTER_FONT_CHOICES.join() === "newsreader,newyork,garamond,sfmono");
 ok("a stored SF Mono stays SF Mono", letterFontKey("sfmono") === "sfmono");
-ok("SF Mono is the system monospaced design (ui-monospace)", (() => { const u = letterFamily("sfmono"); const i = letterFamily("sfmono", true); return u.fontFamily === "ui-monospace" && u.fontStyle === "normal" && i.fontFamily === "ui-monospace" && i.fontStyle === "italic"; })());
+ok("SF Mono is the system monospaced design (ui-monospace), its italic upright", (() => { const u = letterFamily("sfmono"); const i = letterFamily("sfmono", true); return u.fontFamily === "ui-monospace" && u.fontStyle === "normal" && i.fontFamily === "ui-monospace" && i.fontStyle === "normal"; })());
 ok("a stored New York stays New York", letterFontKey("newyork") === "newyork");
 ok("a stored Garamond stays Garamond", letterFontKey("garamond") === "garamond");
 ok("junk reads as the default", ["", null, undefined, 3, "NewYork", "times"].every((v) => letterFontKey(v) === "newsreader"));
@@ -38,7 +38,7 @@ ok("Newsreader upright", (() => { const f = letterFamily("newsreader"); return f
 ok("Newsreader italic is said twice", (() => { const f = letterFamily("newsreader", true); return f.fontFamily === "Newsreader-Italic" && f.fontStyle === "italic"; })());
 ok("New York is the system serif (ui-serif)", (() => { const f = letterFamily("newyork"); return f.fontFamily === "ui-serif" && f.fontStyle === "normal"; })());
 ok("New York italic comes from fontStyle", (() => { const f = letterFamily("newyork", true); return f.fontFamily === "ui-serif" && f.fontStyle === "italic"; })());
-ok("Garamond upright and its italic both ask for the one embedded face", (() => { const u = letterFamily("garamond"); const i = letterFamily("garamond", true); return u.fontFamily === "EBGaramond-Regular" && u.fontStyle === "normal" && i.fontFamily === "EBGaramond-Regular" && i.fontStyle === "italic"; })());
+ok("Garamond has no italic: its italic is the one embedded face, upright", (() => { const u = letterFamily("garamond"); const i = letterFamily("garamond", true); return u.fontFamily === "EBGaramond-Regular" && u.fontStyle === "normal" && i.fontFamily === "EBGaramond-Regular" && i.fontStyle === "normal"; })());
 
 /* ── the mono table (owner question 2's default) ── */
 ok("labels and titles are 9, 10, 11", MONO.small === 9 && MONO.label === 10 && MONO.title === 11);

@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { GUIDE_HREF, reelOf } from "./guide-reel";
 import { ReelSquare } from "./ReelSquare";
 import { GUIDE_BY_ID, type GuideId } from "../data/guides";
-import { PF } from "../theme/post";
+import { PF, PFM } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
 import { useWrenName } from "../lib/wren-name";
@@ -43,8 +43,8 @@ export function GuideCard({ guide, onNotIt }: { guide: GuideId; onNotIt?: () => 
       </View>
       {onNotIt && (
         <Pressable onPress={onNotIt} hitSlop={6} style={{ marginTop: 8, alignSelf: "flex-start" }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40 }}>
-            {t("gd.notIt")} <Text style={{ color: P.pen, fontFamily: PF.monoSemi }}>{t("gd.sendOn")} ›</Text>
+          <Text style={{ ...PFM.mono, fontSize: 10.5, letterSpacing: 0.6, color: P.ink40 }}>
+            {t("gd.notIt")} <Text style={{ color: P.pen, ...PFM.monoSemi }}>{t("gd.sendOn")} ›</Text>
           </Text>
         </Pressable>
       )}
@@ -59,16 +59,16 @@ export function GuideChips({ ids, onPick, more, onMore }: { ids: GuideId[]; onPi
   const P = useP();
   return (
     <View style={{ marginTop: 18 }}>
-      <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1.3, color: P.ink40, marginBottom: 8 }}>{t("gd.chips.head")}</Text>
+      <Text style={{ ...PFM.monoMed, fontSize: 9, letterSpacing: 1.3, color: P.ink40, marginBottom: 8 }}>{t("gd.chips.head")}</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         {ids.map((id) => (
           <Pressable key={id} onPress={() => onPick(id)} style={({ pressed }) => ({ borderWidth: 1.5, borderColor: P.pen, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6, backgroundColor: P.penWash, opacity: pressed ? 0.6 : 1 })}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1, color: P.pen }}>{t(`gd.${id}.title`).toUpperCase()}</Text>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: P.pen }}>{t(`gd.${id}.title`)}</Text>
           </Pressable>
         ))}
         {more && onMore && (
           <Pressable onPress={onMore} style={({ pressed }) => ({ borderWidth: 1.5, borderColor: P.ink12, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6, opacity: pressed ? 0.6 : 1 })}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1, color: P.ink60 }}>{t("gd.chips.more")}</Text>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: P.ink60 }}>{t("gd.chips.more")}</Text>
           </Pressable>
         )}
       </View>

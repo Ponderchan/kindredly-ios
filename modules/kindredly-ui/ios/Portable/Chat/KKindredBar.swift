@@ -21,7 +21,7 @@ import SwiftUI
    bubble above the bar (KIdeasBubble, below). VoiceOver: a button, selected while the bubble is
    up, whose escape closes it.
  - THE CAPSULE: 40 tall at one line, corners of 20, on soft (Midnight: soft2, since its soft is its
-   sf), padding 0 14, nothing in it but the field (Kit/KComposerField, system 16, the placeholder
+   sf), padding 0 14, nothing in it but the field (Kit/KComposerField, the Letter font at 16, the placeholder
    "leave something here…" in mute; one line growing to five, three at the accessibility sizes,
    then it scrolls inside). A tap on the capsule's own ground gives the field the keyboard.
  - THE EMOJI KEY (right of the capsule, beside the +: the owner moved it out of the field to sit
@@ -140,6 +140,8 @@ struct KKindredBar: View {
       controller: controller,
       placeholder: placeholder,
       size: 16,
+      // what someone writes is content: the reader's Letter font
+      content: true,
       // at the accessibility sizes a line is ~40pt: three, then it scrolls inside
       maxLines: typeSize.isAccessibilitySize ? 3 : 5,
       returnSends: true,
@@ -206,10 +208,9 @@ struct KKindredBar: View {
    └ ✦
 
  - AN IDEA in mono 500 10 at .14em, white at 60%;
- - the sentence in the serif at 19 on 1.3, white: Newsreader, as every serif that isn't someone's
-   letter being read is (KTextStyle.letter: Wren's lines and hints; the reader's Letter font is for
-   letters only, KLetterFontScope);
- - two text keys in mono 600 10 at .12em, 14 apart: ↻ ANOTHER (white at 70%) shows the next
+ - the sentence in the reader's Letter font at 19 on 1.3, white (Wren's words are content, as
+   every line she says is: KTextStyle.content, owner 2026-10-20);
+ - two text keys in System 600 13 (buttons), 14 apart: ↻ ANOTHER (white at 70%) shows the next
    sentence, USE IT → (lime) puts this one in the field and gives it the keyboard. Each has a 44
    tall target that doesn't push the bubble taller.
  The words come from TS (the dock's AN IDEA / ANOTHER / USE IT, the driver's idea); the ↻ and the
@@ -238,7 +239,7 @@ struct KIdeasBubble: View {
         .kText(.mono(10, .medium, tracking: 0.14))
         .foregroundStyle(white.opacity(0.6))
       Text(idea)
-        .kText(.letter(19, lineHeight: 1.3))
+        .kText(.content(19, lineHeight: 1.3))
         .foregroundStyle(white)
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -261,11 +262,11 @@ struct KIdeasBubble: View {
     .accessibilityAction(.escape, onClose)
   }
 
-  /// A mono text key with a 44 tall target that doesn't change the bubble's height.
+  /// A text key (System: a button) with a 44 tall target that doesn't change the bubble's height.
   private func textKey(_ title: String, a11y: String, color: Color, action: @escaping () -> Void) -> some View {
     SwiftUI.Button(action: action) {
       Text(title)
-        .kText(.mono(10, .semibold, tracking: 0.12))
+        .kText(.system(13, .semibold))
         .foregroundStyle(color)
         .padding(.vertical, 15)
         .contentShape(Rectangle())

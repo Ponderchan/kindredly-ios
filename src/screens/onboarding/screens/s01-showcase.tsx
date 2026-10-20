@@ -25,7 +25,8 @@ import { frostSpec } from "../../../lib/frost";
 import { t, type Lang } from "../../../lib/i18n";
 import { postmark } from "../../../lib/format";
 import { strangerName } from "../../../lib/stranger-name";
-import { PF } from "../../../theme/post";
+import { letterFitSize, PFM } from "../../../theme/post";
+import { useLetterFamily, useLetterFont } from "../../../lib/theme";
 import { CARD_RADIUS } from "./s01-geometry";
 import { FONT, OB } from "../parts/tokens";
 import {
@@ -203,6 +204,9 @@ function SlideLetter({
   name: string;
   date: string;
 }) {
+  // the letter typing itself is content: the letter font's italic, a size down in a roomy face (the box is two lines tall)
+  const letterKey = useLetterFont();
+  const said = useLetterFamily(true);
   const m = docketMetrics(SLIDE1_K);
   const line = t("ob2.doorstep.s1.letter");
   const spec = useMemo(() => frostSpec(SAMPLE_UID), []);
@@ -316,10 +320,10 @@ function SlideLetter({
         }
       />
       <View style={{ height: SLIDE1_BELOW, marginTop: SLIDE1_GAP, justifyContent: "flex-start" }}>
-        <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={2} style={{ fontFamily: FONT.letterItalic, fontSize: 16.5, lineHeight: 22, color: OB.ink }}>
+        <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={2} style={{ ...said, fontSize: letterFitSize(letterKey, 16.5), lineHeight: 22, color: OB.ink }}>
           {line.slice(0, typed)}
           {!still && (
-            <Animated.Text maxFontSizeMultiplier={OB_MAX_FONT} style={[{ color: OB.blue, fontFamily: FONT.body }, caretStyle]}>{"|"}</Animated.Text>
+            <Animated.Text maxFontSizeMultiplier={OB_MAX_FONT} style={[{ color: OB.blue, ...FONT.body }, caretStyle]}>{"|"}</Animated.Text>
           )}
         </Text>
       </View>
@@ -417,10 +421,10 @@ function SlideRoute({ w, h, active, still, them, onLand }: { w: number; h: numbe
         .map(({ p, at }, i) => (
           <TrailDot key={i} clock={clock} at={at} x={p[0]} y={p[1]} still={still} />
         ))}
-      <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ position: "absolute", left: home[0] - 50, width: 100, top: home[1] + 14, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 8.5, letterSpacing: 1.2, color: OB.ink }}>
+      <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ position: "absolute", left: home[0] - 50, width: 100, top: home[1] + 14, textAlign: "center", ...PFM.monoSemi, fontSize: 8.5, letterSpacing: 1.2, color: OB.ink }}>
         {t("ff.yourCity")}
       </Text>
-      <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ position: "absolute", right: 8, width: w * 0.5, top: far[1] - 30, textAlign: "right", fontFamily: PF.monoSemi, fontSize: 8.5, letterSpacing: 1.2, color: OB.ink }}>
+      <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ position: "absolute", right: 8, width: w * 0.5, top: far[1] - 30, textAlign: "right", ...PFM.monoSemi, fontSize: 8.5, letterSpacing: 1.2, color: OB.ink }}>
         {them.toLocaleUpperCase()}
       </Text>
       {/* the letter she leaves at the far stop */}
@@ -500,7 +504,7 @@ function SlideTrade({ w, h, active, still, them, onTrade }: { w: number; h: numb
 
   return (
     <View style={{ width: w, height: h, backgroundColor: OB.paper }}>
-      <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ position: "absolute", left: 0, right: 0, top: top + WIN / 2 - 7, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: OB.ink }}>
+      <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ position: "absolute", left: 0, right: 0, top: top + WIN / 2 - 7, textAlign: "center", ...PFM.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: OB.ink }}>
         {t("ob2.doorstep.s3.count", { n: count })}
       </Text>
       {[0, 1].map((side) => (

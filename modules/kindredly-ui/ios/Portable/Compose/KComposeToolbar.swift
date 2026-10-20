@@ -25,9 +25,9 @@ import SwiftUI
    or a photo stamp ("c:<uuid>", drawn by KStamp from the custom registry; the category's frame
    while it resolves). It replaces the 10-19 #name pill (contract §9 Q1);
  - the wide key, taking the rest of the row: square corners, a 1pt edge, padding 17 and 10, its
-   label in Plex Mono 600 13 at 1.4, centred. Filling: no fill and a line-coloured edge, a lav2
+   label in SF Mono 600 13 at 1.4, centred (the send key stays mono). Filling: no fill and a line-coloured edge, a lav2
    wash rising from its left to how far the words are toward the floor, the label in mute and,
-   8 beside it, the count ("7/20", key.count) in Plex Mono 10.5 at .6 in mute. PICK A MOOD STAMP:
+   8 beside it, the count ("7/20", key.count) in SF Mono 10.5 at .6 in mute. PICK A MOOD STAMP:
    solid ind with the label in the page colour, and a chevron 10 in from its left edge that
    leans toward the stamp key, again and again (-4 over .52s, back over .52s, a .26s rest),
    standing still under Reduce Motion. Ready: solid ink, the label in the page colour.
@@ -531,7 +531,7 @@ private struct KStampKeyPiece: Shape {
 
 /// The chosen stamp's #name, the live app's pill (owner, 2026-10-20): 32 tall (one fixed height,
 /// centred on the 44 row), fully round, the stamp's wash with a 1.5 rule in its line colour,
-/// "#name" in Plex Mono 500 11.5 in its ink. A long name never shrinks or cuts: the pill grows to
+/// "#name" in SF Mono 500 11.5 in its ink. A long name never shrinks or cuts: the pill grows to
 /// the right and the key beside it gives way (it says SEND when LET IT TRAVEL no longer fits). No
 /// hard shadow. Tapping it opens the stamps again.
 private struct KComposeStampPill: View {

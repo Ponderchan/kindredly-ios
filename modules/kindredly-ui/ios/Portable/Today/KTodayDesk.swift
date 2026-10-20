@@ -9,7 +9,7 @@ import SwiftUI
  state is only what belongs to the gesture, the keyboard and the day's-end pictures: the card on
  screen (KDeckState), the drag (KDeckMotion), the field (KTodayDock) and the done flow (KDayFlow).
 
-   TODAY                                                     (52, fixed; shrinks as a card is pulled)
+   TODAY                                                     (52, fixed; the page title, never morphs)
    ┌ card ───────────────────────────────────────────────────┐  one letter (KCardDeck), or Wren's
    │ ▦ SEP.23 · NO.7273                           [stamp] (⋯) │  letter in done (KDoneView), in
    │                 the letter, in its tier, folded            │  the same slot: x 16…W−16,
@@ -161,7 +161,7 @@ public struct KTodayDesk: View {
   @ObservedObject private var stage: KReplyStage
   private let voice: KTodayVoice
   @ObservedObject private var deck: KDeckState
-  /// written by the deck, read per frame by the plate and Wren only: never observed here
+  /// written by the deck, read per frame by Wren only: never observed here
   private let motion: KDeckMotion
   @ObservedObject private var flow: KDayFlow
   private let actions: KTodayActions
@@ -313,12 +313,7 @@ public struct KTodayDesk: View {
       // 3. the status bar's strip and the plate, over the card (a card pulled up goes under it)
       VStack(spacing: 0) {
         theme.bg.frame(height: topInset)
-        KTodayHeader(
-          theme: theme,
-          title: content.title,
-          locked: content.titleLocked || deck.pendingLeft != nil,
-          motion: motion
-        )
+        KTodayHeader(theme: theme, title: content.title)
       }
       .frame(width: W)
 

@@ -292,8 +292,9 @@ export function swatches(theme: ThemeFacts, t: TFn): SwatchVM[] {
   }));
 }
 
-/** The Letter font tiles: the choices this build can draw, by their own names; the system serif
-    (New York) is called "System" in the reader's language (owner, 2026-10-19). */
+/** The Letter font tiles: the choices this build can draw, by their own names; the system serif's
+    comes through set.font.system, which says New York in every language (owner, 2026-10-20: it
+    was "System", which read as SF Pro). */
 export function fontTiles(choices: readonly string[], t?: TFn): FontVM[] {
   return choices.map((k) => ({ key: k, name: k === "newyork" && t ? t("set.font.system") : LETTER_FONT_NAMES[k] ?? k, sample: LETTER_FONT_SAMPLE }));
 }

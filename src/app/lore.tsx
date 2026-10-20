@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import { t, useLang } from "../lib/i18n";
-import { MONO, PF } from "../theme/post";
+import { MONO, PFM } from "../theme/post";
 import { useLetterFamily, useTheme } from "../lib/theme";
 import { dShort } from "../lib/format";
 import { loadLore, removeLore, type LoreEntry } from "../lib/lore";
@@ -28,6 +28,8 @@ export default function Lore() {
   const { t: tk } = useTheme();
   useLang();
   const letterFace = useLetterFamily();
+  // the question that was asked is Wren speaking: the letter font's italic
+  const promptFace = useLetterFamily(true);
   const [items, setItems] = useState<LoreEntry[]>([]);
   useFocusEffect(
     useCallback(() => {
@@ -73,9 +75,9 @@ export default function Lore() {
             }}
             style={{ borderRadius: 14, padding: 14, marginTop: 12, backgroundColor: tk.soft }}
           >
-            {!!e.prompt && <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 13.5, color: tk.sub, marginBottom: 6 }}>{e.prompt}</Text>}
+            {!!e.prompt && <Text style={[{ fontSize: 13.5, color: tk.sub, marginBottom: 6 }, promptFace]}>{e.prompt}</Text>}
             <Text style={[{ fontSize: 16, lineHeight: 24, color: tk.ink }, letterFace]}>{e.body}</Text>
-            <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.small, letterSpacing: 1.1, color: tk.mute, marginTop: 9 }}>
+            <Text style={{ ...PFM.monoMed, fontSize: MONO.small, letterSpacing: 1.1, color: tk.mute, marginTop: 9 }}>
               {t("lore.from", { name: e.who.toLocaleUpperCase() })}
               {e.said ? ` · ${dShort(e.said).toLocaleUpperCase()}` : ""}
             </Text>

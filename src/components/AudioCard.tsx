@@ -1,7 +1,6 @@
 import { Pressable, Text, View } from "react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { F } from "../theme/tokens";
-import { PF } from "../theme/post";
+import { PFM } from "../theme/post";
 import { BRAND, MOOD10A, type MoodKey } from "../theme/themes";
 import { useP, useTheme } from "../lib/theme";
 import { fmt } from "../lib/format";
@@ -159,7 +158,7 @@ export function AudioCardView({
           );
         })}
       </View>
-      <Text accessibilityElementsHidden style={{ fontFamily: system ? PF.mono : F.sansBold, fontSize: 12, color: timeInk }}>
+      <Text accessibilityElementsHidden style={{ ...(system ? PFM.mono : PFM.monoSemi), fontSize: 12, color: timeInk }}>
         {time}
       </Text>
     </View>

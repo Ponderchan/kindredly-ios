@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 import { MOOD_GROUPS, MOOD_GROUP_FACES, MOOD_GROUP_IDS, MOOD_GROUP_KEY, MOOD_IDS, moodGroup, moodName, type FaceId, type MoodGroup, type MoodId } from "../data/moods";
-import { PF } from "../theme/post";
+import { PFM } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
 import { localeTag } from "../lib/format";
@@ -123,7 +123,7 @@ export function MoodTray({ selected, onPick, onClose }: { selected: MoodId | nul
                 <FaceTile group={open} id={id} on={on} />
                 {/* two lines, shrinking a little before cutting: a name like "CON EL CORAZÓN
                     ROTO" or "SELBSTGEFÄLLIG" is wider than the 20% column */}
-                <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: PF.monoSemi, fontSize: 9, lineHeight: 11, letterSpacing: 0.6, textAlign: "center", color: on ? (dark ? c.fill : c.ink) : P.ink60, marginTop: 5, paddingHorizontal: 2 }}>
+                <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ ...PFM.monoSemi, fontSize: 9, lineHeight: 11, letterSpacing: 0.6, textAlign: "center", color: on ? (dark ? c.fill : c.ink) : P.ink60, marginTop: 5, paddingHorizontal: 2 }}>
                   {name.toLocaleUpperCase(localeTag())}
                 </Text>
               </Pressable>
@@ -167,7 +167,7 @@ export function MoodTrayFlat({ selected, onPick }: { selected: MoodId | null; on
           return (
             <Pressable key={id} onPress={() => onPick(id)} accessibilityRole="button" accessibilityLabel={name} accessibilityState={{ selected: on }} style={({ pressed }) => ({ width: "20%", alignItems: "center", marginBottom: 14, opacity: pressed ? 0.6 : 1 })}>
               <FaceTile group={moodGroup(id)} id={id} on={on} />
-              <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: PF.monoSemi, fontSize: 9, lineHeight: 11, letterSpacing: 0.6, textAlign: "center", color: on ? moodColors(moodGroup(id))[dark ? "fill" : "ink"] : P.ink60, marginTop: 5, paddingHorizontal: 2 }}>
+              <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ ...PFM.monoSemi, fontSize: 9, lineHeight: 11, letterSpacing: 0.6, textAlign: "center", color: on ? moodColors(moodGroup(id))[dark ? "fill" : "ink"] : P.ink60, marginTop: 5, paddingHorizontal: 2 }}>
                 {name.toLocaleUpperCase(localeTag())}
               </Text>
             </Pressable>

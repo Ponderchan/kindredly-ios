@@ -38,11 +38,16 @@ import UIKit
    controller.text.
  - It GROWS from one line to maxLines (four in the bars: about 110 with the bar's padding; the
    bars pass three at the accessibility sizes), then scrolls inside, keeping the caret in view.
- - THE FONT is the system face at `size`, scaled with Dynamic Type exactly as .kText scales the
-   system face (UIFontMetrics on the text style KType picks for that size), and capped by any
-   .dynamicTypeSize(...) the field sits under: the size is read from the environment, not from
-   the device.
- - THE PLACEHOLDER is SwiftUI's, drawn over the empty text view in mute and hidden from
+ - THE FONT is the system face at `size`, or with content: true (the reply bar, the Kindreds
+   bar: what is written there is a letter or a message) the reader's Letter font, the
+   environment's KLetterFace, as .kText draws KTextStyle.content: Newsreader and Garamond by
+   name, New York and SF Mono as the system's serif and monospaced designs. Either is scaled
+   with Dynamic Type exactly as .kText scales it (UIFontMetrics on the text style KType picks
+   for that size), and capped by any .dynamicTypeSize(...) the field sits under: the size is
+   read from the environment, not from the device. The lines it grows by follow the face's own
+   lineHeight.
+ - THE PLACEHOLDER is SwiftUI's, in the same face as the words (.system at `size`, or the text
+   view's own content UIFont), drawn over the empty text view in mute and hidden from
    VoiceOver; the text view carries the accessibility label (the placeholder unless one is
    given), and its value is the words.
  - VOICEOVER'S ESCAPE (two-finger Z) from inside the field goes to onEscape: true when it was
@@ -77,6 +82,7 @@ public struct KComposerField: View {
   private let theme: KTheme
   private let placeholder: String
   private let size: CGFloat
+  private let content: Bool
   private let maxLines: Int
   private let returnSends: Bool
   private let autocapitalize: Bool
@@ -93,11 +99,14 @@ public struct KComposerField: View {
   /// the text view's height as measured (0 until its first layout: one line)
   @State private var height: CGFloat = 0
   @Environment(\.dynamicTypeSize) private var typeSize
+  @Environment(\.kLetterFace) private var letterFace
 
   /// - Parameters:
   ///   - controller: the field's handle (setText, focus, blur, the emoji keyboard, text)
   ///   - placeholder: shown in mute while empty, already translated
-  ///   - size: the system face's size before Dynamic Type (16 in the bars)
+  ///   - size: the face's size before Dynamic Type (16 in the bars)
+  ///   - content: write in the reader's Letter font (KLetterFace) instead of the system face:
+  ///     true where the words are content (the reply bar, the Kindreds bar)
   ///   - maxLines: the lines it grows to before it scrolls
   ///   - returnSends: Return sends (onSubmit) instead of making a new line
   ///   - autocapitalize: sentences when true, nothing when false
@@ -111,6 +120,7 @@ public struct KComposerField: View {
     controller: KFieldController,
     placeholder: String,
     size: CGFloat = 16,
+    content: Bool = false,
     maxLines: Int = 4,
     returnSends: Bool,
     autocapitalize: Bool = true,
@@ -124,6 +134,7 @@ public struct KComposerField: View {
     self.theme = theme
     self.placeholder = placeholder
     self.size = size
+    self.content = content
     self.maxLines = max(1, maxLines)
     self.returnSends = returnSends
     self.autocapitalize = autocapitalize
@@ -136,7 +147,9 @@ public struct KComposerField: View {
   }
 
   public var body: some View {
-    let font = Self.font(size: size, typeSize: typeSize)
+    let font = content
+      ? Self.contentFont(size: size, face: letterFace, typeSize: typeSize)
+      : Self.font(size: size, typeSize: typeSize)
     let line = ceil(font.lineHeight)
     KComposerTextView(
       font: font,
@@ -162,8 +175,7 @@ public struct KComposerField: View {
     .frame(maxWidth: .infinity)
     .overlay(alignment: .topLeading) {
       if empty {
-        Text(placeholder)
-          .kText(.system(size))
+        placeholderText(font: font)
           .foregroundStyle(theme.mute)
           .lineLimit(1)
           .allowsHitTesting(false)
@@ -200,12 +212,43 @@ public struct KComposerField: View {
     }
   }
 
+  /// The placeholder in the words' face: the text view's own UIFont for content, so the two
+  /// sit on one baseline (.kText would add the tall-script leading the text view doesn't have).
+  @ViewBuilder private func placeholderText(font: UIFont) -> some View {
+    if content {
+      Text(placeholder).font(Font(font as CTFont))
+    } else {
+      Text(placeholder).kText(.system(size))
+    }
+  }
+
   /// The system face at `size`, scaled as .kText scales it (@ScaledMetric relative to the text
   /// style KType picks for that size), at the Dynamic Type size the environment carries.
   static func font(size: CGFloat, typeSize: DynamicTypeSize) -> UIFont {
     let traits = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(typeSize))
     let metrics = UIFontMetrics(forTextStyle: uiTextStyle(KType.textStyle(near: size)))
     return metrics.scaledFont(for: .systemFont(ofSize: size), compatibleWith: traits)
+  }
+
+  /// The reader's Letter face at `size`, scaled the same way: the UIKit side of
+  /// KType.letterFont (upright; a face this binary can't draw falls back to Newsreader).
+  static func contentFont(size: CGFloat, face: KLetterFace, typeSize: DynamicTypeSize) -> UIFont {
+    let traits = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(typeSize))
+    let metrics = UIFontMetrics(forTextStyle: uiTextStyle(KType.textStyle(near: size)))
+    let base: UIFont
+    switch face.drawn {
+    case .newsreader:
+      base = UIFont(name: KType.serifRegular, size: size) ?? .systemFont(ofSize: size)
+    case .garamond:
+      base = UIFont(name: KType.garamondRegular, size: size)
+        ?? UIFont(name: KType.serifRegular, size: size) ?? .systemFont(ofSize: size)
+    case .newYork:
+      let system = UIFont.systemFont(ofSize: size)
+      base = system.fontDescriptor.withDesign(.serif).map { UIFont(descriptor: $0, size: size) } ?? system
+    case .sfMono:
+      base = .monospacedSystemFont(ofSize: size, weight: .regular)
+    }
+    return metrics.scaledFont(for: base, compatibleWith: traits)
   }
 
   private static func uiTextStyle(_ style: Font.TextStyle) -> UIFont.TextStyle {

@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { ActionSheetIOS, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
-import { MONO, PF, letterFamily } from "../../theme/post";
+import { MONO, PFM } from "../../theme/post";
 import { useTheme } from "../../lib/theme";
 import { t } from "../../lib/i18n";
 import { AvatarImage } from "../../components/AvatarImage";
@@ -24,8 +24,6 @@ import type { EditProfileModel } from "./useEditProfileModel";
    switch on), YOUR COURIER (her name). Clears the floating tab bar, under
    the bottom fade. */
 
-/* the hints are Newsreader italic whatever the Letter font (they are not letters) */
-const HINT = letterFamily("newsreader", true);
 /** YOU and YOUR COURIER's headers: 4 in from the group (H:92; Settings' are 10) */
 const EDIT_HEADER_INSET = 4;
 
@@ -57,7 +55,7 @@ export function EditProfileRN({ model }: { model: EditProfileModel }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg, paddingTop: safe.top }}>
-      <SecondaryHeader title={view.title.toLocaleUpperCase()} backLabel={view.backLabel} onBack={act.back} />
+      <SecondaryHeader title={view.title} backLabel={view.backLabel} onBack={act.back} />
       <ScrollView ref={scroll} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: Math.max(tabBar + 12, BOTTOM_FADE.height - 6), gap: 12 }} showsVerticalScrollIndicator={false}>
         {/* the avatar block (H:91) */}
         <View style={{ backgroundColor: tk.soft, borderRadius: 20, paddingTop: 30, paddingHorizontal: 16, paddingBottom: 24, alignItems: "center", gap: 14 }}>
@@ -79,7 +77,7 @@ export function EditProfileRN({ model }: { model: EditProfileModel }) {
               </Svg>
             </Pressable>
           </View>
-          <Text style={[{ fontSize: 13, lineHeight: 18, color: tk.mute, textAlign: "center" }, HINT]}>{view.avatarHint}</Text>
+          <Text style={{ fontSize: 13, lineHeight: 18, color: tk.mute, textAlign: "center" }}>{view.avatarHint}</Text>
         </View>
 
         {/* the one-time note for a legacy portrait */}
@@ -138,7 +136,7 @@ export function EditProfileRN({ model }: { model: EditProfileModel }) {
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             {/* in capitals in both renderers, whatever case a translation is written in
                 (SoftGroupHeader's textCase, SoftSection's toLocaleUpperCase) */}
-            <Text accessibilityRole="header" style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute, paddingHorizontal: 10 }}>
+            <Text accessibilityRole="header" style={{ flex: 1, ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute, paddingHorizontal: 10 }}>
               {view.facesHeader.toLocaleUpperCase()}
             </Text>
             {/* hitSlop 8: the key is ~28 tall, its target 44 */}
@@ -178,7 +176,7 @@ export function EditProfileRN({ model }: { model: EditProfileModel }) {
           </SoftSection>
         )}
         {/* H:94: the page's 12 plus the footer's own 4 (the Swift page the same) */}
-        <Text style={[{ fontSize: 13, lineHeight: 19.5, color: tk.mute, textAlign: "center", paddingHorizontal: 20, marginTop: 4 }, HINT]}>{view.footer}</Text>
+        <Text style={{ fontSize: 13, lineHeight: 19.5, color: tk.mute, textAlign: "center", paddingHorizontal: 20, marginTop: 4 }}>{view.footer}</Text>
 
         {/* YOUR COURIER */}
         <SoftSection header={view.courierHeader} headerInset={EDIT_HEADER_INSET}>

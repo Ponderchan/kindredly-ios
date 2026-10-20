@@ -4,8 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "expo-router";
 import Svg, { Path, Rect } from "react-native-svg";
 import Animated, { FadeIn, FadeOut, ReduceMotion } from "react-native-reanimated";
-import { MONO, PF, letterFamily } from "../../theme/post";
-import { useTheme } from "../../lib/theme";
+import { MONO, PFM } from "../../theme/post";
+import { useLetterFamily, useTheme } from "../../lib/theme";
 import { BRAND, type ThemeTokens } from "../../theme/themes";
 import { useTabBarSpace } from "../../components/NativeTabBar";
 import { TabHeader } from "../../components/TabHeader";
@@ -290,19 +290,20 @@ const Item = memo(function Item({ item, act, tk, identity }: { item: ItemVM; act
     case "fold":
       return <Fold fold={item.fold} onFace={act.openFoldFace} onAll={act.openFold} tk={tk} />;
     case "emptyLine":
-      return <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.2, color: tk.mute, paddingHorizontal: 22, paddingVertical: 16 }}>{item.text}</Text>;
+      return <Text style={{ ...PFM.monoSemi, fontSize: MONO.title, letterSpacing: 1.2, color: tk.mute, paddingHorizontal: 22, paddingVertical: 16 }}>{item.text}</Text>;
     case "hintKindreds":
       return (
         <Pressable onPress={() => act.hint("kindreds")} accessibilityRole="button" style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 22, paddingVertical: 13, opacity: pressed ? 0.6 : 1 })}>
           <View style={{ width: 42, height: 42, borderRadius: 21, borderWidth: 1.5, borderStyle: "dashed", borderColor: tk.faint }} />
-          <Text style={{ flex: 1, fontFamily: PF.letterSerif, fontSize: 13.5, lineHeight: 19, color: tk.sub }}>{item.text}</Text>
+          <Text style={{ flex: 1, fontSize: 13.5, lineHeight: 19, color: tk.sub }}>{item.text}</Text>
         </Pressable>
       );
     case "hintPenpals":
       return (
         <Pressable onPress={() => act.hint("penpals")} accessibilityRole="button" style={({ pressed }) => ({ paddingHorizontal: 22, paddingVertical: 14, opacity: pressed ? 0.6 : 1 })}>
-          <Text style={{ fontFamily: PF.letterSerif, fontStyle: "italic", fontSize: 14, lineHeight: 20, color: tk.sub }}>{item.text}</Text>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.2, color: tk.ind, marginTop: 8 }}>{item.link}</Text>
+          <Text style={{ fontSize: 14, lineHeight: 20, color: tk.sub }}>{item.text}</Text>
+          {/* the way in is a button's words: system, as a row's trailing link */}
+          <Text style={{ fontSize: 13, fontWeight: "600", color: tk.ind, marginTop: 8 }}>{item.link}</Text>
         </Pressable>
       );
     case "groupHeader":
@@ -314,19 +315,18 @@ const Item = memo(function Item({ item, act, tk, identity }: { item: ItemVM; act
   }
 });
 
-/* her once-line: the reader's own Wren and the line in Newsreader's italic,
-   whatever the reader's Letter font (KType's rule and owner question 1's
-   default: only letters being read follow it), so it reads the same as
-   Swift's KWrenLine (KTextStyle.letter). It fades in over 420ms and out over
-   200ms as WrenSaysOnce does (none under Reduce Motion, reanimated's System
+/* her once-line: the reader's own Wren and the line in the reader's letter
+   font, italic where the face has one (Wren's lines are content), as Swift's
+   KWrenLine (KTextStyle.content). It fades in over 420ms and out over 200ms
+   as WrenSaysOnce does (none under Reduce Motion, reanimated's System
    default said out loud). */
-const WREN_LINE_FACE = letterFamily("newsreader", true);
 function WrenLine({ text, onTap, tk }: { text: string; onTap: () => void; tk: Tk }) {
+  const face = useLetterFamily(true);
   return (
     <Animated.View entering={FadeIn.duration(420).reduceMotion(ReduceMotion.System)} exiting={FadeOut.duration(200).reduceMotion(ReduceMotion.System)}>
       <Pressable onPress={onTap} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11, paddingHorizontal: 22 }}>
         <WrenBird size={22} mood="content" />
-        <Text style={[{ flex: 1, fontSize: 13.5, lineHeight: 20, color: tk.sub }, WREN_LINE_FACE]}>{text}</Text>
+        <Text style={[{ flex: 1, fontSize: 13.5, lineHeight: 20, color: tk.sub }, face]}>{text}</Text>
       </Pressable>
     </Animated.View>
   );
@@ -372,14 +372,15 @@ function Row({ row, onOpen, onAction, identity }: { row: RowVM; onOpen: () => vo
               </Text>
               {/* the ♀/♂ mark and the star sign (switch on): 6pt after the name, so 2 less than the row's 8 */}
               <WhoGlyphs mark={row.mark} sign={row.sign} size={14} lead={-2} />
-              {!!row.progress && <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, color: s.colors.sub }}>{row.progress}</Text>}
+              {!!row.progress && <Text style={{ ...PFM.monoMed, fontSize: MONO.title, color: s.colors.sub }}>{row.progress}</Text>}
               <View style={{ flex: 1 }} />
-              {!!row.time && <Text style={s.time}>{row.time}</Text>}
+              {/* the time is a label: SF Mono, as the n/5 beside it */}
+              {!!row.time && <Text style={[s.time, { ...PFM.monoMed, fontSize: MONO.title }]}>{row.time}</Text>}
             </View>
             <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
               <Text numberOfLines={2} style={[s.preview, { flex: 1 }]}>
                 {row.tags.map((g) => (
-                  <Text key={g.text} style={{ fontSize: 12, fontWeight: "600", letterSpacing: 0.3, color: tone[g.tone] }}>
+                  <Text key={g.text} style={{ ...PFM.monoSemi, fontSize: 12, letterSpacing: 0.3, color: tone[g.tone] }}>
                     {g.text}{"  "}
                   </Text>
                 ))}
@@ -390,7 +391,7 @@ function Row({ row, onOpen, onAction, identity }: { row: RowVM; onOpen: () => vo
               </Text>
               {row.badge ? (
                 <View style={s.badge}>
-                  <Text style={s.badgeText}>{row.badge}</Text>
+                  <Text style={[s.badgeText, PFM.monoSemi]}>{row.badge}</Text>
                 </View>
               ) : row.trailingLink ? (
                 <Text style={{ fontSize: 13, fontWeight: "600", color: s.colors.ind, marginTop: 2 }}>{row.trailingLink}</Text>

@@ -18,13 +18,13 @@ import SwiftUI
  - setText (a draft resumed, a remount), focus and blur come through the controller, and a
    spent one is never replayed on a rebuilt editor; a rebuilt editor starts from controller.text;
  - Return is a newline: letters keep their paragraphs. Nothing here sends.
- The writing style is the App Store page's (owner, 2026-10-18; compose.tsx PF.writing): Inter 19
- on 30 (KComposeType.writing) in ink, the caret ind, the placeholder (the spark) in the caller's
+ The writing style is the writer's Letter font (owner's type system, 10-20; the App Store page's
+ Inter is gone), 19 on 30 (KComposeType.writing) in ink, the caret ind, the placeholder (the spark) in the caller's
  colour (the old lavender on the light themes, mute on the dark ones) and the same face, drawn
  over the empty editor where UITextView puts its first line, and read by VoiceOver as the
  editor's hint while the page is empty.
- On a paper (letter papers, KComposePage's THE PAPER) the caller passes the paper's face
- (`writing`, set by .kText), its ink and the caret; nil for each is the App Store page's own.
+ On a paper (letter papers, KComposePage's THE PAPER) the caller passes the Letter font at the
+ paper's size (`writing`, set by .kText), its ink and the caret; nil for each is the page's own.
 
  Never take it off screen while it holds the keyboard (the expo focus/unmount crash): the page
  swaps it for the caption field only from the + tray, which blurs first.
@@ -40,7 +40,7 @@ struct KComposeEditor: View {
   private let placeholder: String
   private let placeholderColor: Color
   private let accessibilityLabel: String
-  /// the writing face on a paper (nil: Inter 19 on 30, KComposeType.writing)
+  /// the writing face on a paper (nil: the Letter font 19 on 30, KComposeType.writing)
   private let writing: KTextStyle?
   /// the words' colour and the caret's on a paper (nil: the theme's ink and ind)
   private let ink: Color?
@@ -169,15 +169,11 @@ struct KComposeEditor: View {
   }
 }
 
-/// The face words are written in: the App Store page's Inter 19 on 30, or a paper's (.kText).
+/// The face words are written in: the Letter font 19 on 30, or at a paper's size (.kText).
 private struct KComposeWritingFace: ViewModifier {
   let writing: KTextStyle?
 
   func body(content: Content) -> some View {
-    if let writing {
-      content.kText(writing)
-    } else {
-      content.composeText(.writing)
-    }
+    content.kText(writing ?? KComposeType.writing)
   }
 }

@@ -4,7 +4,7 @@ import { Redirect, useRouter, type Href } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
 import { THEME_KEYS, type ThemeKey } from "../../theme/themes";
-import { PF } from "../../theme/post";
+import { PFM } from "../../theme/post";
 import { frostSpec } from "../../lib/frost";
 import { FACES } from "../../data/aura-avatar-lib";
 import { devMemberState, setDevMemberPreview, setDevMyStamp, useMyStamp, stampSpoken } from "../../lib/member-marks";
@@ -47,10 +47,10 @@ export default function DevFcStamps() {
 
   const chip = (label: string, on: boolean, onPress: () => void) => (
     <Pressable key={label} onPress={onPress} style={{ paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, borderWidth: 1.5, borderColor: on ? tk.ind : tk.line, backgroundColor: on ? tk.lav : tk.sf }}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, color: on ? tk.ind : tk.ink }}>{label}</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: 11, color: on ? tk.ind : tk.ink }}>{label}</Text>
     </Pressable>
   );
-  const head = (s: string) => <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.2, color: tk.mute, marginTop: 18, marginBottom: 8 }}>{s}</Text>;
+  const head = (s: string) => <Text style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.2, color: tk.mute, marginTop: 18, marginBottom: 8 }}>{s}</Text>;
   const frost = frostSpec(SEED, dark);
 
   return (
@@ -105,7 +105,7 @@ export default function DevFcStamps() {
         const g = stampGeometry(size);
         return (
           <View key={size} style={{ marginBottom: 14 }}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 10, color: tk.mute, marginBottom: 8 }}>
+            <Text style={{ ...PFM.mono, fontSize: 10, color: tk.mute, marginBottom: 8 }}>
               {size} → inner {g.inner} · edge {g.border} · {g.showDenom ? "denomination" : "small rule, no denomination"}
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 16, paddingLeft: 4 }}>

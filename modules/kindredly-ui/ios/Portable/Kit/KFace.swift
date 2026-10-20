@@ -271,7 +271,7 @@ public struct KStampAvatar<Content: View>: View {
         .overlay(alignment: .bottomTrailing) {
           if c < 1 {
             Text(stamp.denom)
-              .font(.custom(KType.monoSemiBold, fixedSize: 8))
+              .font(.system(size: 8, weight: .semibold, design: .monospaced))
               .foregroundStyle(KBrand.goldText)
               .lineLimit(1)
               .fixedSize()

@@ -8,8 +8,10 @@ import SwiftUI
 
  - a room line (KChatBubble): mine on the right in ind with bg words, theirs on the left on soft
    with ink words; corners of 18 and 5 on the tail; padding 10 14; at most 84% of the content
-   width; system 16 at 1.44. A reply carries its quote inside: a 2pt rule, the speaker in mono
-   500 10, two lines of the excerpt (italic "taken back" when it was), a tap jumps to it.
+   width; the reader's Letter font at 16 on 1.44 (a line is content, owner 2026-10-20). A reply
+   carries its quote inside: a 2pt rule, the speaker in mono 500 10, two lines of the excerpt in
+   the Letter font (three in a roomy face; italic "taken back" when it was, upright in a face
+   without an italic), a tap jumps to it.
    Theirs gets a hairline in the themes where soft barely leaves the page (Lavender, Paper,
    Midnight: 1.07-1.11:1, critic).
  - a pen-pal letter (KLetterBlock), as the chat composers' A2 draws it (owner, 2026-10-18): a
@@ -171,7 +173,7 @@ struct KChatTranslationLine: View {
         .padding(.horizontal, 6)
     case .shown where !text.isEmpty:
       Text(text)
-        .kText(.system(14.5, lineHeight: 1.45))
+        .kText(.content(14.5, lineHeight: 1.45))
         .foregroundStyle(theme.sub)
         .fixedSize(horizontal: false, vertical: true)
         .padding(.top, 5)
@@ -192,6 +194,8 @@ struct KChatBubble: View {
   let strings: KChatStrings
   let actions: KConversationActions
   let voFocus: AccessibilityFocusState<String?>.Binding
+  /// the Letter face the words are in (the quote's lines and its italic follow it)
+  @Environment(\.kLetterFace) private var face
 
   static let radius: CGFloat = 18
   static let tail: CGFloat = 5
@@ -225,7 +229,7 @@ struct KChatBubble: View {
         quoteView(quote)
       }
       Text(item.body)
-        .kText(.system(16, lineHeight: 1.44))
+        .kText(.content(16, lineHeight: 1.44))
         .foregroundStyle(item.mine ? theme.bg : theme.ink)
         .fixedSize(horizontal: false, vertical: true)
     }
@@ -264,10 +268,9 @@ struct KChatBubble: View {
             .foregroundStyle(speaker)
             .lineLimit(1)
           Text(quote.excerpt)
-            .italic(quote.gone)
-            .kText(.system(13.5, lineHeight: 1.33))
+            .kText(.content(13.5, italic: quote.gone, lineHeight: 1.33))
             .foregroundStyle(excerpt)
-            .lineLimit(2)
+            .lineLimit(face.fitLines(2))
             .multilineTextAlignment(.leading)
         }
       }
@@ -298,7 +301,7 @@ struct KChatVoiceLine: View {
         // the caption is the voice letter's title, never drawn as its body; it keeps the opening
         // letter's menu (copy, translate, keep)
         Text(item.body)
-          .kText(.letterHint)
+          .kText(.content(13, italic: true))
           .foregroundStyle(theme.sub)
           .multilineTextAlignment(item.mine ? .trailing : .leading)
           .fixedSize(horizontal: false, vertical: true)
@@ -458,7 +461,7 @@ struct KLetterBlock: View {
           VStack(alignment: .leading, spacing: 6) {
             if !item.body.isEmpty {
               Text(item.body)
-                .kText(.letterHint)
+                .kText(.content(13, italic: true))
                 .foregroundStyle(theme.sub)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
@@ -596,7 +599,7 @@ struct KSongCard: View {
           actions.onItemPress(item.key, .shelf)
         } label: {
           Text(item.shelfLink + " ›")
-            .kText(.monoAction)
+            .kText(.system(13, .semibold))
             .foregroundStyle(theme.ind)
             .frame(minHeight: 32)
         }
@@ -642,14 +645,14 @@ struct KFoldCard: View {
         }
       case .waiting:
         Text(fold.hint)
-          .kText(.letter(13.5, italic: true))
+          .kText(.system(13.5))
           .foregroundStyle(theme.mute)
           .padding(.top, 8)
       case .sealed where fold.answerKey.isEmpty:
         // a room nothing can be left in: no door, only the hint if there is one
         if !fold.hint.isEmpty {
           Text(fold.hint)
-            .kText(.letter(13.5, italic: true))
+            .kText(.system(13.5))
             .foregroundStyle(theme.mute)
             .padding(.top, 8)
         }
@@ -659,10 +662,10 @@ struct KFoldCard: View {
         } label: {
           VStack(alignment: .leading, spacing: 6) {
             Text(fold.hint)
-              .kText(.letter(13.5, italic: true))
+              .kText(.system(13.5))
               .foregroundStyle(theme.sub)
             Text(fold.answerKey + " ›")
-              .kText(.monoAction)
+              .kText(.system(13, .semibold))
               .foregroundStyle(theme.ind)
           }
           .frame(maxWidth: .infinity, alignment: .leading)
@@ -706,7 +709,7 @@ struct KFoldHalfView: View {
           .kText(.mono(10, .semibold, tracking: 0.1))
           .foregroundStyle(half.mine ? theme.mute : theme.ind)
         Text(half.body)
-          .kText(.system(16, lineHeight: 1.5))
+          .kText(.content(16, lineHeight: 1.5))
           .foregroundStyle(half.mine ? theme.sub : theme.ink)
           .fixedSize(horizontal: false, vertical: true)
       }
@@ -781,8 +784,8 @@ struct KHugColumn: Layout {
  in this file so the module needs no pod install. One letter of a correspondence, full page, the
  way a letter is read; TS words and dates everything, Swift draws and reports.
 
- - THE HEADER: KBackBar (the back chevron, Settings' size and place; the thread's count in mono
-   capitals, "3 LETTERS IN THIS THREAD"), no rule.
+ - THE HEADER: KBackBar (the back chevron, Settings' size and place; the thread's count as the
+   secondary title, System 500 17 centred, "3 LETTERS IN THIS THREAD"), no rule.
  - THE LETTER CARD, drawn on the letter's PAPER as the Today card is (KPaper; the opening's
    letters.paper, replies are plain): any paper but Plain is its KPaperSurface sheet with every
    piece in the paper's own colours (cardTheme); Plain is the soft card the owner chose on
@@ -796,16 +799,17 @@ struct KHugColumn: Layout {
      (tilted by the letter when it came to you; a stranger's photo stamp keeps Keep / Report on
      its long press), and the ⋯ — a soft grey 34 circle, no ring — that opens Report / Block (the
      React Native ReportSheet, dropped from the ⋯'s foot: onMore carries it in window points);
-   · the letter, in the reader's Letter font at the letter tiers (a telegram centred), or the
-     paper's face and size; a voice opening plays (the one player is TS's) over its caption;
+   · the letter, in the reader's Letter font at the letter tiers (a telegram centred), at the
+     paper's size on a paper (the face stays the reader's); a voice opening plays (the one player is TS's) over its caption;
    · its #topic tag and, for their words in another language, the translate capsule;
-   · a hairline, then N LETTERS BETWEEN YOU › (HIDE while open) and REPLY ↓, which gives the
-     reply bar the keyboard.
+   · a hairline, then N LETTERS BETWEEN YOU › (HIDE while open) and REPLY ↓ (buttons, so System
+     600 13), which gives the reply bar the keyboard.
  - EARLIER LETTERS on demand, as the pen-pal chat's soft slips (KLetterCardFrame: square, a 1pt
    rule; mine set in from the left on the accent's palest wash), signed under the words.
  - THE DOCK: the shared KReplyBar (R2: the capsule and the send circle, as on Today and in the
    pen-pal chat; Return is a new line, the letter leaves by the send key), its hint over it; or,
-   where nothing can be sent (a deleted account, a closed thread), the line that says why.
+   where nothing can be sent (a deleted account, a closed thread), the line that says why (a
+   sentence, so System 13).
  - The keyboard: the Host keeps the keyboard's safe area, so the page shrinks and the dock rides
    it; a drag on the letter dismisses it.
  - VoiceOver: the header is a header; the head row is one element (the name, the date, the
@@ -1033,7 +1037,7 @@ public struct KReaderScreen: View {
       if !content.closed.isEmpty {
         // nobody home: the letters stay readable; there is no one to send to
         Text(content.closed)
-          .kText(.mono(11, .medium, tracking: 0.03))
+          .kText(.system(13))
           .foregroundStyle(theme.mute)
           .multilineTextAlignment(.center)
           .fixedSize(horizontal: false, vertical: true)
@@ -1261,7 +1265,7 @@ struct KReaderCard: View {
     .accessibilityLabel(moreLabel)
   }
 
-  // ── the letter: words in the reader's Letter font (or the paper's face), or a voice letter ──
+  // ── the letter: words in the reader's Letter font (on any paper), or a voice letter ──
   @ViewBuilder
   private var letter: some View {
     if hero.isVoice {
@@ -1291,7 +1295,8 @@ struct KReaderCard: View {
     }
   }
 
-  /// Plain: the tier in the reader's Letter font; on paper, the paper's face and size for the tier
+  /// Plain: the tier in the reader's Letter font; on paper, the paper's size for the tier, still
+  /// in the reader's Letter font (the user's font wins over the paper's, owner 2026-10-20)
   private var letterStyle: KTextStyle {
     let paper = hero.paper
     if paper.themed {
@@ -1357,7 +1362,7 @@ struct KReaderCard: View {
           withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) { expanded.toggle() }
         } label: {
           Text(expanded ? hero.hideLabel : hero.betweenLabel)
-            .kText(.mono(11, .semibold, tracking: 0.14))
+            .kText(.system(13, .semibold))
             .foregroundStyle(ink.ink)
             .multilineTextAlignment(.leading)
             .padding(.vertical, 8)
@@ -1373,7 +1378,7 @@ struct KReaderCard: View {
           driver.reply.focus()
         } label: {
           Text(hero.replyLabel)
-            .kText(.mono(11, .semibold, tracking: 0.14))
+            .kText(.system(13, .semibold))
             .foregroundStyle(ink.ind)
             .padding(.vertical, 8)
             .contentShape(Rectangle())

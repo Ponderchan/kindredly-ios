@@ -3,8 +3,8 @@ import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { t, useLang } from "../lib/i18n";
-import { useTheme } from "../lib/theme";
-import { MONO, PF } from "../theme/post";
+import { useLetterFamily, useLetterFont, useTheme } from "../lib/theme";
+import { letterFitLines, MONO, PFM } from "../theme/post";
 import { Stamp } from "../components/Stamp";
 import { STAMP_LADDER } from "../lib/stamp-frame";
 import { getStamp } from "../data/stamps";
@@ -42,6 +42,9 @@ export default function DraftsScreen() {
   useLang();
   const router = useRouter();
   const { t: tk } = useTheme();
+  // a draft is your letter: your letter font, a line more in a roomy face
+  const letterKey = useLetterFont();
+  const letter = useLetterFamily();
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -71,22 +74,24 @@ export default function DraftsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }} edges={["top"]}>
-      {/* a 52 bar under the safe area: the one BackChevron, then the title after its 12 + 36 + 8 */}
-      <View style={{ height: 52, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingLeft: 56, paddingRight: 14 }}>
+      {/* a 52 bar under the safe area: the one BackChevron, the secondary title centred (system medium 17), the count at the right */}
+      <View style={{ height: 52, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 56 }}>
         <BackChevron onPress={() => router.back()} color={tk.ink} />
-        <Text accessibilityRole="header" style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.8, color: tk.ink }}>
+        <Text accessibilityRole="header" numberOfLines={1} style={{ flex: 1, fontSize: 17, fontWeight: "500", color: tk.ink, textAlign: "center" }}>
           {t("dr.title")}
         </Text>
-        <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, letterSpacing: 1.2, color: tk.mute }}>
-          {loaded ? String(drafts.length).padStart(2, "0") : "··"}
-        </Text>
+        <View style={{ position: "absolute", right: 14, top: 0, bottom: 8, justifyContent: "center" }}>
+          <Text style={{ ...PFM.monoMed, fontSize: MONO.title, letterSpacing: 1.2, color: tk.mute }}>
+            {loaded ? String(drafts.length).padStart(2, "0") : "··"}
+          </Text>
+        </View>
       </View>
       <View style={{ borderBottomWidth: 1, borderBottomColor: tk.line }} />
 
       {loaded && drafts.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 }}>
           <Text style={{ fontSize: 22, lineHeight: 30, color: tk.ink, textAlign: "center" }}>{t("dr.emptyTitle")}</Text>
-          <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, lineHeight: 18, color: tk.sub, textAlign: "center", marginTop: 12 }}>
+          <Text style={{ fontSize: 14, lineHeight: 20, color: tk.sub, textAlign: "center", marginTop: 12 }}>
             {t("dr.emptyBody")}
           </Text>
         </View>
@@ -117,16 +122,16 @@ export default function DraftsScreen() {
                 })}
               >
                 <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-                  <Text style={{ flex: 1, fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.8, color: tk.mute }}>{date}</Text>
+                  <Text style={{ flex: 1, ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 0.8, color: tk.mute }}>{date}</Text>
                   {st || isCustomStampId(d.stamp) ? <Stamp id={d.stamp} width={DRAFT_STAMP.w} /> : null}
                 </View>
-                <Text numberOfLines={4} style={{ fontSize: 17, lineHeight: 25, color: tk.ink, marginTop: 12 }}>
+                <Text numberOfLines={letterFitLines(letterKey, 4)} style={{ ...letter, fontSize: 17, lineHeight: 25, color: tk.ink, marginTop: 12 }}>
                   {words}
                 </Text>
               </Pressable>
             );
           })}
-          <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.8, color: tk.mute, textAlign: "center", marginTop: 10 }}>{t("dr.hint")}</Text>
+          <Text style={{ fontSize: 12, color: tk.mute, textAlign: "center", marginTop: 10 }}>{t("dr.hint")}</Text>
         </ScrollView>
       )}
     </SafeAreaView>

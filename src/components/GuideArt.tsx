@@ -8,7 +8,7 @@ import { Stamp } from "./Stamp";
 import { MosaicId } from "./MosaicId";
 import { Seal } from "./Seal";
 import { STAMPS, STARTER_STAMPS } from "../data/stamps";
-import { P, PF } from "../theme/post";
+import { P, PFM } from "../theme/post";
 import { t as tr } from "../lib/i18n";
 import { STAMP_LADDER } from "../lib/stamp-frame";
 import type { GuideArtKey } from "../data/guides";
@@ -161,7 +161,7 @@ function DeskCount() {
             </View>
           ))}
         </View>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: count ? P.ink : P.ink40, marginLeft: 10 }}>
+        <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.2, color: count ? P.ink : P.ink40, marginLeft: 10 }}>
           {count <= 0 ? tr("ga.closed") : tr("ga.left", { n: Math.max(0, count) })}
         </Text>
         <Animated.View style={[{ position: "absolute", left: 0, right: 0, top: 0, backgroundColor: P.ink, opacity: 0.9 }, shutter]} />
@@ -180,7 +180,7 @@ function MosaicFaint() {
         <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#F6F5FD", alignItems: "center", justifyContent: "center" }}>
           <MosaicId seed="guide-stranger" cell={5} gap={1.4} develop={0.15} />
         </View>
-        <Animated.Text style={[{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: P.ink40 }, pulse]}>{tr("ga.stranger")}</Animated.Text>
+        <Animated.Text style={[{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.2, color: P.ink40 }, pulse]}>{tr("ga.stranger")}</Animated.Text>
       </View>
     </Frame>
   );
@@ -228,7 +228,7 @@ function TwoNames() {
               <MosaicId seed={p.seed} cell={4.4} gap={1.2} develop={1} />
             </View>
             <Animated.View style={[{ borderWidth: 1.5, borderColor: P.pen, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 2, backgroundColor: P.penWash }, name]}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1, color: P.pen }}>{p.label}</Text>
+              <Text style={{ ...PFM.monoSemi, fontSize: 9.5, letterSpacing: 1, color: P.pen }}>{p.label}</Text>
             </Animated.View>
           </View>
         ))}
@@ -340,9 +340,9 @@ function StampsCustom() {
             <Path d="M15.5 8.5h.01" strokeWidth={2.4} />
           </Svg>
         </View>
-        <Text style={{ fontFamily: PF.mono, fontSize: 14, color: P.ink40 }}>→</Text>
+        <Text style={{ ...PFM.mono, fontSize: 14, color: P.ink40 }}>→</Text>
         <Animated.View style={[{ width: 58, height: 58, borderRadius: 9, borderWidth: 1.6, borderStyle: "dashed", borderColor: P.pen, alignItems: "center", justifyContent: "center", backgroundColor: P.penWash }, dash]}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1, color: P.pen }}>{tr("ga.soon")}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 9, letterSpacing: 1, color: P.pen }}>{tr("ga.soon")}</Text>
         </Animated.View>
       </View>
     </Frame>
@@ -356,7 +356,7 @@ function JournalPage() {
   return (
     <Frame>
       <View style={{ width: 150, height: 110, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: P.ink12, padding: 12, gap: 8 }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 8.5, letterSpacing: 1.2, color: P.ink40 }}>{tr("ga.sealedToday")}</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: 8.5, letterSpacing: 1.2, color: P.ink40 }}>{tr("ga.sealedToday")}</Text>
         <Animated.View style={[{ height: 3, backgroundColor: P.ink, borderRadius: 1.5 }, write]} />
         <View style={{ width: 90, height: 3, backgroundColor: P.ink12, borderRadius: 1.5 }} />
         <View style={{ width: 120, height: 3, backgroundColor: P.ink12, borderRadius: 1.5 }} />
@@ -375,7 +375,7 @@ function SealFrame() {
         <Animated.View style={press}>
           <Seal size={70} />
         </Animated.View>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: P.ink40 }}>{tr("ga.phoneOnly")}</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: P.ink40 }}>{tr("ga.phoneOnly")}</Text>
       </View>
     </Frame>
   );
@@ -392,7 +392,7 @@ function NoFlight() {
               <Line x1={6} y1={36} x2={50} y2={6} stroke="#C8412E" strokeWidth={2.2} strokeLinecap="round" />
             </Svg>
           </View>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 8.5, letterSpacing: 1.2, color: P.ink40 }}>{tr("ga.neverPosted")}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 8.5, letterSpacing: 1.2, color: P.ink40 }}>{tr("ga.neverPosted")}</Text>
         </View>
         <WrenBird size={64} mood="sleepy" />
       </View>
@@ -441,12 +441,12 @@ function LockScreen() {
           <WrenBird size={26} mood="content" />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 8.5, letterSpacing: 1.2, color: "rgba(255,255,255,0.6)" }}>{tr("ga.letterOut")}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 8.5, letterSpacing: 1.2, color: "rgba(255,255,255,0.6)" }}>{tr("ga.letterOut")}</Text>
           <View style={{ height: 3, backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 1.5, marginTop: 6, overflow: "visible" }}>
             <Animated.View style={[{ width: 10, height: 3, backgroundColor: "#FFFFFF", borderRadius: 1.5 }, dot]} />
           </View>
         </View>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, color: "#FFFFFF" }}>3</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: 11, color: "#FFFFFF" }}>3</Text>
       </View>
     </Frame>
   );

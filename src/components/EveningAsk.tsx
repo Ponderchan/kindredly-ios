@@ -1,7 +1,6 @@
 import { Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { PF, letterFamily } from "../theme/post";
-import { useTheme } from "../lib/theme";
+import { useLetterFamily, useTheme } from "../lib/theme";
 import { WrenBird } from "./WrenBird";
 import type { EveningShow } from "../screens/notes/notes-model";
 
@@ -24,8 +23,9 @@ import type { EveningShow } from "../screens/notes/notes-model";
    evening line's only off switch.
 
    The card is the 10a note card's material (the theme's card face, a 1.5
-   ln outline, corners 22, no shadow), the question in the serif's italic,
-   NO THANKS in mono, YES as an ink pill with its words in the page colour.
+   ln outline, corners 22, no shadow), the question — Wren speaking — in
+   the reader's Letter font's italic, NO THANKS a System button, YES an ink
+   pill with its words in the page colour.
    Disabled at .6 while an answer saves. */
 
 export type EveningAskStrings = { ask: string; yes: string; no: string; foot: string; onLine: string; turnOff: string };
@@ -46,8 +46,8 @@ export function EveningAsk({
   onOff: () => void;
 }) {
   const { t: tk } = useTheme();
-  // her line: Newsreader italic whatever the Letter font (only letters being read follow it)
-  const italic = letterFamily("newsreader", true);
+  // her line: Wren speaking, so the reader's Letter font, italic where the face has one
+  const italic = useLetterFamily(true);
 
   if (state === "on") {
     return (
@@ -61,7 +61,7 @@ export function EveningAsk({
           hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
           style={({ pressed }) => ({ opacity: pressed || busy ? 0.5 : 1 })}
         >
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: tk.ind }}>{strings.turnOff}</Text>
+          <Text style={{ fontSize: 12, fontWeight: "600", color: tk.ind }}>{strings.turnOff}</Text>
         </Pressable>
       </Animated.View>
     );
@@ -80,10 +80,10 @@ export function EveningAsk({
       </View>
       <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 14 }}>
         <Pressable accessibilityRole="button" onPress={onNo} disabled={busy} hitSlop={6} style={({ pressed }) => ({ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 18, opacity: pressed ? 0.6 : 1 })}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.1, color: tk.sub }}>{strings.no}</Text>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: tk.sub }}>{strings.no}</Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={onYes} disabled={busy} style={({ pressed }) => ({ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 18, backgroundColor: tk.ink, opacity: pressed ? 0.75 : 1 })}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.1, color: tk.bg }}>{strings.yes}</Text>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: tk.bg }}>{strings.yes}</Text>
         </Pressable>
       </View>
       <Text style={{ fontSize: 12, lineHeight: 16.8, color: tk.mute, marginTop: 10 }}>{strings.foot}</Text>

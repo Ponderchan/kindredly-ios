@@ -1,6 +1,6 @@
 import React from "react";
 import { Text, View, type StyleProp, type ViewStyle } from "react-native";
-import { PF } from "../theme/post";
+import { PFM } from "../theme/post";
 import { useTheme } from "../lib/theme";
 import { MosaicId } from "./MosaicId";
 import {
@@ -84,7 +84,7 @@ export function StampAvatar({
               position: "absolute",
               right: 3,
               bottom: 2,
-              fontFamily: PF.monoSemi,
+              ...PFM.monoSemi,
               fontSize: 8,
               lineHeight: 10,
               color: STAMP_GOLD_TEXT,

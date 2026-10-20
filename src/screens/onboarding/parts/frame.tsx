@@ -157,7 +157,7 @@ export function ScreenFrame({
   );
 }
 
-/** A screen's headline: Inter 800, 28–30, −0.8, sentence case, in the ground's type colour.
+/** A screen's headline: system 800, 28–30, −0.8, sentence case, in the ground's type colour.
     VoiceOver's cursor moves to it when it mounts (useFocusOnMount), so a new screen is read
     from its question. */
 export function Headline({ children, on = "blue", align = "center", style }: { children: ReactNode; on?: Ground; align?: "center" | "left"; style?: StyleProp<TextStyle> }) {
@@ -170,7 +170,7 @@ export function Headline({ children, on = "blue", align = "center", style }: { c
   );
 }
 
-/** The line under a headline: Inter 15–16, in the ground's type colour (pure white on blue — never faded). */
+/** The line under a headline: system 15–16, in the ground's type colour (pure white on blue — never faded). */
 export function Line({ children, on = "blue", align = "center", small = false, style }: { children: ReactNode; on?: Ground; align?: "center" | "left"; small?: boolean; style?: StyleProp<TextStyle> }) {
   return <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[small ? TYPE.lineSmall : TYPE.line, { color: ON_GROUND[on], textAlign: align, marginTop: 10 }, style]}>{children}</Text>;
 }

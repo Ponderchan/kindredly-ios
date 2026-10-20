@@ -155,7 +155,7 @@ struct KRoomyButtonStyle<Inner: ButtonStyle>: ButtonStyle {
  (KStampEditActions.onSubmit) and TS (src/lib/stamp-press checkStamp) answers by setting `phase`.
 
  Layout (pt = the prototype's px), top to bottom on the theme's soft page:
-   top row 44: Retake (13/600) · NEW STAMP (mono 10 .16em, sub) · a 44 spacer
+   top row 44: Retake (13/600) · NEW STAMP (system 500 17, ink, centred) · a 44 spacer
    the big stamp: the photo itself cut to the stamp's silhouette (KPhotoStampFace .paper), 200
      wide (176 on a short phone), turned KPhotoStamp.landingTiltDeg (−5°) with the soft shadow; it
      lands there from the press (a simulated landing: a little higher, larger and more turned,
@@ -697,9 +697,10 @@ public struct KStampEditScreen: View {
   private var topRow: some View {
     // the title stays centred on the screen whatever Retake's width (AX sizes, long languages)
     ZStack {
+      // a secondary page's title: system 500 17, centred (KBackBar's)
       Text(content.title)
-        .kText(.mono(10, .semibold, tracking: 0.16))
-        .foregroundStyle(theme.sub)
+        .kText(.secondaryTitle)
+        .foregroundStyle(theme.ink)
         .lineLimit(1)
         .minimumScaleFactor(0.7)
         .padding(.horizontal, 96)
@@ -788,7 +789,7 @@ public struct KStampEditScreen: View {
           .accessibilityHidden(true)
       }
       Text(content.firstLine)
-        .kText(.letter(15))
+        .kText(.content(15))
         .foregroundStyle(theme.faint)
         .accessibilityHidden(true)
       HStack(alignment: .bottom, spacing: 10) {
@@ -1041,7 +1042,7 @@ public struct KStampEditScreen: View {
           .accessibilityAddTraits(.isHeader)
       }
       Text(content.cardBody)
-        .kText(gold ? .letter(20, lineHeight: 1.2) : .system(14, .regular, lineHeight: 1.45))
+        .kText(gold ? .system(20, .semibold, lineHeight: 1.2) : .system(14, .regular, lineHeight: 1.45))
         .foregroundStyle(theme.ink)
         .fixedSize(horizontal: false, vertical: true)
       if !content.cardPrimary.isEmpty {

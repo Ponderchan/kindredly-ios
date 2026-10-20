@@ -3,7 +3,7 @@ import { Pressable, Text, View } from "react-native";
 import Animated, { Easing, interpolateColor, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
-import { P, PF } from "../theme/post";
+import { P, PFM } from "../theme/post";
 import type { ThemeTokens } from "../theme/themes";
 import { useTheme } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
@@ -157,7 +157,7 @@ export function PostTabBar({ state, navigation, onPost, open = false, waiting = 
               never a dot (owner, 2026-09-20) */}
           {count > 0 && !active && (
             <View style={{ position: "absolute", top: -7, right: -11, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: c.ink, borderWidth: 1.6, borderColor: c.bar, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, color: c.onFill }}>{count > 9 ? "9+" : String(count)}</Text>
+              <Text style={{ ...PFM.monoSemi, fontSize: 9.5, color: c.onFill }}>{count > 9 ? "9+" : String(count)}</Text>
             </View>
           )}
         </View>

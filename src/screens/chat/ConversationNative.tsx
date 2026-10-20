@@ -13,8 +13,8 @@ import { ReportSheet } from "../../components/ReportMenu";
 import { useReportFlow } from "../../lib/report-flow";
 import { WrenBird } from "../../components/WrenBird";
 import { getLang, hasString, t, useLang } from "../../lib/i18n";
-import { scrimColor, useTheme } from "../../lib/theme";
-import { PF } from "../../theme/post";
+import { scrimColor, useLetterFamily, useTheme } from "../../lib/theme";
+import { PFM } from "../../theme/post";
 import { dLong, dShort, fmt } from "../../lib/format";
 import { archNameThird } from "../../lib/aura-copy";
 import { blurThen } from "../../lib/keyboard";
@@ -390,24 +390,28 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
    light themes keep the page-coloured shelf and the soft card. */
 function SongShelf({ open, onClose, songs, songSays, name }: { open: boolean; onClose: () => void; songs: SharedSong[]; songSays: { line: string; evidence: string } | null; name: string }) {
   const { t: tk, dark } = useTheme();
+  // what Wren says about the songs is her line: the reader's Letter font
+  const face = useLetterFamily();
   return (
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: scrimColor(dark, 0.3), justifyContent: "flex-end" }}>
         <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")} />
         <View style={{ backgroundColor: dark ? tk.sf : tk.bg, maxHeight: "72%", paddingBottom: 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: dark ? 1 : 0, borderTopColor: tk.ln }}>
           <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 18, paddingBottom: 12 }}>
-            <Text accessibilityRole="header" style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: tk.ink }}>
+            {/* the sheet's title, System 500 17 centred (the ✕'s width mirrored on the left) */}
+            <View style={{ width: 24 }} />
+            <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, fontWeight: "500", textAlign: "center", color: tk.ink }}>
               {t("rm.shelf.title", { name: name.toUpperCase() })}
             </Text>
-            <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")}>
-              <Text style={{ fontFamily: PF.mono, fontSize: 16, color: tk.mute }}>✕</Text>
+            <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")} style={{ width: 24, alignItems: "flex-end" }}>
+              <Text style={{ ...PFM.mono, fontSize: 16, color: tk.mute }}>✕</Text>
             </Pressable>
           </View>
           {!!songSays && (
             <View style={{ marginHorizontal: 16, marginBottom: 12, borderRadius: 16, backgroundColor: dark ? tk.soft2 : tk.soft, padding: 12, flexDirection: "row", alignItems: "center", gap: 9 }}>
               <WrenBird size={18} mood="curious" />
-              <Text style={{ flex: 1, fontSize: 14, lineHeight: 20, color: tk.ink }}>{t(songSays.line === "late" ? "rm.shelf.late" : "rm.shelf.both", { name })}</Text>
-              <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1, color: tk.mute }}>{songSays.evidence}</Text>
+              <Text style={{ flex: 1, ...face, fontSize: 14, lineHeight: 20, color: tk.ink }}>{t(songSays.line === "late" ? "rm.shelf.late" : "rm.shelf.both", { name })}</Text>
+              <Text style={{ ...PFM.monoMed, fontSize: 9, letterSpacing: 1, color: tk.mute }}>{songSays.evidence}</Text>
             </View>
           )}
           <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}>
@@ -423,11 +427,11 @@ function SongShelf({ open, onClose, songs, songSays, name }: { open: boolean; on
                   <Text numberOfLines={1} style={{ fontSize: 15, color: tk.ink }}>
                     {sg.title || sg.url.replace(/^https?:\/\//, "").split("/")[0]}
                   </Text>
-                  <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1, color: tk.mute, marginTop: 3 }}>
+                  <Text style={{ ...PFM.monoMed, fontSize: 9, letterSpacing: 1, color: tk.mute, marginTop: 3 }}>
                     {(sg.mine ? t("ui.you") : name).toUpperCase()} · {dShort(sg.at).toUpperCase()}
                   </Text>
                 </View>
-                <Text style={{ fontFamily: PF.mono, fontSize: 12, color: tk.ind }}>›</Text>
+                <Text style={{ ...PFM.mono, fontSize: 12, color: tk.ind }}>›</Text>
               </Pressable>
             ))}
           </ScrollView>

@@ -183,7 +183,7 @@ export function SignInSheet({ props }: { props: ObScreenProps }) {
             contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 10, paddingBottom: Math.max(insets.bottom, 16) + 6 }}
           >
             <View style={{ alignSelf: "center", width: 40, height: 5, borderRadius: 3, backgroundColor: "#D9D7E6", marginBottom: 18 }} />
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" style={{ fontFamily: FONT.head, fontSize: 26, lineHeight: 31, letterSpacing: -0.7, color: OB.ink, textAlign: "center" }}>
+            <Text maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" style={{ ...FONT.head, fontSize: 26, lineHeight: 31, letterSpacing: -0.7, color: OB.ink, textAlign: "center" }}>
               {t("ob2.signin.title")}
             </Text>
             <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.lineSmall, { color: OB.inkSoft, marginTop: 6, marginBottom: 20, textAlign: "center" }]}>{t("ob2.signin.line")}</Text>
@@ -211,7 +211,7 @@ export function SignInSheet({ props }: { props: ObScreenProps }) {
             <LinkedLine
               text={t("ob2.signin.new")}
               style={[TYPE.textKey, { color: OB.ink, textAlign: "center", marginTop: 14, paddingVertical: 8 }]}
-              linkStyle={{ color: OB.blue, fontFamily: FONT.bold, textDecorationLine: "none" }}
+              linkStyle={{ color: OB.blue, ...FONT.bold, textDecorationLine: "none" }}
               onLink={startNew}
             />
           </ScrollView>

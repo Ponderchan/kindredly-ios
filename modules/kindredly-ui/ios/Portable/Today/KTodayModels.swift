@@ -255,7 +255,8 @@ public struct KTodayContent: Equatable, Sendable {
   public var leftA11y = ""
   /// the letters not passed yet, the one on screen first
   public var cards: [KLetterCardModel] = []
-  /// the title has shrunk for the day: a letter was passed, or the desk is done
+  /// a letter was passed today, or the desk is done (the plate no longer shrinks for it: the deck
+  /// still reads it for the first card's unfold)
   public var titleLocked = false
   /// the first card unfolds as it arrives (her first arrival)
   public var freshUnfold = false

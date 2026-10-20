@@ -3,7 +3,8 @@ import { useCallback, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter, Redirect } from "expo-router";
-import { F, cardStyle, navyBtn } from "../theme/tokens";
+import { cardStyle, navyBtn } from "../theme/tokens";
+import { PFM } from "../theme/post";
 import { useTheme } from "../lib/theme";
 import { GrowthStampTile } from "../components/GrowthStamp";
 import { BackChevron } from "../components/10a/BackChevron";
@@ -47,14 +48,14 @@ export default function StampsScreen() {
       {/* a 52 bar under the safe area: the one BackChevron, the title centred, the count 12 from the right */}
       <View style={{ height: 52, paddingBottom: 8, flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
         <BackChevron onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"))} color={tk.ink} />
-        <Text accessibilityRole="header" style={{ fontFamily: F.serif, fontSize: 19, color: tk.ink }}>Your stamps</Text>
-        <Text style={{ position: "absolute", right: 12, minWidth: 36, fontFamily: F.sansBold, fontSize: 12, color: tk.mute, textAlign: "center" }}>
+        <Text accessibilityRole="header" style={{ fontSize: 17, fontWeight: "500", color: tk.ink }}>Your stamps</Text>
+        <Text style={{ position: "absolute", right: 12, minWidth: 36, ...PFM.monoSemi, fontSize: 12, color: tk.mute, textAlign: "center" }}>
           {earnedCount}/{GROWTH_STAMPS.length}
         </Text>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 10, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 13.5, lineHeight: 21, color: tk.sub, marginBottom: 20 }}>
+        <Text style={{ fontSize: 13.5, lineHeight: 21, color: tk.sub, marginBottom: 20 }}>
           Earned by the quiet things — writing, answering, keeping, staying. Wren presses one for each.
         </Text>
 
@@ -66,7 +67,7 @@ export default function StampsScreen() {
                 <GrowthStampTile stamp={s} earned={done} size={92} ground={tk.bg} />
                 <Text
                   numberOfLines={1}
-                  style={{ fontFamily: done ? F.sansSemi : F.sans, fontSize: 11.5, color: done ? tk.ink : tk.faint, marginTop: 8, textAlign: "center" }}
+                  style={{ fontWeight: done ? "600" : "400", fontSize: 11.5, color: done ? tk.ink : tk.faint, marginTop: 8, textAlign: "center" }}
                 >
                   {s.name}
                 </Text>
@@ -81,24 +82,24 @@ export default function StampsScreen() {
         <Pressable style={{ flex: 1, backgroundColor: "rgba(20,20,26,0.5)", alignItems: "center", justifyContent: "center", padding: 28 }} onPress={() => setOpen(null)}>
           {open && (
             <Pressable style={[cardStyle, { backgroundColor: tk.sf, width: "100%", borderRadius: 22, padding: 26, alignItems: "center" }]} onPress={() => {}}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 10, letterSpacing: 1.6, color: tk.mute, marginBottom: 18 }}>
+              <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.6, color: tk.mute, marginBottom: 18 }}>
                 STAMP NO. {String(openIndex).padStart(2, "0")} · {open.zh}
               </Text>
               <GrowthStampTile stamp={open} earned={openEarned} size={140} ground={tk.sf} />
-              <Text style={{ fontFamily: F.serifSemi, fontSize: 24, color: tk.ink, marginTop: 18 }}>{open.name}</Text>
+              <Text style={{ fontSize: 24, fontWeight: "700", color: tk.ink, marginTop: 18 }}>{open.name}</Text>
 
               {openProgress && !openEarned && (
                 <View style={{ width: "70%", marginTop: 14 }}>
                   <View style={{ height: 5, borderRadius: 3, backgroundColor: tk.soft2, overflow: "hidden" }}>
                     <View style={{ width: `${(openProgress[0] / openProgress[1]) * 100}%`, height: "100%", backgroundColor: tk.ind }} />
                   </View>
-                  <Text style={{ fontFamily: F.sansBold, fontSize: 11, color: tk.mute, textAlign: "center", marginTop: 6 }}>
+                  <Text style={{ ...PFM.monoSemi, fontSize: 11, color: tk.mute, textAlign: "center", marginTop: 6 }}>
                     {openProgress[0]} / {openProgress[1]}
                   </Text>
                 </View>
               )}
 
-              <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 14.5, lineHeight: 23, color: tk.sub, textAlign: "center", marginTop: 14 }}>
+              <Text style={{ fontSize: 14.5, lineHeight: 23, color: tk.sub, textAlign: "center", marginTop: 14 }}>
                 {speakAs(open.desc, wren)}
               </Text>
 
@@ -109,7 +110,7 @@ export default function StampsScreen() {
                 }}
                 style={[navyBtn, { paddingVertical: 15, width: "100%", marginTop: 22, backgroundColor: openEarned ? tk.ind : tk.ink }]}
               >
-                <Text style={{ color: tk.bg, fontFamily: F.sansBold, fontSize: 14.5 }}>
+                <Text style={{ color: tk.bg, fontWeight: "700", fontSize: 14.5 }}>
                   {openEarned ? "Write a letter" : "Keep going"}
                 </Text>
               </Pressable>

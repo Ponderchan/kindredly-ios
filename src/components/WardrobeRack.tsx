@@ -3,7 +3,7 @@ import type { HatchlingForm } from "../lib/hatchling-form";
 import type { GrowthStats } from "../data/growth";
 import { t } from "../lib/i18n";
 import "../data/strings-a11y-compose";
-import { PF } from "../theme/post";
+import { PFM } from "../theme/post";
 import { useP } from "../lib/theme";
 import { useEggOS } from "../lib/egg-os";
 import { ACCESSORY_META, SKINS, skinName, skinUnlocked, useHatchSkin } from "../lib/wren-style";
@@ -69,8 +69,8 @@ export function WardrobeRack({
   const header = (label: string, count: string) =>
     headers ? (
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, marginBottom: 8 }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.8, color: dim }}>{label}</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 8.5, color: dim }}>{count}</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: 9, letterSpacing: 1.8, color: dim }}>{label}</Text>
+        <Text style={{ ...PFM.mono, fontSize: 8.5, color: dim }}>{count}</Text>
       </View>
     ) : null;
 
@@ -183,12 +183,12 @@ function Tile({
       accessibilityHint={hint}
       style={({ pressed }) => [chrome, { alignItems: "center", paddingTop: 8, paddingBottom: 8, opacity: pressed ? 0.85 : 1 }, style]}>
       {children}
-      <Text numberOfLines={1} maxFontSizeMultiplier={1.35} style={{ fontFamily: PF.monoSemi, fontSize: 8, letterSpacing: 0.6, color: on ? accent : tone === "console" ? Y.ink : P.ink60, marginTop: 4 }}>
+      <Text numberOfLines={1} maxFontSizeMultiplier={1.35} style={{ ...PFM.monoSemi, fontSize: 8, letterSpacing: 0.6, color: on ? accent : tone === "console" ? Y.ink : P.ink60, marginTop: 4 }}>
         {label.toUpperCase()}
       </Text>
       {/* the tag keeps its line even when empty, so the tiles stay one height; at least 10, not
           exactly 10, so the larger sizes don't clip it away (a11y cm-12) */}
-      <Text numberOfLines={1} maxFontSizeMultiplier={1.35} style={{ fontFamily: PF.monoSemi, fontSize: 6.5, letterSpacing: 0.5, color: "#B08037", marginTop: 2, minHeight: 10 }}>
+      <Text numberOfLines={1} maxFontSizeMultiplier={1.35} style={{ ...PFM.monoSemi, fontSize: 6.5, letterSpacing: 0.5, color: "#B08037", marginTop: 2, minHeight: 10 }}>
         {lock ?? ""}
       </Text>
     </Pressable>

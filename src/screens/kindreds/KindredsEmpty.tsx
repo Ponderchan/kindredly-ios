@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { MONO, PF } from "../../theme/post";
+import { MONO, PFM } from "../../theme/post";
 import { useTheme } from "../../lib/theme";
 import { t, useLang } from "../../lib/i18n";
 import { useWrenName } from "../../lib/wren-name";
@@ -18,8 +18,8 @@ import { WrenDeskRow } from "../../components/WrenDesk";
    card (she is there before anyone else is), the line, and one way in: PUT
    SOMEONE IN ORBIT. On the theme now: the page, the type and the CTA (ind
    with the page colour on it — white on Midnight's violet was 2.9:1); the
-   title in the 10a style with no rule; mono only at 9/10/11, in IBM Plex
-   Mono's Medium or SemiBold (10a has no Regular mono).
+   title in the 10a style with no rule; the CTA's words in system 600 (a
+   button); mono only at 9/10/11, in SF Mono's Medium or SemiBold.
 
    It scrolls: the whole of it is ≈670pt at the default text size, so on an
    iPhone SE it ran over the title and on any phone the CTA could sit under
@@ -52,14 +52,14 @@ export function KindredsEmpty({ onWrite }: { onWrite: () => void }) {
           </View>
           <Text style={{ fontSize: 26, fontWeight: "600", color: tk.ink, textAlign: "center", marginTop: 14, lineHeight: 33 }}>{t("kindreds.empty.title")}</Text>
           <Text style={{ fontSize: 15, lineHeight: 23, color: tk.sub, textAlign: "center", marginTop: 14, maxWidth: 300 }}>{t("kindreds.empty.body")}</Text>
-          <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: tk.mute, textAlign: "center", marginTop: 14, maxWidth: 300, lineHeight: 17 }}>{t("kindreds.empty.rule")}</Text>
+          <Text style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: tk.mute, textAlign: "center", marginTop: 14, maxWidth: 300, lineHeight: 17 }}>{t("kindreds.empty.rule")}</Text>
           <Pressable
             onPress={onWrite}
             accessibilityRole="button"
             style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, backgroundColor: tk.ind, paddingVertical: 16, paddingHorizontal: 20, marginTop: 34, alignSelf: "stretch", opacity: pressed ? 0.85 : 1 })}
           >
-            <Text style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, color: tk.bg, letterSpacing: 1 }}>{t("kindreds.empty.cta")}</Text>
-            <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 1, color: tk.bg, opacity: 0.72 }}>{t("kindreds.empty.picks", { wren: wren.toUpperCase() })}</Text>
+            <Text style={{ flexShrink: 1, fontSize: 15, fontWeight: "600", color: tk.bg }}>{t("kindreds.empty.cta")}</Text>
+            <Text style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 1, color: tk.bg, opacity: 0.72 }}>{t("kindreds.empty.picks", { wren: wren.toUpperCase() })}</Text>
           </Pressable>
         </View>
       </ScrollView>

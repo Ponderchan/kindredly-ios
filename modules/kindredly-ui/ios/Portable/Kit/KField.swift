@@ -42,7 +42,11 @@ import SwiftUI
    It cuts as the text arrives, so a composition in progress at the limit can be cut too; it is
    for short fields (a name), not for letters.
  - The font goes through .kText, so the field grows with Dynamic Type; the writing style is
-   system 17 (KTextStyle.input, H:124). The caret is the tint (ind in the 10a fields).
+   system 17 (KTextStyle.input, H:124) for UI fields (a name, a search). A field where someone
+   writes content (the compose ask, a voice caption, the dock's prompt, the Wren room) takes a
+   content style instead, KTextStyle.contentInput (17) or .content(size), and the words and the
+   placeholder follow the reader's Letter font (the environment's KLetterFace). The caret is
+   the tint (ind in the 10a fields).
  - Focus and blur are by controller after mount. A focus asked for before any field took it is
    kept and applied when the field appears. The controller, which lives as long as the screen,
    remembers which setText and focus it already applied, so a field rebuilt (a tray closed and
@@ -185,7 +189,8 @@ public struct KField: View {
   /// - Parameters:
   ///   - controller: the field's handle (setText, focus, blur, text)
   ///   - placeholder: shown while empty, already translated
-  ///   - style: the writing style; system 17 (KTextStyle.input) by default
+  ///   - style: the writing style; system 17 (KTextStyle.input) by default, .contentInput or
+  ///     .content(size) for content (the reader's Letter font)
   ///   - axis: .vertical grows over `lines` (the default); .horizontal is one line
   ///   - lines: how many lines a vertical field shows before it scrolls; nil for no limit
   ///   - returnSends: Return sends instead of making a new line (the reply strips)

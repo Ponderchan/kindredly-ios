@@ -13,8 +13,8 @@ import { Alert, Animated, Easing, Keyboard, LayoutAnimation, Pressable, ScrollVi
 import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 import { PALETTE, daylight } from "./CourierCard";
 import { t as tr, useLang } from "../lib/i18n";
-import { PF } from "../theme/post";
-import { useP, useTheme } from "../lib/theme";
+import { letterFitLines, PF, PFM } from "../theme/post";
+import { useLetterFamily, useLetterFont, useP, useTheme } from "../lib/theme";
 import { THEMES } from "../theme/themes";
 import { useHatchlingForm } from "../lib/hatchling-form";
 import { WrenBird, type WrenAccessory, type WrenMood, type WrenPose, type WrenSkin, type WrenStage } from "./WrenBird";
@@ -121,6 +121,9 @@ export function WrenHome({
   useLang();
   const P = useP();
   const T = useTheme().t;
+  // her bubble is Wren speaking: the reader's letter font, one more line in a roomy face
+  const letterKey = useLetterFont();
+  const wrenLine = useLetterFamily(true);
   const { skin, pick } = useWrenSkinControl();
   const info = stageInfo(stats, stageFloor);
   const wren = useWrenName();
@@ -313,7 +316,7 @@ export function WrenHome({
         />}
         {statsReady && !play && (
           <View style={{ position: "absolute", right: 14, top: 12, backgroundColor: band, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: "#FFFFFF" }}>{tr("me.dayN", { n: stats.day })}</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: "#FFFFFF" }}>{tr("me.dayN", { n: stats.day })}</Text>
           </View>
         )}
         {cofounderNo != null && !play && (
@@ -333,7 +336,7 @@ export function WrenHome({
             accessibilityState={{ expanded: log, disabled: !flies }}
             style={({ pressed }) => ({ position: "absolute", left: 16, bottom: 12, maxWidth: coverW - 32 - 152, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#FFFFFF", paddingHorizontal: 11, paddingVertical: 6, borderRadius: 4, opacity: pressed ? 0.8 : 1 })}
           >
-            <Text numberOfLines={2} style={{ flexShrink: 1, fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 13, color: COVER_INK }}>{dayOff ? tr("ff.dayoff.bubble") : hungry ? hungry.line : !flies ? "…" : dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
+            <Text numberOfLines={letterFitLines(letterKey, 2)} style={{ flexShrink: 1, ...wrenLine, fontSize: 13, color: COVER_INK }}>{dayOff ? tr("ff.dayoff.bubble") : hungry ? hungry.line : !flies ? "…" : dozy && where.state === "home" ? "zzz…" : speakAs(where.bubble, wren)}</Text>
             {flies && <Text style={{ fontFamily: PF.letter, fontSize: 11, color: "rgba(30,27,53,0.4)" }}>{log ? "▴" : "▾"}</Text>}
           </Pressable>
         )}
@@ -343,7 +346,7 @@ export function WrenHome({
           <View style={{ position: "absolute", right: 16, bottom: 12, alignItems: "flex-end", gap: 8 }}>
             <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={{ alignItems: "flex-end" }}>
               {tr("cr.stageHint").split(" · ").map((h) => (
-                <Text key={h} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.4, lineHeight: 13, color: light === "night" ? "rgba(255,255,255,0.5)" : "rgba(30,27,53,0.5)" }}>{h}</Text>
+                <Text key={h} style={{ ...PFM.monoSemi, fontSize: 9, letterSpacing: 1.4, lineHeight: 13, color: light === "night" ? "rgba(255,255,255,0.5)" : "rgba(30,27,53,0.5)" }}>{h}</Text>
               ))}
             </View>
             {canPlay && (
@@ -351,7 +354,7 @@ export function WrenHome({
                  her on it, PLAY — it has to read as a game at a glance */
               <Pressable onPress={openPlay} accessibilityRole="button" accessibilityLabel={tr("ff.title")} accessibilityHint={tr("ff.hint")} hitSlop={6} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 6, height: 34, paddingLeft: 6, paddingRight: 12, borderRadius: 17, backgroundColor: "#C3E84F", borderWidth: 2, borderColor: COVER_INK, shadowColor: COVER_INK, shadowOffset: { width: pressed ? 1 : 3, height: pressed ? 1 : 3 }, shadowOpacity: 1, shadowRadius: 0, transform: [{ translateY: pressed ? 2 : 0 }] })}>
                 <PillarsGlyph size={24} />
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 1.6, color: COVER_INK }}>{tr("ff.play").toUpperCase()}</Text>
+                <Text style={{ fontSize: 14, fontWeight: "700", color: COVER_INK }}>{tr("ff.play")}</Text>
                 <Text style={{ fontSize: 9, color: COVER_INK }}>▶</Text>
               </Pressable>
             )}
@@ -390,7 +393,7 @@ export function WrenHome({
 
         {/* ── name, what she is, and the stage in two counted pills ── */}
         <Text style={{ fontFamily: PF.letter, fontSize: 32, fontWeight: "800", letterSpacing: -1, color: P.ink }}>{wren}</Text>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: P.ink40, marginTop: 4 }}>
+        <Text style={{ ...PFM.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: P.ink40, marginTop: 4 }}>
           {tr("wren.yourCourier")} · {STAGE_LABEL[info.stage]}
         </Text>
         {statsReady && (
@@ -403,7 +406,7 @@ export function WrenHome({
 
 
         {/* ── the journey: ONE line, three stops, the days they really turned ── */}
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: P.ink40, marginTop: 24 }}>{tr("wren.journeyShort")}</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: P.ink40, marginTop: 24 }}>{tr("wren.journeyShort")}</Text>
         <View style={{ flexDirection: "row", alignItems: "center", marginTop: 12 }}>
           {JOURNEY.map((st, i) => {
             const cur = stageIndex(info.stage);
@@ -428,7 +431,7 @@ export function WrenHome({
                 <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 13, color: st8 === "now" ? P.pen : st8 === "done" ? P.ink : P.ink40 }}>{STAGE_NAME[st]}</Text>
                 {/* a date when the day is known; for a stop still ahead, what gets her there; a passed stop with no date says nothing */}
                 {(d || st8 === "later") && (
-                  <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.8, color: P.ink40, marginTop: 3, textAlign: i === 0 ? "left" : i === JOURNEY.length - 1 ? "right" : "center" }}>
+                  <Text style={{ ...PFM.mono, fontSize: 9.5, letterSpacing: 0.8, color: P.ink40, marginTop: 3, textAlign: i === 0 ? "left" : i === JOURNEY.length - 1 ? "right" : "center" }}>
                     {d ? `${d}${st8 === "now" ? ` · ${tr("wren.now")}` : ""}` : milestones[st]}
                   </Text>
                 )}
@@ -441,7 +444,7 @@ export function WrenHome({
         {shelf.length > 0 && (
           <>
             <View style={{ flexDirection: "row", alignItems: "baseline", marginTop: 24 }}>
-              <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: P.ink40 }}>{tr("wren.keepsakes")}</Text>
+              <Text style={{ flex: 1, ...PFM.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: P.ink40 }}>{tr("wren.keepsakes")}</Text>
               <Pressable onPress={onAllKeepsakes} hitSlop={8}>
                 <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 12.5, color: P.pen }}>{tr("wren.allKept", { n: shelf.length })}</Text>
               </Pressable>
@@ -454,7 +457,7 @@ export function WrenHome({
                   <Pressable key={k.id} onPress={() => onOpenKeepsake(k.id)} style={({ pressed }) => ({ flex: 1, backgroundColor: T.sf, borderRadius: 14, borderWidth: T.dark ? 1 : 0, borderColor: T.mute, paddingVertical: 14, paddingHorizontal: 8, alignItems: "center", opacity: pressed ? 0.7 : 1 })}>
                     <Image source={def.icon} style={{ width: 40, height: 40 }} resizeMode="contain" />
                     <Text numberOfLines={2} style={{ fontFamily: PF.letter, fontSize: 12, fontWeight: "600", color: P.ink, marginTop: 8, textAlign: "center" }}>{tr(`ks.name.${def.id}`)}</Text>
-                    <Text numberOfLines={1} style={{ fontFamily: PF.mono, fontSize: 8, letterSpacing: 0.6, color: P.ink40, marginTop: 4 }}>{k.evidence}</Text>
+                    <Text numberOfLines={1} style={{ ...PFM.mono, fontSize: 8, letterSpacing: 0.6, color: P.ink40, marginTop: 4 }}>{k.evidence}</Text>
                     {fresh.has(k.id) && <View style={{ position: "absolute", top: 8, right: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: P.pen }} />}
                   </Pressable>
                 );
@@ -546,11 +549,11 @@ function Cell({ label, value, count, swatch, on, onPress }: { label: string; val
       style={({ pressed }) => ({ flex: 1, backgroundColor: lit ? T.lav : T.sf, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13, borderWidth: 2, borderColor: on ? P.pen : T.dark ? T.mute : "transparent", opacity: pressed ? 0.85 : 1 })}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
         <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: swatch }} />
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 8.5, letterSpacing: 1.4, color: small }}>{label}</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: 8.5, letterSpacing: 1.4, color: small }}>{label}</Text>
       </View>
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, marginTop: 6 }}>
         <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 15, color: P.ink }}>{value}</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, color: small }}>{count}</Text>
+        <Text style={{ ...PFM.mono, fontSize: 10, color: small }}>{count}</Text>
       </View>
     </Pressable>
   );
@@ -597,19 +600,19 @@ function TrackingSlip({ threads, state, wren, onOpenThread }: { threads: ThreadS
   return (
     <View style={{ marginBottom: 16, borderWidth: 1, borderColor: T.dark ? T.mute : P.ink12, backgroundColor: T.sf, borderRadius: 12, overflow: "hidden" }}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
-        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>{tr("wren.slip")}</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 9, color: P.ink40 }}>{wren.toUpperCase()}</Text>
+        <Text style={{ flex: 1, ...PFM.monoSemi, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>{tr("wren.slip")}</Text>
+        <Text style={{ ...PFM.mono, fontSize: 9, color: P.ink40 }}>{wren.toUpperCase()}</Text>
       </View>
       {rows.map((r, i) => (
         <View key={r} style={{ flexDirection: "row", alignItems: "center", gap: 9, paddingHorizontal: 12, paddingVertical: 7 }}>
           <View style={{ width: 5, height: 5, backgroundColor: i === rows.length - 1 && t ? P.pen : P.ink40 }} />
-          <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.8, color: i === rows.length - 1 && t ? P.ink : P.ink60 }}>{r}</Text>
+          <Text style={{ ...PFM.mono, fontSize: 9.5, letterSpacing: 0.8, color: i === rows.length - 1 && t ? P.ink : P.ink60 }}>{r}</Text>
         </View>
       ))}
       {t && (
         <Pressable onPress={() => onOpenThread(t)} style={{ borderTopWidth: 1, borderTopColor: P.ink12, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, paddingVertical: 11 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 1.4, color: P.pen }}>{tr("wren.slip.go")}</Text>
-          <Text style={{ fontFamily: PF.mono, fontSize: 10.5, color: P.pen }}>→</Text>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: P.pen }}>{tr("wren.slip.go")}</Text>
+          <Text style={{ fontSize: 13, color: P.pen }}>→</Text>
         </Pressable>
       )}
     </View>
@@ -635,19 +638,20 @@ function FlightLog({ state, carried, threads, driving, wren }: { state: Whereabo
   const P = useP();
   const T = useTheme().t;
   const { rows, line } = flightLog(state, carried, threads, driving);
+  const wrenLine = useLetterFamily(true);
   return (
     <View style={{ marginBottom: 16, borderWidth: 1, borderColor: T.dark ? T.mute : P.ink12, backgroundColor: T.sf, borderRadius: 12, overflow: "hidden" }}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
-        <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>{tr("wren.log")}</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 9, color: P.ink40 }}>{wren.toUpperCase()}</Text>
+        <Text style={{ flex: 1, ...PFM.monoSemi, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>{tr("wren.log")}</Text>
+        <Text style={{ ...PFM.mono, fontSize: 9, color: P.ink40 }}>{wren.toUpperCase()}</Text>
       </View>
       {rows.map((r) => (
         <View key={r} style={{ flexDirection: "row", alignItems: "center", gap: 9, paddingHorizontal: 12, paddingVertical: 7 }}>
           <View style={{ width: 5, height: 5, backgroundColor: P.ink40 }} />
-          <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.8, color: P.ink60 }}>{r}</Text>
+          <Text style={{ ...PFM.mono, fontSize: 9.5, letterSpacing: 0.8, color: P.ink60 }}>{r}</Text>
         </View>
       ))}
-      <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 12.5, lineHeight: 19, color: P.ink60, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 11 }}>
+      <Text style={{ ...wrenLine, fontSize: 12.5, lineHeight: 19, color: P.ink60, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 11 }}>
         {speakAs(line, wren)}
       </Text>
     </View>

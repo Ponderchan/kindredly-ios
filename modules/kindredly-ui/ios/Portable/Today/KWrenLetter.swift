@@ -13,8 +13,8 @@ import SwiftUI
    FROM YOUR COURIER                          ┌╌╌╌╌┐  her stamp: her own picture,
    OCT.15 · 22:14                             ╎ ^v ╎  46 × 56, dotted, turned 4°
                                               └╌╌╌╌┘
-   That's 12. I counted twice.                         the lines, Newsreader 20/1.3, 8 apart
-   You wrote back to 3.                                (her serif, not the reader's Letter font)
+   That's 12. I counted twice.                         the lines, 20/1.3 in the reader's Letter
+   You wrote back to 3.                                font (her words are content), 8 apart
    I'm back with the next ones at 8:00 AM.
    Go find one small thing worth putting in a letter — or come fly a lap with me.
    — W.  ⋔                                             the signature and her foot
@@ -31,7 +31,8 @@ import SwiftUI
  the lines give way first. The whole letter is laid out at 20 (the design's), 18, then 16 with the
  bag's 120 kept, and only when even 16 leaves less than that (a small phone, large text) does the
  bag stand aside, the lines then taking the room back at 20, 18 or 16, and at the last truncating
- rather than spilling out of the card.
+ rather than spilling out of the card. A roomier Letter font (SF Mono wider, Garamond taller) gets
+ one more, smaller step (KLetterFace.fitSize(16)) before anything is cut.
 
  The envelopes (design 25b): 52 × 36 white cards, a 2 outline, corners of 4, a V flap and an 11
  wax-gold dot, drawn in the brand ink on white whatever the theme (Midnight's pale ln would vanish
@@ -40,8 +41,8 @@ import SwiftUI
  comes in through the timeline they drop in one by one (kdrop .6 s cubic-bezier(.3,1.1,.4,1)
  from 70 up and nothing, .35 s apart); at rest and under Reduce Motion they are simply there.
 
- Taps: the letter bounces (.6 s) and shows the chip (THAT'S ALL FOR TODAY) under the card for
- 1.6 s; the bag jiggles (.45 s) and shows NOT YET · 8H 06M for 1.5 s, and its tap stays its own.
+ Taps: the letter bounces (.6 s) and shows the chip (THAT'S ALL FOR TODAY, System: a sentence,
+ not a label) under the card for 1.6 s; the bag jiggles (.45 s) and shows NOT YET · 8H 06M for 1.5 s, and its tap stays its own.
  Under Reduce Motion the chips fade in and nothing bounces or jiggles. VoiceOver reads the letter
  as one element (her name, then the lines, the foot and the countdown) and the bag as another.
  */
@@ -67,8 +68,16 @@ struct KWrenLetter: View {
     var id: String { "\(bag ? "bag" : "nobag"):\(size)" }
   }
 
+  /// the line sizes for a face: a roomy one (SF Mono, Garamond) gets one more, smaller step
+  static func sizes(for face: KLetterFace) -> [CGFloat] {
+    face.isRoomy ? lineSizes + [face.fitSize(lineSizes.last ?? 16)] : lineSizes
+  }
+
   /// every size with the bag, then every size without it
-  static let tries: [Try] = lineSizes.map { Try(size: $0, bag: true) } + lineSizes.map { Try(size: $0, bag: false) }
+  static func tries(for face: KLetterFace) -> [Try] {
+    let ladder = sizes(for: face)
+    return ladder.map { Try(size: $0, bag: true) } + ladder.map { Try(size: $0, bag: false) }
+  }
   /// the bag's margins: above, either side, below
   static let bagTop: CGFloat = 14
   static let bagSide: CGFloat = 56
@@ -98,6 +107,8 @@ struct KWrenLetter: View {
   let animateIn: Bool
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  /// the reader's Letter font: her lines are set in it
+  @Environment(\.kLetterFace) private var face
   @AccessibilityFocusState private var letterFocused: Bool
   @State private var bounce = 0
   @State private var jiggle = 0
@@ -136,7 +147,7 @@ struct KWrenLetter: View {
       // the chip sits under the card (its bottom 16 below the card's), outside the bounce
       .overlay(alignment: .bottom) {
         if chipShown {
-          chip(model.chip, style: .mono(11, .semibold, tracking: 0.14), vertical: 8, horizontal: 14, radius: 14)
+          chip(model.chip, style: .system(13, .semibold), vertical: 8, horizontal: 14, radius: 14)
             .offset(y: 16)
             .transition(popTransition)
         }
@@ -160,14 +171,15 @@ struct KWrenLetter: View {
 
   // ── the card ──
   private var card: some View {
-    // the first layout that fits: the bag's 120 kept at 20, 18, 16; then without the bag at 20,
-    // 18, 16; then 16 truncating. Each is measured at its ideal height, the bag's room at its 120
-    // (+ margins), so the one chosen always leaves the bag at least that.
+    // the first layout that fits: the bag's 120 kept at 20, 18, 16 (and a roomy face's smaller
+    // step); then without the bag at the same sizes; then the smallest truncating. Each is
+    // measured at its ideal height, the bag's room at its 120 (+ margins), so the one chosen
+    // always leaves the bag at least that.
     ViewThatFits(in: .vertical) {
-      ForEach(Self.tries) { t in
+      ForEach(Self.tries(for: face)) { t in
         layout(size: t.size, fixed: true, bag: t.bag)
       }
-      layout(size: Self.lineSizes.last ?? 16, fixed: false, bag: false)
+      layout(size: Self.sizes(for: face).last ?? 16, fixed: false, bag: false)
     }
     // padding 0 18 12 inside the 2.5 outline (border-box)
     .padding(EdgeInsets(top: Self.border, leading: 18 + Self.border, bottom: 12 + Self.border, trailing: 18 + Self.border))
@@ -270,7 +282,7 @@ struct KWrenLetter: View {
   }
 
   private func lines(size: CGFloat, fixed: Bool) -> some View {
-    let style = KTextStyle.letter(size, lineHeight: 1.3)
+    let style = KTextStyle.content(size, lineHeight: 1.3)
     return VStack(alignment: .leading, spacing: 8) {
       ForEach(Array(model.lines.enumerated()), id: \.offset) { _, line in
         Text(line)
@@ -345,7 +357,7 @@ struct KWrenLetter: View {
     }
     .overlay(alignment: .bottom) {
       if notYetShown {
-        chip(model.notYet, style: .mono(10, .semibold, tracking: 0.12), vertical: 7, horizontal: 11, radius: 12)
+        chip(model.notYet, style: .system(12, .semibold), vertical: 7, horizontal: 11, radius: 12)
           .padding(.bottom, 20)
           .transition(popTransition)
       }

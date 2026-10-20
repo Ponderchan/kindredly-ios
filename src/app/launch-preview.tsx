@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { LaunchAnimation, POST_BLUE } from "../components/LaunchAnimation";
-import { PF } from "../theme/post";
+import { PFM } from "../theme/post";
 
 /* dev only — the launch, replayed without restarting the app.
    kindredly:///launch-preview?mode=full|short|still[&hold=1]
@@ -27,14 +27,14 @@ export default function LaunchPreview() {
       <View style={{ position: "absolute", left: 16, right: 16, bottom: 40, flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         {(["full", "short", "still"] as const).map((x) => (
           <Pressable key={x} onPress={() => again(x)} style={{ backgroundColor: mode === x ? "#1E1B35" : "#FFFFFF", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, color: mode === x ? "#FFFFFF" : "#1E1B35" }}>{x.toUpperCase()}</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: 10, color: mode === x ? "#FFFFFF" : "#1E1B35" }}>{x.toUpperCase()}</Text>
           </Pressable>
         ))}
         <Pressable onPress={() => setReady((v) => !v)} style={{ backgroundColor: "#FFFFFF", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, color: "#1E1B35" }}>{ready ? "READY" : "HOLDING"}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 10, color: "#1E1B35" }}>{ready ? "READY" : "HOLDING"}</Text>
         </Pressable>
         <Pressable onPress={() => router.back()} style={{ backgroundColor: "#FFFFFF", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, color: "#1E1B35" }}>CLOSE</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 10, color: "#1E1B35" }}>CLOSE</Text>
         </Pressable>
       </View>
     </View>

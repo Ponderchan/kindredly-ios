@@ -41,7 +41,7 @@ export const systemRed = (dark: boolean) => (dark ? "#FF453A" : "#FF3B30");
 export function SheetHeader({ title, onClose, tk, P }: { title: string; onClose: () => void; tk: Tk; P: Pal }) {
   return (
     <View style={{ paddingHorizontal: 56, minHeight: 30, justifyContent: "center" }}>
-      <Text accessibilityRole="header" maxFontSizeMultiplier={1.6} style={{ fontSize: 17, lineHeight: 22, fontWeight: "600", color: P.ink, textAlign: "center" }}>
+      <Text accessibilityRole="header" maxFontSizeMultiplier={1.6} style={{ fontSize: 17, lineHeight: 22, fontWeight: "500", color: P.ink, textAlign: "center" }}>
         {title}
       </Text>
       <Pressable

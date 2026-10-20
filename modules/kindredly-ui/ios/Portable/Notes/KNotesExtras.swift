@@ -7,15 +7,15 @@ import SwiftUI
  in Grid):
 
  - Wren's first-visit line: her own bird (a snapshot of her real art, TS's 'content' pose) at 22
-   and the line in Newsreader italic 15 in sub — her lines don't follow the Letter font. It fades
+   and the line in the Letter font's italic 15 in sub (upright in a face without one). It fades
    in over .42s; a tap fades it out over .2s and reports it (no fades under Reduce Motion). Whether
    it shows is TS's (useWrenOnce, once per account, only once there are notes to show it over).
  - The evening question (owner decision 4): the note card's material (sf, a 1.5 ln outline,
-   corners 22), her bird at 26, the question in the serif's italic, NO THANKS in mono 11 sub, YES
-   as an ink pill with its words in the page colour, the foot in system 12 at 1.4, mute; dimmed to
+   corners 22), her bird at 26, the question in the Letter font's italic, NO THANKS in system 600
+   13 sub, YES as an ink pill with its words in the page colour (buttons are System), the foot in system 12 at 1.4, mute; dimmed to
    .6 and not tappable while an answer saves. Every Alert, permission ask and save is TS's.
  - Its off row, after a yes: her mini bird at 18 (the simplified mark WrenBird draws at 20 and
-   below), "Wren's small question, every evening at 9." in system 13 sub, TURN OFF in mono 10 ind
+   below), "Wren's small question, every evening at 9." in system 13 sub, TURN OFF in system 600 12 ind
    with a 44pt target. It is the evening line's only off switch (Settings has two switches), so the
    screen also draws it on the empty state.
  - The pull caption, MOMENTS YOU'VE CHOSEN TO KEEP, tucked above the first row under the header,
@@ -25,7 +25,7 @@ import SwiftUI
 /// Her first-visit line, in the page.
 struct KNotesWrenLine: View {
   static let bird: CGFloat = 22
-  static let line = KTextStyle.letter(15, italic: true, lineHeight: 21.0 / 15)
+  static let line = KTextStyle.content(15, italic: true, lineHeight: 21.0 / 15)
 
   let theme: KTheme
   let bird: KImageRef?
@@ -75,8 +75,8 @@ struct KNotesWrenLine: View {
 
 /// The evening question, asked once after the first real page.
 struct KEveningAskCard: View {
-  static let question = KTextStyle.letter(15, italic: true, lineHeight: 22.0 / 15)
-  static let button = KTextStyle.mono(11, .semibold, tracking: 0.1)
+  static let question = KTextStyle.content(15, italic: true, lineHeight: 22.0 / 15)
+  static let button = KTextStyle.system(13, .semibold)
   static let foot = KTextStyle.system(12, lineHeight: 1.4)
 
   let theme: KTheme
@@ -169,7 +169,7 @@ struct KEveningAskCard: View {
 /// The slim off row after a yes: the evening line's only off switch.
 struct KEveningOnRow: View {
   static let text = KTextStyle.system(13, lineHeight: 18.0 / 13)
-  static let off = KTextStyle.mono(10, .semibold, tracking: 0.12)
+  static let off = KTextStyle.system(12, .semibold)
 
   let theme: KTheme
   let bird: KImageRef?

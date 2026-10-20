@@ -18,7 +18,7 @@ import Svg, { Circle, Line } from "react-native-svg";
 import { LaunchFrame, LaunchMarkArt, POST_BLUE, launchGeometry } from "../../../components/LaunchAnimation";
 import { LANGS, setLang, t } from "../../../lib/i18n";
 import { strangerName } from "../../../lib/stranger-name";
-import { PF } from "../../../theme/post";
+import { PF, PFM } from "../../../theme/post";
 import { KeyArea } from "../parts/frame";
 import * as haptics from "../parts/haptics";
 import { AcidKey } from "../parts/keys";
@@ -108,8 +108,8 @@ const END = LAND.end;
 
 /* the launch's type (LaunchAnimation WORD_TYPE / TAG_TYPE / SUB_TYPE), copied so frame 0 is its frame */
 const WORD_TYPE = { fontFamily: PF.letter, fontWeight: "800" as const, fontSize: 40, lineHeight: 46, letterSpacing: -1.4, color: "#FFFFFF" };
-const TAG_TYPE = { fontFamily: PF.letterSerif, fontStyle: "italic" as const, fontSize: 18, lineHeight: 24, color: "#FFFFFF", textAlign: "center" as const };
-const SUB_TYPE = { fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 2.6, color: "#FFFFFF", marginTop: 10, textAlign: "center" as const };
+const TAG_TYPE = { fontWeight: "500" as const, fontSize: 18, lineHeight: 24, color: "#FFFFFF", textAlign: "center" as const };
+const SUB_TYPE = { ...PFM.monoSemi, fontSize: 10.5, letterSpacing: 2.6, color: "#FFFFFF", marginTop: 10, textAlign: "center" as const };
 
 const seg = (x: number, a: number, b: number) => {
   "worklet";
@@ -427,7 +427,7 @@ export default function S01Doorstep(props: ObScreenProps) {
       <Animated.View pointerEvents="none" style={[{ position: "absolute", left: L.card.x, width: L.card.w, top: L.card.y - 14, height: 28, alignItems: "center" }, chip]}>
         <Animated.View key={page} entering={FadeIn.duration(220)} exiting={FadeOut.duration(140)} style={{ position: "absolute", flexDirection: "row", alignItems: "center", height: 28, paddingHorizontal: 12, borderRadius: 14, backgroundColor: OB.ink }}>
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: OB.acid, marginRight: 7 }} />
-          <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ fontFamily: FONT.semi, fontSize: 12.5, color: OB.white }}>
+          <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ ...FONT.semi, fontSize: 12.5, color: OB.white }}>
             {chips[page]}
           </Text>
         </Animated.View>
@@ -457,7 +457,7 @@ export default function S01Doorstep(props: ObScreenProps) {
         secondary={
           <Animated.View style={linkStyle}>
             <Pressable onPress={() => props.openSide("signin")} hitSlop={8} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 12 }}>
-              <LinkedLine text={t("ob2.doorstep.signin")} style={[TYPE.textKey, { color: OB.white, textAlign: "center" }]} linkStyle={{ fontFamily: FONT.bold }} onLink={() => props.openSide("signin")} />
+              <LinkedLine text={t("ob2.doorstep.signin")} style={[TYPE.textKey, { color: OB.white, textAlign: "center" }]} linkStyle={{ ...FONT.bold }} onLink={() => props.openSide("signin")} />
             </Pressable>
           </Animated.View>
         }
@@ -471,7 +471,7 @@ export default function S01Doorstep(props: ObScreenProps) {
           accessibilityLabel={t("ob2.doorstep.lang")}
           style={{ position: "absolute", top: insets.top + 6, right: 16, height: 30, paddingHorizontal: 12, borderRadius: 15, borderWidth: 1.5, borderColor: OB.white, justifyContent: "center" }}
         >
-          <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ fontFamily: FONT.semi, fontSize: 13, color: OB.white }}>{(LANGS.find((l) => l.id === props.lang)?.label ?? "English") + " ▾"}</Text>
+          <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ ...FONT.semi, fontSize: 13, color: OB.white }}>{(LANGS.find((l) => l.id === props.lang)?.label ?? "English") + " ▾"}</Text>
         </Pressable>
       )}
 

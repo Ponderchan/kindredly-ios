@@ -1,7 +1,7 @@
 import { forwardRef, type ReactNode } from "react";
 import { View, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
 import { GlyphInput } from "../GlyphInput";
-import { useTheme } from "../../lib/theme";
+import { useLetterFamily, useTheme } from "../../lib/theme";
 import { SendKey } from "./SendKey";
 
 import { FIELD_FONT_CAP, useComposerField, type ComposerFieldHandle } from "./useComposerField";
@@ -12,7 +12,8 @@ import { REPLY_FIELD_MAX, REPLY_FIELD_PAD, REPLY_STRIP, sendClearsField, sendKey
    Where a reply is written in the screens that stay React Native (the
    chat's reader, Today's letter reader, Wren's desk if it moves): an sf face with a 2.5 ln outline,
    corners 26, a hard 4/4 shadow, at least 54 tall, padding 0 8 0 20. The
-   field is the system face at 17 (writing inputs stay system, H:124),
+   field is the reader's Letter font at 17 (a reply is content: owner's type
+   system, 2026-10-20; it was the system face, H:124),
    placeholder in mute, the caret in ind (GlyphInput), and it grows to five
    lines. The send key sits at the right end, centred on the resting height
    as the strip grows (SendKey). The Today, chat and room fallbacks moved to
@@ -106,6 +107,7 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
   ref,
 ) {
   const { t: tk, dark } = useTheme();
+  const face = useLetterFamily();
   const { input, seed, note, clear, text, hasWords, box, restingLine, onScroll, onContentSizeChange } = useComposerField(ref, initialText, onChangeText);
 
   const state = sendKeyState({ hasWords, canSend, held });
@@ -171,6 +173,7 @@ export const ReplyStrip = forwardRef<ReplyStripHandle, ReplyStripProps>(function
             paddingTop: REPLY_FIELD_PAD,
             paddingBottom: REPLY_FIELD_PAD,
             paddingHorizontal: 0,
+            ...face,
             fontSize,
             lineHeight,
             color: tk.ink,

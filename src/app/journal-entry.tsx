@@ -7,7 +7,7 @@ import { LeaveSheet, openLeaveSheet } from "../components/LeaveSheet";
 import Svg, { Path, Rect } from "react-native-svg";
 import { getLang, t, useLang } from "../lib/i18n";
 import { DEMO_TEXT, storeMode } from "../lib/dev-store";
-import { PF } from "../theme/post";
+import { PFM } from "../theme/post";
 import { useP } from "../lib/theme";
 import { SelfCompose, type SelfComposeState } from "../components/SelfCompose";
 import { localeTag } from "../lib/format";
@@ -74,18 +74,21 @@ export default function JournalEntryRoute() {
           it. */}
       <View style={{ flexDirection: "row", alignItems: "center", paddingLeft: 12, paddingRight: 20, paddingTop: 6, paddingBottom: 10 }}>
         <Pressable onPress={goBack} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")} style={{ width: 34, height: 38, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 17, color: P.ink }}>✕</Text>
+          <Text style={{ ...PFM.mono, fontSize: 17, color: P.ink }}>✕</Text>
         </Pressable>
-        <Text style={{ fontFamily: PF.letter, fontSize: 22, fontWeight: "700", color: P.ink, marginLeft: 6 }}>
-          {new Date().toLocaleString(localeTag(), { month: "short", day: "numeric" }).toLowerCase()}
-        </Text>
+        {/* the modal's title, as every secondary page's: System 500 17, centred on the page */}
+        <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 6, bottom: 10, alignItems: "center", justifyContent: "center" }}>
+          <Text accessibilityRole="header" numberOfLines={1} style={{ fontSize: 17, fontWeight: "500", color: P.ink }}>
+            {new Date().toLocaleString(localeTag(), { month: "short", day: "numeric" }).toLowerCase()}
+          </Text>
+        </View>
         <View style={{ flex: 1 }} />
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <Svg width={12} height={12} viewBox="0 0 12 12">
             <Path d="M3.7 5.6V4.1a2.3 2.3 0 0 1 4.6 0v1.5" fill="none" stroke={P.ink40} strokeWidth={1.3} strokeLinecap="round" />
             <Rect x={2.5} y={5.6} width={7} height={5} fill={P.ink40} />
           </Svg>
-          <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>{t("je.justForMe")}</Text>
+          <Text style={{ ...PFM.mono, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>{t("je.justForMe")}</Text>
         </View>
       </View>
       <SelfCompose text={text} setText={setText} onDone={goBack} onState={setPage} />

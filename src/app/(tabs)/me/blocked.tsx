@@ -3,7 +3,7 @@ import { Alert, PixelRatio, Pressable, ScrollView, Text, View } from "react-nati
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import { t, useLang } from "../../../lib/i18n";
-import { MONO, PF } from "../../../theme/post";
+import { MONO, PFM } from "../../../theme/post";
 import { useTheme } from "../../../lib/theme";
 import { MosaicId } from "../../../components/MosaicId";
 import { WhoFaceView } from "../../../components/Frost";
@@ -95,7 +95,7 @@ export default function BlockedScreen() {
   const tall = PixelRatio.getFontScale() >= 1.35;
   const footer = (
     <View style={{ paddingHorizontal: 26, paddingTop: 12, paddingBottom: tabBar + 6, borderTopWidth: 1, borderTopColor: tk.line }}>
-      <Text style={{ fontFamily: PF.mono, fontSize: MONO.label, lineHeight: 16, letterSpacing: 0.8, color: tk.mute, textAlign: "center" }}>{t("bl.footer", { wren: wren.toUpperCase() })}</Text>
+      <Text style={{ ...PFM.mono, fontSize: MONO.label, lineHeight: 16, letterSpacing: 0.8, color: tk.mute, textAlign: "center" }}>{t("bl.footer", { wren: wren.toUpperCase() })}</Text>
     </View>
   );
   const listed = !(load === "failed" || (load === "ok" && rows.length === 0));
@@ -115,7 +115,7 @@ export default function BlockedScreen() {
         title={t("bl.title")}
         fallbackHref="/(tabs)/me/settings"
         right={
-          <Text accessibilityLabel={load === "ok" ? String(rows.length) : undefined} style={{ fontFamily: PF.monoMed, fontSize: MONO.title, letterSpacing: 1.2, color: tk.mute, minWidth: 36, textAlign: "right" }}>
+          <Text accessibilityLabel={load === "ok" ? String(rows.length) : undefined} style={{ ...PFM.monoMed, fontSize: MONO.title, letterSpacing: 1.2, color: tk.mute, minWidth: 36, textAlign: "right" }}>
             {count}
           </Text>
         }
@@ -128,7 +128,7 @@ export default function BlockedScreen() {
       ) : load === "ok" && rows.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 }}>
           <Text style={{ fontSize: 22, lineHeight: 30, color: tk.ink, textAlign: "center" }}>{t("bl.emptyTitle")}</Text>
-          <Text style={{ fontFamily: PF.mono, fontSize: MONO.title, lineHeight: 18, color: tk.sub, textAlign: "center", marginTop: 12 }}>{t("bl.emptyBody")}</Text>
+          <Text style={{ ...PFM.mono, fontSize: MONO.title, lineHeight: 18, color: tk.sub, textAlign: "center", marginTop: 12 }}>{t("bl.emptyBody")}</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
@@ -142,11 +142,11 @@ export default function BlockedScreen() {
                     larger. Without the name, a twin face here reads as
                     "they're back". */}
                 <View accessible accessibilityLabel={b.who.spoken} style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1, color: tk.ink }}>{b.who.name}</Text>
+                  <Text style={{ flexShrink: 1, fontSize: 15, fontWeight: "600", color: tk.ink }}>{b.who.name}</Text>
                   <WhoGlyphs mark={b.who.mark} sign={b.who.sign} size={11} />
                 </View>
-                <Text style={{ fontFamily: PF.mono, fontSize: MONO.label, letterSpacing: 0.8, color: tk.mute, marginTop: 3 }}>{b.since}</Text>
-                <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 12, color: tk.sub, marginTop: 3 }}>{t("bl.noReach")}</Text>
+                <Text style={{ ...PFM.mono, fontSize: MONO.label, letterSpacing: 0.8, color: tk.mute, marginTop: 3 }}>{b.since}</Text>
+                <Text style={{ fontSize: 12, color: tk.sub, marginTop: 3 }}>{t("bl.noReach")}</Text>
               </View>
               <Pressable
                 onPress={() => unblock(rows[i])}
@@ -155,7 +155,7 @@ export default function BlockedScreen() {
                 accessibilityLabel={t("sh.a11y.unblockWho", { name: b.who.spoken })}
                 style={tall ? { paddingVertical: 6, marginTop: 8 } : { paddingVertical: 6, paddingLeft: 10 }}
               >
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.2, color: tk.ind }}>{t("bl.unblock")}</Text>
+                <Text style={{ fontSize: 15, fontWeight: "600", color: tk.ind }}>{t("bl.unblock")}</Text>
               </Pressable>
             </View>
           ))}

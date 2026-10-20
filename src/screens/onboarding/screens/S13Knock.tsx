@@ -7,6 +7,7 @@ import { t } from "../../../lib/i18n";
 import { useFocusOnMount } from "../parts/frame";
 import { AcidKey, TextKey } from "../parts/keys";
 import { EDGE, FONT, GUTTER, OB, SHADOW, TYPE } from "../parts/tokens";
+import { useLetterFamily } from "../../../lib/theme";
 import type { ObScreenProps } from "../types";
 import { PlainEnvelope } from "./s08-envelope";
 import { Chick } from "./s10-chick";
@@ -39,6 +40,8 @@ const COLORS: FlightColors = { ground: OB.shell, ink: OB.ink, sub: OB.inkSoft, f
 
 export default function S13Knock(props: ObScreenProps) {
   const { draft } = props;
+  // her sign-off is Wren speaking: the letter font's italic
+  const said = useLetterFamily(true);
   const insets = useSafeAreaInsets();
   const { form, mood } = useHatchRead(draft.letter);
   const her = draft.wrenName.trim() || t("ob2.name.ph");
@@ -89,7 +92,7 @@ export default function S13Knock(props: ObScreenProps) {
           <View style={{ position: "absolute", left: 52, top: -12, width: 22, height: 22, backgroundColor: OB.paper, borderLeftWidth: EDGE, borderTopWidth: EDGE, borderColor: OB.ink, transform: [{ rotate: "45deg" }], zIndex: 2 }} />
           <View style={{ position: "absolute", left: SHADOW, top: SHADOW, right: -SHADOW, bottom: -SHADOW, borderRadius: 22, backgroundColor: OB.ink }} />
           <View style={{ borderRadius: 22, borderWidth: EDGE, borderColor: OB.ink, backgroundColor: OB.paper, paddingHorizontal: 22, paddingTop: 22, paddingBottom: 14 }}>
-            <Text ref={headRef} maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" style={{ fontFamily: FONT.head, fontSize: 25, lineHeight: 30, letterSpacing: -0.6, color: OB.ink }}>
+            <Text ref={headRef} maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" style={{ ...FONT.head, fontSize: 25, lineHeight: 30, letterSpacing: -0.6, color: OB.ink }}>
               {t("ob2.knock.head")}
             </Text>
             <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.lineSmall, { color: OB.inkSoft, marginTop: 8 }]}>{refused ? t("ob2.knock.settings") : t("ob2.knock.line")}</Text>
@@ -97,7 +100,7 @@ export default function S13Knock(props: ObScreenProps) {
               <AcidKey label={t("ob2.knock.yes")} onPress={once(() => props.advance())} />
             </View>
             <TextKey label={t("ob2.knock.no")} on="paper" underline onPress={once(props.skip)} style={{ marginTop: 6 }} />
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ alignSelf: "flex-end", fontFamily: FONT.letterItalic, fontSize: 16, color: OB.inkSoft, marginTop: 2 }}>{t("ob2.knock.sign", { name: her })}</Text>
+            <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ alignSelf: "flex-end", ...said, fontSize: 16, color: OB.inkSoft, marginTop: 2 }}>{t("ob2.knock.sign", { name: her })}</Text>
           </View>
         </Animated.View>
       </ScrollView>

@@ -7,7 +7,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as MediaLibrary from "expo-media-library/legacy";
 import Svg, { Line, Path, Rect } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
-import { PF } from "../theme/post";
+import { PF, PFM } from "../theme/post";
 import { BRAND } from "../theme/themes";
 import { useP, useTheme } from "../lib/theme";
 import { leavePicked, takeKept } from "../lib/journal-handoff";
@@ -222,7 +222,7 @@ export default function JournalPick() {
   const Tile = ({ label, tint, onPress, children }: { label: string; tint: string; onPress: () => void; children: React.ReactNode }) => (
     <Pressable onPress={onPress} style={({ pressed }) => ({ width: cell, height: cell, alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: tint, opacity: pressed ? 0.6 : 1 })}>
       {children}
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: KEY_INK }}>{label.toUpperCase()}</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.2, color: KEY_INK }}>{label.toUpperCase()}</Text>
     </Pressable>
   );
 
@@ -239,12 +239,12 @@ export default function JournalPick() {
             <Svg width={8} height={8} viewBox="0 0 24 24" fill="#FFFFFF">
               <Path d="M6 4l14 8-14 8z" />
             </Svg>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 9, color: "#FFFFFF" }}>{mmss(item.duration)}</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: 9, color: "#FFFFFF" }}>{mmss(item.duration)}</Text>
           </View>
         ) : (
           /* the number is the order it will sit in on the page */
           <View style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: "#FFFFFF", backgroundColor: n >= 0 ? TICK : "rgba(17,17,19,0.28)", alignItems: "center", justifyContent: "center" }}>
-            {n >= 0 && <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, color: "#FFFFFF" }}>{n + 1}</Text>}
+            {n >= 0 && <Text style={{ ...PFM.monoSemi, fontSize: 11, color: "#FFFFFF" }}>{n + 1}</Text>}
           </View>
         )}
         {n >= 0 && <View pointerEvents="none" style={{ position: "absolute", inset: 0, backgroundColor: "rgba(46,125,79,0.14)" }} />}
@@ -277,7 +277,7 @@ export default function JournalPick() {
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }} edges={["top", "bottom"]}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingLeft: 12, paddingRight: 14, paddingTop: 6, paddingBottom: 10 }}>
         <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/journal"))} hitSlop={10} style={{ width: 34, height: 38, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontFamily: PF.mono, fontSize: 17, color: P.ink }}>✕</Text>
+          <Text style={{ ...PFM.mono, fontSize: 17, color: P.ink }}>✕</Text>
         </Pressable>
         {/* the title is the album menu — the words and the chevron only. It
             used to fill the whole bar between ✕ and NEXT, so a thumb aimed
@@ -285,7 +285,7 @@ export default function JournalPick() {
             (the owner's recording, 2026-09-20). */}
         <View style={{ flex: 1, alignItems: "center" }}>
           <Pressable onPress={() => (albumsOpen ? setAlbumsOpen(false) : void loadAlbums())} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 6, paddingVertical: 8 }}>
-            <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: P.ink, maxWidth: 200 }}>{album.title.toUpperCase()}</Text>
+            <Text numberOfLines={1} style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.6, color: P.ink, maxWidth: 200 }}>{album.title.toUpperCase()}</Text>
             <Svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" style={{ transform: [{ rotate: albumsOpen ? "180deg" : "0deg" }] }}>
               <Path d="M6 9l6 6 6-6" />
             </Svg>
@@ -296,7 +296,7 @@ export default function JournalPick() {
           disabled={!picked.length || busy}
           style={{ minWidth: 34, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: picked.length && !busy ? TICK : "transparent", borderWidth: 1.5, borderColor: picked.length && !busy ? TICK : P.ink12 }}
         >
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.2, color: picked.length && !busy ? "#FFFFFF" : P.ink40 }}>
+          <Text style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.2, color: picked.length && !busy ? "#FFFFFF" : P.ink40 }}>
             {busy ? "…" : picked.length ? `${t(adding ? "jp.add" : "jp.next")} · ${picked.length}` : t(adding ? "jp.add" : "jp.next")}
           </Text>
         </Pressable>
@@ -319,7 +319,7 @@ export default function JournalPick() {
             <View style={{ alignItems: "center", paddingTop: 48, paddingHorizontal: 40 }}>
               <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 22, color: P.ink60, textAlign: "center" }}>{t("jp.denied")}</Text>
               <Pressable onPress={() => void Linking.openSettings()} hitSlop={8} style={{ marginTop: 16 }}>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.4, color: P.pen }}>{t("jp.settings")} ›</Text>
+                <Text style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.4, color: P.pen }}>{t("jp.settings")} ›</Text>
               </Pressable>
             </View>
           ) : perm === "asking" ? null : (
@@ -331,7 +331,7 @@ export default function JournalPick() {
         ListFooterComponent={
           perm === "limited" ? (
             <Pressable onPress={() => void MediaLibrary.presentPermissionsPickerAsync()} hitSlop={8} style={{ alignItems: "center", paddingVertical: 18 }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: P.pen }}>{t("jp.limited")} ›</Text>
+              <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.2, color: P.pen }}>{t("jp.limited")} ›</Text>
             </Pressable>
           ) : null
         }
@@ -357,11 +357,11 @@ export default function JournalPick() {
                       {!!item.cover && <Image source={{ uri: item.cover }} style={{ width: 44, height: 44 }} contentFit="cover" transition={0} />}
                     </View>
                     <Text numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.letter, fontSize: 16, color: P.ink }}>{item.title}</Text>
-                    <Text style={{ fontFamily: PF.monoMed, fontSize: 11, color: P.ink40 }}>{item.count}</Text>
+                    <Text style={{ ...PFM.monoMed, fontSize: 11, color: P.ink40 }}>{item.count}</Text>
                   </Pressable>
                 );
               }}
-              ListEmptyComponent={<Text style={{ fontFamily: PF.mono, fontSize: 11, color: P.ink40, padding: 20 }}>{t("jp.none")}</Text>}
+              ListEmptyComponent={<Text style={{ ...PFM.mono, fontSize: 11, color: P.ink40, padding: 20 }}>{t("jp.none")}</Text>}
             />
           )}
         </Animated.View>

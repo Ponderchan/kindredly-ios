@@ -3,8 +3,8 @@ import { Keyboard, Text, View, type NativeSyntheticEvent, type TextLayoutEventDa
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import Svg, { Line, Path } from "react-native-svg";
-import { useTheme } from "../lib/theme";
-import { MONO, PF } from "../theme/post";
+import { useLetterFamily, useTheme } from "../lib/theme";
+import { MONO, PFM } from "../theme/post";
 import { PEN_BASELINE, PEN_H, PEN_W, penStrokePath, penTypedUpright, type PadPoint } from "../lib/pen-signature";
 
 /* THE SIGNATURE PAD (identity Phase 2, PHASE2.md §6.2 item 4).
@@ -170,7 +170,9 @@ export const SignaturePad = memo(function SignaturePad({
     setMeasure((m) => (m && m.text === text && Math.abs(m.w - w) < 0.5 ? m : { text, w, asc: line.ascender }));
   };
   const fit = measure && measure.text === text && measure.w > 0 ? Math.min(1, (width * GUIDE_SPAN) / measure.w) : null;
-  const guideFont = { fontFamily: upright ? undefined : PF.letterSerif, fontStyle: upright ? ("normal" as const) : ("italic" as const) };
+  // the name to trace, in the reader's Letter font's italic (upright for CJK, and in a face without one)
+  const slanted = useLetterFamily(true);
+  const guideFont = upright ? { fontFamily: undefined, fontStyle: "normal" as const } : slanted;
 
   return (
     <GestureDetector gesture={pan}>
@@ -232,7 +234,7 @@ export const SignaturePad = memo(function SignaturePad({
             entering={FadeIn.duration(160)}
             exiting={FadeOut.duration(180)}
             maxFontSizeMultiplier={1.4}
-            style={{ position: "absolute", left: 12, top: 9, fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.06, color: tk.sub }}
+            style={{ position: "absolute", left: 12, top: 9, ...PFM.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.06, color: tk.sub }}
           >
             {caption}
           </Animated.Text>

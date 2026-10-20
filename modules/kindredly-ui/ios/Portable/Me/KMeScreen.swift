@@ -803,10 +803,10 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
    over 3.4s.
  - D7, the boarding pass: full width over the Courier card, cream, a 2 ink edge, corners 18, a 4/4
    gold hard shadow, a 14 white notch on its right edge; a 10 wide stripe of gold and ink marching
-   down its left side; ● FIRST CLASS and YOUR WEEK · 48H in mono 9, the serif 20 headline, the
+   down its left side; ● FIRST CLASS and YOUR WEEK · 48H in mono 9, the system 600 20 headline, the
    perks line and an ink capsule "Open →" that nudges 8pt left every 3s.
  - D30, the sealed report: white, a 2 ink edge, corners 20, a 4/4 gold shadow; ● YOUR {MONTH}
-   REPORT in mono 10 gold, SEALED in mono 9, the serif 19 headline, a 32 gold capsule with a 1.5
+   REPORT in mono 10 gold, SEALED in mono 9, the system 600 19 headline, a 32 gold capsule with a 1.5
    ink edge: "Break the seal" and FIRST CLASS.
  - The pull-tab: 34 × 118 on the right edge at 52% of the page, gold, a 2 ink edge open on the
    right, corners 14 on the left, a −2/2 ink shadow, ● FIRST CLASS reading upward in mono 9; it
@@ -929,7 +929,7 @@ struct KFcBoardingPass: View {
               .foregroundStyle(KBrand.subOnCream)
           }
           Text(fc.seatHead)
-            .kText(.letter(20, lineHeight: 1.15))
+            .kText(.system(20, .semibold, lineHeight: 1.15))
             .foregroundStyle(KBrand.inkOnBrand)
             .fixedSize(horizontal: false, vertical: true)
           HStack(spacing: 10) {
@@ -1001,7 +1001,7 @@ struct KFcSealedReport: View {
             .foregroundStyle(KBrand.subOnCream)
         }
         Text(fc.reportHead)
-          .kText(.letter(19, lineHeight: 1.15))
+          .kText(.system(19, .semibold, lineHeight: 1.15))
           .foregroundStyle(KBrand.inkOnBrand)
           .fixedSize(horizontal: false, vertical: true)
         HStack(spacing: 8) {
@@ -1063,7 +1063,7 @@ struct KFcPullTab: View {
  Cream paper (KBrand, the same in every theme): a 1.5 cream-border outline, corners of 24, padding
  18 18 16, 14 between its parts:
  - the eyebrow: a 7pt wax-gold dot and FIRST CLASS in mono 10 at .18em, gold text;
- - the headline in the serif 26/1.1, 100 clear on the right for the stamp;
+ - the headline in system 600 26/1.1, 100 clear on the right for the stamp;
  - three rows of system 14 (7 apart), each after a 16 gold check at stroke 2.6, also 100 clear;
  - the foot: an ink button 40 tall (padding 0 16, corners 14, system 600 14 in white) and, at the
    far right, 7 DAYS FREE in mono 10 at .1em, gold — only when TS says a free trial is on offer;
@@ -1078,7 +1078,7 @@ struct KMeFirstClassCard: View {
   let onPress: () -> Void
 
   static var eyebrowStyle: KTextStyle { .mono(10, .semibold, tracking: 0.18) }
-  static var headlineStyle: KTextStyle { .letter(26, lineHeight: 1.1) }
+  static var headlineStyle: KTextStyle { .system(26, .semibold, lineHeight: 1.1) }
   static var rowStyle: KTextStyle { .system(14) }
   static var trialStyle: KTextStyle { .mono(10, .semibold, tracking: 0.1) }
   static var stampSize: CGSize { CGSize(width: 82, height: 100) }

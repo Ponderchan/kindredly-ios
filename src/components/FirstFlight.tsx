@@ -10,14 +10,18 @@
    type is ink, sub and mute, every line on the chart and every outline is
    ln, and the letter and envelopes are card faces. The stops' pale gold and
    their postmark squares, and her, keep their own colours.
+   Type (owner, 10-20): the title is System; the words carried (your
+   opener, the stops' first words) are content, in the reader's Letter
+   font, a line more in a roomier face; the chart's labels SF Mono; TAP TO
+   SKIP, a hint, System.
 
    THE NEW ONBOARDING'S FLIGHT (screens 12 and 13, storyboard 2026-10-18)
    asks for a few things more, all optional, so a caller that passes none of
    them (the old run, the preview) gets exactly the flight above:
    · colors: the run's own day colours (Shell grid paper, ink lines), since
      the new run doesn't wear the theme;
-   · head: the title block (Inter, "Otis's first flight." over YOUR LETTER,
-     IN THE POST) in place of the serif one;
+   · head: the title block ("Otis's first flight." over YOUR LETTER, IN
+     THE POST) in place of the default one;
    · envelope (+ envelopeSize): YOUR envelope front — frost window, courier
      name, marks, stamp — in place of the plain one she carries out;
    · line: one personal line under the chart, over TAP TO SKIP;
@@ -28,8 +32,8 @@ import { AccessibilityInfo, Pressable, Text, View, useWindowDimensions } from "r
 import Animated, { Easing, Extrapolation, interpolate, runOnJS, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from "react-native-reanimated";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import * as Haptics from "expo-haptics";
-import { PF } from "../theme/post";
-import { useP, useTheme } from "../lib/theme";
+import { PFM, letterFitLines, letterFitSize } from "../theme/post";
+import { useLetterFamily, useLetterFont, useP, useTheme } from "../lib/theme";
 import { WrenBird, type WrenAccessory, type WrenMood, type WrenPose, type WrenSkin } from "./WrenBird";
 import type { HatchlingForm } from "../lib/hatchling-form";
 import type { PoolLetter } from "../lib/db";
@@ -114,6 +118,9 @@ export function FirstFlight({
 }) {
   const themeP = useP();
   const themeT = useTheme().t;
+  // the words carried are content: the reader's Letter font (italic where it has one)
+  const letterKey = useLetterFont();
+  const italic = useLetterFamily(true);
   /* the run's colours, where it passes them, laid over the theme's names so the drawing below reads one set */
   const P = colors ? { ...themeP, penWash: colors.ground, ink: colors.ink, ink60: colors.sub, ink40: colors.faint, pen: colors.accent, post: colors.accent } : themeP;
   const tk = colors ? { ...themeT, ln: colors.ink, sf: colors.card } : themeT;
@@ -227,14 +234,14 @@ export function FirstFlight({
               </React.Fragment>
             ))}
           </Svg>
-          <Text maxFontSizeMultiplier={1} style={{ position: "absolute", left: 40, top: 664, fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.4, color: P.ink }}>{t("ff.yourCity")}</Text>
+          <Text maxFontSizeMultiplier={1} style={{ position: "absolute", left: 40, top: 664, ...PFM.monoSemi, fontSize: 9, letterSpacing: 1.4, color: P.ink }}>{t("ff.yourCity")}</Text>
           {STOPS.map(([x, y], i) => (
             <View key={i} style={{ position: "absolute", left: x - 70, top: y + 22, width: 140, alignItems: "center" }} pointerEvents="none">
-              <Text maxFontSizeMultiplier={1} numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 1.2, color: P.ink }}>{stampOf(stops[i]) || t("ff.stop", { n: i + 1 })}</Text>
-              {!!words(stops[i]) && <Text maxFontSizeMultiplier={1} numberOfLines={1} style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 11, color: P.ink60, marginTop: 2 }}>{words(stops[i])}…</Text>}
+              <Text maxFontSizeMultiplier={1} numberOfLines={1} style={{ ...PFM.monoSemi, fontSize: 9, letterSpacing: 1.2, color: P.ink }}>{stampOf(stops[i]) || t("ff.stop", { n: i + 1 })}</Text>
+              {!!words(stops[i]) && <Text maxFontSizeMultiplier={1} numberOfLines={1} style={{ ...italic, fontSize: letterFitSize(letterKey, 11), color: P.ink60, marginTop: 2 }}>{words(stops[i])}…</Text>}
             </View>
           ))}
-          <Text maxFontSizeMultiplier={1} style={{ position: "absolute", left: 20, top: 756, fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>{t("ff.chart")}</Text>
+          <Text maxFontSizeMultiplier={1} style={{ position: "absolute", left: 20, top: 756, ...PFM.mono, fontSize: 9, letterSpacing: 1.6, color: P.ink40 }}>{t("ff.chart")}</Text>
         </Animated.View>
         {/* the trail she leaves */}
         {pts.map((p, i) => <TrailDot key={i} clock={clock} at={p.at} x={p.x} y={p.y} color={colors?.accent} />)}
@@ -244,10 +251,10 @@ export function FirstFlight({
         <Animated.View style={[{ position: "absolute", left: 0, right: 0, top: 96, alignItems: "center" }, titleStyle]} pointerEvents="none">
           {head ?? (
             <>
-              <Text style={{ fontFamily: PF.serif, fontSize: 30, color: P.ink, textAlign: "center" }}>
-                {t("ob.flight.plain", { name: her })} <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic" }}>{t("ob.flight.em", { name: her })}</Text>
+              <Text style={{ fontWeight: "700", fontSize: 30, letterSpacing: -0.5, color: P.ink, textAlign: "center" }}>
+                {t("ob.flight.plain", { name: her })} <Text style={{ fontStyle: "italic" }}>{t("ob.flight.em", { name: her })}</Text>
               </Text>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.6, color: P.ink60, marginTop: 10 }}>{t("ob.flight.sub")}</Text>
+              <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.6, color: P.ink60, marginTop: 10 }}>{t("ob.flight.sub")}</Text>
             </>
           )}
         </Animated.View>
@@ -257,8 +264,8 @@ export function FirstFlight({
         <>
         {/* 1 · the letter, folding */}
         <Animated.View style={[{ position: "absolute", left: 52, top: 300, width: 286, backgroundColor: tk.sf, borderWidth: 1.5, borderColor: tk.ln, paddingHorizontal: 18, paddingVertical: 14, transform: [{ rotate: "-2deg" }] }, cardStyle]} pointerEvents="none">
-          <Text numberOfLines={3} style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 15, lineHeight: 22, color: P.ink }}>{opener}</Text>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 8.5, letterSpacing: 1.4, color: P.ink40, marginTop: 8 }}>{t("ob.carriedBy", { name: her.toUpperCase() })}</Text>
+          <Text numberOfLines={letterFitLines(letterKey, 3)} style={{ ...italic, fontSize: 15, lineHeight: 22, color: P.ink }}>{opener}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 8.5, letterSpacing: 1.4, color: P.ink40, marginTop: 8 }}>{t("ob.carriedBy", { name: her.toUpperCase() })}</Text>
         </Animated.View>
         {envelope ? (
           <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: env.w, height: env.h }, envStyle]} pointerEvents="none">
@@ -287,7 +294,7 @@ export function FirstFlight({
         </Animated.View>
 
         {!!line && <View pointerEvents="none" style={{ position: "absolute", left: 24, right: 24, bottom: 98, alignItems: "center" }}>{line}</View>}
-        <Text maxFontSizeMultiplier={1.35} style={{ position: "absolute", left: 0, right: 0, bottom: 22, textAlign: "center", fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.4, color: P.ink40 }}>{skipLabel ?? t("ff.skip")}</Text>
+        <Text maxFontSizeMultiplier={1.35} style={{ position: "absolute", left: 0, right: 0, bottom: 22, textAlign: "center", fontWeight: "500", fontSize: 12, letterSpacing: 0.4, color: P.ink40 }}>{skipLabel ?? t("ff.skip")}</Text>
         </>
         )}
       </View>

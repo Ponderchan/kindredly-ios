@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { isKindredlyUIViewAvailable } from "../../../modules/kindredly-ui";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
 import { THEME_KEYS, THEMES, type ThemeKey } from "../../theme/themes";
-import { PF } from "../../theme/post";
+import { PFM } from "../../theme/post";
 import { LettersNative, RoomNative } from "../../screens/chat/ConversationNative";
 import { RoomRN } from "../../screens/chat/RoomRN";
 import { LettersRN } from "../../screens/chat/LettersRN";
@@ -125,7 +125,7 @@ function Chip({ label, on = false, onPress }: { label: string; on?: boolean; onP
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1, color: on ? tk.sf : tk.ink }}>{label}</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1, color: on ? tk.sf : tk.ink }}>{label}</Text>
     </Pressable>
   );
 }
@@ -157,7 +157,7 @@ function ChatLab() {
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: tk.bg }}>
       <View style={{ paddingHorizontal: 12, paddingTop: 4, paddingBottom: 6, gap: 6 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.2, color: tk.ind }}>STEP 5 · CHAT KIT</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.2, color: tk.ind }}>STEP 5 · CHAT KIT</Text>
           <Chip label="BACK" onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))} />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" contentContainerStyle={{ gap: 6 }}>
@@ -172,7 +172,7 @@ function ChatLab() {
           ))}
         </ScrollView>
         {!available ? (
-          <Text style={{ fontFamily: PF.monoMed, fontSize: 10, lineHeight: 14, color: tk.sub }}>
+          <Text style={{ ...PFM.monoMed, fontSize: 10, lineHeight: 14, color: tk.sub }}>
             THIS BUILD HAS NO KCONVERSATIONVIEW: POD INSTALL (OR PREBUILD WITHOUT --CLEAN), REBUILD THE DEV CLIENT. SHOWING REACT NATIVE.
           </Text>
         ) : null}

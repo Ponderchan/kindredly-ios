@@ -98,10 +98,10 @@ export function WardrobeSlip({ bottom, onSeen, demo = false }: { bottom: number;
                 <WrenBird size={46} />
               </View>
               <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text numberOfLines={1} style={{ fontFamily: FONT.bold, fontSize: 16.5, color: OB.ink }}>
+                <Text numberOfLines={1} style={{ ...FONT.bold, fontSize: 16.5, color: OB.ink }}>
                   {t("ob2.slip.title", { name })}
                 </Text>
-                <Text numberOfLines={1} style={{ fontFamily: FONT.body, fontSize: 13, color: OB.inkSoft, marginTop: 1 }}>
+                <Text numberOfLines={1} style={{ ...FONT.body, fontSize: 13, color: OB.inkSoft, marginTop: 1 }}>
                   {t("ob2.slip.sub")}
                 </Text>
               </View>
@@ -175,7 +175,7 @@ function WardrobeSheet({ open, name, demo, onClose }: { open: boolean; name: str
       ) : (
         <View style={{ flex: 1, backgroundColor: OB.shell }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingLeft: 22, paddingRight: 8, paddingTop: 14 }}>
-            <Text accessibilityRole="header" numberOfLines={1} style={{ flex: 1, fontFamily: FONT.head, fontSize: 22, letterSpacing: -0.5, color: OB.ink }}>
+            <Text accessibilityRole="header" numberOfLines={1} style={{ flex: 1, ...FONT.head, fontSize: 22, letterSpacing: -0.5, color: OB.ink }}>
               {t("ob2.slip.head", { name })}
             </Text>
             <Pressable onPress={onClose} hitSlop={6} accessibilityRole="button" accessibilityLabel={t("ob2.slip.close")} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>

@@ -27,9 +27,10 @@ import SwiftUI
 
  THE WORDS come in TS's three sizes (notes-model textTier, weighed the composer's way, CJK as two):
  a short line (up to 40) at 24 on 31, 41 to 140 at 17 on 24.5, longer at 15 on 22.5 cut to six lines (the card opens
- the page for the rest). All in the system face: serif is
- for someone else's letter, a page of your own is in the face you wrote it in (owner, 2026-10-18;
- the card had set short lines in EB Garamond). A voice note's own words sit above its bar, where the mock puts a
+ the page for the rest). All in the reader's Letter font, the face every page of content is in
+ (owner, 2026-10-20; it had been the system face since 2026-10-18); in a roomier face (SF Mono,
+ Garamond) the six lines and Grid's five or six get one more, so what fits in Newsreader isn't cut.
+ A voice note's own words sit above its bar, where the mock puts a
  transcript (the app has no transcription).
 
  THE PICTURES (notes-model photoTiles; KNotePhotos): never a 3×3, at most four tiles 4 apart in a
@@ -37,13 +38,13 @@ import SwiftUI
  2026-10-18). One: a tile 220 tall. Two: side by side, 160. Three: the big tile on the left (2fr)
  over both rows, two small on the right, 220. Four: a 2×2, 220. Five and more: the big tile over
  three rows and three small, 240, the last under the dark ink at .55 with "+N" (the pictures past
- the four shown) in Plex Mono 600 15, white. A video is one tile at the one-picture size with its
+ the four shown) in SF Mono 600 15, white. A video is one tile at the one-picture size with its
  frame, the play disc and its length.
 
  THE VOICE BAR (KNoteVoiceBar): 48 tall on soft, corners 14: the ink play disc (32, the page
  colour's triangle, two bars while it plays), 44 bars 2.5 wide and 2 apart, 4 to 13 tall from the
  note's seed (noteBar: the same numbers as TS's notes-model noteBar), ink at .55 and full ink for
- the part played, and the length in Plex Mono 500 11, the time left while it plays. The whole bar is
+ the part played, and the length in SF Mono 500 11, the time left while it plays. The whole bar is
  a button that plays in place; the rest of the card opens the note. Swift never plays audio: the
  screen's one player is TS's, which reports only its transitions (KNotesDriver.playback); the bars
  and the time move on locally in a TimelineView in between.
@@ -219,10 +220,10 @@ public struct KNoteCard: View, Equatable {
   static let label = KTextStyle.mono(11, .semibold, tracking: 0.12)
   /// Card's date: mono 500 11 at .1em
   static let cardLabel = KTextStyle.mono(11, .medium, tracking: 0.1)
-  /// the words: short (the system face when it holds CJK), mid, long; Grid and List at 15
-  static let shortBody = KTextStyle.system(24, lineHeight: 31.0 / 24.0)
-  static let midBody = KTextStyle.system(17, lineHeight: 24.5 / 17.0)
-  static let smallBody = KTextStyle.system(15, lineHeight: 1.5)
+  /// the words, in the Letter font: short, mid, long; Grid and List at 15
+  static let shortBody = KTextStyle.content(24, lineHeight: 31.0 / 24.0)
+  static let midBody = KTextStyle.content(17, lineHeight: 24.5 / 17.0)
+  static let smallBody = KTextStyle.content(15, lineHeight: 1.5)
 
   let theme: KTheme
   let note: KNote
@@ -231,6 +232,8 @@ public struct KNoteCard: View, Equatable {
   let pauseLabel: String
   let driver: KNotesDriver
   let actions: KNotesActions
+  /// the Letter face the words are in (their lineLimit makes room for a roomy one)
+  @Environment(\.kLetterFace) private var face
 
   public init(theme: KTheme, note: KNote, layout: KNoteLayout, playLabel: String, pauseLabel: String, driver: KNotesDriver, actions: KNotesActions) {
     self.theme = theme
@@ -332,7 +335,7 @@ public struct KNoteCard: View, Equatable {
       if layout == .grid {
         text
           .kText(Self.smallBody)
-          .lineLimit(note.gridLines)
+          .lineLimit(face.fitLines(note.gridLines))
       } else {
         switch note.textTier {
         case .short:
@@ -342,7 +345,7 @@ public struct KNoteCard: View, Equatable {
         case .long, .empty:
           text
             .kText(Self.smallBody)
-            .lineLimit(6)
+            .lineLimit(face.fitLines(6))
         }
       }
     }

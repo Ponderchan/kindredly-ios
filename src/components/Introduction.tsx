@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MONO, PF } from "../theme/post";
-import { useP, useTheme } from "../lib/theme";
+import { MONO, PFM } from "../theme/post";
+import { useLetterFamily, useP, useTheme } from "../lib/theme";
 import { AvatarImage } from "./AvatarImage";
 import { IntroductionRitual, ritualDoneAt } from "./IntroductionRitual";
 import Animated, { FadeIn, useReducedMotion } from "react-native-reanimated";
@@ -117,6 +117,9 @@ export function Introduction({
     if (open) dismissKeyboard();
   }, [open]);
   const P = useP();
+  // Wren's words here are content: the reader's Letter font (her two lines in its italic)
+  const face = useLetterFamily();
+  const wrenFace = useLetterFamily(true);
   const tk = useTheme().t;
   const insets = useSafeAreaInsets();
   const systemStill = useReducedMotion();
@@ -158,18 +161,21 @@ export function Introduction({
     <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: P.paper }}>
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 18, paddingBottom: 12 }}>
-          <Text accessibilityRole="header" style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: MONO.title * 0.16, color: P.ink }}>
+          {/* the sheet's title, as every secondary title: System 500 17, centred (the ✕'s width
+              mirrored on the left keeps it on the middle) */}
+          <View style={{ width: 24 }} />
+          <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, fontWeight: "500", textAlign: "center", color: P.ink }}>
             {t("intro.carriedBy", { name: wren.toUpperCase() })}
           </Text>
-          <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 16, color: P.ink40 }}>✕</Text>
+          <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")} style={{ width: 24, alignItems: "flex-end" }}>
+            <Text style={{ ...PFM.mono, fontSize: 16, color: P.ink40 }}>✕</Text>
           </Pressable>
         </View>
 
         <ScrollView contentContainerStyle={{ paddingHorizontal: 26, paddingTop: 30, paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
           <WrenBird size={44} mood="content" stage="wren" />
 
-          <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 18 }}>
+          <Text style={{ ...wrenFace, fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 18 }}>
             {t("intro.body")}
           </Text>
 
@@ -222,13 +228,13 @@ export function Introduction({
                 : t("in.roadWait", { n: fact!.letters, d: fact!.days, g: fact!.longestWaitDays });
             return (
               <Animated.View entering={FadeIn.duration(500).delay(doneAt)} style={{ marginTop: 10, alignItems: "center", paddingHorizontal: 8 }}>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.16, color: P.pen }}>{t("in.noticed", { wren: wren.toUpperCase() })}</Text>
-                <Text style={{ fontFamily: PF.letter, fontSize: 14, lineHeight: 20, color: P.ink60, marginTop: 6, textAlign: "center" }}>{line}</Text>
+                <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.16, color: P.pen }}>{t("in.noticed", { wren: wren.toUpperCase() })}</Text>
+                <Text style={{ ...face, fontSize: 14, lineHeight: 20, color: P.ink60, marginTop: 6, textAlign: "center" }}>{line}</Text>
               </Animated.View>
             );
           })()}
 
-          <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 26 }}>
+          <Text style={{ ...wrenFace, fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 26 }}>
             {meName ? t("in.knowYou", { name: meName }) : t("in.knowYouUnsigned")}
           </Text>
         </ScrollView>
@@ -242,7 +248,7 @@ export function Introduction({
             accessibilityRole="button"
             style={({ pressed }) => ({ backgroundColor: tk.ind, borderRadius: 14, paddingVertical: 15, alignItems: "center", opacity: pressed ? 0.85 : 1 })}
           >
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: MONO.title * 0.16, color: tk.bg }}>
+            <Text style={{ fontSize: 16, fontWeight: "600", letterSpacing: 0.4, color: tk.bg }}>
               {t("in.talkTo", { name: theirName.toUpperCase() })}
             </Text>
           </Pressable>

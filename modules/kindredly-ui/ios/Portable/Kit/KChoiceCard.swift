@@ -9,8 +9,9 @@ import SwiftUI
  picture, a bug, an idea) and compose's More tray.
 
  Corners of 18, a 2pt ln outline, a hard 3/3 ln shadow (pressed, the card goes down onto it), and
- inside, centred and 6 apart: the glyph 28 across in ink at 2pt, the title in mono 600 11 at .1em
- in capitals 4 lower, and the subtitle in the letter serif's italic 13 in sub. The mock's card is
+ inside, centred and 6 apart: the glyph 28 across in ink at 2pt, the title in System 600 15 as
+ written 4 lower, and the subtitle in System 13 in sub (the card is a button, its words UI: owner,
+ 2026-10-20; they had been mono capitals and the serif's italic). The mock's card is
  116 tall inside its outline, 120 overall; that is the least it is, so a longer translation or
  a larger Dynamic Type size makes it taller. Put cards side by side in KChoiceGrid, which gives
  both cards in a row one height, as the mock's grid does.
@@ -80,15 +81,14 @@ public struct KChoiceCard: View {
         // 2pt on screen at 28 across, whatever grid the drawing came from
         KLineIcon(glyph, size: 28, lineWidth: 2 * KLineGlyphTable.grid / 28, color: ink)
         Text(title)
-          .textCase(.uppercase)
-          .kText(.monoAction)
+          .kText(.system(15, .semibold))
           .foregroundStyle(ink)
           .lineLimit(2)
           .minimumScaleFactor(0.8)
           .padding(.top, 4)
         if !subtitle.isEmpty {
           Text(subtitle)
-            .kText(.letterHint)
+            .kText(.system(13))
             .foregroundStyle(sub)
             .lineLimit(2)
             .minimumScaleFactor(0.8)

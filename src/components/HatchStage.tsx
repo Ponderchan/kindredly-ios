@@ -54,7 +54,8 @@ import type { HatchlingForm } from "../lib/hatchling-form";
 import type { DimScore } from "../lib/hatch-engine";
 import { t } from "../lib/i18n";
 import { firstWord } from "../lib/first-word";
-import { F2, Y as Y_ART } from "../theme/y2k";
+import { Y as Y_ART } from "../theme/y2k";
+import { useLetterFamily } from "../lib/theme";
 import { useEggOS } from "../lib/egg-os";
 
 /* The burst's cream flash on a dark theme: capped, since a full-screen near-white flash at
@@ -201,6 +202,8 @@ export function HatchStage({
   tapHelps?: boolean;
 }) {
   const { Y, mono, dark } = useEggOS();
+  // your words thrown, and her first word, are content: the letter font's italic (upright in Garamond / SF Mono)
+  const said = useLetterFamily(true);
   const flood = burstMode === "flood";
   const stageRef = useRef<View>(null);
   const onBurstRef = useRef(onBurst);
@@ -571,7 +574,7 @@ export function HatchStage({
             if (op <= 0) return null;
             return (
               <View key={`w${i}`} pointerEvents="none" style={{ position: "absolute", left: sx(CX + w.x) - 70, top: sy(CY + w.y) - 10, width: 140, alignItems: "center", opacity: op, transform: [{ rotate: `${w.rot}deg` }] }}>
-                <Text numberOfLines={1} style={{ fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: w.sz * K + 2, color: chrome && flood ? (i % 3 === 0 ? chrome.accent : chrome.ink) : a.burst < 1.6 ? (i % 3 === 0 ? "#FFD98A" : "#FFF6E3") : i % 3 === 0 ? chrome?.accent ?? Y.blue : chrome?.ink ?? Y.ink }}>
+                <Text numberOfLines={1} style={{ ...said, fontSize: w.sz * K + 2, color: chrome && flood ? (i % 3 === 0 ? chrome.accent : chrome.ink) : a.burst < 1.6 ? (i % 3 === 0 ? "#FFD98A" : "#FFF6E3") : i % 3 === 0 ? chrome?.accent ?? Y.blue : chrome?.ink ?? Y.ink }}>
                   {w.w}
                 </Text>
               </View>
@@ -583,7 +586,7 @@ export function HatchStage({
           {qs > 0 && !!a.quote && (
             <View pointerEvents="none" style={{ position: "absolute", left: sx(CX + 80) - 90, top: sy(CY - 92 - a.rise * 20) - 18, width: 180, alignItems: "center", opacity: qs, transform: [{ scale: qs * qb }] }}>
               <View style={{ backgroundColor: chrome?.panel ?? Y.panel, borderWidth: 2, borderColor: chrome?.line ?? Y.ln, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}>
-                <Text numberOfLines={1} style={{ fontFamily: F2.serifItalic, fontStyle: "italic", fontSize: 15, color: chrome?.ink ?? Y.ink }}>{`“${a.quote}…”`}</Text>
+                <Text numberOfLines={1} style={{ ...said, fontSize: 15, color: chrome?.ink ?? Y.ink }}>{`“${a.quote}…”`}</Text>
               </View>
               <View style={{ width: 10, height: 10, backgroundColor: chrome?.panel ?? Y.panel, borderRightWidth: 2, borderBottomWidth: 2, borderColor: chrome?.line ?? Y.ln, marginTop: -6, marginLeft: -76, transform: [{ rotate: "45deg" }] }} />
             </View>

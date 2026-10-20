@@ -3,9 +3,9 @@ import { Dimensions, Modal, Pressable, Text, View, useWindowDimensions } from "r
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import Svg, { Line, Path, Rect } from "react-native-svg";
-import { MONO, PF, letterFamily } from "../../theme/post";
+import { MONO, PFM } from "../../theme/post";
 import { BRAND } from "../../theme/themes";
-import { useP, useTheme } from "../../lib/theme";
+import { useLetterFamily, useP, useTheme } from "../../lib/theme";
 import { useTabBarSpace } from "../../components/NativeTabBar";
 import { TabHeader } from "../../components/TabHeader";
 import { EveningAsk, type EveningAskStrings } from "../../components/EveningAsk";
@@ -100,7 +100,7 @@ export function NotesRN({ model }: { model: NotesModel }) {
           title={s.title}
           right={
             model.empty ? (
-              <Text style={{ fontFamily: PF.mono, fontSize: MONO.title, letterSpacing: 1.2, color: tk.sub }}>{s.justYou}</Text>
+              <Text style={{ ...PFM.mono, fontSize: MONO.title, letterSpacing: 1.2, color: tk.sub }}>{s.justYou}</Text>
             ) : (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <View ref={viewKey} collapsable={false}>
@@ -111,7 +111,7 @@ export function NotesRN({ model }: { model: NotesModel }) {
                   </PlateKey>
                 </View>
                 <PlateKey on={model.calendarOpen} onPress={() => act.setCalendar(!model.calendarOpen)} label={s.calendarA11y} expanded={model.calendarOpen}>
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 0.8, color: keyInk(model.calendarOpen) }}>{s.monthCount}</Text>
+                  <Text style={{ ...PFM.monoSemi, fontSize: MONO.title, letterSpacing: 0.8, color: keyInk(model.calendarOpen) }}>{s.monthCount}</Text>
                   {/* the squares sit on the key: the ink (filled) or the page (outlined); on a dark one the
                       groups' pale fills read, where their inks sank into Midnight's page */}
                   <CalendarGlyph groups={model.recentGroups} color={keyInk(model.calendarOpen)} empty={model.calendarOpen ? tk.bg : tk.line} onDark={model.calendarOpen ? !dark : dark} size={15} />
@@ -130,7 +130,7 @@ export function NotesRN({ model }: { model: NotesModel }) {
                 onPress={() => {}}
                 style={{ position: "absolute", top: menu.y + menu.h + 6, right: WIN_W - (menu.x + menu.w), minWidth: 206, backgroundColor: tk.sf, borderRadius: 18, borderWidth: 1.5, borderColor: tk.ln, padding: 8, shadowColor: tk.ln, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0 }}
               >
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.6, color: tk.mute, paddingHorizontal: 10, paddingTop: 6, paddingBottom: 6 }}>{s.viewMenu}</Text>
+                <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.6, color: tk.mute, paddingHorizontal: 10, paddingTop: 6, paddingBottom: 6 }}>{s.viewMenu}</Text>
                 {NOTES_VIEWS.map((v) => (
                   <Pressable
                     key={v}
@@ -153,7 +153,7 @@ export function NotesRN({ model }: { model: NotesModel }) {
           <Empty model={model} eveningRow={eveningRow} tabRoom={tabRoom} />
         ) : model.calendarOpen ? (
           <Animated.ScrollView entering={FadeIn.duration(220)} contentContainerStyle={{ paddingBottom: bottomRoom }} showsVerticalScrollIndicator={false}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink40, paddingHorizontal: 22, marginBottom: 4, marginTop: 14 }}>{s.moments}</Text>
+            <Text style={{ ...PFM.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink40, paddingHorizontal: 22, marginBottom: 4, marginTop: 14 }}>{s.moments}</Text>
             <SealedCalendar month={model.month} weekdays={s.weekdays} prevLabel={s.prevMonth} nextLabel={s.nextMonth} onStep={act.calendarMonth} onPickDay={act.openDay} />
           </Animated.ScrollView>
         ) : (
@@ -171,7 +171,7 @@ export function NotesRN({ model }: { model: NotesModel }) {
             ListHeaderComponent={
               <View>
                 {/* tucked under the plate — pull down past the top and it shows */}
-                <Animated.Text style={[{ position: "absolute", top: -22, left: 4, fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink40 }, pullNote]}>{s.moments}</Animated.Text>
+                <Animated.Text style={[{ position: "absolute", top: -22, left: 4, ...PFM.mono, fontSize: 11, letterSpacing: 0.8, color: P.ink40 }, pullNote]}>{s.moments}</Animated.Text>
                 {!!model.wrenLine && <WrenLine line={model.wrenLine} onTap={act.dismissWrenLine} />}
                 {eveningRow}
               </View>
@@ -185,15 +185,17 @@ export function NotesRN({ model }: { model: NotesModel }) {
 }
 
 /* her first-visit line, in the page: her own bird at 22 and the line in
-   Newsreader italic in sub (her lines don't follow the Letter font). A tap
-   closes it for the session (the model's dismissWrenOnce). */
+   the reader's Letter font's italic in sub (her words are content, owner
+   2026-10-20; upright in a face without an italic). A tap closes it for the
+   session (the model's dismissWrenOnce). */
 function WrenLine({ line, onTap }: { line: string; onTap: () => void }) {
   const { t: tk } = useTheme();
+  const face = useLetterFamily(true);
   return (
     <Animated.View entering={FadeIn.duration(420)}>
       <Pressable onPress={onTap} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11, paddingHorizontal: 4 }}>
         <WrenBird size={22} mood="content" />
-        <Text style={[{ flex: 1, fontSize: 15, lineHeight: 21, color: tk.sub }, letterFamily("newsreader", true)]}>{line}</Text>
+        <Text style={[{ flex: 1, fontSize: 15, lineHeight: 21, color: tk.sub }, face]}>{line}</Text>
       </Pressable>
     </Animated.View>
   );
@@ -229,8 +231,8 @@ function Caret({ open, color }: { open: boolean; color: string }) {
 
 /* Empty Notes — still design 1b's one warm, playful moment, and everything
    it said is still here word for word: the taped note, the NEW sticker, the
-   two ways in. Painted from the theme; the title in Newsreader (10a's
-   serif); the tape and the sticker keep their own colours, and the two keys
+   two ways in. Painted from the theme; the title in System (an empty
+   state is UI, owner 2026-10-20); the tape and the sticker keep their own colours, and the two keys
    their pale ones with a fixed dark ink on them. The evening question's off
    row sits above it when the evening line is on: it is the only off switch,
    and a journal with no pages still gets the line. */
@@ -247,12 +249,12 @@ function Empty({ model, eveningRow, tabRoom }: { model: NotesModel; eveningRow: 
         <View style={{ marginBottom: 34 }}>
           <View style={{ position: "absolute", left: 46, top: -11, width: 78, height: 22, backgroundColor: EMPTY_TAPE, opacity: 0.85, transform: [{ rotate: "-5deg" }], zIndex: 2 }} />
           <View style={{ backgroundColor: tk.sf, borderWidth: 1, borderColor: tk.ln, paddingHorizontal: 26, paddingVertical: 30, transform: [{ rotate: "-1deg" }] }}>
-            <Text style={{ fontFamily: PF.letterSerif, fontSize: 27, lineHeight: 34, color: tk.ink, textAlign: "center" }}>{s.emptyTitle}</Text>
+            <Text style={{ fontSize: 27, lineHeight: 34, fontWeight: "600", color: tk.ink, textAlign: "center" }}>{s.emptyTitle}</Text>
             <Text style={{ fontSize: 14.5, lineHeight: 22, color: tk.sub, textAlign: "center", marginTop: 14 }}>{s.emptyBody}</Text>
           </View>
           {/* NEW sticker */}
           <View style={{ position: "absolute", right: 8, bottom: -14, backgroundColor: EMPTY_STICKER, paddingHorizontal: 9, paddingVertical: 6, transform: [{ rotate: "6deg" }] }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1, color: BRAND.inkOnBrand }}>{s.newLabel}</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1, color: BRAND.inkOnBrand }}>{s.newLabel}</Text>
           </View>
         </View>
 
@@ -282,7 +284,7 @@ function Key({ label, tint, onPress, children }: { label: string; tint: string; 
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => ({ flex: 1, height: 120, alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: tint, opacity: pressed ? 0.6 : 1 })}>
       {children}
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: BRAND.inkOnBrand }}>{label.toUpperCase()}</Text>
+      <Text style={{ fontSize: 13, fontWeight: "600", color: BRAND.inkOnBrand }}>{label}</Text>
     </Pressable>
   );
 }

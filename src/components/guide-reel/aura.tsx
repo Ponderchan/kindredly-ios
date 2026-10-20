@@ -3,8 +3,9 @@ import { Image, Text, View, type StyleProp, type ViewStyle } from "react-native"
 import Animated, { Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import Svg, { Circle, Ellipse, Path, Rect } from "react-native-svg";
 import { BigType, Finger, useLoop, useOnce, type Reel } from "./kit";
-import { P, PF } from "../../theme/post";
+import { P, PF, PFM } from "../../theme/post";
 import { t } from "../../lib/i18n";
+import { useLetterFamily } from "../../lib/theme";
 import { DIMENSION_INK, stickerLook, stickerName, titleName } from "../../lib/sticker-copy";
 import { dimLabel } from "../../lib/aura-copy";
 import type { DimKey } from "../../lib/hatch-engine";
@@ -159,7 +160,7 @@ function SendKey({ s, at }: { s: number; at: number }) {
   return (
     <Animated.View style={[{ flex: 1, backgroundColor: P.ink, alignItems: "center", justifyContent: "center", overflow: "hidden", paddingHorizontal: s * 0.05 }, st]}>
       <Animated.View style={[{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: P.pen }, flash]} />
-      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontFamily: PF.monoSemi, fontSize: s * 0.045, letterSpacing: s * 0.005, color: "#FFFFFF" }}>
+      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ ...PFM.monoSemi, fontSize: s * 0.045, letterSpacing: s * 0.005, color: "#FFFFFF" }}>
         {t("cp.travel")}
       </Text>
     </Animated.View>
@@ -196,6 +197,8 @@ const MARK = 2040;
 const CHIP3 = 2180;
 
 function Read({ s }: { s: number }) {
+  // the laugh is a line of a letter: the reader's Letter font
+  const face = useLetterFamily();
   const rowH = s * 0.09;
   const x0 = s * 0.12;
   const gap = s * 0.026;
@@ -268,7 +271,7 @@ function Read({ s }: { s: number }) {
         <Scribble w={w3} h={rowH} seed={11} />
         <View style={{ marginLeft: gap, maxWidth: laughMax, paddingHorizontal: s * 0.012, height: rowH, justifyContent: "center" }}>
           <Band delay={MARK} color={DIMENSION_INK.quirks.bg} style={{ top: rowH * 0.14, height: rowH * 0.74, borderRadius: s * 0.012 }} />
-          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ fontFamily: PF.letterSerif, fontSize: s * 0.07, lineHeight: rowH, color: NAVY }}>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ ...face, fontSize: s * 0.07, lineHeight: rowH, color: NAVY }}>
             {laugh}
           </Text>
         </View>
@@ -528,7 +531,7 @@ function Private({ s }: { s: number }) {
       {/* the lock sits on the phone's bottom edge, below the stickers */}
       <LockBadge s={s} cx={s / 2} cy={py + ph} />
       <RiseAt delay={1150} dy={s * 0.02} style={{ position: "absolute", left: s * 0.06, right: s * 0.06, top: s * 0.865, alignItems: "center" }}>
-        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ fontFamily: PF.monoSemi, fontSize: s * 0.04, letterSpacing: s * 0.004, color: NAVY }}>
+        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ ...PFM.monoSemi, fontSize: s * 0.04, letterSpacing: s * 0.004, color: NAVY }}>
           {t("ga.phoneOnly")}
         </Text>
       </RiseAt>

@@ -7,7 +7,7 @@ import type { Daylight } from "../components/CourierCard";
 import type { Fidelity } from "../lib/aura-ladder";
 import type { Aura } from "../lib/aura";
 import type { ResolvedSticker } from "../lib/writing-engine/stickers";
-import { P, PF } from "../theme/post";
+import { P, PFM } from "../theme/post";
 
 /* dev only — the aura card at every rung, and the scene at every hour,
    so the ladder can be looked at without writing fourteen letters.
@@ -51,7 +51,7 @@ export default function AuraPreview() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.penWash }}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.4, color: "#1E1B35" }}>THE SCENE · FOUR HOURS</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.4, color: "#1E1B35" }}>THE SCENE · FOUR HOURS</Text>
         {days.map((d) => (
           <View key={d} style={{ borderRadius: 22, overflow: "hidden" }}>
             <AuraScene width={360} fidelity="colour" day={d} />
@@ -66,7 +66,7 @@ export default function AuraPreview() {
         </View>
         {RUNGS.map((r) => (
           <View key={r.label} style={{ gap: 6 }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.4, color: "#1E1B35" }}>{r.label.toUpperCase()}</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.4, color: "#1E1B35" }}>{r.label.toUpperCase()}</Text>
             <AuraCard aura={r.aura} seed="preview" onOpen={noop} onShare={noop} onWrite={noop} />
           </View>
         ))}

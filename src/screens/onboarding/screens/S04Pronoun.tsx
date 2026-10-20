@@ -98,7 +98,7 @@ export default function S04Pronoun(props: ObScreenProps) {
                       backgroundColor: on ? OB.acid : "transparent",
                     }}
                   >
-                    <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ flex: 1, fontFamily: FONT.semi, fontSize: 17, color: ink }}>{t(c.key)}</Text>
+                    <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ flex: 1, ...FONT.semi, fontSize: 17, color: ink }}>{t(c.key)}</Text>
                     {c.glyph && (
                       <View ref={(r) => void (glyphs.current[c.id] = r)} collapsable={false}>
                         <LineIcon name={c.glyph} size={22} stroke={2} color={ink} />

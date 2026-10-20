@@ -1,6 +1,6 @@
 import { Pressable, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { MONO, PF } from "../../theme/post";
+import { MONO, PFM } from "../../theme/post";
 import { useTheme } from "../../lib/theme";
 import { t, useLang } from "../../lib/i18n";
 import { SEND_STYLE, sendTakesPress, type SendState, type SendStyle } from "./kit";
@@ -75,7 +75,7 @@ export function SendKey({
         </View>
       ) : (
         <View style={{ paddingVertical: 9, paddingHorizontal: 14, borderRadius: 18, backgroundColor: onInd ? tk.ind : tk.soft2 }}>
-          <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: MONO.title * 0.12, color: onInd ? tk.bg : tk.faint }}>
+          <Text numberOfLines={1} style={{ ...PFM.monoSemi, fontSize: MONO.title, letterSpacing: MONO.title * 0.12, color: onInd ? tk.bg : tk.faint }}>
             {word}
           </Text>
         </View>

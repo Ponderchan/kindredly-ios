@@ -18,7 +18,8 @@
 export type PaperId = "plain" | "grid" | "kraft" | "airmail" | "receipt" | "sticky" | "riso";
 /** free: anyone; kindred: once you have a first kindred; first: First Class */
 export type PaperTier = "free" | "kindred" | "first";
-/** G: the serif (the reader's Letter font; EB Garamond in the prototype), M: IBM Plex Mono, S: the system face */
+/** the prototype's faces — G: EB Garamond, M: IBM Plex Mono, S: the system face. The app no longer
+    lets a paper pick its face: every paper draws the reader's Letter font (owner, 2026-10-20) */
 export type PaperFace = "G" | "M" | "S";
 
 export type Paper = {

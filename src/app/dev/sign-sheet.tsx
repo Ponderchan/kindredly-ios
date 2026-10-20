@@ -4,7 +4,7 @@ import { Redirect, router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
 import { THEME_KEYS, THEMES, type ThemeKey } from "../../theme/themes";
-import { PF } from "../../theme/post";
+import { PFM } from "../../theme/post";
 import { t } from "../../lib/i18n";
 import { useAuth } from "../../lib/auth";
 import { penPointCount } from "../../lib/pen-signature";
@@ -58,7 +58,7 @@ function Chip({ label, on = false, onPress }: { label: string; on?: boolean; onP
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1, color: on ? tk.sf : tk.ink }}>{label}</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1, color: on ? tk.sf : tk.ink }}>{label}</Text>
     </Pressable>
   );
 }
@@ -98,7 +98,7 @@ function SignSheetLab() {
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: tk.bg }}>
       <View style={{ paddingHorizontal: 12, paddingTop: 4, paddingBottom: 6, gap: 6 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.2, color: tk.ind }}>IDENTITY 2 · SIGN SHEET</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.2, color: tk.ind }}>IDENTITY 2 · SIGN SHEET</Text>
           <Chip label="BACK" onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))} />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" contentContainerStyle={{ gap: 6 }}>
@@ -115,11 +115,11 @@ function SignSheetLab() {
           accessibilityRole="button"
           style={({ pressed }) => ({ backgroundColor: tk.ind, borderRadius: 14, paddingVertical: 14, alignItems: "center", opacity: pressed ? 0.85 : 1 })}
         >
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.6, color: tk.bg }}>OPEN THE SHEET</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.6, color: tk.bg }}>OPEN THE SHEET</Text>
         </Pressable>
         {sent ? (
           <View style={{ gap: 10, backgroundColor: tk.soft, borderRadius: 16, padding: 14 }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: tk.mute }}>
+            <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.2, color: tk.mute }}>
               SENT · {sent.sig ? `DRAWN · ${sent.sig.s.length} STROKES · ${penPointCount(sent.sig)} POINTS` : "TYPED"} · FACE {sent.face ?? "NONE"}
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>

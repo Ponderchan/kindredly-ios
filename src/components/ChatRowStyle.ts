@@ -10,8 +10,9 @@ import { rowStyleFor, type RowStyle } from "./10a/kit";
 
    10a (step 5): useRowStyle() below is the row on the theme. The owner
    keeps the sizes (52 face, gap 14, name 17/600, two-line 15/20 preview,
-   time 13 in the system face, badge 20 — the same sizes the Swift
-   KPersonRow draws) and the colours come from 10a: names ink, preview sub,
+   badge 20 — the same sizes the Swift KPersonRow draws; the time and the
+   badge's number are labels, so the rows set them in SF Mono, the time at
+   11 (owner's type system, 2026-10-20)) and the colours come from 10a: names ink, preview sub,
    the time always mute (blue is kept for the kindred number and YOUR
    TURN), the badge ind with the page colour on it, the hairline under the
    words in line (H:65), the disc soft2, and the 22pt inset of the mock

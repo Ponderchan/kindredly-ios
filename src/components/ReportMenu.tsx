@@ -3,7 +3,7 @@ import { AccessibilityInfo, Modal, PixelRatio, Pressable, Text, View, findNodeHa
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
-import { P as STATIC_P, PF } from "../theme/post";
+import { P as STATIC_P, PF, PFM } from "../theme/post";
 import { scrimColor, useTheme } from "../lib/theme";
 import { dangerInk } from "../screens/settings/settings-model";
 import { useWrenName } from "../lib/wren-name";
@@ -222,7 +222,7 @@ export function ReportMenu({
             : { width: 42, height: 42, alignItems: "center", justifyContent: "center" }
         }
       >
-        <Text style={ring ? { fontSize: 12, lineHeight: 14, color: tk.ink, fontFamily: PF.monoSemi } : { fontSize: 20, color: tk.ink, fontFamily: PF.mono }}>⋯</Text>
+        <Text style={ring ? { fontSize: 12, lineHeight: 14, color: tk.ink, ...PFM.monoSemi } : { fontSize: 20, color: tk.ink, ...PFM.mono }}>⋯</Text>
       </Pressable>
 
       {/* window-level, so it sits over whatever row the ⋯ is in */}

@@ -13,7 +13,7 @@ import { identitySwitch, type Mark } from "../../lib/identity-core";
 import { frostSpec, type FrostSpec } from "../../lib/frost";
 import { strangerName } from "../../lib/stranger-name";
 import { zodiacFromDob, type Zodiac } from "../../lib/zodiac";
-import { MONO, PF } from "../../theme/post";
+import { MONO, PFM } from "../../theme/post";
 import { Frost } from "../../components/Frost";
 import { WhoGlyphs } from "../../components/WhoName";
 import { SoftSection, SoftSwitchRow } from "../settings/SoftRN";
@@ -107,7 +107,7 @@ export function IdentityNoteSheet({
 
             {/* YOU, TO A STRANGER: the card header a stranger's desk shows for you */}
             <View accessible accessibilityLabel={note.previewA11y} style={{ backgroundColor: tk.soft, borderRadius: 16, padding: 14, gap: 10 }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute }}>{note.previewLabel}</Text>
+              <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute }}>{note.previewLabel}</Text>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 {frost ? <Frost spec={frost} size={40} /> : <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: tk.soft2 }} />}
                 <View style={{ flex: 1, gap: 1 }}>
@@ -117,7 +117,7 @@ export function IdentityNoteSheet({
                     </Text>
                     <WhoGlyphs mark={mark} sign={shownSign} size={14} />
                   </View>
-                  <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 11 * 0.08, color: tk.sub }}>{when}</Text>
+                  <Text style={{ ...PFM.monoMed, fontSize: 11, letterSpacing: 11 * 0.08, color: tk.sub }}>{when}</Text>
                 </View>
               </View>
             </View>

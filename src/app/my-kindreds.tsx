@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Path } from "react-native-svg";
-import { MONO, PF } from "../theme/post";
+import { MONO, PFM } from "../theme/post";
 import { useLetterFamily, useTheme } from "../lib/theme";
 import { BRAND, type ThemeTokens } from "../theme/themes";
 import { AvatarImage } from "../components/AvatarImage";
@@ -102,13 +102,13 @@ export default function MyKindreds() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }} edges={["top"]}>
       <SecondaryHeader
-        title={t("mk.title").toLocaleUpperCase()}
+        title={t("mk.title")}
         fallbackHref="/(tabs)/me"
-        right={threads ? <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, letterSpacing: 1.1, color: tk.mute, paddingHorizontal: 4 }}>{namedCount}</Text> : undefined}
+        right={threads ? <Text style={{ ...PFM.monoMed, fontSize: MONO.title, letterSpacing: 1.1, color: tk.mute, paddingHorizontal: 4 }}>{namedCount}</Text> : undefined}
       />
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 40, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-        <Text style={{ fontFamily: PF.letterSerif, fontSize: 14, lineHeight: 20, color: tk.sub, marginBottom: 14 }}>{t("mk.lede")}</Text>
+        <Text style={{ fontSize: 14, lineHeight: 20, color: tk.sub, marginBottom: 14 }}>{t("mk.lede")}</Text>
 
         {threads && list.length === 0 && <Text style={{ fontSize: 13.5, color: tk.mute, marginTop: 20 }}>{t("mk.anonNone")}</Text>}
 
@@ -120,8 +120,8 @@ export default function MyKindreds() {
             return (
               <View key={th.id} style={{ backgroundColor: tk.sf, borderRadius: 16, borderWidth: 1.5, borderColor: tk.line, overflow: "hidden", marginBottom: 12 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: GREEN, paddingHorizontal: 14, paddingVertical: 7 }}>
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.6, color: BRAND.paperWhite }}>{t("mk.no", { n: no })}</Text>
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.6, color: BRAND.paperWhite }}>{bandDate(th.revealedAt ?? th.lastAt)}</Text>
+                  <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: 1.6, color: BRAND.paperWhite }}>{t("mk.no", { n: no })}</Text>
+                  <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: 1.6, color: BRAND.paperWhite }}>{bandDate(th.revealedAt ?? th.lastAt)}</Text>
                 </View>
                 <Pressable onPress={() => router.push(`/room/${th.id}`)} style={({ pressed }) => ({ padding: 14, opacity: pressed ? 0.94 : 1 })}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -142,7 +142,7 @@ export default function MyKindreds() {
                       </Text>
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 }}>
                         <Dots n={Math.min(each, EACH_WAY)} tk={tk} />
-                        <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.dark ? GREEN_SOFT : GREEN_TEXT }}>{t("mk.eachWayCaps", { n: each })}</Text>
+                        <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.dark ? GREEN_SOFT : GREEN_TEXT }}>{t("mk.eachWayCaps", { n: each })}</Text>
                       </View>
                     </View>
                     <ChatButton live alert={!th.lastSenderMe} onPress={() => router.push(`/room/${th.id}`)} tk={tk} />
@@ -161,18 +161,18 @@ export default function MyKindreds() {
           return (
             <Pressable key={th.id} onPress={() => router.push(`/chat/${th.id}`)} style={({ pressed }) => ({ borderRadius: 16, borderWidth: 1.5, borderStyle: "dashed", borderColor: tk.faint, overflow: "hidden", marginBottom: 12, opacity: pressed ? 0.85 : 1 })}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: tk.lav, paddingHorizontal: 14, paddingVertical: 7 }}>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.6, color: tk.sub }}>{t("mk.no", { n: no })}</Text>
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.6, color: tk.sub }}>{t("mk.notYet")}</Text>
+                <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: 1.6, color: tk.sub }}>{t("mk.no", { n: no })}</Text>
+                <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: 1.6, color: tk.sub }}>{t("mk.notYet")}</Text>
               </View>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14 }}>
                 <View style={{ width: 52, height: 52, borderRadius: 26, borderWidth: 1.5, borderStyle: "dashed", borderColor: tk.faint, backgroundColor: tk.lav2, alignItems: "center", justifyContent: "center" }}>
-                  <Text style={{ fontFamily: PF.monoMed, fontSize: 15, color: tk.mute }}>?</Text>
+                  <Text style={{ ...PFM.monoMed, fontSize: 15, color: tk.mute }}>?</Text>
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={{ fontSize: 18, fontWeight: "600", letterSpacing: -0.3, color: tk.mute }}>{t("mk.stranger")}</Text>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 }}>
                     <Dots n={Math.min(each, EACH_WAY)} tk={tk} />
-                    <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.mute }}>{t("mk.ofFive", { n: each })}</Text>
+                    <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.mute }}>{t("mk.ofFive", { n: each })}</Text>
                   </View>
                 </View>
                 <ChatButton live={false} alert={false} tk={tk} />

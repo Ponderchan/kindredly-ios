@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Dimensions, Image, Pressable, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
-import { P, PF } from "../theme/post";
+import { P, PF, PFM } from "../theme/post";
 import { useTheme } from "../lib/theme";
 import type { ThemeTokens } from "../theme/themes";
 import { AURA_SCENES, AURA_SKETCHES } from "../data/aura-scenes";
@@ -312,13 +312,13 @@ export function AuraCard({
     <InkPanel variant="me" style={{ width }} contentStyle={{ gap: 12 }}>
       <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={[vm.label, vm.title, vm.from, ...vm.chips.map((c) => c.name), vm.caption].join(". ")} style={({ pressed }) => ({ gap: 12, opacity: pressed ? 0.85 : 1 })}>
         <View style={{ alignSelf: "flex-start", backgroundColor: tk.ink, borderRadius: 6, paddingHorizontal: 9, paddingVertical: 5 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: tk.bg }}>{vm.label}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.4, color: tk.bg }}>{vm.label}</Text>
         </View>
         <View style={{ height: AURA_ART_H, borderRadius: 14, overflow: "hidden", backgroundColor: tk.soft2 }}>
           <AuraArtSlot art={vm.art} width={artW} />
         </View>
         <Text style={{ fontSize: 20, lineHeight: 24, fontWeight: "600", color: tk.ink }}>{vm.title}</Text>
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: tk.mute }}>{vm.from}</Text>
+        <Text style={{ ...PFM.monoMed, fontSize: 10, letterSpacing: 1.4, color: tk.mute }}>{vm.from}</Text>
         {vm.chips.length > 0 && (
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {vm.chips.map((c) => (
@@ -332,7 +332,7 @@ export function AuraCard({
         )}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <AuraMeterGlyphs meter={vm.meter} />
-          <Text style={{ flex: 1, fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 0.6, color: tk.mute }}>{vm.caption}</Text>
+          <Text style={{ flex: 1, ...PFM.monoMed, fontSize: 10, letterSpacing: 0.6, color: tk.mute }}>{vm.caption}</Text>
           {vm.meter.slips && <Slips n={vm.meter.slips.n} of={vm.meter.slips.of} tk={tk} />}
         </View>
       </Pressable>
@@ -365,8 +365,8 @@ export function AuraTicket({ aura, seed, avatarId, who }: { aura: Aura; seed: st
   return (
     <View style={[{ backgroundColor: W14.card, borderRadius: 18, borderWidth: 1.5, borderColor: P.pen, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 18 }, cardShadow, { shadowOpacity: 0.14, shadowRadius: 44, shadowOffset: { width: 0, height: 20 } }]}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 2.4, color: P.pen }}>KINDREDLY</Text>
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.4, color: "rgba(30,27,53,0.4)" }}>{t("ap.title")}</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: 10.5, letterSpacing: 2.4, color: P.pen }}>KINDREDLY</Text>
+        <Text style={{ ...PFM.mono, fontSize: 10, letterSpacing: 1.4, color: "rgba(30,27,53,0.4)" }}>{t("ap.title")}</Text>
       </View>
       <Text style={{ fontFamily: PF.letter, fontSize: 12, color: W14.grey, marginTop: 4 }}>{t("ac.meInWords", { name: who })}</Text>
       <View style={{ marginTop: 14 }}>
@@ -382,7 +382,7 @@ export function AuraTicket({ aura, seed, avatarId, who }: { aura: Aura; seed: st
       )}
       {!!desc && <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 23, color: W14.ink, marginTop: 16 }}>{desc}</Text>}
       <View style={{ marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: W14.hair, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 1.2, color: "rgba(30,27,53,0.4)" }}>{t("ac.formedFrom", { n: letters })}</Text>
+        <Text style={{ ...PFM.mono, fontSize: 10, letterSpacing: 1.2, color: "rgba(30,27,53,0.4)" }}>{t("ac.formedFrom", { n: letters })}</Text>
         {/* the card's own ink: the card is white in every theme and travels
             as a PNG, where the theme's (light, in Midnight) face would vanish */}
         <MosaicId seed={seed} cell={4} gap={1} develop={1} color={W14.ink} />

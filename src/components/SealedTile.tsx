@@ -1,9 +1,9 @@
 import { memo, useEffect, useState } from "react";
 import { Image, Pressable, Text, View, useWindowDimensions, type AccessibilityActionEvent } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { PF } from "../theme/post";
+import { PFM, letterFitLines } from "../theme/post";
 import { BRAND } from "../theme/themes";
-import { useTheme } from "../lib/theme";
+import { useLetterFamily, useLetterFont, useTheme } from "../lib/theme";
 import { fmt } from "../lib/format";
 import { playbackPosition, playbackProgress, type VoicePlayback } from "../lib/voice-playback";
 import { MoodChip, PlayMark, TypeIcon } from "../screens/notes/notes-glyphs";
@@ -68,6 +68,7 @@ type Props = {
 
 export const SealedTile = memo(function SealedTile({ note, layout, playback, onPress, onToggleVoice, playLabel, pauseLabel }: Props) {
   const { t: tk } = useTheme();
+  const face = useLetterFamily();
   const { fontScale } = useWindowDimensions();
   const list = layout === "list";
   const grid = layout === "grid";
@@ -118,8 +119,8 @@ export const SealedTile = memo(function SealedTile({ note, layout, playback, onP
           numberOfLines={1}
           style={
             list || grid
-              ? { flexShrink: 1, maxWidth: listRow ? LIST_LABEL_MAX * fontScale : undefined, fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.32, color: tk.sub }
-              : { flex: 1, fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 1.1, color: tk.sub }
+              ? { flexShrink: 1, maxWidth: listRow ? LIST_LABEL_MAX * fontScale : undefined, ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.32, color: tk.sub }
+              : { flex: 1, ...PFM.monoMed, fontSize: 11, letterSpacing: 1.1, color: tk.sub }
           }
         >
           {label}
@@ -136,7 +137,7 @@ export const SealedTile = memo(function SealedTile({ note, layout, playback, onP
 
       {/* the body, top to bottom: the words, the voice bar, the pictures */}
       {list ? (
-        <Text numberOfLines={1} style={listRow ? { flex: 1, minWidth: LIST_LINE_MIN, fontSize: 15, lineHeight: 22.5, color: tk.ink } : { fontSize: 15, lineHeight: 22.5, color: tk.ink }}>
+        <Text numberOfLines={1} style={listRow ? { flex: 1, minWidth: LIST_LINE_MIN, ...face, fontSize: 15, lineHeight: 22.5, color: tk.ink } : { ...face, fontSize: 15, lineHeight: 22.5, color: tk.ink }}>
           {note.listLine}
         </Text>
       ) : note.textTier !== "none" ? (
@@ -170,7 +171,7 @@ export const SealedTile = memo(function SealedTile({ note, layout, playback, onP
 function Badge({ text }: { text: string }) {
   return (
     <View style={{ position: "absolute", right: 8, bottom: 8, backgroundColor: ON_PICTURE, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, color: BRAND.paperWhite }}>{text}</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: 10, color: BRAND.paperWhite }}>{text}</Text>
     </View>
   );
 }
@@ -187,12 +188,15 @@ function VideoTile({ uri }: { uri: string }) {
 }
 
 /* The words in their size (notes-model textTier): a short line at 24/1.3,
-   41–140 at 17/1.45, longer at 15/1.5 cut to six lines, all in the system
-   face — serif is for someone else's letter (owner, 2026-10-18). Grid keeps
-   its 15 in five. */
+   41–140 at 17/1.45, longer at 15/1.5 cut to six lines, all in the reader's
+   Letter font (owner, 2026-10-20; KNoteCard). Grid keeps its 15 in five. A
+   roomier face (SF Mono, Garamond) gets one more line, so what fits in
+   Newsreader isn't cut. */
 function Words({ note, grid }: { note: NoteVM; grid: boolean }) {
   const { t: tk } = useTheme();
-  if (grid) return <Text numberOfLines={5} style={{ fontSize: 15, lineHeight: 22.5, color: tk.ink }}>{note.body.trim()}</Text>;
+  const key = useLetterFont();
+  const face = useLetterFamily();
+  if (grid) return <Text numberOfLines={letterFitLines(key, 5)} style={{ ...face, fontSize: 15, lineHeight: 22.5, color: tk.ink }}>{note.body.trim()}</Text>;
   const style =
     note.textTier === "short"
       ? { fontSize: 24, lineHeight: 31 }
@@ -200,7 +204,7 @@ function Words({ note, grid }: { note: NoteVM; grid: boolean }) {
         ? { fontSize: 17, lineHeight: 24.5 }
         : { fontSize: 15, lineHeight: 22.5 };
   return (
-    <Text numberOfLines={note.textTier === "long" ? 6 : undefined} style={{ ...style, color: tk.ink }}>
+    <Text numberOfLines={note.textTier === "long" ? letterFitLines(key, 6) : undefined} style={{ ...face, ...style, color: tk.ink }}>
       {note.body.trim()}
     </Text>
   );
@@ -221,7 +225,7 @@ function PhotoGrid({ note, grid }: { note: NoteVM; grid: boolean }) {
       {!!p[i] && <Image source={{ uri: p[i] }} style={{ width: "100%", height: "100%" }} resizeMode="cover" accessibilityIgnoresInvertColors />}
       {more > 0 && (
         <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: ON_PICTURE_SOFT, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 15, color: BRAND.paperWhite }}>+{more}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 15, color: BRAND.paperWhite }}>+{more}</Text>
         </View>
       )}
     </View>
@@ -283,7 +287,7 @@ function VoiceBar({ note, playback, onToggle }: { note: NoteVM; playback: VoiceP
           <View key={i} style={{ width: 2.5, height: noteBar(note.waveSeed, i), borderRadius: 2, backgroundColor: tk.ink, opacity: started && i / NOTE_BARS < progress ? 1 : 0.55 }} />
         ))}
       </View>
-      {!!time && <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 0.9, color: tk.sub }}>{time}</Text>}
+      {!!time && <Text style={{ ...PFM.monoMed, fontSize: 11, letterSpacing: 0.9, color: tk.sub }}>{time}</Text>}
     </Pressable>
   );
 }

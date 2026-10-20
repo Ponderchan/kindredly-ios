@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Redirect, useRouter } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { LetterTravel } from "../components/LetterTravel";
-import { MONO, PF } from "../theme/post";
+import { MONO, PFM } from "../theme/post";
 import { useTheme } from "../lib/theme";
 
 /* dev only — the send-off, without sending anything. kindredly:///travel-preview
@@ -19,10 +19,10 @@ export default function TravelPreview() {
       <LetterTravel key={run} ready={ready} onDone={() => setRun((n) => n + 1)} />
       <View style={{ position: "absolute", left: 16, bottom: 40, flexDirection: "row", gap: 10 }}>
         <Pressable onPress={() => setReady((v) => !v)} style={{ backgroundColor: tk.ink, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, color: tk.bg }}>{ready ? "READY" : "HOLDING"}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, color: tk.bg }}>{ready ? "READY" : "HOLDING"}</Text>
         </Pressable>
         <Pressable onPress={() => router.back()} style={{ backgroundColor: tk.ink, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, color: tk.bg }}>CLOSE</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, color: tk.bg }}>CLOSE</Text>
         </Pressable>
       </View>
     </View>

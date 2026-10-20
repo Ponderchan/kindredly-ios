@@ -3,7 +3,7 @@ import { Image, Pressable, ScrollView, Share, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { t, useLang } from "../../lib/i18n";
-import { MONO, PF } from "../../theme/post";
+import { MONO, PFM } from "../../theme/post";
 import { useLetterFamily, useP, useTheme } from "../../lib/theme";
 import { localeTag } from "../../lib/format";
 import { SecondaryHeader } from "../../components/10a/SecondaryHeader";
@@ -35,6 +35,8 @@ export default function KeepsakeDetail() {
   const router = useRouter();
   const wren = useWrenName();
   const letterFace = useLetterFamily();
+  // what Wren says about it is Wren speaking: the letter font's italic (upright in Garamond / SF Mono)
+  const wrenFace = useLetterFamily(true);
   const [mine, setMine] = useState<Minted | null>(null);
   const def = keepsake(String(id));
 
@@ -65,11 +67,11 @@ export default function KeepsakeDetail() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: 26, paddingTop: 24, paddingBottom: 50 }} showsVerticalScrollIndicator={false}>
         <View style={{ alignItems: "center" }}>
           <Image source={def.icon} style={{ width: 108, height: 108 }} resizeMode="contain" />
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 17, letterSpacing: 2, color: P.ink, marginTop: 16, textAlign: "center" }}>
-            {t(`ks.name.${def.id}`).toUpperCase()}
+          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "700", color: P.ink, marginTop: 16, textAlign: "center" }}>
+            {t(`ks.name.${def.id}`)}
           </Text>
           {when && (
-            <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, letterSpacing: 1.4, color: P.ink40, marginTop: 8 }}>{when}</Text>
+            <Text style={{ ...PFM.monoMed, fontSize: MONO.title, letterSpacing: 1.4, color: P.ink40, marginTop: 8 }}>{when}</Text>
           )}
         </View>
 
@@ -77,21 +79,21 @@ export default function KeepsakeDetail() {
           <>
             <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, marginTop: 30 }}>
               <WrenBird size={24} mood="content" />
-              <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 15, lineHeight: 23, color: P.ink60 }}>
+              <Text style={[{ flex: 1, fontSize: 15, lineHeight: 23, color: P.ink60 }, wrenFace]}>
                 {speakAs(HAS_WHY.has(def.id) ? t(`ks.why.${def.id}`) : t("ks.happened"), wren)}
               </Text>
             </View>
 
-            <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 1.6, color: P.ink40, marginTop: 30, marginBottom: 10 }}>
+            <Text style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 1.6, color: P.ink40, marginTop: 30, marginBottom: 10 }}>
               {t("ks.evidence")}
             </Text>
             <View style={{ paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: P.ink12 }}>
-              <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, letterSpacing: 0.8, color: P.ink }}>{mine.evidence}</Text>
+              <Text style={{ ...PFM.monoMed, fontSize: MONO.title, letterSpacing: 0.8, color: P.ink }}>{mine.evidence}</Text>
             </View>
 
             {!!mine.line && (
               <>
-                <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 1.6, color: P.ink40, marginTop: 22, marginBottom: 10 }}>
+                <Text style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 1.6, color: P.ink40, marginTop: 22, marginBottom: 10 }}>
                   {t("ks.lineCarried")}
                 </Text>
                 <Text style={[{ fontSize: 16.5, lineHeight: 25, color: P.ink }, letterFace]}>“{mine.line}”</Text>
@@ -107,8 +109,8 @@ export default function KeepsakeDetail() {
                 }}
                 style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 26, opacity: pressed ? 0.6 : 1 })}
               >
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: P.pen }}>{t("ks.goCorrespondence")}</Text>
-                <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, color: P.pen }}>→</Text>
+                <Text style={{ fontSize: 14, fontWeight: "600", color: P.pen }}>{t("ks.goCorrespondence")}</Text>
+                <Text style={{ fontSize: 14, color: P.pen }}>→</Text>
               </Pressable>
             )}
 
@@ -116,11 +118,11 @@ export default function KeepsakeDetail() {
               onPress={() => Share.share({ message: t("ks.shareTail", { name: t(`ks.name.${def.id}`), evidence: mine.evidence }) })}
               style={({ pressed }) => ({ borderWidth: 1, borderColor: tk.ln, paddingVertical: 14, alignItems: "center", marginTop: 34, opacity: pressed ? 0.7 : 1 })}
             >
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.8, color: P.ink }}>{t("ks.share")}</Text>
+              <Text style={{ fontSize: 15, fontWeight: "600", color: P.ink }}>{t("ks.share")}</Text>
             </Pressable>
           </>
         ) : (
-          <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 15, lineHeight: 23, color: P.ink40, textAlign: "center", marginTop: 30 }}>
+          <Text style={[{ fontSize: 15, lineHeight: 23, color: P.ink40, textAlign: "center", marginTop: 30 }, wrenFace]}>
             {speakAs(t("ks.notYet"), wren)}
           </Text>
         )}

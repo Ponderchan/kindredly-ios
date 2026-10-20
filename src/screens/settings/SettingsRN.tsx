@@ -1,6 +1,6 @@
 import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MONO, PF } from "../../theme/post";
+import { MONO, PFM } from "../../theme/post";
 import { useTheme } from "../../lib/theme";
 import { useTabBarSpace } from "../../components/NativeTabBar";
 import { NoticeBar } from "../../components/NotifyBanner";
@@ -33,7 +33,7 @@ export function SettingsRN({ model }: { model: SettingsModel }) {
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: Math.max(tabBar + 12, BOTTOM_FADE.height - 6), gap: 12 }}
         showsVerticalScrollIndicator={false}
       >
-        <SecondaryHeader title={view.title.toLocaleUpperCase()} backLabel={view.backLabel} onBack={act.back} height={44} style={{ marginHorizontal: -16 }} />
+        <SecondaryHeader title={view.title} backLabel={view.backLabel} onBack={act.back} height={44} style={{ marginHorizontal: -16 }} />
 
         <FirstClassCard card={view.banner} onPress={act.banner} />
 
@@ -79,7 +79,7 @@ export function SettingsRN({ model }: { model: SettingsModel }) {
           </SoftSection>
         ))}
 
-        <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, letterSpacing: MONO.title * 0.06, color: tk.mute, textAlign: "center", marginTop: 4 }}>{view.footer}</Text>
+        <Text style={{ ...PFM.monoMed, fontSize: MONO.title, letterSpacing: MONO.title * 0.06, color: tk.mute, textAlign: "center", marginTop: 4 }}>{view.footer}</Text>
       </ScrollView>
       <BottomFade />
     </View>

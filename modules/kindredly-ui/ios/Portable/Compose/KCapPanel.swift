@@ -6,7 +6,7 @@ import SwiftUI
  THE DAILY CAP: the free writer's letters for today are spent. Drawn as the App Store page drew
  it (owner, 2026-10-18; compose.tsx): a plain box on the page, a 1pt ink edge with square
  corners, padding 16; the line ("That's your 5 letters for today.") in system 600 15 in ink, why
- replies stay free in system 13 in sub, 5 under it, and the link to First Class in Plex Mono 500
+ replies stay free in system 13 in sub, 5 under it, and the link to First Class in SF Mono 500
  11.5 at 1 in ind, 10 under that (paywall?src=daily_cap). Every colour is the theme's, so it
  follows the four themes.
 

@@ -13,6 +13,7 @@ import { BackKey, nestTop, useFocusOnMount } from "../parts/frame";
 import { NEST_EGG } from "../parts/nest-egg";
 import { AcidKey } from "../parts/keys";
 import { FONT, GUTTER, OB, TYPE } from "../parts/tokens";
+import { useLetterFamily } from "../../../lib/theme";
 import type { ObScreenProps } from "../types";
 import { FlapEgg } from "./s07-flap";
 import "../../../data/strings-onboarding2";
@@ -33,7 +34,7 @@ import { OB_MAX_FONT } from "../parts/tokens";
      · the CUE CHIP ("STUCK?" and one of the existing 18 cues, ob.cue.*):
        a tap deals another, for anyone who opens the page and finds
        nothing to say;
-     · the ruled page itself (Newsreader italic), autofocused, so the
+     · the ruled page itself (the reader's letter font, italic), autofocused, so the
        keyboard rises with the screen;
      · above the keyboard, the thin ink METER to the 20-character mark
        ("{n} more to travel" → "that'll travel ✓"), the HOUSE RULE, and
@@ -102,6 +103,8 @@ export function clockLine(now: number): string {
 
 export default function S07Letter(props: ObScreenProps) {
   const { draft } = props;
+  // the cue and the page are content: the reader's letter font, its italic (upright in Garamond / SF Mono)
+  const said = useLetterFamily(true);
   const insets = useSafeAreaInsets();
   const { width: W, height: H } = useWindowDimensions();
   const reduce = useReducedMotion();
@@ -210,7 +213,7 @@ export default function S07Letter(props: ObScreenProps) {
               {t("ob2.voice.letter")}
             </Text>
           )}
-          <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: FONT.semi, fontSize: 13.5, color: OB.inkSoft }}>
+          <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ ...FONT.semi, fontSize: 13.5, color: OB.inkSoft }}>
             {clockLine(props.now())}
           </Text>
           <Text ref={headRef} maxFontSizeMultiplier={OB_MAX_FONT} accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={[TYPE.headline, { color: OB.ink, marginTop: 4 }]}>
@@ -245,7 +248,7 @@ export default function S07Letter(props: ObScreenProps) {
             })}
           >
             <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.label, { color: "#7A5A12", letterSpacing: 1.4 }]}>{t("ob2.letter.stuck")}</Text>
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ flex: 1, marginLeft: 9, marginRight: 6, fontFamily: FONT.letterItalic, fontSize: 14.5, color: OB.ink }}>
+            <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ flex: 1, marginLeft: 9, marginRight: 6, ...said, fontSize: 14.5, color: OB.ink }}>
               {t(cueKey)}
             </Text>
             <Deal turn={draft.cue} />
@@ -268,9 +271,9 @@ export default function S07Letter(props: ObScreenProps) {
               selectionColor={OB.blue}
               keyboardAppearance="light"
               accessibilityLabel={t("ob2.letter.head")}
-              // fontStyle too: a TextInput given the italic face alone typed upright while its
-              // placeholder leaned (the same trap the compose page's Fraunces-Italic fell into)
-              style={{ flex: 1, fontFamily: FONT.letterItalic, fontStyle: "italic", fontSize: 19.5, lineHeight: PITCH, color: OB.ink, paddingTop: 2, paddingBottom: 4, paddingHorizontal: 0, textAlignVertical: "top" }}
+              // the letter face carries its fontStyle too: a TextInput given the italic face alone
+              // typed upright while its placeholder leaned
+              style={{ flex: 1, ...said, fontSize: 19.5, lineHeight: PITCH, color: OB.ink, paddingTop: 2, paddingBottom: 4, paddingHorizontal: 0, textAlignVertical: "top" }}
             />
           </View>
         </Animated.View>
@@ -281,7 +284,7 @@ export default function S07Letter(props: ObScreenProps) {
           {compact ? (
             <>
               {!clean && (
-                <Text maxFontSizeMultiplier={barFont} style={[TYPE.small, { color: STOP, fontFamily: FONT.semi, marginBottom: 8 }]}>
+                <Text maxFontSizeMultiplier={barFont} style={[TYPE.small, { color: STOP, ...FONT.semi, marginBottom: 8 }]}>
                   {t("ob2.letter.ruleHit")}
                 </Text>
               )}
@@ -296,7 +299,7 @@ export default function S07Letter(props: ObScreenProps) {
             <>
               <Meter left={left} fill={fill} font={barFont} width={METER_W} />
               <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}>
-                <Text maxFontSizeMultiplier={barFont} style={[TYPE.small, { flex: 1, marginRight: 14, color: clean ? OB.inkSoft : STOP, fontFamily: clean ? FONT.body : FONT.semi }]}>
+                <Text maxFontSizeMultiplier={barFont} style={[TYPE.small, { flex: 1, marginRight: 14, color: clean ? OB.inkSoft : STOP, ...(clean ? FONT.body : FONT.semi) }]}>
                   {clean ? t("ob2.letter.rule") : t("ob2.letter.ruleHit")}
                 </Text>
                 <AcidKey label={t("ob2.letter.key")} disabled={!ready} onPress={stampIt} style={{ width: 156 }} />
@@ -337,7 +340,7 @@ function Meter({ left, fill, font, width }: { left: number; fill: number; font: 
       <View style={{ width, height: 4, borderRadius: 2, backgroundColor: "rgba(30,27,53,0.14)", overflow: "hidden", marginRight: 10 }}>
         <View style={{ width: width * fill, height: 4, borderRadius: 2, backgroundColor: left > 0 ? OB.ink : GO }} />
       </View>
-      <Text maxFontSizeMultiplier={font} style={{ fontFamily: FONT.monoSemi, fontSize: 11.5, letterSpacing: 0.4, color: left > 0 ? OB.inkSoft : GO }}>
+      <Text maxFontSizeMultiplier={font} style={{ ...FONT.monoSemi, fontSize: 11.5, letterSpacing: 0.4, color: left > 0 ? OB.inkSoft : GO }}>
         {words}
       </Text>
     </View>

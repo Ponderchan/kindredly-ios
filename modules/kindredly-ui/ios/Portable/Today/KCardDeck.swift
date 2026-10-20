@@ -21,8 +21,8 @@ import SwiftUI
  THE DRAG. One DragGesture (minimumDistance 10, so the card's own buttons and ⋯ still take taps),
  always attached: it is never swapped under a finger. Up follows the finger; down only gives
  (×.25, there is no previous letter); opacity is 1 − .35p with p = clamp(−dy/110, 0, 1), published
- to KDeckMotion with `dragging` for the plate and Wren (nothing else observes it, so a drag frame
- redraws the deck, the plate and Wren only), and a pull down as `pull` = clamp(dy/110, 0, 1) (Wren
+ to KDeckMotion with `dragging` for Wren (nothing else observes it, so a drag frame
+ redraws the deck and Wren only), and a pull down as `pull` = clamp(dy/110, 0, 1) (Wren
  leans back from it). A release at p ≥ 1 passes the card; anything short (or a cancelled gesture)
  springs back with springBack. Whether a gesture counts is decided on its FIRST move and kept to
  its end (box.armed): it is dead when the desk says the deck isn't enabled (typing, the + panel, a
@@ -108,7 +108,7 @@ struct KCardDeck: View {
   let compact: Bool
   let enabled: Bool
   @ObservedObject var deck: KDeckState
-  /// written, never observed: per-frame values are for the plate and Wren
+  /// written, never observed: per-frame values are for Wren
   let motion: KDeckMotion
   let voice: KTodayVoice
   let actions: KTodayActions
@@ -324,7 +324,7 @@ struct KCardDeck: View {
     min(max(dy / passDistance, 0), 1)
   }
 
-  /// The drag is over without a pass: the plate and Wren straighten up, and the card goes back to
+  /// The drag is over without a pass: Wren straightens up, and the card goes back to
   /// rest unless a transition owns its pose by now (the card left under the finger).
   private func springBack() {
     withAnimation(KTodayMotion.springBack) {
@@ -380,7 +380,7 @@ struct KCardDeck: View {
     let serial = box.pendingSerial
     actions.onPass(out.id)
     deck.emit(.passed(last: next == nil))
-    // the plate is held by pendingLeft now; Wren straightens up
+    // Wren straightens up
     withAnimation(KTodayMotion.springBack) {
       motion.dragging = false
       motion.progress = 0
@@ -656,7 +656,7 @@ struct KTodayStatusCard: View {
             .kText(.system(20, .semibold))
             .foregroundStyle(theme.ink)
           Text(labels.offlineBody)
-            .kText(.letter(18, lineHeight: 1.4))
+            .kText(.system(18, lineHeight: 1.4))
             .foregroundStyle(theme.sub)
         }
         .multilineTextAlignment(.center)

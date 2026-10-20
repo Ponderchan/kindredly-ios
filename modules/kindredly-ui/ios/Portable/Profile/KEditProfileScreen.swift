@@ -277,7 +277,7 @@ public struct KEditProfileScreen<Avatar: View>: View {
               lettersGroup(letters)
             }
             Text(content.footer)
-              .kText(KTextStyle.letter(13, italic: true, lineHeight: 1.5))
+              .kText(.system(13, lineHeight: 1.5))
               .foregroundStyle(theme.mute)
               .multilineTextAlignment(.center)
               .fixedSize(horizontal: false, vertical: true)
@@ -339,7 +339,7 @@ public struct KEditProfileScreen<Avatar: View>: View {
       }
       .frame(width: side, height: side)
       Text(content.avatarHint)
-        .kText(.letterHint)
+        .kText(.system(13))
         .foregroundStyle(theme.mute)
         .multilineTextAlignment(.center)
         .fixedSize(horizontal: false, vertical: true)

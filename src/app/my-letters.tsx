@@ -3,7 +3,7 @@ import { Alert, Animated, Easing, Pressable, ScrollView, Text, View } from "reac
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { MONO, PF } from "../theme/post";
+import { MONO, PFM } from "../theme/post";
 import { useLetterFamily, useTheme } from "../lib/theme";
 import { BRAND, type ThemeTokens } from "../theme/themes";
 import { Stamp } from "../components/Stamp";
@@ -134,14 +134,14 @@ export function MyLettersRN() {
           <Pressable onPress={() => setManaging(false)} hitSlop={10} accessibilityRole="button" style={{ paddingHorizontal: 8, height: 40, justifyContent: "center" }}>
             <Text style={{ fontSize: 16, color: tk.ink }}>{t("ml.cancel")}</Text>
           </Pressable>
-          <Text accessibilityRole="header" style={{ flex: 1, textAlign: "center", fontSize: 17, fontWeight: "600", color: tk.ink }}>
+          <Text accessibilityRole="header" style={{ flex: 1, textAlign: "center", fontSize: 17, fontWeight: "500", color: tk.ink }}>
             {t("ml.manage")} <Text style={{ color: tk.mute, fontWeight: "400" }}>{counts.all + counts.drafts}</Text>
           </Text>
           <View style={{ width: 64 }} />
         </View>
       ) : (
         <SecondaryHeader
-          title={`${t("ml.title").toLocaleUpperCase()} · ${counts.all}`}
+          title={`${t("ml.title")} · ${counts.all}`}
           fallbackHref="/(tabs)/me"
           right={
             /* three lines, all the same length — manage */
@@ -184,7 +184,7 @@ export function MyLettersRN() {
                 ) : c.kind === "draft" ? (
                   <Jiggle key={c.id} on={managing} seed={ci} onRemove={() => remove(c)} tk={tk}>
                     <Pressable onPress={managing ? undefined : () => router.push(`/compose?draft=${c.id}`)} style={({ pressed }) => ({ borderRadius: 16, borderWidth: 1.5, borderStyle: "dashed", borderColor: tk.faint, paddingHorizontal: 14, paddingVertical: 12, opacity: pressed ? 0.8 : 1 })}>
-                      <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.mute }}>{t("ml.draft")} · {ymd(c.date)}</Text>
+                      <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.mute }}>{t("ml.draft")} · {ymd(c.date)}</Text>
                       <Text style={[{ fontSize: 14, lineHeight: 20, color: tk.sub, marginTop: 8 }, letterFace]} numberOfLines={3}>
                         {c.body || t("ml.draftEmpty")}
                       </Text>
@@ -267,7 +267,7 @@ function LetterCard({
       <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
           <View>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.mute }}>{c.date ? ymd(c.date) : ""}</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.mute }}>{c.date ? ymd(c.date) : ""}</Text>
             {/* who read it, who wrote back */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 5 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
@@ -275,14 +275,14 @@ function LetterCard({
                   <Path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" />
                   <Circle cx={12} cy={12} r={3} />
                 </Svg>
-                <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, color: tk.mute }}>{c.reads}</Text>
+                <Text style={{ ...PFM.monoMed, fontSize: MONO.label, color: tk.mute }}>{c.reads}</Text>
               </View>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                 <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={tk.mute} strokeWidth={2} strokeLinejoin="round">
                   <Rect x={3} y={5.5} width={18} height={13} rx={2} />
                   <Path d="M3.5 7l8.5 6 8.5-6" />
                 </Svg>
-                <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, color: tk.mute }}>{c.answers.length}</Text>
+                <Text style={{ ...PFM.monoMed, fontSize: MONO.label, color: tk.mute }}>{c.answers.length}</Text>
               </View>
             </View>
           </View>
@@ -296,7 +296,7 @@ function LetterCard({
       {/* what came of it */}
       <View style={{ borderTopWidth: 1, borderTopColor: tk.line, paddingHorizontal: 14, paddingVertical: 9, flexDirection: "row", alignItems: "center", gap: 6 }}>
         {a.length === 0 ? (
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.mute }}>{t("ml.quiet")}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.mute }}>{t("ml.quiet")}</Text>
         ) : named ? (
           <>
             {stamp ? (
@@ -313,7 +313,7 @@ function LetterCard({
         ) : (
           <>
             <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: BRAND.greenText }} />
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.dark ? "#7CC58F" : BRAND.greenText }} numberOfLines={1}>
+            <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: tk.dark ? "#7CC58F" : BRAND.greenText }} numberOfLines={1}>
               {t("ml.answered")} · {a.length}
             </Text>
           </>

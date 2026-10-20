@@ -33,7 +33,7 @@ import { copyText } from "../../lib/clipboard";
 import { demoMediaUrl } from "../../data/demo";
 import { t as tr } from "../../lib/i18n";
 import "../../data/strings-step5-platform"; // vo.play, vo.pause
-import { PF } from "../../theme/post";
+import { PFM } from "../../theme/post";
 import THEMES from "../../theme/themes.json";
 
 /* dev only — THE STEP-5 SPIKE LAB (foundation batch 0b). kindredly:///dev/step5-lab
@@ -301,7 +301,7 @@ function Chip({ label, on = false, onPress }: { label: string; on?: boolean; onP
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1, color: on ? tk.sf : tk.ink }}>{label}</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1, color: on ? tk.sf : tk.ink }}>{label}</Text>
     </Pressable>
   );
 }
@@ -343,7 +343,7 @@ function Checklist({
     void copyText(lines.join("\n")).then(() => setCopied(true));
   };
 
-  const mono = { fontFamily: PF.monoSemi, letterSpacing: 1.2 } as const;
+  const mono = { ...PFM.monoSemi, letterSpacing: 1.2 } as const;
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: tk.bg }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60, gap: 12 }} keyboardShouldPersistTaps="handled">
@@ -365,7 +365,7 @@ function Checklist({
           <View style={{ borderWidth: 1.5, borderColor: tk.ln, borderRadius: 14, padding: 12, gap: 4, backgroundColor: tk.sf }}>
             <Text style={{ ...mono, fontSize: 10, color: tk.mute }}>BENCH · MS MEDIAN/P90 · JS → SWIFT</Text>
             {bench.map((b) => (
-              <Text key={b.n} style={{ fontFamily: PF.monoMed, fontSize: 11, color: tk.ink }}>
+              <Text key={b.n} style={{ ...PFM.monoMed, fontSize: 11, color: tk.ink }}>
                 {`${b.n} rows (sent ${b.sent})  props ${fmtStat(b.stamp)}  rows ${fmtStat(b.rows)}  cmd ${fmtStat(b.command)}`}
               </Text>
             ))}
@@ -404,7 +404,7 @@ function StripChecks() {
   const [sent, setSent] = useState("");
   return (
     <View style={{ gap: 10, marginTop: 8 }}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: tk.mute }}>REACT NATIVE REPLY STRIP · R1–R4</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.2, color: tk.mute }}>REACT NATIVE REPLY STRIP · R1–R4</Text>
       <View style={{ paddingRight: 4 }}>
         <ReplyStrip
           ref={strip}
@@ -421,7 +421,7 @@ function StripChecks() {
         <Chip label="RESTORE" onPress={() => strip.current?.setText(sent)} />
         <Chip label="SET EMPTY" onPress={() => strip.current?.setText("")} />
       </View>
-      <Text style={{ fontFamily: PF.monoMed, fontSize: 10, color: tk.sub }}>{`field "${short(text)}" · last sent "${short(sent)}"`}</Text>
+      <Text style={{ ...PFM.monoMed, fontSize: 10, color: tk.sub }}>{`field "${short(text)}" · last sent "${short(sent)}"`}</Text>
     </View>
   );
 }
@@ -640,7 +640,7 @@ function LabSurface({ onChecklist, onBench }: { onChecklist: () => void; onBench
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: tk.bg }}>
       <View style={{ paddingHorizontal: 12, paddingTop: 4, paddingBottom: 6, gap: 6 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.2, color: tk.ind }}>STEP 5 LAB · 0b</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.2, color: tk.ind }}>STEP 5 LAB · 0b</Text>
           <Chip label="CHECKLIST" onPress={onChecklist} />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" contentContainerStyle={{ gap: 6 }}>
@@ -671,7 +671,7 @@ function LabSurface({ onChecklist, onBench }: { onChecklist: () => void; onBench
             }}
           />
         </ScrollView>
-        <Text numberOfLines={2} style={{ fontFamily: PF.monoMed, fontSize: 10, lineHeight: 14, color: tk.sub }}>
+        <Text numberOfLines={2} style={{ ...PFM.monoMed, fontSize: 10, lineHeight: 14, color: tk.sub }}>
           {status}
         </Text>
       </View>
@@ -720,7 +720,7 @@ function LabSurface({ onChecklist, onBench }: { onChecklist: () => void; onBench
         </SurfaceHost>
       ) : (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: tk.mute }}>HOST UNMOUNTED</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.2, color: tk.mute }}>HOST UNMOUNTED</Text>
         </View>
       )}
 
@@ -781,7 +781,7 @@ function Cord() {
       </View>
       <View style={{ flex: 1, justifyContent: "center", gap: 6 }}>
         <Text style={{ fontSize: 14, lineHeight: 19, color: tk.ink }}>Drag the knob down. The list must not scroll while you hold it.</Text>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color: tk.mute }}>{lastPull == null ? "LAST PULL —" : `LAST PULL ${lastPull}%`}</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.2, color: tk.mute }}>{lastPull == null ? "LAST PULL —" : `LAST PULL ${lastPull}%`}</Text>
       </View>
     </View>
   );

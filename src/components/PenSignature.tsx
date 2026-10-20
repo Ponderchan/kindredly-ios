@@ -1,8 +1,7 @@
 import { memo } from "react";
 import { Text, View, type StyleProp, type ViewStyle } from "react-native";
 import Svg, { Line, Path } from "react-native-svg";
-import { useTheme } from "../lib/theme";
-import { PF } from "../theme/post";
+import { useLetterFamily, useTheme } from "../lib/theme";
 import { PEN_BASELINE, PEN_H, PEN_W, penOrNull, penPath, penTypedUpright, penViewBox } from "../lib/pen-signature";
 
 /* A SIGNED PEN NAME, STILL (identity Phase 2, foundation).
@@ -59,6 +58,8 @@ export const PenSignature = memo(function PenSignature({
   style?: StyleProp<ViewStyle>;
 }) {
   const { t: tk } = useTheme();
+  // a typed signature is something someone wrote: the reader's Letter font, italic where it has one
+  const slanted = useLetterFamily(true);
   const ink = color ?? tk.ink;
   const h = fit === "ink" ? (height ?? width * (PEN_H / PEN_W)) : width * (PEN_H / PEN_W);
   const pen = penOrNull(sig);
@@ -73,8 +74,7 @@ export const PenSignature = memo(function PenSignature({
           adjustsFontSizeToFit
           minimumFontScale={0.5}
           style={{
-            fontFamily: upright ? undefined : PF.letterSerif,
-            fontStyle: upright ? "normal" : "italic",
+            ...(upright ? { fontFamily: undefined, fontStyle: "normal" as const } : slanted),
             fontSize: Math.max(13, h * 0.42),
             color: ink,
             maxWidth: width,

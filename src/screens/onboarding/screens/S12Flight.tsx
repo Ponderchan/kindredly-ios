@@ -6,7 +6,9 @@ import type { PoolLetter } from "../../../lib/db";
 import { starterStamp } from "../../../lib/hatch-engine";
 import { t } from "../../../lib/i18n";
 import { useFocusOnMount } from "../parts/frame";
-import { FONT, OB, TYPE } from "../parts/tokens";
+import { OB, TYPE } from "../parts/tokens";
+import { useLetterFamily, useLetterFont } from "../../../lib/theme";
+import { letterFitLines } from "../../../theme/post";
 import type { ObScreenProps } from "../types";
 import { ENV_H, ENV_W, EnvelopeFront, yourCourierName } from "./s08-envelope";
 import { keptLine, useHatchRead } from "./s09-read";
@@ -42,6 +44,9 @@ const CARRY_W = 152;
 
 export default function S12Flight(props: ObScreenProps) {
   const { draft } = props;
+  // the line under the chart is content: the letter font's italic, a line more in a roomy face
+  const letterKey = useLetterFont();
+  const said = useLetterFamily(true);
   const { form } = useHatchRead(draft.letter);
   const [stops, setStops] = useState<PoolLetter[]>([]);
   const left = useRef(false);
@@ -110,7 +115,7 @@ export default function S12Flight(props: ObScreenProps) {
         envelopeSize={carry}
         line={
           !!courier && (
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={2} style={{ fontFamily: FONT.letterItalic, fontSize: 17, lineHeight: 23, color: OB.ink, textAlign: "center" }}>
+            <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={letterFitLines(letterKey, 2)} style={{ ...said, fontSize: 17, lineHeight: 23, color: OB.ink, textAlign: "center" }}>
               {t("ob2.flight.line", { name: courier })}
             </Text>
           )

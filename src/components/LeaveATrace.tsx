@@ -2,10 +2,9 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import Animated, { FadeIn, FadeOut, SlideInDown, useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MONO, PF } from "../theme/post";
+import { PFM } from "../theme/post";
 import { scrimColor, useTheme } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
-import { localeTag } from "../lib/format";
 import { StickerBox } from "./10a/StickerBox";
 import { LineIcon, type LineIconName } from "./10a/LineIcon";
 import { popIn } from "./10a/KindredBar";
@@ -157,11 +156,13 @@ export function LeaveATrace({
         style={{ backgroundColor: tk.sf, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: dark ? 1 : 0, borderTopColor: tk.ln, paddingBottom: Math.max(insets.bottom, 12) + 6 }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 16, paddingBottom: 12 }}>
-          <Text accessibilityRole="header" style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: MONO.title * 0.16, color: tk.ink }}>
+          {/* a sheet's title is a secondary title: system medium 17, centred (the spacer balances the ✕) */}
+          <View style={{ width: 16 }} />
+          <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, fontWeight: "500", color: tk.ink, textAlign: "center" }}>
             {t("lat.title")}
           </Text>
           <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 16, color: tk.mute }}>✕</Text>
+            <Text style={{ ...PFM.mono, fontSize: 16, color: tk.mute }}>✕</Text>
           </Pressable>
         </View>
 
@@ -188,9 +189,9 @@ export function LeaveATrace({
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 16, color: tk.ink }}>{a.title}</Text>
-                {!!a.sub && <Text style={{ fontFamily: "Newsreader-Italic", fontStyle: "italic", fontSize: 13, color: tk.sub, marginTop: 1 }}>{a.sub}</Text>}
+                {!!a.sub && <Text style={{ fontSize: 13, color: tk.sub, marginTop: 1 }}>{a.sub}</Text>}
               </View>
-              {a.locked ? <LockIcon color={tk.mute} /> : <Text style={{ fontFamily: PF.mono, fontSize: 13, color: tk.faint }}>›</Text>}
+              {a.locked ? <LockIcon color={tk.mute} /> : <Text style={{ ...PFM.mono, fontSize: 13, color: tk.faint }}>›</Text>}
             </Pressable>
           ))}
         </View>
@@ -421,12 +422,12 @@ function TraceCard({ a, onPick }: { a: TraceAction; onPick: (kind: TraceKind) =>
             numberOfLines={2}
             adjustsFontSizeToFit
             minimumFontScale={0.8}
-            style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: MONO.title * 0.1, color: tk.ink, textAlign: "center", marginTop: 4 }}
+            style={{ fontSize: 15, fontWeight: "600", color: tk.ink, textAlign: "center", marginTop: 4 }}
           >
-            {a.title.toLocaleUpperCase(localeTag())}
+            {a.title}
           </Text>
           {!!a.sub && (
-            <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: "Newsreader-Italic", fontStyle: "italic", fontSize: 13, color: tk.sub, textAlign: "center" }}>
+            <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: 13, color: tk.sub, textAlign: "center" }}>
               {a.sub}
             </Text>
           )}

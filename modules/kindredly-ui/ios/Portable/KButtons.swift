@@ -122,8 +122,9 @@ public struct KPressScaleStyle: ButtonStyle {
   }
 }
 
-/// A secondary or tertiary button's inside: an optional SF Symbol, 8 from the title. The mono
-/// kind (UPLOAD, STAMP CAM) is mono 600 12 at .1em in capitals; the plain kind is system 600 14.
+/// A secondary or tertiary button's inside: an optional SF Symbol, 8 from the title. A button is
+/// System 600 14 whatever its kind (owner's type system, 10-20: the mock's mono kind, UPLOAD and
+/// STAMP CAM in capitals, is no longer set in mono; `mono` now only keeps its 11 padding).
 struct KButtonLabel: View {
   let title: String
   let systemImage: String?
@@ -138,8 +139,7 @@ struct KButtonLabel: View {
           .frame(width: 16, height: 16)
       }
       Text(title)
-        .textCase(mono ? .uppercase : nil)
-        .kText(mono ? .monoButton : .button)
+        .kText(.button)
         .lineLimit(1)
     }
   }

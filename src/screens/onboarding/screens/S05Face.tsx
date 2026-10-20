@@ -136,7 +136,7 @@ export default function S05Face(props: ObScreenProps) {
               {!pressed && <View style={{ position: "absolute", left: 2, top: 2, right: -2, bottom: -2, borderRadius: 999, backgroundColor: OB.ink }} />}
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, height: 32, paddingHorizontal: 12, borderRadius: 999, borderWidth: 2.5, borderColor: OB.ink, backgroundColor: OB.paper }}>
                 <Dice size={16} />
-                <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ fontFamily: FONT.bold, fontSize: 13, color: OB.ink }}>
+                <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ ...FONT.bold, fontSize: 13, color: OB.ink }}>
                   {t("ep.random")}
                 </Text>
               </View>

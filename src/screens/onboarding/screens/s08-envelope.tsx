@@ -12,6 +12,7 @@ import type { PronounId } from "../../../lib/pronouns";
 import { strangerName } from "../../../lib/stranger-name";
 import { signOf, type Dob } from "../flow";
 import { EDGE, FONT, OB, SHADOW } from "../parts/tokens";
+import { useLetterFamily } from "../../../lib/theme";
 import "../../../data/strings-onboarding2";
 import { OB_MAX_FONT } from "../parts/tokens";
 
@@ -130,6 +131,8 @@ export function EnvelopeFront({
   cornerRef?: Ref<View>;
   style?: StyleProp<ViewStyle>;
 }) {
+  // the address line is handwriting on your envelope: the letter font's italic
+  const said = useLetterFamily(true);
   const s = width / ENV_W;
   const h = ENV_H * s;
   const name = yourCourierName(uid, lang);
@@ -178,17 +181,17 @@ export function EnvelopeFront({
             {frost ? <Frost spec={frost} size={FACE} /> : <View style={{ width: FACE, height: FACE, borderRadius: 14, borderWidth: 1.5, borderStyle: "dashed", borderColor: OB.inkSoft }} />}
             <View style={{ flex: 1, marginLeft: 12 }}>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ flexShrink: 1, fontFamily: FONT.bold, fontSize: 23, letterSpacing: -0.4, color: OB.ink }}>
+                <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ flexShrink: 1, ...FONT.bold, fontSize: 23, letterSpacing: -0.4, color: OB.ink }}>
                   {name || " "}
                 </Text>
                 <WhoGlyphs mark={mark} sign={sign} size={18} color={OB.inkSoft} />
               </View>
-              <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ fontFamily: FONT.mono, fontSize: 12.5, letterSpacing: 1.4, color: OB.inkSoft, marginTop: 3 }}>
+              <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ ...FONT.mono, fontSize: 12.5, letterSpacing: 1.4, color: OB.inkSoft, marginTop: 3 }}>
                 {envelopeDate(now)}
               </Text>
             </View>
           </View>
-          <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ position: "absolute", left: 26, right: 22, top: ENV_H - 50, fontFamily: FONT.letterItalic, fontSize: 15.5, color: OB.ink }}>
+          <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ position: "absolute", left: 26, right: 22, top: ENV_H - 50, ...said, fontSize: 15.5, color: OB.ink }}>
             {t("ob2.stamp.to")}
           </Text>
         </View>

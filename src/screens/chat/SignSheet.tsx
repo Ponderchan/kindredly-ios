@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { t, useLang, getLang } from "../../lib/i18n";
 import { scrimColor, useTheme } from "../../lib/theme";
 import { BRAND } from "../../theme/themes";
-import { MONO, PF } from "../../theme/post";
+import { MONO, PFM } from "../../theme/post";
 import { screenNow } from "../../lib/wren";
 import { strangerName } from "../../lib/stranger-name";
 import { readYourPronoun } from "../../lib/pronouns";
@@ -48,7 +48,7 @@ import "../../data/strings-a11y-chat"; // ch.a11y.nameLong; and the chat's and r
    will travel, in the order it travels, and nothing else:
 
      the lead line     whose courier name you're signing to, and when they
-                       see it (serif italic, sub)
+                       see it (System 16, sub: a description)
      THE FACE YOU SEND your library face first, then your pool's, then No
                        face (the glyph) — for this trade only, never saved
                        to the profile; a photo never leaves the phone
@@ -270,7 +270,7 @@ export function SignSheetView(p: SignSheetViewProps) {
   // the field's red line: Edit profile's (the postal red toward the ink, readable on every theme)
   const err = dangerInk(tk.ink, BRAND.postRed);
   const label = (s: string) => (
-    <Text accessibilityRole="header" maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute }}>
+    <Text accessibilityRole="header" maxFontSizeMultiplier={1.6} style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute }}>
       {s}
     </Text>
   );
@@ -318,7 +318,9 @@ export function SignSheetView(p: SignSheetViewProps) {
           >
             {/* the title and the ✕ */}
             <View style={{ flexDirection: "row", alignItems: "center", paddingLeft: 16, paddingRight: 8, paddingTop: 12, paddingBottom: 4 }}>
-              <Text accessibilityRole="header" maxFontSizeMultiplier={1.6} style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: tk.ink }}>
+              {/* the sheet's title, System 500 17 centred (the ✕'s room mirrored on the left) */}
+              <View style={{ width: 36 }} />
+              <Text accessibilityRole="header" maxFontSizeMultiplier={1.6} style={{ flex: 1, fontSize: 17, fontWeight: "500", textAlign: "center", color: tk.ink }}>
                 {t("id2.sheet.title")}
               </Text>
               <Pressable
@@ -328,7 +330,7 @@ export function SignSheetView(p: SignSheetViewProps) {
                 accessibilityLabel={t("id2.sheet.close")}
                 style={({ pressed }) => ({ width: 44, height: 44, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.5 : 1 })}
               >
-                <Text style={{ fontFamily: PF.mono, fontSize: 16, color: tk.mute }} allowFontScaling={false}>
+                <Text style={{ ...PFM.mono, fontSize: 16, color: tk.mute }} allowFontScaling={false}>
                   ✕
                 </Text>
               </Pressable>
@@ -343,7 +345,7 @@ export function SignSheetView(p: SignSheetViewProps) {
               contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: Math.max(insets.bottom, 12) + 20, gap: 22 }}
             >
               {/* 1. the lead line */}
-              <Text style={{ fontFamily: PF.letterSerif, fontStyle: "italic", fontSize: 17, lineHeight: 24, color: tk.sub }}>{copy.lead}</Text>
+              <Text style={{ fontSize: 16, lineHeight: 23, color: tk.sub }}>{copy.lead}</Text>
 
               {/* 2. THE FACE YOU SEND */}
               <View style={{ gap: 10 }}>
@@ -429,7 +431,7 @@ export function SignSheetView(p: SignSheetViewProps) {
                     ) : (
                       <Text
                         allowFontScaling={false}
-                        style={{ fontFamily: uprightEmpty ? undefined : PF.letterSerif, fontStyle: uprightEmpty ? "normal" : "italic", fontSize: padH * 0.36, color: tk.ink, opacity: 0.1 }}
+                        style={{ fontStyle: uprightEmpty ? "normal" : "italic", fontSize: padH * 0.36, color: tk.ink, opacity: 0.1 }}
                       >
                         {t("id2.sheet.traceEmpty")}
                       </Text>
@@ -499,7 +501,7 @@ export function SignSheetView(p: SignSheetViewProps) {
                     opacity: !can && !p.busy ? 0.35 : pressed ? 0.85 : 1,
                   })}
                 >
-                  <Text maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: tk.bg, textAlign: "center" }}>
+                  <Text maxFontSizeMultiplier={1.6} style={{ fontSize: 16, fontWeight: "600", letterSpacing: 0.4, color: tk.bg, textAlign: "center" }}>
                     {p.busy ? "…" : t("id2.sheet.send")}
                   </Text>
                 </Pressable>
@@ -545,7 +547,7 @@ const FaceButton = memo(function FaceButton({
         <AvatarImage id={id} seed={seed} size={52} />
       </View>
       {id === null ? (
-        <Text maxFontSizeMultiplier={1.4} style={{ fontFamily: PF.monoMed, fontSize: MONO.small, letterSpacing: MONO.small * 0.1, color: on ? tk.ind : tk.sub }}>
+        <Text maxFontSizeMultiplier={1.4} style={{ ...PFM.monoMed, fontSize: MONO.small, letterSpacing: MONO.small * 0.1, color: on ? tk.ind : tk.sub }}>
           {t("id2.sheet.faceNone").toLocaleUpperCase()}
         </Text>
       ) : null}

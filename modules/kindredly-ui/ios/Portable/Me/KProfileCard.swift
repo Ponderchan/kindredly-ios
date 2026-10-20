@@ -18,11 +18,12 @@ import SwiftUI
 
  THE TRAYS (KMePeekTray): soft, corners 16, padding 12, 10 between the cards and the link.
  - letters: three mini cards 8 apart, each sf, corners 12, padding 10, 6 apart inside: the date
-   (mono 9 at .1em, mute) and the 22 stamp; two lines of the letter (the serif 13/1.3); the status
+   (mono 9 at .1em, mute) and the 22 stamp; two lines of the letter (the reader's Letter font 13/1.3); the status
    (mono 9 at .12em: QUIET in mute, ANSWERED · 2 in green, "Luna wrote back" in ink). "See all
    10 →" (13/600, ind) at the bottom right.
  - kindreds: three cards 10 apart, padding 10 6, centred: the 40 face, the name (12/600), their
-   last line in the italic serif 11, mute, quoted, on one line. "Open kindreds →" in green.
+   last line in the reader's Letter font 11 (italic where it has one), mute, quoted, on one
+   line. "Open kindreds →" in green.
  Fewer than three cards keep a third of the width each and line up on the left. Before the
  first read: three blank cards (hidden from VoiceOver). None: one line and its link.
  */
@@ -235,9 +236,12 @@ struct KMeLettersPeek: View {
   let theme: KTheme
   let peek: KMePeekLetters
   let actions: KMeActions
+  @Environment(\.kLetterFace) private var letterFace
 
   static var dateStyle: KTextStyle { .mono(9, .medium, tracking: 0.1) }
-  static var bodyStyle: KTextStyle { .letter(13, lineHeight: 1.3) }
+  /// my letter's first lines, in the reader's Letter font: a step down in a roomy face so the
+  /// two lines still fit the card
+  static func bodyStyle(_ face: KLetterFace) -> KTextStyle { .content(face.fitSize(13), lineHeight: 1.3) }
   static var statusStyle: KTextStyle { .mono(9, .semibold, tracking: 0.12) }
 
   var body: some View {
@@ -286,7 +290,7 @@ struct KMeLettersPeek: View {
           }
         }
         Text(l.body)
-          .kText(Self.bodyStyle)
+          .kText(Self.bodyStyle(letterFace))
           .foregroundStyle(theme.ink)
           .lineLimit(2)
           .frame(maxWidth: .infinity, alignment: .leading)
@@ -313,8 +317,11 @@ struct KMeKindredsPeek: View {
   let theme: KTheme
   let peek: KMePeekKindreds
   let actions: KMeActions
+  @Environment(\.kLetterFace) private var letterFace
 
-  static var lineStyle: KTextStyle { .letter(11, italic: true) }
+  /// the quoted line, in the reader's Letter font (upright in a face without an italic), a step
+  /// down in a roomy face for its one line
+  static func lineStyle(_ face: KLetterFace) -> KTextStyle { .content(face.fitSize(11), italic: true) }
 
   private var green: Color { theme.isDark ? Color(hex: "#7CC58F") : KBrand.greenText }
 
@@ -361,7 +368,7 @@ struct KMeKindredsPeek: View {
           .minimumScaleFactor(0.8)
         if !k.line.isEmpty {
           Text("“\(k.line)”")
-            .kText(Self.lineStyle)
+            .kText(Self.lineStyle(letterFace))
             .foregroundStyle(theme.mute)
             .lineLimit(1)
             .truncationMode(.tail)

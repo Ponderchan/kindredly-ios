@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { StatusBar } from "expo-status-bar";
 import { useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
-import { PF } from "../theme/post";
+import { PF, PFM } from "../theme/post";
 import { THEMES } from "../theme/themes";
 import { W14 } from "../components/AuraCard";
 import { CofounderMark } from "../components/CofounderMark";
@@ -332,12 +332,12 @@ export function PaywallBody({
             <Path d="M5 5 L19 19 M19 5 L5 19" stroke="#FFFFFF" strokeWidth={2.4} strokeLinecap="round" />
           </Svg>
         </Pressable>
-        <Text maxFontSizeMultiplier={1.6} numberOfLines={1} style={{ flex: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2.6, color: GOLD }}>{t("me.firstClass")}</Text>
+        <Text maxFontSizeMultiplier={1.6} numberOfLines={1} style={{ flex: 1, textAlign: "center", ...PFM.monoSemi, fontSize: 12, letterSpacing: 2.6, color: GOLD }}>{t("me.firstClass")}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 18, paddingBottom: 24, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-        <Text accessibilityRole="header" maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.serif, fontSize: 34, lineHeight: 38, color: "#FFFFFF" }}>{premium ? t("fc.paidHead") : head || t("fc.introHead")}</Text>
+        <Text accessibilityRole="header" maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 34, lineHeight: 38, color: "#FFFFFF" }}>{premium ? t("fc.paidHead") : head || t("fc.introHead")}</Text>
         <Text style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: "rgba(255,255,255,0.62)", marginTop: 10 }}>
           {premium ? t("fc.paidIntroSub", { wren }) : lead || t("fc.introSub")}
         </Text>
@@ -351,8 +351,8 @@ export function PaywallBody({
           </View>
           <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
-              <Text maxFontSizeMultiplier={1.35} numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 2.2, color: "rgba(30,27,53,0.5)" }}>{t("fc.passenger")}</Text>
-              <Text maxFontSizeMultiplier={1.35} numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 2.2, color: "rgba(30,27,53,0.5)" }}>{t("fc.messenger")}</Text>
+              <Text maxFontSizeMultiplier={1.35} numberOfLines={1} style={{ flexShrink: 1, ...PFM.mono, fontSize: 10.5, letterSpacing: 2.2, color: "rgba(30,27,53,0.5)" }}>{t("fc.passenger")}</Text>
+              <Text maxFontSizeMultiplier={1.35} numberOfLines={1} style={{ flexShrink: 1, ...PFM.mono, fontSize: 10.5, letterSpacing: 2.2, color: "rgba(30,27,53,0.5)" }}>{t("fc.messenger")}</Text>
             </View>
             <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12, marginTop: 4 }}>
               <Text maxFontSizeMultiplier={1.6} numberOfLines={1} style={{ flexShrink: 1, fontFamily: PF.letter, fontWeight: "700", fontSize: 22, letterSpacing: -0.4, color: W14.ink }}>{handle || t("a11yt.fc.you")}</Text>
@@ -362,11 +362,11 @@ export function PaywallBody({
               /* the mark itself, as it will sit on their own desk — the thing
                  being sold is visible before it is bought */
               <View style={{ marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#EAE6F5" }}>
-                <Text style={{ fontFamily: PF.monoMed, fontSize: 9, letterSpacing: 1.8, color: GOLD_INK }}>{t("pw.cf.title")}</Text>
+                <Text style={{ ...PFM.monoMed, fontSize: 9, letterSpacing: 1.8, color: GOLD_INK }}>{t("pw.cf.title")}</Text>
                 <View style={{ alignItems: "flex-start", marginTop: 10 }}>
                   <CofounderMark no={47} size="lg" />
                 </View>
-                <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 11.5, color: "rgba(30,27,53,0.5)", marginTop: 7 }}>{t("pw.nameEverywhere")}</Text>
+                <Text style={{ fontFamily: PF.letter, fontSize: 11.5, color: "rgba(30,27,53,0.5)", marginTop: 7 }}>{t("pw.nameEverywhere")}</Text>
               </View>
             )}
             <View style={{ marginTop: 16, gap: 11 }}>
@@ -378,7 +378,7 @@ export function PaywallBody({
                     </View>
                   ) : (
                     <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: "#E4E1FA", alignItems: "center", justifyContent: "center" }}>
-                      <Text maxFontSizeMultiplier={1} accessibilityElementsHidden importantForAccessibility="no" style={{ fontFamily: PF.mono, fontSize: 11.5, color: PASS_IND }}>{glyphs[i]}</Text>
+                      <Text maxFontSizeMultiplier={1} accessibilityElementsHidden importantForAccessibility="no" style={{ ...PFM.mono, fontSize: 11.5, color: PASS_IND }}>{glyphs[i]}</Text>
                     </View>
                   )}
                   <View style={{ flex: 1 }}>
@@ -399,7 +399,7 @@ export function PaywallBody({
             <View style={{ position: "absolute", right: -10, top: -11, width: 20, height: 20, borderRadius: 10, backgroundColor: NIGHT }} />
             {premium ? (
               <View style={{ alignItems: "center", gap: 4, paddingVertical: 4 }}>
-                <Text style={{ fontFamily: PF.mono, fontSize: 12, letterSpacing: 1.6, color: "rgba(30,27,53,0.55)" }}>{t("fc.active")}</Text>
+                <Text style={{ ...PFM.mono, fontSize: 12, letterSpacing: 1.6, color: "rgba(30,27,53,0.55)" }}>{t("fc.active")}</Text>
                 <Text style={{ fontFamily: PF.letter, fontSize: 14, color: "rgba(30,27,53,0.65)", textAlign: "center" }}>{t("fc.paidSub")}</Text>
               </View>
             ) : (
@@ -414,11 +414,11 @@ export function PaywallBody({
                   const badge = p.period === "annual" && saving != null && saving > 0 ? t("fc.save", { n: saving }) : null;
                   const badgeView = badge ? (
                     <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: GOLD, alignSelf: "flex-start" }}>
-                      <Text maxFontSizeMultiplier={1.35} style={{ fontFamily: PF.monoSemi, fontSize: 9, letterSpacing: 0.8, color: W14.ink }}>{badge}</Text>
+                      <Text maxFontSizeMultiplier={1.35} style={{ ...PFM.monoSemi, fontSize: 9, letterSpacing: 0.8, color: W14.ink }}>{badge}</Text>
                     </View>
                   ) : null;
                   const periodText = (
-                    <Text maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: on ? PASS_IND : "rgba(30,27,53,0.5)" }}>{periodLabel}</Text>
+                    <Text maxFontSizeMultiplier={1.6} style={{ ...PFM.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: on ? PASS_IND : "rgba(30,27,53,0.5)" }}>{periodLabel}</Text>
                   );
                   return (
                     <Pressable

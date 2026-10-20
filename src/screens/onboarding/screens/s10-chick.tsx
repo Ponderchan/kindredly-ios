@@ -130,7 +130,7 @@ export function Chick({
       {!!tag && (
         <Animated.View entering={ZoomIn.duration(220)} pointerEvents="none" style={[tagStyle, { position: "absolute", right: size * 0.1, bottom: size * 0.06 }]}>
           <View style={{ backgroundColor: OB.acid, borderWidth: EDGE - 0.5, borderColor: OB.ink, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ fontFamily: FONT.monoSemi, fontSize: 11, letterSpacing: 1.2, color: OB.ink }}>
+            <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ ...FONT.monoSemi, fontSize: 11, letterSpacing: 1.2, color: OB.ink }}>
               {tag}
             </Text>
           </View>

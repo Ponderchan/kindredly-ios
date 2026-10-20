@@ -3,7 +3,7 @@ import { Text, View } from "react-native";
 import { Redirect } from "expo-router";
 import { useAuth } from "../lib/auth";
 import { useTheme } from "../lib/theme";
-import { P, PF } from "../theme/post";
+import { P, PFM } from "../theme/post";
 import { t, useLang } from "../lib/i18n";
 
 /* WHERE THE MAGIC LINK LANDS. The deep-link listener in lib/auth does the
@@ -35,7 +35,7 @@ export default function AuthCallback() {
      lavender (under a light status bar it couldn't carry) */
   return (
     <View style={{ flex: 1, backgroundColor: dark ? tk.bg : P.penWash, alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ fontFamily: PF.mono, fontSize: 12, letterSpacing: 1.4, color: dark ? tk.sub : P.ink60 }}>{t("cb.line")}</Text>
+      <Text style={{ ...PFM.mono, fontSize: 12, letterSpacing: 1.4, color: dark ? tk.sub : P.ink60 }}>{t("cb.line")}</Text>
     </View>
   );
 }

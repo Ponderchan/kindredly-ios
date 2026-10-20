@@ -11,8 +11,8 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { PF } from "../theme/post";
-import { useP, useTheme } from "../lib/theme";
+import { PF, PFM } from "../theme/post";
+import { useLetterFamily, useP, useTheme } from "../lib/theme";
 import { Seal } from "./Seal";
 import { WrenBird } from "./WrenBird";
 import { useWrenName } from "../lib/wren-name";
@@ -51,6 +51,8 @@ export function CourierSendOff({ onDone }: { keep?: boolean; onDone?: () => void
      the screen it sits on, or it shows as a slab. The seal and the bird
      keep their own colours. */
   const P = useP();
+  // her "not mine to carry" is Wren speaking: the reader's Letter font, its italic
+  const wrenFace = useLetterFamily(true);
   const tk = useTheme().t;
   const wren = useWrenName();
   const reduce = useReducedMotion();
@@ -107,7 +109,7 @@ export function CourierSendOff({ onDone }: { keep?: boolean; onDone?: () => void
 
   return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ fontFamily: PF.mono, fontSize: 10.5, letterSpacing: 2, color: P.ink40, position: "absolute", top: "12%" }}>
+        <Text style={{ ...PFM.mono, fontSize: 10.5, letterSpacing: 2, color: P.ink40, position: "absolute", top: "12%" }}>
           KINDREDLY
         </Text>
 
@@ -132,7 +134,7 @@ export function CourierSendOff({ onDone }: { keep?: boolean; onDone?: () => void
 
           {/* she keeps her back to it — this one is not hers to carry */}
           <Animated.View style={[{ position: "absolute", right: 16, bottom: 152, zIndex: 5, alignItems: "flex-end" }, afterStyle]}>
-            <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 0.5, color: P.ink40, marginBottom: 6 }}>
+            <Text style={{ ...wrenFace, fontSize: 12, color: P.ink40, marginBottom: 6 }}>
               {t("so.notMine")}
             </Text>
             <View style={{ transform: [{ scaleX: -1 }] }}>
@@ -142,7 +144,7 @@ export function CourierSendOff({ onDone }: { keep?: boolean; onDone?: () => void
 
           <Animated.View style={[{ position: "absolute", left: 0, right: 0, bottom: 36, alignItems: "center", zIndex: 5 }, afterStyle]}>
             <Text style={{ fontFamily: PF.letter, fontSize: 25, fontWeight: "600", color: P.ink }}>{t("so.kept")}</Text>
-            <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 1.2, color: P.ink40, marginTop: 10, textAlign: "center" }}>
+            <Text style={{ fontSize: 11, fontWeight: "500", letterSpacing: 0.6, color: P.ink40, marginTop: 10, textAlign: "center" }}>
               {t("so.keptNote", { name: wren.toUpperCase() })}
             </Text>
           </Animated.View>

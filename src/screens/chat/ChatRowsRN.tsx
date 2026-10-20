@@ -5,8 +5,8 @@ import type { KMenuAction } from "../../../modules/kindredly-ui/src/types";
 import { MessageMenu, a11yActions, type MessageAction } from "../../components/MessageMenu";
 import { StickerBox } from "../../components/10a/StickerBox";
 import { MediaImage } from "../../lib/media";
-import { useLetterFamily, useTheme } from "../../lib/theme";
-import { MONO, PF } from "../../theme/post";
+import { useLetterFamily, useLetterFont, useTheme } from "../../lib/theme";
+import { letterFitLines, MONO, PFM } from "../../theme/post";
 import { VoiceOpeningCard, type OpeningVoiceRN } from "./VoiceOpeningRN";
 import type { A11yNode } from "./useChatListRN";
 
@@ -20,8 +20,10 @@ import type { A11yNode } from "./useChatListRN";
    · a room line: mine on the right in ind with the page colour on it,
      theirs on the left on soft with ink (a line around theirs outside
      Classic, where soft barely leaves the page); corners 18 and 5 on the
-     tail; padding 10 14; at most 84%; system 16. A reply carries its quote
-     (a 2pt rule, the speaker in mono 10, two lines, "taken back" in italic).
+     tail; padding 10 14; at most 84%; the reader's Letter font at 16 (a line
+     is content, owner 2026-10-20). A reply carries its quote (a 2pt rule,
+     the speaker in mono 10, two lines in the Letter font, three in a roomy
+     face, "taken back" in its italic).
    · a pen-pal letter, as the chat composers' A2 draws it (owner,
      2026-10-18): a card with a 2 ln outline, corners 18, padding 14 16;
      theirs on sf across the whole width, mine on soft (soft2 on Midnight)
@@ -80,7 +82,7 @@ function DayRule({ label, first }: { label: string; first: boolean }) {
   return (
     <Text
       accessibilityRole="header"
-      style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.sub, textAlign: "center", marginTop: first ? 0 : 22, marginBottom: 14 }}
+      style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.sub, textAlign: "center", marginTop: first ? 0 : 22, marginBottom: 14 }}
     >
       {label}
     </Text>
@@ -90,13 +92,14 @@ function DayRule({ label, first }: { label: string; first: boolean }) {
 /** translating… under a line, then the translation in sub */
 function TranslationLine({ item, half, maxWidth, translating }: { item?: KChatItem; half?: KChatFoldHalf; maxWidth?: number; translating: string }) {
   const { t: tk } = useTheme();
+  const face = useLetterFamily();
   const state = item?.translation ?? half?.translation ?? "none";
   const text = item?.translationText ?? half?.translationText ?? "";
   if (state === "busy") {
-    return <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: tk.mute, marginTop: 4, paddingHorizontal: 6 }}>{translating}</Text>;
+    return <Text style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: tk.mute, marginTop: 4, paddingHorizontal: 6 }}>{translating}</Text>;
   }
   if (state === "shown" && text) {
-    return <Text style={{ maxWidth, fontSize: 14.5, lineHeight: 21, color: tk.sub, marginTop: 5, paddingHorizontal: 6 }}>{text}</Text>;
+    return <Text style={{ maxWidth, ...face, fontSize: 14.5, lineHeight: 21, color: tk.sub, marginTop: 5, paddingHorizontal: 6 }}>{text}</Text>;
   }
   return null;
 }
@@ -128,6 +131,10 @@ export function RoomRowRN({ item, first, lit, env, onLayout }: { item: KChatItem
 
 function Bubble({ item, env }: { item: KChatItem; env: RowEnv }) {
   const { t: tk } = useTheme();
+  // the line and its quote are content: the reader's Letter font
+  const face = useLetterFamily();
+  const goneFace = useLetterFamily(true);
+  const quoteLines = letterFitLines(useLetterFont(), 2);
   const max = Math.round(env.width * 0.84);
   const mine = item.mine;
   const q = item.quote;
@@ -161,16 +168,16 @@ function Bubble({ item, env }: { item: KChatItem; env: RowEnv }) {
             >
               <View style={{ width: 2, backgroundColor: mine ? tk.bg : tk.ind, opacity: mine ? 0.7 : 1 }} />
               <View style={{ flexShrink: 1, gap: 2 }}>
-                <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 1, color: mine ? tk.bg : tk.ind, opacity: mine ? 0.85 : 1 }}>
+                <Text numberOfLines={1} style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 1, color: mine ? tk.bg : tk.ind, opacity: mine ? 0.85 : 1 }}>
                   {q.speaker}
                 </Text>
-                <Text numberOfLines={2} style={{ fontSize: 13.5, lineHeight: 18, fontStyle: q.gone ? "italic" : "normal", color: mine ? tk.bg : tk.sub, opacity: mine ? 0.85 : 1 }}>
+                <Text numberOfLines={quoteLines} style={{ ...(q.gone ? goneFace : face), fontSize: 13.5, lineHeight: 18, color: mine ? tk.bg : tk.sub, opacity: mine ? 0.85 : 1 }}>
                   {q.excerpt}
                 </Text>
               </View>
             </Pressable>
           )}
-          <Text style={{ fontSize: 16, lineHeight: 23, color: mine ? tk.bg : tk.ink }}>{item.body}</Text>
+          <Text style={{ ...face, fontSize: 16, lineHeight: 23, color: mine ? tk.bg : tk.ink }}>{item.body}</Text>
         </View>
       </MessageMenu>
       <TranslationLine item={item} maxWidth={max} translating={env.strings.translating} />
@@ -243,10 +250,10 @@ function SongCard({ item, env }: { item: KChatItem; env: RowEnv }) {
           >
             <Text style={{ fontSize: 17, color: tk.ind }}>♪</Text>
             <View style={{ flexShrink: 1, gap: 2 }}>
-              <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: MONO.title, color: tk.ink }}>
+              <Text numberOfLines={1} style={{ ...PFM.monoMed, fontSize: MONO.title, color: tk.ink }}>
                 {item.songTitle}
               </Text>
-              <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: MONO.label, color: tk.mute }}>
+              <Text numberOfLines={1} style={{ ...PFM.monoMed, fontSize: MONO.label, color: tk.mute }}>
                 {item.songHost}
               </Text>
             </View>
@@ -256,7 +263,7 @@ function SongCard({ item, env }: { item: KChatItem; env: RowEnv }) {
       </Pressable>
       {!!item.shelfLink && (
         <Pressable onPress={() => env.onItemPress(item.key, "shelf")} hitSlop={6} accessibilityRole="link" accessibilityLabel={item.shelfLink} style={{ minHeight: 32, justifyContent: "center", marginTop: 2 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1, color: tk.ind }}>{item.shelfLink} ›</Text>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: tk.ind }}>{item.shelfLink} ›</Text>
         </Pressable>
       )}
     </View>
@@ -279,7 +286,7 @@ function FoldCard({ item, env }: { item: KChatItem; env: RowEnv }) {
       style={{ marginRight: open ? 3 : 0, marginBottom: open ? 9 : 6 }}
       faceStyle={{ padding: 14 }}
     >
-      <Text ref={env.a11yRef(item.key)} accessibilityRole="header" style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute }}>
+      <Text ref={env.a11yRef(item.key)} accessibilityRole="header" style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute }}>
         {fold.kindLabel}
       </Text>
       {!!fold.prompt && <Text style={{ fontSize: 16, lineHeight: 24, color: tk.ink, marginTop: 6 }}>{fold.prompt}</Text>}
@@ -296,12 +303,12 @@ function FoldCard({ item, env }: { item: KChatItem; env: RowEnv }) {
           hitSlop={6}
           style={{ marginTop: 8, gap: 6 }}
         >
-          <Text style={{ fontFamily: "Newsreader-Italic", fontStyle: "italic", fontSize: 13.5, color: tk.sub }}>{fold.hint}</Text>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1, color: tk.ind }}>{fold.answerKey} ›</Text>
+          <Text style={{ fontSize: 13.5, color: tk.sub }}>{fold.hint}</Text>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: tk.ind }}>{fold.answerKey} ›</Text>
         </Pressable>
       ) : fold.hint ? (
         // waiting on them, or a room nothing can be left in: the hint, no door
-        <Text style={{ fontFamily: "Newsreader-Italic", fontStyle: "italic", fontSize: 13.5, color: tk.mute, marginTop: 8 }}>{fold.hint}</Text>
+        <Text style={{ fontSize: 13.5, color: tk.mute, marginTop: 8 }}>{fold.hint}</Text>
       ) : null}
     </StickerBox>
   );
@@ -309,6 +316,7 @@ function FoldCard({ item, env }: { item: KChatItem; env: RowEnv }) {
 
 function FoldHalf({ half, env }: { half: KChatFoldHalf; env: RowEnv }) {
   const { t: tk } = useTheme();
+  const face = useLetterFamily();
   const acts = menuActions(half.menu, half.key, env.onItemAction);
   // the card's padding and outline, the shadow's 3, and the 8 a side the half takes back
   const w = env.width - 3 - 2 * (14 + 2) + 16;
@@ -317,8 +325,8 @@ function FoldHalf({ half, env }: { half: KChatFoldHalf; env: RowEnv }) {
       <MessageMenu actions={acts} radius={12} accessibilityLabel={`${half.speaker}, ${half.body}`} a11yRef={env.a11yRef(half.key)}>
         {/* 8 of the card's own padding go into the half, so the lifted copy has a margin and the words don't move */}
         <View style={{ width: w, paddingHorizontal: 8, paddingTop: 10, paddingBottom: 4, backgroundColor: tk.sf, borderRadius: 12, gap: 3 }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: 1, color: half.mine ? tk.mute : tk.ind }}>{half.speaker}</Text>
-          <Text style={{ fontSize: 16, lineHeight: 24, color: half.mine ? tk.sub : tk.ink }}>{half.body}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: 1, color: half.mine ? tk.mute : tk.ind }}>{half.speaker}</Text>
+          <Text style={{ ...face, fontSize: 16, lineHeight: 24, color: half.mine ? tk.sub : tk.ink }}>{half.body}</Text>
         </View>
       </MessageMenu>
       <View style={{ paddingHorizontal: 2 }}>
@@ -334,7 +342,7 @@ function RecallNote({ item, env }: { item: KChatItem; env: RowEnv }) {
     <Text
       ref={env.a11yRef(item.key)}
       accessibilityLabel={item.a11yLabel || item.body}
-      style={{ alignSelf: item.mine ? "flex-end" : "flex-start", fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.4, color: tk.mute, paddingHorizontal: 6, paddingBottom: 4 }}
+      style={{ alignSelf: item.mine ? "flex-end" : "flex-start", ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 0.4, color: tk.mute, paddingHorizontal: 6, paddingBottom: 4 }}
     >
       {item.body}
     </Text>
@@ -345,6 +353,8 @@ function RecallNote({ item, env }: { item: KChatItem; env: RowEnv }) {
     letter's menu (copy, translate, keep) */
 function RoomVoice({ item, env }: { item: KChatItem; env: RowEnv }) {
   const { t: tk } = useTheme();
+  // the caption is the voice letter's words: the Letter font's italic
+  const captionFace = useLetterFamily(true);
   const max = Math.round(env.width * 0.84);
   const acts = menuActions(item.menu, item.key, env.onItemAction);
   return (
@@ -358,7 +368,7 @@ function RoomVoice({ item, env }: { item: KChatItem; env: RowEnv }) {
       <VoiceOpeningCard voice={env.voice} style={{ width: max }} />
       {!!item.body && (
         <MessageMenu actions={acts} radius={8} accessibilityLabel={item.a11yLabel} a11yRef={env.a11yRef(item.key)}>
-          <Text style={{ maxWidth: max, fontFamily: "Newsreader-Italic", fontStyle: "italic", fontSize: 13, lineHeight: 18, color: tk.sub, paddingHorizontal: 6, paddingVertical: 2, textAlign: item.mine ? "right" : "left" }}>
+          <Text style={{ maxWidth: max, ...captionFace, fontSize: 13, lineHeight: 18, color: tk.sub, paddingHorizontal: 6, paddingVertical: 2, textAlign: item.mine ? "right" : "left" }}>
             {item.body}
           </Text>
         </MessageMenu>
@@ -378,6 +388,7 @@ const MINE_INDENT = 40;
 export function LetterRowRN({ item, first = false, lit, env, onLayout }: { item: KChatItem; first?: boolean; lit: boolean; env: RowEnv; onLayout: (e: LayoutChangeEvent) => void }) {
   const { t: tk } = useTheme();
   const letterFace = useLetterFamily();
+  const captionFace = useLetterFamily(true);
   const acts = menuActions(item.menu, item.key, env.onItemAction);
   const open = () => item.tappable && env.onItemPress(item.key, "body");
   // theirs take the list's whole width, mine all but 40
@@ -398,11 +409,11 @@ export function LetterRowRN({ item, first = false, lit, env, onLayout }: { item:
      need this width to wrap and to put the time at the right */
   const inner = cardW - 2 * frame.paddingHorizontal - 2 * frame.borderWidth;
   const head = !!item.head && (
-    <Text numberOfLines={1} importantForAccessibility="no" accessibilityElementsHidden style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: item.mine ? tk.ind : tk.mute }}>
+    <Text numberOfLines={1} importantForAccessibility="no" accessibilityElementsHidden style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: item.mine ? tk.ind : tk.mute }}>
       {item.head}
     </Text>
   );
-  const time = !!item.timeLabel && <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, color: tk.mute, alignSelf: "flex-end" }}>{item.timeLabel}</Text>;
+  const time = !!item.timeLabel && <Text style={{ ...PFM.monoMed, fontSize: MONO.label, color: tk.mute, alignSelf: "flex-end" }}>{item.timeLabel}</Text>;
 
   return (
     <View onLayout={onLayout} style={{ opacity: lit ? 0.5 : 1 }}>
@@ -410,7 +421,7 @@ export function LetterRowRN({ item, first = false, lit, env, onLayout }: { item:
       <View style={{ marginLeft: item.mine ? MINE_INDENT : 0, marginBottom: 10 }}>
         {!item.head && !!item.speakerLabel && (
           // a letter with no head line (a builder without the cards): its old label above it
-          <Text importantForAccessibility="no" accessibilityElementsHidden style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 1, color: tk.mute, marginBottom: 6, marginHorizontal: 2 }}>
+          <Text importantForAccessibility="no" accessibilityElementsHidden style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 1, color: tk.mute, marginBottom: 6, marginHorizontal: 2 }}>
             {item.speakerLabel}
           </Text>
         )}
@@ -446,7 +457,7 @@ export function LetterRowRN({ item, first = false, lit, env, onLayout }: { item:
                 <MessageMenu actions={acts} radius={8}>
                   {/* the card's own face under the lifted copy (Midnight only, as in SwiftUI) */}
                   <View style={{ width: inner, gap: 6, backgroundColor: tk.dark ? cardFill(tk, item.mine) : "transparent" }}>
-                    {!!item.body && <Text style={{ fontFamily: "Newsreader-Italic", fontStyle: "italic", fontSize: 13, lineHeight: 18, color: tk.sub }}>{item.body}</Text>}
+                    {!!item.body && <Text style={{ ...captionFace, fontSize: 13, lineHeight: 18, color: tk.sub }}>{item.body}</Text>}
                     {time}
                   </View>
                 </MessageMenu>

@@ -6,7 +6,7 @@ import { PALETTE, type Daylight } from "./CourierCard";
 import { WrenBird, type WrenAccessory, type WrenMood, type WrenStage } from "./WrenBird";
 import { readBest, saveRun } from "../lib/free-flight";
 import { replanLocal } from "../lib/local-push";
-import { P, PF } from "../theme/post";
+import { P, PF, PFM } from "../theme/post";
 import { t } from "../lib/i18n";
 
 /* FREE FLIGHT — her day off, played right on her cover (owner, 2026-09-24:
@@ -433,7 +433,7 @@ export function FreeFlight({
       </Animated.View>
       {phase !== "over" && !!want && (
         <Animated.View pointerEvents="none" style={[{ position: "absolute", left: width * BIRD_X + BIRD / 2 + 8, top: 0, height: 32, minWidth: 32, paddingHorizontal: 8, borderRadius: 16, backgroundColor: "#FFFFFF", borderWidth: 2.4, borderColor: P.ink, alignItems: "center", justifyContent: "center" }, tagStyle]}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 17, color: P.ink }}>
+          <Text style={{ ...PFM.monoSemi, fontSize: 17, color: P.ink }}>
             {want.toUpperCase()}
             {/* the next two, fainter — read ahead, keep the rhythm */}
             <Text style={{ fontSize: 12, color: P.ink40 }}> {upcoming}</Text>
@@ -445,7 +445,7 @@ export function FreeFlight({
       <View style={{ position: "absolute", right: 12, top: 8, flexDirection: "row", alignItems: "center", gap: 8 }}>
         {phase !== "ready" && (
           <View style={{ backgroundColor: "#FFFFFF", borderRadius: 999, borderWidth: 2, borderColor: P.ink, paddingHorizontal: 10, height: 30, justifyContent: "center" }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 12.5, color: P.ink }}>{gates}</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: 12.5, color: P.ink }}>{gates}</Text>
           </View>
         )}
         <Pressable onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel={t("ff.done")} style={({ pressed }) => ({ width: 30, height: 30, borderRadius: 15, backgroundColor: "#FFFFFF", borderWidth: 2, borderColor: P.ink, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
@@ -455,7 +455,7 @@ export function FreeFlight({
 
       {/* the sentence she is flying on — done in ink, the next letter underlined */}
       {phase !== "over" && (
-        <Text pointerEvents="none" style={{ position: "absolute", left: 14, right: 14, top: top + 6, fontFamily: PF.monoSemi, fontSize: 12.5, lineHeight: 18 }}>
+        <Text pointerEvents="none" style={{ position: "absolute", left: 14, right: 14, top: top + 6, ...PFM.monoSemi, fontSize: 12.5, lineHeight: 18 }}>
           {text.split("").map((c, i) => {
             const li = text.slice(0, i + 1).replace(/[^a-z]/g, "").length - 1;
             const isLetter = /[a-z]/.test(c);
@@ -474,16 +474,16 @@ export function FreeFlight({
       {faster && phase === "flying" && (
         <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: height * 0.34, alignItems: "center" }}>
           <View style={{ backgroundColor: "#C3E84F", borderWidth: 2.4, borderColor: P.ink, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4, transform: [{ rotate: "-4deg" }] }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: 14, letterSpacing: 2, color: P.ink }}>{t("ff.faster")}</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: 14, letterSpacing: 2, color: P.ink }}>{t("ff.faster")}</Text>
           </View>
         </View>
       )}
 
       {phase === "ready" && (
         <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, bottom: GROUND + 14, alignItems: "center" }}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 2, color: night ? "rgba(255,255,255,0.72)" : P.ink60, marginBottom: 6 }}>{t("ff.title").toUpperCase()}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 9.5, letterSpacing: 2, color: night ? "rgba(255,255,255,0.72)" : P.ink60, marginBottom: 6 }}>{t("ff.title").toUpperCase()}</Text>
           <Text style={{ fontFamily: PF.letter, fontWeight: "800", fontSize: 18, color: onSkyInk }}>{t("ff.takeoff", { letter: (want ?? "t").toUpperCase() })}</Text>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: night ? "rgba(255,255,255,0.72)" : P.ink60, marginTop: 6, paddingHorizontal: 16, textAlign: "center" }}>
+          <Text style={{ ...PFM.monoSemi, fontSize: 9.5, letterSpacing: 1.4, color: night ? "rgba(255,255,255,0.72)" : P.ink60, marginTop: 6, paddingHorizontal: 16, textAlign: "center" }}>
             {t("ff.hint")}
             {best > 0 ? ` · ${t("ff.best", { n: best })}` : ""}
           </Text>
@@ -494,7 +494,7 @@ export function FreeFlight({
         <View style={{ position: "absolute", left: 16, right: 16, top: top + 10, backgroundColor: "#FFFFFF", borderRadius: 18, borderWidth: 2.4, borderColor: P.ink, padding: 14, shadowColor: P.ink, shadowOffset: { width: 5, height: 5 }, shadowOpacity: 1, shadowRadius: 0 }}>
           {newBest && (
             <View style={{ position: "absolute", right: 12, top: -12, backgroundColor: "#C3E84F", borderWidth: 2, borderColor: P.ink, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, transform: [{ rotate: "6deg" }] }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.4, color: P.ink }}>{t("ff.newBest")}</Text>
+              <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.4, color: P.ink }}>{t("ff.newBest")}</Text>
             </View>
           )}
           <Text style={{ fontFamily: PF.letter, fontWeight: "800", fontSize: 18, letterSpacing: -0.3, color: P.ink }}>{t("ff.crashTitle")}</Text>
@@ -514,7 +514,7 @@ export function FreeFlight({
             >
               <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 14.5, color: "#FFFFFF" }}>{t("ff.again")}</Text>
             </Pressable>
-            <Text numberOfLines={2} style={{ flex: 1, fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>
+            <Text numberOfLines={2} style={{ flex: 1, ...PFM.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40 }}>
               {best > 0 && !newBest ? `${t("ff.best", { n: best })} · ` : ""}
               {t("ff.anyKey")}
             </Text>
@@ -547,8 +547,8 @@ export function FreeFlight({
 function Stat({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <View style={{ flex: 1, backgroundColor: "#F3F2FB", borderRadius: 10, paddingVertical: 6, alignItems: "center" }}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 15, color: strong ? P.pen : P.ink }}>{value}</Text>
-      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontFamily: PF.monoSemi, fontSize: 8, letterSpacing: 0.8, color: P.ink40, marginTop: 2 }}>{label}</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: 15, color: strong ? P.pen : P.ink }}>{value}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ ...PFM.monoSemi, fontSize: 8, letterSpacing: 0.8, color: P.ink40, marginTop: 2 }}>{label}</Text>
     </View>
   );
 }

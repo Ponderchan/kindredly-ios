@@ -30,14 +30,14 @@ export default function DevWardrobeSlip() {
   if (!__DEV__) return <Redirect href="/" />;
   const btn = (label: string, onPress: () => void) => (
     <Pressable onPress={onPress} style={({ pressed }) => ({ borderWidth: 2, borderColor: OB.ink, borderRadius: 22, paddingHorizontal: 14, paddingVertical: 9, marginRight: 8, marginTop: 8, opacity: pressed ? 0.6 : 1 })}>
-      <Text style={{ fontFamily: FONT.semi, fontSize: 14, color: OB.ink }}>{label}</Text>
+      <Text style={{ ...FONT.semi, fontSize: 14, color: OB.ink }}>{label}</Text>
     </Pressable>
   );
   return (
     <View style={{ flex: 1, backgroundColor: OB.shell, paddingTop: insets.top + 12, paddingHorizontal: 18 }}>
       <StatusBar style="dark" />
-      <Text style={{ fontFamily: FONT.head, fontSize: 24, color: OB.ink }}>Wardrobe slip · dev</Text>
-      <Text style={{ fontFamily: FONT.body, fontSize: 13, color: OB.inkSoft, marginTop: 4 }}>DEMO below: Keep only logs. The demo Today shows the real slip (don't Keep there).</Text>
+      <Text style={{ ...FONT.head, fontSize: 24, color: OB.ink }}>Wardrobe slip · dev</Text>
+      <Text style={{ ...FONT.body, fontSize: 13, color: OB.inkSoft, marginTop: 4 }}>DEMO below: Keep only logs. The demo Today shows the real slip (don't Keep there).</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 6 }}>
         {btn("show the demo slip again", () => setN((x) => x + 1))}
         {btn("on the demo Today (sets the flag)", () => void setFlag(WARDROBE_SLIP).then(() => router.push("/dev/step5-today" as Href)))}

@@ -6,13 +6,13 @@ import SwiftUI
  THE NOTES HEADER (10a, H:50 and H:337, the fused "shrink, then hide" variant) and the date chip
  that takes its place (H:111).
 
-   NOTES                                  [▤ Card] [▦]      74 tall at rest, title 24
+   NOTES                                  [▤ Card] [▦]      74 tall at rest, title 22
    NOTES                                     [▤] [▦]        48 tall by y≈43, title 15, the
                                                             view label gone by y≈25
    (gone)       ( [☺] OCT 14 )                              hidden past 120 while scrolling down
 
- Shrink: height clamp(48, 74 − 0.6·y, 74); the title's size clamp(15, 24 − 0.22·y, 24), drawn at 24
- and scaled so the font isn't re-set every frame; the view button's label collapses (its width from
+ Shrink: height clamp(48, 74 − 0.6·y, 74); the title's size clamp(15, 22 − 0.22·y, 22), drawn at 22
+ (.pageTitle, system bold, the size all four tabs' titles share, owner 2026-10-20) and scaled so the font isn't re-set every frame; the view button's label collapses (its width from
  its own size to 0 by y = 30, opacity 1 − y/25, the gap 6 − 0.3·y), so a long translation shrinks
  away rather than being cut at the mock's fixed 60. No rule under it (owner). The title is a
  header for VoiceOver and fits a long name (NOTIZEN, CATATAN) by shrinking to .7.
@@ -150,7 +150,7 @@ extension KMotion {
 /// The header, scroll-driven. Its height and title follow the offset; it hides by KNotesScrollState.
 struct KNotesHeaderBar: View {
   static let fullHeight: CGFloat = 74
-  static let title = KTextStyle.system(24, .semibold, tracking: 0.04)
+  static let title = KTextStyle.pageTitle
   static let justYou = KTextStyle.mono(11, .medium, tracking: 0.12)
 
   let theme: KTheme
@@ -169,7 +169,7 @@ struct KNotesHeaderBar: View {
   var body: some View {
     let y = empty ? 0 : max(0, chrome.offset)
     let height = min(Self.fullHeight, max(48, Self.fullHeight - 0.6 * y))
-    let scale = min(24, max(15, 24 - 0.22 * y)) / 24
+    let scale = min(22, max(15, 22 - 0.22 * y)) / 22
     let hidden = !empty && state.headerHidden
     HStack(alignment: .center, spacing: 12) {
       Text(strings.title)

@@ -6,18 +6,21 @@ import SwiftUI
  THE DOCK: everything above and in place of the composer, under the list (never in a
  safeAreaInset: spike pattern 1). Top to bottom:
 
- 1. the closing line ("Closes in 3 days…" and FIRST CLASS KEEPS IT OPEN ›, one link)
+ 1. the closing line ("Closes in 3 days…" in System 13, a sentence, and FIRST CLASS KEEPS IT
+    OPEN › in System 600 12, one link)
  2. Wren's notice (SoftGroup: soft, corners 16, padding 12 14; her bird 20, WREN NOTICED and the
-    evidence in mono 9, the ×, the line in system 15 at 1.5, the #word as an aura label)
+    evidence in mono 9, the ×, the line in the reader's Letter font 15 at 1.5 (her words are
+    content), the #word as an aura label)
  3. the sign door (pen-pal chat): above the status line and the strip, as it always stood
-    (critic): a capsule (sf, 2 ln, corners 20, mono 600 10), gold on cream with a wax shadow when
-    they went first, plain mono when I did
+    (critic): a capsule (sf, 2 ln, corners 20, System 600 13: a button), gold on cream with a wax
+    shadow when they went first, plain when I did (the waiting line stays a mono label)
  4. the status line: over the limit in postmark red, or the slow-network note in mute (it used to
     be a toast under the keyboard: spec bug 8)
- 5. the reply quote (2pt ind rule, REPLYING TO in mono 500 10 ind, one line of the excerpt, ×),
+ 5. the reply quote (2pt ind rule, REPLYING TO in mono 500 10 ind, one line of the excerpt in the
+    Letter font, ×),
     only while no mode is set
  6. the mode box (lav2, 1.5 ind outline, corners 16, padding 12): its title, ×, and the question's
-    prompt field (ask) or the prompt being answered
+    prompt field (ask) or the prompt being answered, both in the Letter font (what someone writes)
  7. a room's ideas bubble (chat composers B, Prompt 4: Chat/KKindredBar.swift KIdeasBubble), 8
     above the bar while it is open
  8. the composer row — or, in its place, the gone line or the expired card (InkCard .me,
@@ -151,7 +154,7 @@ struct KChatDockView: View {
       switch shownTerminal {
       case .gone:
         Text(dock.goneText)
-          .kText(.mono(11, .medium, tracking: 0.03))
+          .kText(.system(13))
           .foregroundStyle(theme.mute)
           .multilineTextAlignment(.center)
           .frame(maxWidth: .infinity)
@@ -285,12 +288,12 @@ struct KChatDockView: View {
     } label: {
       VStack(alignment: .leading, spacing: 4) {
         Text(dock.closingText)
-          .kText(.mono(11, .medium, tracking: 0.02))
+          .kText(.system(13))
           .foregroundStyle(theme.sub)
           .multilineTextAlignment(.leading)
         if !dock.closingLink.isEmpty {
           Text(dock.closingLink + " ›")
-            .kText(.mono(10, .semibold, tracking: 0.12))
+            .kText(.system(12, .semibold))
             .foregroundStyle(theme.ind)
         }
       }
@@ -323,7 +326,7 @@ struct KChatDockView: View {
         KChatCloseButton(theme: theme, label: notice.closeLabel) { actions.onDock("noticeClose") }
       }
       Text(notice.line)
-        .kText(.system(15, lineHeight: 1.5))
+        .kText(.content(15, lineHeight: 1.5))
         .foregroundStyle(theme.ink)
         .fixedSize(horizontal: false, vertical: true)
       if !notice.word.isEmpty {
@@ -365,7 +368,7 @@ struct KChatDockView: View {
         actions.onDock("sign")
       } label: {
         Text(dock.signLabel)
-          .kText(.mono(10, .semibold, tracking: 0.12))
+          .kText(.system(13, .semibold))
           .foregroundStyle(gold ? KBrand.goldText : theme.ink)
           .multilineTextAlignment(.center)
           .padding(.horizontal, 14 + 2)
@@ -403,7 +406,7 @@ struct KChatDockView: View {
           .foregroundStyle(theme.ind)
           .lineLimit(1)
         Text(dock.replyExcerpt)
-          .kText(.system(14))
+          .kText(.content(14))
           .foregroundStyle(theme.sub)
           .lineLimit(1)
       }
@@ -433,7 +436,7 @@ struct KChatDockView: View {
         theme: theme,
         controller: driver.prompt,
         placeholder: mode?.promptPlaceholder ?? "",
-        style: .system(15.5),
+        style: .content(15.5),
         axis: .horizontal,
         lines: nil,
         returnSends: false,
@@ -449,7 +452,7 @@ struct KChatDockView: View {
       .accessibilityHidden(!showsPrompt)
       if let text = mode?.promptText, !text.isEmpty {
         Text(text)
-          .kText(.system(15.5, lineHeight: 1.4))
+          .kText(.content(15.5, lineHeight: 1.4))
           .foregroundStyle(theme.ink)
           .fixedSize(horizontal: false, vertical: true)
       }

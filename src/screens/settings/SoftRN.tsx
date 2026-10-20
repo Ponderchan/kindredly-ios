@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Pressable, Switch, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from "react-native";
-import { MONO, PF, letterFamily, letterFontKey } from "../../theme/post";
+import { MONO, PFM, letterFamily, letterFontKey } from "../../theme/post";
 import { THEMES, appearanceTheme, isAppearance, type ThemeKey } from "../../theme/themes";
 import { isAxFontScale } from "../notes/notes-model";
 import { useTheme } from "../../lib/theme";
@@ -31,7 +31,7 @@ export function SoftSection({ header, headerInset = 10, children, style }: { hea
   return (
     <View style={[{ gap: 6 }, style]}>
       {!!header && (
-        <Text accessibilityRole="header" style={{ fontFamily: PF.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute, paddingHorizontal: headerInset }}>
+        <Text accessibilityRole="header" style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute, paddingHorizontal: headerInset }}>
           {header.toLocaleUpperCase()}
         </Text>
       )}
@@ -80,7 +80,7 @@ export function SoftRowRN({
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Text style={{ flex: 1, fontSize: 15, color: tint ?? tk.ink }}>{label}</Text>
           {!!value && (
-            <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: MONO.title, color: tk.mute, flexShrink: 1, maxWidth: "55%" }}>
+            <Text numberOfLines={1} style={{ ...PFM.monoMed, fontSize: MONO.title, color: tk.mute, flexShrink: 1, maxWidth: "55%" }}>
               {value}
             </Text>
           )}

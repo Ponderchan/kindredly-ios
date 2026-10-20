@@ -7,7 +7,7 @@ import SwiftUI
  home indicator, on soft with a 1pt line along its top. Two cells, 10 apart from 18 in and 22
  down: ASK A QUESTION (a question under the letter, where a reply begins) and VOICE LETTER.
  A cell is a 62 square with corners of 16 — sf with a 1pt line edge, or ink when it is on, the
- drawing in the page colour then — over its label in mono 600 9 at .1em in sub. The voice cell
+ drawing in the page colour then — over its label in System 500 11 in sub (a button's caption). The voice cell
  is First Class: for anyone else its microphone is drawn at .45 with a small ind padlock badge
  (18, bg lock) at its corner, and a tap goes to the paywall (TS decides). The ASK cell is off
  while speaking (a recording carries no question, and the question field is drawn only under a
@@ -78,8 +78,9 @@ struct KMoreTray: View {
             .offset(x: 5, y: 5)
           }
         }
+        // a button's caption: System, as the Today band's (owner's type system, 10-20)
         Text(label)
-          .kText(.mono(9, .semibold, tracking: 0.1))
+          .kText(.system(11, .medium))
           .foregroundStyle(theme.sub)
           .multilineTextAlignment(.center)
           .fixedSize(horizontal: false, vertical: true)
@@ -129,7 +130,7 @@ struct KMoreGlyph: Shape {
  others, where the keyboard was, 168 above the home indicator, on soft with a 1.5 line along its
  top; 14 down and 20 in, 10 apart. The head row: PAPER · KRAFT in mono 500 10 at .14em in sub,
  then 8 later its tag (· FIRST CLASS in gold text, · FIRST KINDRED in ind); DONE on the right in
- mono 500 10 at .12em in mute, a 44 target that closes the strip. Under it the seven papers in a
+ System 500 13 in mute (a button), a 44 target that closes the strip. Under it the seven papers in a
  row that scrolls sideways (no indicators; SwiftUI's own drag tells a scroll from a tap, as the
  prototype's 6pt rule did): each the paper itself at 48 × 60 (KPaperSurface mini) and 6 under
  it its name, lower case, in mono 600 8 in sub (ind when chosen). A First Class paper wears the
@@ -200,8 +201,9 @@ struct KPaperTray: View {
       }
       Spacer(minLength: 8)
       SwiftUI.Button(action: onDone) {
+        // DONE is a button: System, the string as written
         Text(doneLabel)
-          .kText(.mono(10, .medium, tracking: 0.12))
+          .kText(.system(13, .medium))
           .foregroundStyle(theme.mute)
           .lineLimit(1)
           .frame(minWidth: 44, minHeight: 44, alignment: .trailing)

@@ -6,8 +6,8 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import Svg, { Path } from "react-native-svg";
 import { t, useLang } from "../../lib/i18n";
-import { PF } from "../../theme/post";
-import { useP, useTheme } from "../../lib/theme";
+import { PFM } from "../../theme/post";
+import { useLetterFamily, useP, useTheme } from "../../lib/theme";
 import { BackChevron } from "../../components/10a/BackChevron";
 import { AudioCard } from "../../components/AudioCard";
 import { moodArtKey, moodGroup, moodLabel } from "../../data/moods";
@@ -33,6 +33,8 @@ export default function JournalDetail() {
   useLang();
   const P = useP();
   const tk = useTheme().t;
+  // the page and its drifted line are content: the reader's Letter font
+  const face = useLetterFamily();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [e, setE] = useState<JournalEntry | null>(null);
@@ -152,7 +154,7 @@ export default function JournalDetail() {
           accessibilityState={{ expanded: menuOpen }}
           style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}
         >
-          <Text style={{ fontFamily: PF.mono, fontSize: 20, color: P.ink }}>···</Text>
+          <Text style={{ ...PFM.mono, fontSize: 20, color: P.ink }}>···</Text>
         </Pressable>
       </View>
 
@@ -167,7 +169,7 @@ export default function JournalDetail() {
             <CalGlyph />
             {/* the mood's name after the date, as the cards say it (the group's
                 name for a group alone) — never for a page that stored no mood */}
-            <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 0.8, color: P.ink60 }}>
+            <Text style={{ ...PFM.monoMed, fontSize: 11, letterSpacing: 0.8, color: P.ink60 }}>
               {new Date(e.date).toLocaleDateString(localeTag(), { weekday: "short", month: "short", day: "numeric" }).toLocaleUpperCase(localeTag())}
               {moodName ? ` · ${moodName}` : ""}
               {isDemo ? " · SAMPLE" : ""}
@@ -193,7 +195,7 @@ export default function JournalDetail() {
 
         {/* the page */}
         {!!e.body && (
-          <Text style={{ fontFamily: PF.letter, fontSize: pure ? 20 : 16.5, lineHeight: pure ? 34 : 27, color: P.ink }}>
+          <Text style={{ ...face, fontSize: pure ? 20 : 16.5, lineHeight: pure ? 34 : 27, color: P.ink }}>
             {e.body}
           </Text>
         )}
@@ -201,11 +203,11 @@ export default function JournalDetail() {
         {/* drifted state — the action itself now lives in the ··· menu */}
         {e.driftedLine && (
           <View style={{ marginTop: 28, borderTopWidth: 1, borderTopColor: tk.ln, paddingTop: 14 }}>
-            <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: P.pen, marginBottom: 10 }}>
+            <Text style={{ ...PFM.monoMed, fontSize: 10, letterSpacing: 1.4, color: P.pen, marginBottom: 10 }}>
               {t("jd.oneLineOut")}
             </Text>
-            <Text style={{ fontFamily: PF.letter, fontSize: 15.5, lineHeight: 24, color: ON_HIGHLIGHT, backgroundColor: "#F6E7A6" }}>{e.driftedLine}</Text>
-            <Text style={{ fontFamily: PF.mono, fontSize: 10, letterSpacing: 0.6, color: P.ink40, marginTop: 10 }}>
+            <Text style={{ ...face, fontSize: 15.5, lineHeight: 24, color: ON_HIGHLIGHT, backgroundColor: "#F6E7A6" }}>{e.driftedLine}</Text>
+            <Text style={{ fontSize: 12, fontWeight: "400", lineHeight: 17, color: P.ink40, marginTop: 10 }}>
               {t("jd.tomorrowStranger")}
             </Text>
           </View>
@@ -298,7 +300,7 @@ function MenuRow({ label, onPress, destructive, icon }: { label: string; onPress
       })}
     >
       {icon}
-      <Text style={{ fontFamily: PF.monoMed, fontSize: 11, letterSpacing: 1, color: destructive ? P.post : P.ink }}>{label}</Text>
+      <Text style={{ fontSize: 14, fontWeight: "600", letterSpacing: 0.3, color: destructive ? P.post : P.ink }}>{label}</Text>
     </Pressable>
   );
 }
@@ -430,7 +432,7 @@ function PhotoGallery({
       )}
 
       {canSetCover && photos.length > 1 && (
-        <Text style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 0.8, color: P.ink40, marginTop: 8 }}>
+        <Text style={{ fontSize: 12, fontWeight: "400", color: P.ink40, marginTop: 8 }}>
           {t("jd.coverHint")}
         </Text>
       )}

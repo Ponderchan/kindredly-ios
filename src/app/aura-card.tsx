@@ -104,7 +104,7 @@ export default function AuraShareCard() {
     <SafeAreaView style={{ flex: 1, backgroundColor: ui.page }} edges={["top"]}>
       <View style={{ height: 52, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 56 }}>
         <BackChevron onPress={done} color={tk.ink} label={t("sh.a11y.back")} />
-        <Text style={{ flex: 1, textAlign: "center", fontFamily: PF.monoSemi, fontSize: 12, letterSpacing: 2.4, color: tk.ink }}>{t("ac.shareYourAura")}</Text>
+        <Text accessibilityRole="header" numberOfLines={1} style={{ flex: 1, textAlign: "center", fontSize: 17, fontWeight: "500", color: tk.ink }}>{t("ac.shareYourAura")}</Text>
       </View>
 
       {aura && (

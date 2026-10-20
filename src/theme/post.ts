@@ -9,7 +9,8 @@
    next. White is the only ground that holds all four and lets the stamps, the
    mood faces and the pen accent carry the colour instead.
 
-   Deliberately small: one surface, one black, three inks, two type families.
+   Deliberately small: one surface, one black, three inks, and the type
+   below (THE TYPE: system, SF Mono, the reader's Letter font).
    If a thing isn't in here, it doesn't belong on the page. */
 
 export const P = {
@@ -50,16 +51,41 @@ export const P = {
    face asked for alone comes out upright. (A JS bundle that relies on these
    names must never reach a binary built without them: runtimeVersion follows
    the app version, so an update can't.) */
+/* THE TYPE (owner, 2026-10-20): four faces only. The system font (SF Pro)
+   for UI — fontFamily left unset (PF.letter is that, undefined) and the
+   weight said in fontWeight; SF Mono for labels and the send key — PFM;
+   and the reader's Letter font for CONTENT (letters, replies, notes, chat
+   bubbles, Wren's lines, quotes, and every field someone writes in) —
+   useLetterFamily() in lib/theme, or letterFamily(key) here. Fraunces
+   (PF.serif*), Inter (PF.writing) and IBM Plex Mono are no longer drawn;
+   their tokens stay until a later step takes them and their files out.
+
+   SF MONO has no file: React Native maps "ui-monospace" to the system
+   monospaced design (RCTFontUtils.mm), at the weight fontWeight gives —
+   the face name no longer carries it, as Plex's did. So the mono is a
+   style FRAGMENT, family and weight together, spread into a style:
+   `{ ...PFM.monoSemi, fontSize: 10 }`. A later fontWeight in the same style
+   still wins. PF.mono* below are the bare family, kept so nothing that
+   reads them breaks; a fontFamily: PF.mono* alone draws 400. */
+export const MONO_FAMILY = "ui-monospace";
+export const PFM = {
+  /** SF Mono 400 (was IBM Plex Mono Regular) */
+  mono: { fontFamily: MONO_FAMILY, fontWeight: "400" },
+  /** SF Mono 500 (was IBM Plex Mono Medium) */
+  monoMed: { fontFamily: MONO_FAMILY, fontWeight: "500" },
+  /** SF Mono 600 (was IBM Plex Mono SemiBold) */
+  monoSemi: { fontFamily: MONO_FAMILY, fontWeight: "600" },
+} as const;
+
 export const PF = {
-  mono: "IBMPlexMono-Regular",
-  monoMed: "IBMPlexMono-Medium",
-  monoSemi: "IBMPlexMono-SemiBold",
+  // the bare family; use PFM, which carries the weight too
+  mono: MONO_FAMILY,
+  monoMed: MONO_FAMILY,
+  monoSemi: MONO_FAMILY,
   // the letter itself — system font, so CJK renders properly (see F.letter)
   letter: undefined as unknown as string,
-  // WHERE YOU WRITE. A plain, quiet sans — the type a person types in, not
-  // the type a letter is set in. Writing is done in this; the letter is
-  // read in letterSerif once it arrives (owner, 2026-09-20: "the font in
-  // your input box"). Inter falls through to the system face for CJK.
+  // OLD (Inter): where you wrote. Fields where someone writes content now
+  // take the Letter font (useLetterFamily); don't add uses.
   writing: "Inter-Regular",
   // a letter between two people — read and written in a text serif
   // (Newsreader: a text face made for long reading on a screen. Fraunces stays
@@ -67,9 +93,12 @@ export const PF = {
   // mannerism in the middle of someone's sentence — owner, 2026-09-20). CJK
   // glyphs fall through to the system face, which is what we want; fontStyle
   // "italic" finds Newsreader-Italic in its family.
-  // 10a: someone's letter being READ takes the reader's own choice instead —
-  // letterFamily(letterFont) below, or useLetterFamily() in lib/theme.
+  // 10a: content takes the reader's own choice instead — letterFamily(
+  // letterFont) below, or useLetterFamily() in lib/theme. This fixed
+  // Newsreader is OLD: content moves to useLetterFamily, UI to the system.
   letterSerif: "Newsreader-Regular",
+  // OLD (Fraunces): not drawn any more; UI moves to the system font, Wren's
+  // lines to useLetterFamily(true)
   serif: "Fraunces-Regular",
   serifItalic: "Fraunces-Italic",
 } as const;
@@ -79,7 +108,7 @@ export const PF = {
 export const panel = { borderWidth: 1, borderColor: P.ink } as const;
 export const panelSoft = { borderWidth: 1, borderColor: P.ink12 } as const;
 
-/* the one filled button: pen blue, square, mono label */
+/* the one filled button: pen blue, square */
 export const solidBtn = { backgroundColor: P.pen, paddingVertical: 15, alignItems: "center" } as const;
 
 /* a full-strength hairline — the system's structural move */
@@ -108,14 +137,14 @@ export const MONO = {
 } as const;
 
 /* ── THE LETTER FONT (10a, a device setting) ───────────────────────────────
-   Someone else's letter is set in the face the reader chose: Newsreader
-   (the default, embedded), New York (Apple's own serif, in every iPhone, no
-   file needed) or EB Garamond. Where it applies is owner question 1, built
-   with its recommended answer: wherever a letter is READ — the Today card
-   and its reader, a pen pal's letter blocks before names are traded, My
-   letters, the opening letter on a kindred's page, the quotes in Keepsakes
-   and Lore. Room chat bubbles, fold answers and every input stay in the
-   system face.
+   CONTENT is set in the face the reader chose: Newsreader (the default,
+   embedded), New York (Apple's own serif, in every iPhone, no file
+   needed), EB Garamond or SF Mono. It reaches all content (owner,
+   2026-10-20): letters, replies, notes, chat bubbles, translations,
+   quotes, fold answers, Wren's lines everywhere, my-letter previews, and
+   every field where someone writes content. A paper keeps its colour,
+   texture and size; the reader's face wins over it. The Kindreds list's
+   preview line and names stay in the system face.
 
    The choice itself lives in lib/theme (ThemeProvider: letterFont and
    setLetterFont; useLetterFont, useLetterFamily), stored on the phone like
@@ -126,8 +155,9 @@ export const MONO = {
    licence sits beside it): the Google Fonts variable file pinned to 400 and
    cut to Latin with fontTools (851 KB → 216 KB; CJK and other scripts fall
    through to the system face, as they do from Newsreader). Only the Regular
-   is in the app: an italic letter in Garamond asks for the Regular with
-   fontStyle "italic", the same face Swift slants (KType). Only a binary
+   is in the app, and SF Mono has no italic either: italic content in
+   either is drawn upright (fontStyle "normal"), never slanted by the
+   system, as Swift does (KLetterFace.hasItalic). Only a binary
    built with the file can draw it (runtimeVersion follows the app version,
    so no update reaches a binary without it). */
 export const GARAMOND_READY: boolean = true;
@@ -162,14 +192,46 @@ export function letterFontKey(raw: unknown): LetterFontKey {
 /** a Text style fragment: spread it into the style of a letter's text */
 export type LetterFace = { fontFamily: string; fontStyle: "normal" | "italic" };
 
-/** The React Native type for a letter set in `key`. Italic is said twice —
+/** Whether the face has a true italic: Newsreader and New York do;
+    Garamond (Regular only) and SF Mono don't. */
+export function letterHasItalic(key: LetterFontKey): boolean {
+  const k = letterFontKey(key);
+  return k === "newsreader" || k === "newyork";
+}
+
+/** The React Native type for content set in `key`. Italic is said twice —
     the italic face AND fontStyle "italic" — as every italic in this app
     must be (see PF above); the upright one says "normal", so it never
-    inherits an italic from a parent Text. A key this build can't draw
+    inherits an italic from a parent Text. Italic in a face without one
+    (Garamond, SF Mono) is upright. A key this build can't draw
     (Garamond before GARAMOND_READY) gives the default face. */
 export function letterFamily(key: LetterFontKey, italic = false): LetterFace {
   const face = LETTER_FACES[letterFontKey(key)];
-  return italic ? { fontFamily: face.italic, fontStyle: "italic" } : { fontFamily: face.regular, fontStyle: "normal" };
+  return italic && letterHasItalic(key) ? { fontFamily: face.italic, fontStyle: "italic" } : { fontFamily: face.regular, fontStyle: "normal" };
+}
+
+/** Whether the face takes more room than Newsreader, the face the content
+    layouts were drawn for: SF Mono is about 20% wider, Garamond's line is
+    1.305 tall. */
+export function letterIsRoomy(key: LetterFontKey): boolean {
+  const k = letterFontKey(key);
+  return k === "sfmono" || k === "garamond";
+}
+
+/** The numberOfLines to allow content laid out for `lines` in Newsreader:
+    one more in a roomy face, so it isn't cut. */
+export function letterFitLines(key: LetterFontKey, lines: number): number {
+  return letterIsRoomy(key) ? lines + 1 : lines;
+}
+
+/** The size to set content at in a box measured for Newsreader at `size`
+    (a fixed height, a one-line limit): SF Mono a step down for its width,
+    Garamond for its taller line. The same numbers as Swift's
+    KLetterFace.fitSize. */
+export function letterFitSize(key: LetterFontKey, size: number): number {
+  const k = letterFontKey(key);
+  const f = k === "sfmono" ? 0.85 : k === "garamond" ? 0.92 : 1;
+  return f === 1 ? size : Math.round(size * f * 2) / 2;
 }
 
 /* ── the channel tag's two colours ────────────────────────────────────────

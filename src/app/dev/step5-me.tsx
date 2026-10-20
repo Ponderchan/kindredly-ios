@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isKindredlyUIViewAvailable } from "../../../modules/kindredly-ui";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
 import { t, useLang } from "../../lib/i18n";
-import { PF } from "../../theme/post";
+import { PFM } from "../../theme/post";
 import { THEME_KEYS, THEMES, type ThemeKey } from "../../theme/themes";
 import { storeAura } from "../../lib/dev-store";
 import { whereabouts } from "../../lib/whereabouts";
@@ -320,7 +320,7 @@ function MeLab() {
             <Chip label={`DOOR ${door.toUpperCase()}`} onPress={() => setDoor((d) => DOOR_MODES[(DOOR_MODES.indexOf(d) + 1) % DOOR_MODES.length])} />
             <Chip label="TRIAL" on={trial} onPress={() => setTrial((v) => !v)} />
           </Row>
-          <Text style={{ fontFamily: PF.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>
+          <Text style={{ ...PFM.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>
             {`THEME ${themeLabel} (${key}) · ${useSwift ? "SWIFTUI" : "REACT NATIVE"}${swiftAvailable ? "" : " (no KMeView in this build)"} · ${t("me.header")} · SEGMENT ${segment}`}
           </Text>
         </View>
@@ -348,7 +348,7 @@ function Chip({ label, on = false, onPress }: { label: string; on?: boolean; onP
       accessibilityState={{ selected: on }}
       style={({ pressed }) => ({ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 16, borderWidth: 1.5, borderColor: on ? tk.ink : tk.line, backgroundColor: on ? tk.ink : tk.sf, opacity: pressed ? 0.7 : 1 })}
     >
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 0.8, color: on ? tk.bg : tk.ink }}>{label}</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 0.8, color: on ? tk.bg : tk.ink }}>{label}</Text>
     </Pressable>
   );
 }

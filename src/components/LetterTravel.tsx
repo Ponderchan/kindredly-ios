@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Animated, Text, View, useWindowDimensions } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
-import { PF } from "../theme/post";
+import { PF, PFM } from "../theme/post";
 import { WrenBird } from "./WrenBird";
 import { useWrenName } from "../lib/wren-name";
 import { t, useLang } from "../lib/i18n";
@@ -512,7 +512,7 @@ export function LetterTravel({
       {/* the words, in real type on the sheet's grid */}
       <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: py(84), alignItems: "center", opacity: markIn * (1 - outro), transform: [{ translateY: (1 - markIn) * 8 * k }] }}>
         <Text style={{ fontFamily: PF.letter, fontWeight: "800", fontSize: 30 * k, lineHeight: 36 * k, letterSpacing: -0.7 * k, color: wordInk, textAlign: "center", paddingHorizontal: 24 }}>{title ?? t("so.travel.title")}</Text>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 11 * k, letterSpacing: 2.4 * k, color: noteInk, marginTop: 12 * k, textAlign: "center", paddingHorizontal: 24 }}>{(note ?? t("so.travel.sub", { name: wren })).toUpperCase()}</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: 11 * k, letterSpacing: 2.4 * k, color: noteInk, marginTop: 12 * k, textAlign: "center", paddingHorizontal: 24 }}>{(note ?? t("so.travel.sub", { name: wren })).toUpperCase()}</Text>
       </View>
     </Animated.View>
   );

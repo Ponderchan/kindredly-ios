@@ -262,8 +262,9 @@ export const useLetterFont = (): LetterFontKey => useContext(ThemeCtx).letterFon
 
 /** The React Native type for someone's letter in the reader's chosen face —
     spread it into the Text style: `style={[{ fontSize: 17 }, useLetterFamily()]}`.
-    Only for letters being READ (theme/post: where the letter font applies);
-    inputs and chat bubbles stay in the system face. */
+    For all CONTENT (theme/post: where the letter font applies): letters,
+    notes, chat bubbles, Wren's lines, and every field where someone writes
+    content. Pass true for an italic line; a face without one draws upright. */
 export function useLetterFamily(italic = false): LetterFace {
   const k = useLetterFont();
   return useMemo(() => letterFamily(k, italic), [k, italic]);

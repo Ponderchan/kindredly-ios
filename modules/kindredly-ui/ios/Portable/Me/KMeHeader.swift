@@ -9,8 +9,8 @@ import SwiftUI
  EXPANDED (k = 0), 6 below the status bar, 20 in from the edges:
    row 1, 76 tall, 12 apart: the 72 avatar on soft2 (the React Native island, drawn 72 and
      scaled, never re-laid out) with a 24 white pencil badge at its bottom right (a 1.5 line
-     outline, the pen at 15); the name, system 600 22/1.1, 8 over "joined Jul 27" (13, sub);
-     the gear, 22 at stroke 1.9 in a 36 circle (O3: a gear, never sliders).
+     outline, the pen at 15); the name, system 700 22/1.1 (the tab titles' .pageTitle), 8 over
+     "joined Jul 27" (13, sub); the gear, 22 at stroke 1.9 in a 36 circle (O3: a gear, never sliders).
    (2026-10-20, owner) no row 2: "12 letters · 4 kindreds" is a line between the name and joined,
      each half opening its peek tray.
    the peek tray, 10 lower, when one is open (KMePeekTray).
@@ -173,7 +173,7 @@ struct KMeHeaderBody<Avatar: View>: View {
 
       VStack(alignment: .leading, spacing: Self.lerp(4, 0, k)) {
         Text(content.profile.name)
-          .font(.system(size: nameSize, weight: .semibold))
+          .font(.system(size: nameSize, weight: .bold))
           .foregroundStyle(theme.ink)
           .lineLimit(1)
           .minimumScaleFactor(0.7)

@@ -6,7 +6,7 @@ import * as Application from "expo-application";
 import Animated, { Easing, runOnJS, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import Svg, { Circle, Path } from "react-native-svg";
 import { StatusBar } from "expo-status-bar";
-import { PF } from "../theme/post";
+import { PF, PFM } from "../theme/post";
 import { t } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
 import type { ThemeTokens } from "../theme/themes";
@@ -381,8 +381,8 @@ export function launchGeometry(sw: number, sh: number): LaunchGeometry {
 
 /* the type of the word and the line, shared by the piece and the still frame */
 const WORD_TYPE = (color: string) => ({ fontFamily: PF.letter, fontWeight: "800" as const, fontSize: 40, lineHeight: 46, letterSpacing: -1.4, color });
-const TAG_TYPE = (color: string) => ({ fontFamily: PF.letterSerif, fontStyle: "italic" as const, fontSize: 18, lineHeight: 24, color, textAlign: "center" as const });
-const SUB_TYPE = (color: string) => ({ fontFamily: PF.monoSemi, fontSize: 10.5, letterSpacing: 2.6, color, marginTop: 10, textAlign: "center" as const });
+const TAG_TYPE = (color: string) => ({ fontWeight: "500" as const, fontSize: 18, lineHeight: 24, color, textAlign: "center" as const });
+const SUB_TYPE = (color: string) => ({ ...PFM.monoSemi, fontSize: 10.5, letterSpacing: 2.6, color, marginTop: 10, textAlign: "center" as const });
 
 /** The finished mark — two commas and the dot — at `size`, in one colour (white on Post Blue: the icon). */
 export function LaunchMarkArt({ size, color = "#FFFFFF", dot }: { size: number; color?: string; dot?: string }) {

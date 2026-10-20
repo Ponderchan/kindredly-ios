@@ -150,9 +150,10 @@ public struct InkCard<Content: View>: View {
    hanging 7 outside the top and bottom with a 1pt #DDD9E8 line along it (the drop-shadow); the
    sticky note's fold is a 32pt corner, the half towards the corner in the page colour and the
    flap #B5CC2E; riso's misregistration is a 1.5/1 text shadow in rgba(200,65,46,.55) with no blur.
- - Faces: G is the serif in the reader's Letter font (.letterRead at .todayCard: EB Garamond is
-   one of its choices, never forced), M is IBM Plex Mono 500 (the prototype loads 500 and 600 only,
-   so its 400 is drawn at 500), S is the system face.
+ - Faces: the reader's Letter font WINS on every paper (owner's type system, 10-20): a paper keeps
+   its colour, texture and size only. The prototype's G / M / S (serif / Plex Mono / system) now
+   say only how the letter is sized: G keeps the tier's size, M and S scale it by size / 29 with
+   the paper's leading (KPaper.cardSize / cardLine); the face is .letterRead either way.
  */
 
 /// One period of a CSS repeating-linear-gradient: its angle and its bands.
@@ -226,13 +227,14 @@ public struct KPaper: Equatable, Sendable, Identifiable {
     case free, kindred, first
   }
 
-  /// G, M and S in the prototype
+  /// G, M and S in the prototype: how the letter is sized on the paper (the face itself is always
+  /// the reader's Letter font)
   public enum Face: Sendable {
-    /// the serif, in the reader's Letter font (.letterRead)
+    /// the tier's own size
     case letter
-    /// IBM Plex Mono 500
+    /// the prototype's Plex Mono sheet: scaled by size / 29, on the paper's leading
     case mono
-    /// the system face
+    /// the prototype's system sheet: likewise
     case system
   }
 
@@ -423,18 +425,10 @@ public extension KPaper {
     return size * max(lineHeight, tierRatio)
   }
 
-  /// The style the letter is set in at `size` on `lineHeight` (points): the serif follows the
-  /// reader's Letter font; mono and system carry the paper's tracking.
+  /// The style the letter is set in at `size` on `lineHeight` (points): the reader's Letter font on
+  /// every paper (the paper no longer overrides the face, nor its tracking).
   func letterStyle(size: CGFloat, lineHeight line: CGFloat, place: KLetterPlace = .todayCard) -> KTextStyle {
-    let lh = size > 0 ? line / size : nil
-    switch face {
-    case .letter:
-      return .letterRead(size, lineHeight: lh, place: place)
-    case .mono:
-      return KTextStyle(face: .monoMedium, size: size, weight: .medium, tracking: tracking, lineHeight: lh)
-    case .system:
-      return KTextStyle(face: .system, size: size, weight: .regular, tracking: tracking, lineHeight: lh)
-    }
+    .letterRead(size, lineHeight: size > 0 ? line / size : nil, place: place)
   }
 
   /// The theme the card's pieces are drawn in on this paper: the base theme on Plain; elsewhere

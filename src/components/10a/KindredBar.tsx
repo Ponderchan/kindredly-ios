@@ -2,9 +2,9 @@ import { forwardRef, useEffect } from "react";
 import { Pressable, View, Text, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { GlyphInput } from "../GlyphInput";
-import { useTheme } from "../../lib/theme";
+import { useLetterFamily, useTheme } from "../../lib/theme";
 import { BRAND } from "../../theme/themes";
-import { PF } from "../../theme/post";
+import { PFM } from "../../theme/post";
 import { LineIcon } from "./LineIcon";
 import { EmojiKey } from "./ReplyBar";
 import { FIELD_FONT_CAP, useComposerField, type ComposerFieldHandle } from "./useComposerField";
@@ -30,7 +30,7 @@ import { KINDRED_BAR, KINDRED_BAR_MAX, KINDRED_BAR_PAD, capsuleFill, openKeyFill
      selected while the bubble is up, whose escape closes it.
    · THE CAPSULE: 40 tall at one line, corners of 20, on soft (Midnight:
      soft2, kit capsuleFill), padding 0 14, 4 from the keys, nothing in it
-     but the field (system 16, the placeholder "leave something here…" in
+     but the field (the Letter font at 16, the placeholder "leave something here…" in
      mute; one line growing to five, then it scrolls inside; uncontrolled,
      useComposerField). A tap on its own ground gives the field the keyboard.
    · THE EMOJI KEY (beside the +: the owner moved it out of the field): it
@@ -106,6 +106,8 @@ export const KindredBar = forwardRef<KindredBarHandle, KindredBarProps>(function
 ) {
   const { t: tk } = useTheme();
   const reduce = useReducedMotion();
+  // what someone writes is content: the reader's Letter font (KKindredBar: content: true)
+  const face = useLetterFamily();
   const f = useComposerField(ref, initialText, onChangeText);
   const { target, icon, disc, capsule: capsuleRest, capsulePad, gap, rowHeight, fontSize, lineHeight } = KINDRED_BAR;
   /* the capsule's one-line height follows the field's line at the reader's text size (40 at the
@@ -188,6 +190,7 @@ export const KindredBar = forwardRef<KindredBarHandle, KindredBarProps>(function
             paddingTop: KINDRED_BAR_PAD,
             paddingBottom: KINDRED_BAR_PAD,
             paddingHorizontal: 0,
+            ...face,
             fontSize,
             lineHeight,
             color: tk.ink,
@@ -245,10 +248,9 @@ const BUBBLE_IN = popIn(300);
      └──────────────────────────────────────────┘
 
    · AN IDEA in mono 500 10 at .14em, white at 60%;
-   · the sentence in Newsreader 19 on 1.3, white (every serif that isn't
-     someone's letter being read is Newsreader; the Letter font is for
-     letters only);
-   · two text keys in mono 600 10 at .12em, 14 apart: ↻ ANOTHER (white at
+   · the sentence in the reader's Letter font 19 on 1.3, white (Wren's
+     words are content, as every line she says is: owner, 2026-10-20);
+   · two text keys in System 600 13 (buttons), 14 apart: ↻ ANOTHER (white at
      70%) shows the next sentence, USE IT → (lime) puts this one in the
      field and gives it the keyboard. Each has a 44 tall target that
      doesn't push the bubble taller; VoiceOver reads them in lower case.
@@ -277,6 +279,8 @@ export function IdeasBubble({
 }) {
   const { t: tk } = useTheme();
   const reduce = useReducedMotion();
+  // Wren's words are content: the reader's Letter font (KKindredBar, owner 2026-10-20)
+  const face = useLetterFamily();
   const white = "#FFFFFF";
   return (
     <Animated.View
@@ -299,11 +303,11 @@ export function IdeasBubble({
         style,
       ]}
     >
-      <Text maxFontSizeMultiplier={2} style={{ fontFamily: PF.monoMed, fontSize: 10, letterSpacing: 1.4, color: white, opacity: 0.6 }}>
+      <Text maxFontSizeMultiplier={2} style={{ ...PFM.monoMed, fontSize: 10, letterSpacing: 1.4, color: white, opacity: 0.6 }}>
         {label}
       </Text>
       {/* a new sentence fades in where the old one was (never both stacked) */}
-      <Animated.Text key={idea} entering={FadeIn.duration(200)} maxFontSizeMultiplier={2} style={{ fontFamily: PF.letterSerif, fontSize: 19, lineHeight: 24.7, color: white }}>
+      <Animated.Text key={idea} entering={FadeIn.duration(200)} maxFontSizeMultiplier={2} style={{ ...face, fontSize: 19, lineHeight: 24.7, color: white }}>
         {idea}
       </Animated.Text>
       <View style={{ flexDirection: "row", gap: 14 }}>
@@ -314,7 +318,7 @@ export function IdeasBubble({
   );
 }
 
-/** A mono text key with a 44 tall target that doesn't change the bubble's height. */
+/** A text key (System: a button) with a 44 tall target that doesn't change the bubble's height. */
 function TextKey({ title, a11y, color, dim = false, onPress }: { title: string; a11y: string; color: string; dim?: boolean; onPress: () => void }) {
   return (
     <Pressable
@@ -324,7 +328,7 @@ function TextKey({ title, a11y, color, dim = false, onPress }: { title: string; 
       accessibilityLabel={a11y.toLocaleLowerCase()}
       style={({ pressed }) => ({ paddingVertical: 15, marginVertical: -15, opacity: pressed ? 0.6 : 1 })}
     >
-      <Text maxFontSizeMultiplier={2} style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1.2, color, opacity: dim ? 0.7 : 1 }}>
+      <Text maxFontSizeMultiplier={2} style={{ fontSize: 13, fontWeight: "600", color, opacity: dim ? 0.7 : 1 }}>
         {title}
       </Text>
     </Pressable>

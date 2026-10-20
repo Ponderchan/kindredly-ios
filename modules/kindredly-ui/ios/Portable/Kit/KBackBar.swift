@@ -7,9 +7,9 @@ import SwiftUI
  under them. No rule under it.
  - the back chevron (‹, M15 6l-7 6 7 6) 18 across at stroke 2.2 in ink, in a 36 box 12 from the
    left edge, with a 44 target; VoiceOver calls it backLabel;
- - the title centred, in mono 600 at .16em in capitals (the mock's 12; KMonoSizes, owner
-   question 2: 11), one line, shrinking to .7 before it would run into the chevron; it is the
-   page's header for VoiceOver;
+ - the title centred, in the system font 500 17 as written, not in capitals
+   (KTextStyle.secondaryTitle, owner 2026-10-20), one line, shrinking to .7 before it would run
+   into the chevron; it is the page's header for VoiceOver;
  - an optional trailing view 12 from the right edge (a Done, a count). The title keeps the
    same room at both ends, so it stays centred on the screen; keep the trailing view within
    the chevron's 44 or it reaches into the title's room;
@@ -34,7 +34,7 @@ public struct KBackBar<Trailing: View>: View {
   private let onBack: () -> Void
 
   /// - Parameters:
-  ///   - title: the page's name, set in capitals
+  ///   - title: the page's name, as written
   ///   - backLabel: what VoiceOver calls the chevron, already translated
   ///   - height: 52 (stickyHeight) or 44 (scrollingHeight)
   ///   - sticky: paint the page colour behind it, for a bar the page scrolls under
@@ -64,8 +64,7 @@ public struct KBackBar<Trailing: View>: View {
   public var body: some View {
     ZStack {
       Text(title)
-        .textCase(.uppercase)
-        .kText(.monoHeader)
+        .kText(.secondaryTitle)
         .foregroundStyle(theme.ink)
         .lineLimit(1)
         .minimumScaleFactor(0.7)
@@ -140,7 +139,8 @@ public extension KBackBar where Trailing == EmptyView {
  MY LETTERS (Me 4a, .claude/me4a/ME4A.md §1.7, §2.4), the route /my-letters drawn in Swift. It
  lives in this file rather than one of its own so the module needs no pod install (ME4A D1);
  KBackBar above is untouched. On the reader's theme, like the React Native page it replaces.
- - THE TOP ROW: ‹ (KBackChevron, Settings' size and place), "My letters" 22/600 and the count 18 in mute, the three-line manage key at
+ - THE TOP ROW: ‹ (KBackChevron, Settings' size and place), "My letters" centred as a secondary
+   page's title (secondaryTitle, 500 17) with the count in mute, the three-line manage key at
    the right. While managing: Cancel, and "Manage" with every letter and draft counted.
  - THE FILTERS: All / Answered / Quiet / Drafts with their counts, 34 tall, radius 17, 13/600;
    the chosen one ink with the page colour on it, the others the surface with a 1.5 line edge.
@@ -318,7 +318,7 @@ public struct KMyLettersScreen: View {
         .buttonStyle(KFadePressStyle())
         Spacer(minLength: 0)
         (Text(content.manage).foregroundStyle(theme.ink) + Text("  \(count(.all) + count(.drafts))").foregroundStyle(theme.mute))
-          .kText(.system(17, .semibold))
+          .kText(.secondaryTitle)
           .lineLimit(1)
           .minimumScaleFactor(0.7)
           .accessibilityAddTraits(.isHeader)
@@ -329,19 +329,6 @@ public struct KMyLettersScreen: View {
         // 16 gutter less 8 puts its 44 target at KBackChevron.leading
         KBackChevron(theme: theme, label: content.back, action: actions.onBack)
           .padding(.leading, KBackChevron.leading - 16)
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-          Text(content.title)
-            .kText(.system(22, .semibold))
-            .foregroundStyle(theme.ink)
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
-          Text("\(count(.all))")
-            .kText(.system(18))
-            .foregroundStyle(theme.mute)
-            .lineLimit(1)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
         Spacer(minLength: 0)
         SwiftUI.Button {
           managing = true
@@ -358,6 +345,18 @@ public struct KMyLettersScreen: View {
     .padding(.horizontal, 16)
     // the chevron where Settings has it: the row centred in the first 44, 8 below (owner, 2026-10-19)
     .frame(minHeight: 44)
+    // the title centred on the screen as a secondary page's (KBackBar's) is, the count beside it
+    // in mute; it keeps clear of the chevron and the manage button at both ends
+    .overlay {
+      if !managing {
+        (Text(content.title).foregroundStyle(theme.ink) + Text("  \(count(.all))").foregroundStyle(theme.mute))
+          .kText(.secondaryTitle)
+          .lineLimit(1)
+          .minimumScaleFactor(0.7)
+          .padding(.horizontal, 56)
+          .accessibilityAddTraits(.isHeader)
+      }
+    }
     .padding(.bottom, 8)
     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
   }
@@ -406,7 +405,7 @@ public struct KMyLettersScreen: View {
       VStack(spacing: 10) {
         K4aPathIcon(d: "M4 20l4-1 11-11-3-3L5 16l-1 4z M13 8l3 3", size: 40, lineWidth: 1.6, color: theme.faint)
         Text(content.noDrafts)
-          .kText(.letter(17, italic: true))
+          .kText(.system(17))
           .foregroundStyle(theme.mute)
           .multilineTextAlignment(.center)
       }

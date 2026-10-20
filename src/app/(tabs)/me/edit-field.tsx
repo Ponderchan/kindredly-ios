@@ -88,7 +88,7 @@ export default function EditFieldScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg, paddingTop: safe.top }}>
-      <SecondaryHeader title={title.toLocaleUpperCase()} onBack={back} />
+      <SecondaryHeader title={title} onBack={back} />
       <View style={{ paddingHorizontal: 16, paddingTop: 8, gap: 10 }}>
         <View style={{ backgroundColor: tk.soft, borderRadius: 16, paddingHorizontal: 14 }}>
           <TextInput

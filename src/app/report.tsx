@@ -5,7 +5,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
 import { useFocusEffect, useRouter } from "expo-router";
-import { F } from "../theme/tokens";
+import { PFM } from "../theme/post";
+import { useLetterFamily } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
 import { Constellation } from "../components/VoiceCard";
 import { WrenBird } from "../components/WrenBird";
@@ -40,6 +41,8 @@ export default function VoiceReport() {
   useLang();
   const router = useRouter();
   const wren = useWrenName();
+  // what Wren wrote, and your own words, are content: the letter font's italic (upright in Garamond / SF Mono)
+  const said = useLetterFamily(true);
   const { profile } = useAuth();
   const [data, setData] = useState<ReportData | null>(null);
   const [idx, setIdx] = useState(0);
@@ -73,16 +76,16 @@ export default function VoiceReport() {
       key: K("cover"),
       render: () => (
         <View style={{ flex: 1, justifyContent: "center" }}>
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("m4.rt.eyebrow")}</Text>
-          <Text style={{ fontFamily: F.serifSemi, fontSize: 30, lineHeight: 40, color: "#fff", marginTop: 12 }}>{data.archetype}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("m4.rt.eyebrow")}</Text>
+          <Text style={{ fontWeight: "700", fontSize: 30, lineHeight: 40, color: "#fff", marginTop: 12 }}>{data.archetype}</Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 16 }}>
             {data.chips.map((c) => (
               <View key={c} style={{ borderWidth: 1, borderColor: "rgba(185,178,255,0.45)", borderRadius: 13, paddingHorizontal: 11, paddingVertical: 5 }}>
-                <Text style={{ fontFamily: F.sansBold, fontSize: 11.5, color: "#CFC9F2" }}>{c}</Text>
+                <Text style={{ fontWeight: "600", fontSize: 11.5, color: "#CFC9F2" }}>{c}</Text>
               </View>
             ))}
           </View>
-          <Text style={{ fontFamily: F.sans, fontSize: 13, color: DIM, marginTop: 16 }}>
+          <Text style={{ fontWeight: "400", fontSize: 13, color: DIM, marginTop: 16 }}>
             {data.pieces === 1 ? t("m4.rt.writtenOne") : t("m4.rt.written", { n: data.pieces })}
           </Text>
         </View>
@@ -93,12 +96,12 @@ export default function VoiceReport() {
       key: K("stars"),
       render: () => (
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT, alignSelf: "flex-start" }}>{t("rt.sky")}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT, alignSelf: "flex-start" }}>{t("rt.sky")}</Text>
           <Constellation units={data.units} stars={3 + Math.min(data.pieces, 9)} />
-          <Text style={{ fontFamily: F.serifSemi, fontSize: 18, color: "#fff", textAlign: "center", marginTop: 6 }}>
+          <Text style={{ fontWeight: "700", fontSize: 18, color: "#fff", textAlign: "center", marginTop: 6 }}>
             {t("m4.rt.brightest")}
           </Text>
-          <Text style={{ fontFamily: F.sansBold, fontSize: 14, color: STARLIGHT, textAlign: "center", marginTop: 10, lineHeight: 24 }}>
+          <Text style={{ fontWeight: "600", fontSize: 14, color: STARLIGHT, textAlign: "center", marginTop: 10, lineHeight: 24 }}>
             {data.brightest.join(" · ")}
           </Text>
         </View>
@@ -110,9 +113,9 @@ export default function VoiceReport() {
         key: K("hour"),
         render: () => (
           <View style={{ flex: 1, justifyContent: "center" }}>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("rt.hour")}</Text>
-            <Text style={{ fontFamily: F.serifSemi, fontSize: 34, color: "#fff", marginTop: 14 }}>{data.hourBand}</Text>
-            <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 15, color: DIM, marginTop: 12, lineHeight: 23 }}>
+            <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("rt.hour")}</Text>
+            <Text style={{ fontWeight: "700", fontSize: 34, color: "#fff", marginTop: 14 }}>{data.hourBand}</Text>
+            <Text style={{ ...said, fontSize: 15, color: DIM, marginTop: 12, lineHeight: 23 }}>
               {t("m4.rt.hourLine")}
             </Text>
           </View>
@@ -124,12 +127,12 @@ export default function VoiceReport() {
         key: K("words"),
         render: () => (
           <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT, alignSelf: "flex-start" }}>{t("rt.words")}</Text>
-            <Text style={{ fontFamily: F.serifSemi, fontSize: 40, color: "#fff", marginTop: 22 }}>{data.words[0]}</Text>
-            <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 16, color: STARLIGHT, marginTop: 14, textAlign: "center", lineHeight: 26 }}>
+            <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT, alignSelf: "flex-start" }}>{t("rt.words")}</Text>
+            <Text style={{ fontWeight: "700", fontSize: 40, color: "#fff", marginTop: 22 }}>{data.words[0]}</Text>
+            <Text style={{ ...said, fontSize: 16, color: STARLIGHT, marginTop: 14, textAlign: "center", lineHeight: 26 }}>
               {data.words.slice(1).join("   ·   ")}
             </Text>
-            <Text style={{ fontFamily: F.sans, fontSize: 13, color: DIM, marginTop: 18, textAlign: "center" }}>
+            <Text style={{ fontWeight: "400", fontSize: 13, color: DIM, marginTop: 18, textAlign: "center" }}>
               {t("m4.rt.wordsLine")}
             </Text>
           </View>
@@ -141,20 +144,20 @@ export default function VoiceReport() {
         key: K("punct"),
         render: () => (
           <View style={{ flex: 1, justifyContent: "center" }}>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("rt.marks")}</Text>
-            <Text style={{ fontFamily: F.serifSemi, fontSize: 56, color: "#fff", marginTop: 8 }}>{data.punct[0].mark}</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("rt.marks")}</Text>
+            <Text style={{ fontWeight: "700", fontSize: 56, color: "#fff", marginTop: 8 }}>{data.punct[0].mark}</Text>
             <View style={{ gap: 10, marginTop: 8 }}>
               {data.punct.map((p) => (
                 <View key={p.mark} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                  <Text style={{ fontFamily: F.serif, fontSize: 15, color: DIM, width: 16 }}>{p.mark}</Text>
+                  <Text style={{ ...PFM.mono, fontSize: 15, color: DIM, width: 16 }}>{p.mark}</Text>
                   <View style={{ flex: 1, height: 7, borderRadius: 4, backgroundColor: NIGHT2, overflow: "hidden" }}>
                     <View style={{ width: `${Math.max(6, p.pct)}%`, height: 7, backgroundColor: "#6D6DF6" }} />
                   </View>
-                  <Text style={{ fontFamily: F.sansBold, fontSize: 12, color: DIM, width: 38, textAlign: "right" }}>{p.pct}%</Text>
+                  <Text style={{ ...PFM.monoSemi, fontSize: 12, color: DIM, width: 38, textAlign: "right" }}>{p.pct}%</Text>
                 </View>
               ))}
             </View>
-            <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 14.5, color: DIM, marginTop: 18 }}>{t("m4.rt.breathe")}</Text>
+            <Text style={{ ...said, fontSize: 14.5, color: DIM, marginTop: 18 }}>{t("m4.rt.breathe")}</Text>
           </View>
         ),
       });
@@ -163,9 +166,9 @@ export default function VoiceReport() {
       key: K("quote"),
       render: () => (
         <View style={{ flex: 1, justifyContent: "center" }}>
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("rt.after")}</Text>
-          <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 21, lineHeight: 33, color: "#fff", marginTop: 16 }}>“{data.quote}”</Text>
-          <Text style={{ fontFamily: F.sans, fontSize: 12, color: STARLIGHT, marginTop: 14 }}>— {wren}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("rt.after")}</Text>
+          <Text style={{ ...said, fontSize: 21, lineHeight: 33, color: "#fff", marginTop: 16 }}>“{data.quote}”</Text>
+          <Text style={{ fontWeight: "400", fontSize: 12, color: STARLIGHT, marginTop: 14 }}>— {wren}</Text>
           <View style={{ marginTop: 26, alignSelf: "flex-start" }}>
             <WrenBird size={44} mood="content" />
           </View>
@@ -177,12 +180,12 @@ export default function VoiceReport() {
       key: K("end"),
       render: () => (
         <View style={{ flex: 1, justifyContent: "center" }}>
-          <Text style={{ fontFamily: F.sansExtra, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("rt.keep")}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 2.2, color: STARLIGHT }}>{t("rt.keep")}</Text>
           <View style={{ backgroundColor: NIGHT2, borderRadius: 18, padding: 18, marginTop: 14 }}>
-            <Text style={{ fontFamily: F.sansExtra, fontSize: 9, letterSpacing: 1.8, color: "#8C86E8" }}>{t("rt.brand")}</Text>
-            <Text style={{ fontFamily: F.serifSemi, fontSize: 20, color: "#fff", marginTop: 8 }}>{data.archetype}</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: 9, letterSpacing: 1.8, color: "#8C86E8" }}>{t("rt.brand")}</Text>
+            <Text style={{ fontWeight: "700", fontSize: 20, color: "#fff", marginTop: 8 }}>{data.archetype}</Text>
             <Constellation units={data.units} stars={3 + Math.min(data.pieces, 9)} size={110} />
-            <Text style={{ fontFamily: F.serifItalic, fontStyle: "italic", fontSize: 13.5, lineHeight: 20, color: DIM }}>“{data.quote}”</Text>
+            <Text style={{ ...said, fontSize: 13.5, lineHeight: 20, color: DIM }}>“{data.quote}”</Text>
           </View>
           <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
             <Pressable
@@ -191,10 +194,10 @@ export default function VoiceReport() {
               }
               style={{ flex: 1, borderWidth: 1, borderColor: "rgba(255,255,255,0.4)", borderRadius: 16, paddingVertical: 13, alignItems: "center" }}
             >
-              <Text style={{ fontFamily: F.sansBold, fontSize: 13.5, color: "#fff" }}>{t("rt.share")}</Text>
+              <Text style={{ fontWeight: "700", fontSize: 13.5, color: "#fff" }}>{t("rt.share")}</Text>
             </Pressable>
             <Pressable onPress={done} style={{ flex: 1, backgroundColor: "#fff", borderRadius: 16, paddingVertical: 13, alignItems: "center" }}>
-              <Text style={{ fontFamily: F.sansBold, fontSize: 13.5, color: NIGHT }}>{t("rt.done")}</Text>
+              <Text style={{ fontWeight: "700", fontSize: 13.5, color: NIGHT }}>{t("rt.done")}</Text>
             </Pressable>
           </View>
         </View>
@@ -203,7 +206,7 @@ export default function VoiceReport() {
 
     return s;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data]);
+  }, [data, said]);
 
   const advance = (dir: 1 | -1) => {
     const next = idx + dir;

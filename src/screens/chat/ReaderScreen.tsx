@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { Easing, FadeIn } from "react-native-reanimated";
 import { getLang, hasString, t, useLang } from "../../lib/i18n";
 import { useLetterFamily, useTheme } from "../../lib/theme";
-import { MONO, PF } from "../../theme/post";
+import { MONO, PFM } from "../../theme/post";
 import { BRAND } from "../../theme/themes";
 import { developFor } from "../../lib/mosaic";
 import { blurThen } from "../../lib/keyboard";
@@ -132,7 +132,7 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
     <MosaicId seed={detail.other} cell={4} gap={1} develop={developFor(detail.otherCount)} />
   );
 
-  const mono = (size: number, spacing: number) => ({ fontFamily: PF.monoSemi, fontSize: size, letterSpacing: size * spacing });
+  const mono = (size: number, spacing: number) => ({ ...PFM.monoSemi, fontSize: size, letterSpacing: size * spacing });
 
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg, paddingTop: topInset ?? insets.top }}>
@@ -165,7 +165,7 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
                         <WhoName name={pal.name} marks={pal} style={{ fontSize: 17, fontWeight: "600", color: tk.ink }} numberOfLines={big ? 0 : 2} />
                         {/* the postmark keeps the date; the name above is said once (YOU on your own letter) */}
                         {!!(heroDate || hero.mine) && (
-                          <Text numberOfLines={big ? undefined : 1} style={[mono(MONO.title, 0.08), { fontFamily: PF.monoMed, color: tk.sub }]}>
+                          <Text numberOfLines={big ? undefined : 1} style={[mono(MONO.title, 0.08), { ...PFM.monoMed, color: tk.sub }]}>
                             {[heroDate, hero.mine ? t("ui.you") : ""].filter(Boolean).join(" · ")}
                           </Text>
                         )}
@@ -254,14 +254,14 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 28 }}>
                   {earlier.length > 0 ? (
                     <Pressable onPress={() => setExpanded((v) => !v)} hitSlop={8} accessibilityRole="button" accessibilityState={{ expanded }}>
-                      <Text style={[mono(MONO.title, 0.14), { color: tk.ink }]}>{expanded ? t("th.hide") : t("th.between", { n: conv.length })}</Text>
+                      <Text style={{ fontSize: 13, fontWeight: "600", color: tk.ink }}>{expanded ? t("th.hide") : t("th.between", { n: conv.length })}</Text>
                     </Pressable>
                   ) : (
                     <View />
                   )}
                   {canWrite && (
                     <Pressable onPress={() => strip.current?.focus()} hitSlop={8} accessibilityRole="button">
-                      <Text style={[mono(MONO.title, 0.14), { color: tk.ind }]}>{t("ld.replyArrow")}</Text>
+                      <Text style={{ fontSize: 13, fontWeight: "600", color: tk.ind }}>{t("ld.replyArrow")}</Text>
                     </Pressable>
                   )}
                 </View>
@@ -291,7 +291,7 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
               >
                 {isVoiceLetter(m, detail) && <VoiceOpeningCard voice={voice} />}
                 {!!m.body && <Text style={[{ fontSize: 15.5, lineHeight: 24, color: isVoiceLetter(m, detail) ? tk.sub : tk.ink }, letterFace]}>{m.body}</Text>}
-                <Text style={[mono(MONO.label, 0.08), { fontFamily: PF.monoMed, color: tk.mute }]}>{signatureOf(m, detail, fmt)}</Text>
+                <Text style={[mono(MONO.label, 0.08), { ...PFM.monoMed, color: tk.mute }]}>{signatureOf(m, detail, fmt)}</Text>
               </View>
             ))}
         </ScrollView>
@@ -299,7 +299,7 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
         <View style={{ paddingHorizontal: 12, paddingTop: 6, paddingBottom: keyboard.up ? 10 : Math.max(10, insets.bottom), backgroundColor: tk.bg }}>
           {closed ? (
             /* nobody home: the letters stay readable; there is no one to send to (known bug 4) */
-            <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.title, lineHeight: 17, letterSpacing: 0.3, color: tk.mute, textAlign: "center", paddingHorizontal: 14, paddingTop: 4, paddingBottom: 6 }}>{closed}</Text>
+            <Text style={{ fontSize: 13, lineHeight: 18, color: tk.mute, textAlign: "center", paddingHorizontal: 14, paddingTop: 4, paddingBottom: 6 }}>{closed}</Text>
           ) : detail ? (
             <>
               <ReplyStrip
@@ -311,7 +311,7 @@ export function ReaderScreen({ id, m: mParam, i: iParam, topInset }: { id?: stri
                 style={{ paddingRight: 4, paddingBottom: 4 }}
               />
               {/* the hint under the strip (H:125): over the limit in red, else where it goes */}
-              <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: hint.alarm ? BRAND.postRed : tk.sub, marginTop: 6, marginLeft: 14 }}>{hint.text}</Text>
+              <Text style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: hint.alarm ? BRAND.postRed : tk.sub, marginTop: 6, marginLeft: 14 }}>{hint.text}</Text>
             </>
           ) : null}
         </View>

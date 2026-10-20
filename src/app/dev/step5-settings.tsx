@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isKindredlyUIViewAvailable } from "../../../modules/kindredly-ui";
 import { LETTER_FONT_KEYS, setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
 import { LANGS, t, useLang } from "../../lib/i18n";
-import { P, PF } from "../../theme/post";
+import { P, PFM } from "../../theme/post";
 import { APPEARANCES, THEME_KEYS, THEMES, appearanceTheme, isAppearance, type Appearance, type ThemeKey } from "../../theme/themes";
 import { buildFirstClass4a } from "../../screens/me/me-model";
 import { meFormat } from "../../screens/me/me-format";
@@ -280,7 +280,7 @@ function SettingsLab() {
               <Chip label="ID NOTE" on={idNote} onPress={() => setIdNote(true)} />
             </Row>
           )}
-          <Text style={{ fontFamily: PF.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>
+          <Text style={{ ...PFM.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>
             {`THEME ${themeLabel} (${themeKey}) · ${useSwift ? "SWIFTUI" : "REACT NATIVE"}${swiftAvailable ? "" : ` (no ${view} in this build)`} · ${page.toUpperCase()}`}
           </Text>
         </View>
@@ -320,7 +320,7 @@ function Chip({ label, on = false, onPress }: { label: string; on?: boolean; onP
       accessibilityState={{ selected: on }}
       style={({ pressed }) => ({ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 16, borderWidth: 1.5, borderColor: on ? tk.ink : tk.line, backgroundColor: on ? tk.ink : tk.sf, opacity: pressed ? 0.7 : 1 })}
     >
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 0.8, color: on ? tk.bg : tk.ink }}>{label}</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 0.8, color: on ? tk.bg : tk.ink }}>{label}</Text>
     </Pressable>
   );
 }

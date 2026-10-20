@@ -7,7 +7,7 @@ import { WrenBird } from "../WrenBird";
 import { EnvelopeArt } from "../EnvelopeArt";
 import { MosaicId } from "../MosaicId";
 import { AvatarImage } from "../AvatarImage";
-import { P, PF } from "../../theme/post";
+import { P, PF, PFM } from "../../theme/post";
 import { t } from "../../lib/i18n";
 
 /* HOW A KINDRED FORMS, AS A REEL (owner, 2026-10-11: "大的清楚的动态演示").
@@ -109,7 +109,7 @@ function Reply({ s }: { s: number }) {
           <View style={{ width: row.w, height: row.h, borderRadius: s * 0.045, backgroundColor: "#FFFFFF", flexDirection: "row", alignItems: "center", paddingHorizontal: pad, gap: pad, overflow: "hidden" }}>
             <PalFace d={disc} develop={developAt(1)} bg="#F1F0F8" />
             <View style={{ flex: 1, minWidth: 0, gap: s * 0.022 }}>
-              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ fontFamily: PF.monoSemi, fontSize: s * 0.04, letterSpacing: 0.4, color: P.ink }}>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ ...PFM.monoSemi, fontSize: s * 0.04, letterSpacing: 0.4, color: P.ink }}>
                 {t("ga.stranger")}
               </Text>
               {/* their first lines, wordless */}
@@ -188,7 +188,7 @@ function EachWay({ s }: { s: number }) {
       <View style={{ marginTop: s * 0.07, gap: s * 0.03 }}>
         {row(<PalFace d={c} develop={developAt(theirs)} />, theirs, P.pen)}
         {row(
-          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ fontFamily: PF.monoSemi, fontSize: s * 0.042, letterSpacing: 1, color: P.ink }}>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ ...PFM.monoSemi, fontSize: s * 0.042, letterSpacing: 1, color: P.ink }}>
             {t("ui.you")}
           </Text>,
           mine,
@@ -196,11 +196,11 @@ function EachWay({ s }: { s: number }) {
         )}
       </View>
       <View style={{ marginTop: s * 0.05, height: s * 0.085, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: s * 0.03, paddingHorizontal: s * 0.06 }}>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: s * 0.04, letterSpacing: 1, color: P.ink60 }}>{t("mk.ofFive", { n: Math.min(mine, theirs) })}</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: s * 0.04, letterSpacing: 1, color: P.ink60 }}>{t("mk.ofFive", { n: Math.min(mine, theirs) })}</Text>
         {done && (
           <Appear>
             <View style={{ borderWidth: 1.5, borderColor: P.brassSeal, borderRadius: 999, paddingHorizontal: s * 0.035, paddingVertical: s * 0.014, backgroundColor: "#FFFFFF", maxWidth: s * 0.6 }}>
-              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ fontFamily: PF.monoSemi, fontSize: s * 0.04, letterSpacing: 0.8, color: P.brassSeal }}>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ ...PFM.monoSemi, fontSize: s * 0.04, letterSpacing: 0.8, color: P.brassSeal }}>
                 {t("state.swapNames")}
               </Text>
             </View>
@@ -268,7 +268,7 @@ function Orbit({ s }: { s: number }) {
 
       {/* you — the fixed point */}
       <View style={{ position: "absolute", left: cx - you / 2, top: cy - you / 2, width: you, height: you, backgroundColor: P.ink }} />
-      <Text numberOfLines={1} style={{ position: "absolute", left: cx - s * 0.15, width: s * 0.3, top: cy + you * 0.75, textAlign: "center", fontFamily: PF.monoSemi, fontSize: s * 0.032, letterSpacing: 1, color: P.ink60 }}>
+      <Text numberOfLines={1} style={{ position: "absolute", left: cx - s * 0.15, width: s * 0.3, top: cy + you * 0.75, textAlign: "center", ...PFM.monoSemi, fontSize: s * 0.032, letterSpacing: 1, color: P.ink60 }}>
         {t("ui.you")}
       </Text>
 
@@ -343,7 +343,7 @@ function Names({ s }: { s: number }) {
 
   const tag = (label: string, solid: boolean) => (
     <View style={{ width: tw, height: th, borderRadius: th / 2, borderWidth: 2, borderColor: P.pen, backgroundColor: solid ? P.pen : "#FFFFFF", alignItems: "center", justifyContent: "center", paddingHorizontal: s * 0.03 }}>
-      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ fontFamily: PF.monoSemi, fontSize: s * 0.045, letterSpacing: 1, color: solid ? "#FFFFFF" : P.pen }}>
+      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ ...PFM.monoSemi, fontSize: s * 0.045, letterSpacing: 1, color: solid ? "#FFFFFF" : P.pen }}>
         {label}
       </Text>
     </View>
@@ -437,7 +437,7 @@ function ThreadToRoom({ s }: { s: number }) {
   const after = useAnimatedStyle(() => ({ opacity: m.value }));
   const bh = s * 0.082, bGap = s * 0.02, top0 = s * 0.2, pad = s * 0.07;
   const label = (text: string, letter: boolean) => (
-    <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={letter ? { fontFamily: PF.monoSemi, fontSize: s * 0.042, letterSpacing: 1, color: P.ink } : { fontSize: s * 0.052, fontWeight: "600", color: P.ink }}>
+    <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={letter ? { ...PFM.monoSemi, fontSize: s * 0.042, letterSpacing: 1, color: P.ink } : { fontSize: s * 0.052, fontWeight: "600", color: P.ink }}>
       {text}
     </Text>
   );

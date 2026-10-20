@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { PF } from "../theme/post";
+import { PFM } from "../theme/post";
 import { useTheme } from "../lib/theme";
 
 /* A scroll-snap picker column.
@@ -65,7 +65,7 @@ export function Wheel({
           <View key={i} style={{ height: H, alignItems: "center", justifyContent: "center" }}>
             <Text
               style={{
-                fontFamily: i === value ? PF.monoSemi : PF.mono,
+                ...(i === value ? PFM.monoSemi : PFM.mono),
                 fontSize: i === value ? 18 : 15,
                 letterSpacing: i === value ? 0.6 : 0.4,
                 color: i === value ? tk.ink : tk.mute,

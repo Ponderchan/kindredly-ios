@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MONO, PF } from "../../theme/post";
+import { MONO, PFM } from "../../theme/post";
 import { useLetterFamily, useTheme } from "../../lib/theme";
 import { t, useLang } from "../../lib/i18n";
 import { localeTag, sinceShort } from "../../lib/format";
@@ -43,7 +43,8 @@ import type { TodayModel } from "./useTodayDesk";
    presented over this one), and the reader stays.
 
    10a dress, from the theme: the page colour, the ink panel (corners 28, a
-   hard 6/6 shadow), mono 11 for what the machine says.
+   hard 6/6 shadow), mono 11 for what the machine says (the docket, the
+   date); the buttons (FOLD BACK, WRITE BACK) in System (owner, 10-20).
 
    THE STAMP in the docket is the reader head's (stamps v2, 2026-10-18):
    delivered, so it tilts by the letter's id exactly as it did on the card.
@@ -108,8 +109,8 @@ export function LetterReader({ model }: { model: TodayModel }) {
       <View onLayout={(e) => setSheetH(e.nativeEvent.layout.height)} style={{ flex: 1, backgroundColor: tk.bg }}>
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingTop: 14, paddingBottom: 12 }}>
           <Pressable onPress={act.closeReader} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("ld.foldBack")} style={{ flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1 }}>
-            <Text maxFontSizeMultiplier={2} style={{ fontFamily: PF.monoMed, fontSize: 15, color: tk.ink }}>✕</Text>
-            <Text maxFontSizeMultiplier={2} style={{ flexShrink: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.6, color: tk.sub }}>{t("ld.foldBack")}</Text>
+            <Text maxFontSizeMultiplier={2} style={{ ...PFM.monoMed, fontSize: 15, color: tk.ink }}>✕</Text>
+            <Text maxFontSizeMultiplier={2} style={{ flexShrink: 1, fontWeight: "500", fontSize: 15, color: tk.sub }}>{t("ld.foldBack")}</Text>
           </Pressable>
         </View>
 
@@ -122,7 +123,7 @@ export function LetterReader({ model }: { model: TodayModel }) {
                   <WhoFaceView face={card.who.face} size={40} />
                   <View style={{ flex: 1, gap: 2 }}>
                     <WhoName name={card.who.name} marks={card.who} style={{ fontSize: 17, fontWeight: "600", color: tk.ink }} />
-                    <Text numberOfLines={1} style={{ fontFamily: PF.monoMed, fontSize: MONO.title, letterSpacing: 0.88, color: tk.sub }}>
+                    <Text numberOfLines={1} style={{ ...PFM.monoMed, fontSize: MONO.title, letterSpacing: 0.88, color: tk.sub }}>
                       {card.when}
                     </Text>
                   </View>
@@ -130,7 +131,7 @@ export function LetterReader({ model }: { model: TodayModel }) {
               ) : (
                 <>
                   <MosaicId seed={letter.author} cell={4.8} gap={1} />
-                  <Text style={{ flex: 1, fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 0.88, color: tk.ink }}>{card.postmark}</Text>
+                  <Text style={{ flex: 1, ...PFM.monoSemi, fontSize: MONO.title, letterSpacing: 0.88, color: tk.ink }}>{card.postmark}</Text>
                 </>
               )}
               <KeepableStamp id={letter.stamp} width={READER_STAMP.w} delivered letterId={letter.id} dark={tk.dark} from={{ letter: letter.id }} onDone={card.demo ? undefined : setStampLine} />
@@ -138,7 +139,7 @@ export function LetterReader({ model }: { model: TodayModel }) {
 
             <Text style={[{ fontSize: 19, lineHeight: 31, color: tk.ink }, face]}>{card.isVoice ? card.caption : card.body}</Text>
 
-            <Text style={{ fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: tk.mute, marginTop: 26 }}>
+            <Text style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: tk.mute, marginTop: 26 }}>
               {t("ld.written")} {sinceShort(letter.created_at)}
             </Text>
           </InkPanel>
@@ -184,7 +185,7 @@ export function LetterReader({ model }: { model: TodayModel }) {
                 accessibilityRole="button"
                 style={({ pressed }) => ({ backgroundColor: tk.ink, paddingVertical: 16, alignItems: "center", borderRadius: 999, opacity: pressed ? 0.85 : 1 })}
               >
-                <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 2, color: tk.bg }}>{t("ld.writeBack")}</Text>
+                <Text style={{ fontWeight: "600", fontSize: 16, color: tk.bg }}>{t("ld.writeBack")}</Text>
               </Pressable>
             )}
           </View>

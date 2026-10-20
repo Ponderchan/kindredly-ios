@@ -11,7 +11,7 @@ import { OB_MAX_FONT } from "../parts/tokens";
    the new run: it took the theme's card face and mute (a Peach or Midnight
    theme would have tinted the birthday card), and here the card is the
    run's own white paper with ink type, like every paper object on the blue.
-   The selected row is Inter Bold in ink and the rest Inter Medium in a quiet
+   The selected row is system bold in ink and the rest system medium in a quiet
    ink; the fades at the top and bottom are the paper itself, so a column
    has no well of its own. The selection band is ruled once across the three
    columns by the caller, so a date reads as one field.
@@ -111,7 +111,7 @@ export function PaperWheel({
       >
         {items.map((it, i) => (
           <View key={i} style={{ height: ROW, alignItems: "center", justifyContent: "center" }}>
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ fontFamily: i === live ? FONT.bold : FONT.medium, fontSize: i === live ? 19 : 16, color: i === live ? OB.ink : "#A9A6BF", letterSpacing: -0.2 }}>{it}</Text>
+            <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ ...(i === live ? FONT.bold : FONT.medium), fontSize: i === live ? 19 : 16, color: i === live ? OB.ink : "#A9A6BF", letterSpacing: -0.2 }}>{it}</Text>
           </View>
         ))}
       </ScrollView>

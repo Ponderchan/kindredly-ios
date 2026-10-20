@@ -3,7 +3,7 @@ import { AccessibilityInfo, findNodeHandle, Pressable, ScrollView, Text, View, u
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { PF } from "../theme/post";
+import { PFM } from "../theme/post";
 import { scrimColor, useTheme } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
 import { localeTag } from "../lib/format";
@@ -272,7 +272,7 @@ export function FirstClassReceipt({
               </Text>
             </Sticker>
             <Sticker place={{ right: 6, top: 62 }} rotate={5} fill={GOLD} radius={14} padV={10} padH={14}>
-              <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[stickerText, { fontFamily: PF.monoSemi, fontSize: 13, letterSpacing: 1.56 }]}>
+              <Text maxFontSizeMultiplier={1.3} numberOfLines={1} style={[stickerText, { ...PFM.monoSemi, fontSize: 13, letterSpacing: 1.56 }]}>
                 {w.gold}
               </Text>
             </Sticker>

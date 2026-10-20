@@ -3,8 +3,8 @@ import { AccessibilityInfo, KeyboardAvoidingView, Platform, Pressable, ScrollVie
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { t, useLang } from "../../../lib/i18n";
-import { MONO, P, PF } from "../../../theme/post";
-import { useTheme } from "../../../lib/theme";
+import { MONO, P, PFM } from "../../../theme/post";
+import { useLetterFamily, useTheme } from "../../../lib/theme";
 import { WrenBird } from "../../../components/WrenBird";
 import { SecondaryHeader } from "../../../components/10a";
 import { useTabBarSpace } from "../../../components/NativeTabBar";
@@ -28,7 +28,10 @@ import { versionFacts } from "../../../screens/settings/useSettingsModel";
    10a (step 5): under Settings in the Me tab's own stack (/me/write-to-us,
    was /write-to-us), on the theme, under the secondary header. The letter
    carries the version the footer of Settings shows: the store's label and
-   the binary's own with its build (support needs the second). */
+   the binary's own with its build (support needs the second).
+   Type: Wren's lines and the letter you write are content, in your letter
+   font; the address, its hint and Done are system; the send key and the
+   labels stay SF Mono. */
 
 const VERSION = footerVersion(versionFacts());
 
@@ -39,6 +42,8 @@ export default function WriteToUs() {
   const tabBar = useTabBarSpace();
   const router = useRouter();
   const wren = useWrenName();
+  const letter = useLetterFamily();
+  const wrenFace = useLetterFamily(true);
   const [body, setBody] = useState("");
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
@@ -71,11 +76,11 @@ export default function WriteToUs() {
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 34 }}>
           <WrenBird size={64} mood="delight" />
           <Text style={{ fontSize: 24, fontWeight: "600", color: tk.ink, textAlign: "center", marginTop: 18 }}>{t("wu.taken")}</Text>
-          <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 15, lineHeight: 23, color: tk.sub, textAlign: "center", marginTop: 12 }}>
+          <Text style={{ ...wrenFace, fontSize: 15, lineHeight: 23, color: tk.sub, textAlign: "center", marginTop: 12 }}>
             {speakAs(email.trim() ? t("wu.takenAddr") : t("wu.takenNoAddr"), wren)}
           </Text>
           <Pressable onPress={() => router.back()} accessibilityRole="button" style={({ pressed }) => ({ ...solidBtn, alignSelf: "stretch", marginTop: 30, opacity: pressed ? 0.85 : 1 })}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.8, color: tk.bg }}>{t("wu.done")}</Text>
+            <Text style={{ fontSize: 16, fontWeight: "600", color: tk.bg }}>{t("wu.done")}</Text>
           </Pressable>
         </View>
       </View>
@@ -89,7 +94,7 @@ export default function WriteToUs() {
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 8, paddingBottom: tabBar + 24 }} showsVerticalScrollIndicator={false}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingBottom: 16 }}>
             <WrenBird size={24} mood="listen" />
-            <Text style={{ flex: 1, fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 13.5, lineHeight: 20, color: tk.sub }}>{speakAs(t("wu.intro"), wren)}</Text>
+            <Text style={{ flex: 1, ...wrenFace, fontSize: 13.5, lineHeight: 20, color: tk.sub }}>{speakAs(t("wu.intro"), wren)}</Text>
           </View>
 
           <TextInput
@@ -101,10 +106,10 @@ export default function WriteToUs() {
             placeholderTextColor={tk.faint}
             selectionColor={tk.ind}
             keyboardAppearance={dark ? "dark" : "light"}
-            style={{ ...fieldBox(body, 25, 320), borderBottomWidth: 1, borderBottomColor: tk.line, paddingTop: 10, paddingBottom: 10, fontSize: 17, lineHeight: 25, color: tk.ink }}
+            style={{ ...fieldBox(body, 25, 320), borderBottomWidth: 1, borderBottomColor: tk.line, paddingTop: 10, paddingBottom: 10, ...letter, fontSize: 17, lineHeight: 25, color: tk.ink }}
           />
 
-          <Text style={{ fontFamily: PF.mono, fontSize: MONO.label, letterSpacing: 1.2, color: tk.mute, marginTop: 26 }}>{t("wu.addrLabel")}</Text>
+          <Text style={{ ...PFM.mono, fontSize: MONO.label, letterSpacing: 1.2, color: tk.mute, marginTop: 26 }}>{t("wu.addrLabel")}</Text>
           <TextInput
             value={email}
             onChangeText={setEmail}
@@ -117,10 +122,10 @@ export default function WriteToUs() {
             keyboardAppearance={dark ? "dark" : "light"}
             style={{ borderBottomWidth: 1, borderBottomColor: tk.line, paddingVertical: 10, marginTop: 6, fontSize: 16, color: tk.ink }}
           />
-          <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 12, lineHeight: 18, color: tk.mute, marginTop: 8 }}>{t("wu.addrHint")}</Text>
+          <Text style={{ fontSize: 12, lineHeight: 18, color: tk.mute, marginTop: 8 }}>{t("wu.addrHint")}</Text>
 
           {failed && (
-            <Text accessibilityLiveRegion="polite" style={{ fontFamily: PF.mono, fontSize: MONO.title, letterSpacing: 1, color: dangerInk(tk.ink, P.post), marginTop: 16 }}>
+            <Text accessibilityLiveRegion="polite" style={{ fontSize: 14, fontWeight: "500", lineHeight: 20, color: dangerInk(tk.ink, P.post), marginTop: 16 }}>
               {t("wu.fail")}
             </Text>
           )}
@@ -132,10 +137,10 @@ export default function WriteToUs() {
             accessibilityState={{ disabled: !canSend, busy: sending }}
             style={({ pressed }) => ({ ...solidBtn, marginTop: 26, opacity: canSend ? (pressed ? 0.85 : 1) : 0.4 })}
           >
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.8, color: tk.bg }}>{sending ? "…" : t("wu.send", { wren: wren.toUpperCase() })}</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: MONO.title, letterSpacing: 1.8, color: tk.bg }}>{sending ? "…" : t("wu.send", { wren: wren.toUpperCase() })}</Text>
           </Pressable>
 
-          <Text style={{ fontFamily: PF.mono, fontSize: MONO.small, letterSpacing: 1, color: tk.mute, textAlign: "center", marginTop: 14 }}>{t("wu.travelsWith", { v: VERSION })}</Text>
+          <Text style={{ ...PFM.mono, fontSize: MONO.small, letterSpacing: 1, color: tk.mute, textAlign: "center", marginTop: 14 }}>{t("wu.travelsWith", { v: VERSION })}</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

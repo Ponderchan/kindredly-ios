@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, { Easing, FadeIn, ReduceMotion, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming, type SharedValue } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from "react-native-svg";
-import { MONO, PF } from "../theme/post";
+import { MONO, PF, PFM } from "../theme/post";
 import { BRAND } from "../theme/themes";
-import { useP, useTheme } from "../lib/theme";
+import { useLetterFamily, useP, useTheme } from "../lib/theme";
 import { AvatarImage } from "./AvatarImage";
 import { COLS, MosaicId, inkedCells } from "./MosaicId";
 import { WrenGlyph } from "./GlyphInput";
@@ -213,7 +213,7 @@ function MosaicRitual({
         <Animated.Text entering={FadeIn.duration(300).delay(T_BUMP + 700)} numberOfLines={1} maxFontSizeMultiplier={1.4} style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 13, color: P.ink, maxWidth: 120 }}>{myName}</Animated.Text>
         <Slapped at={T_BUMP + 600} tilt={2} small>
           <View style={{ backgroundColor: BRAND.paperWhite, borderRadius: 999, borderWidth: 1.5, borderColor: BRAND.greenText, paddingHorizontal: 9, paddingVertical: 3 }}>
-            <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.small, letterSpacing: 1.4, color: BRAND.greenText }}>{t("in.sinceChip", { date: dShort(since).toUpperCase() })}</Text>
+            <Text style={{ ...PFM.monoSemi, fontSize: MONO.small, letterSpacing: 1.4, color: BRAND.greenText }}>{t("in.sinceChip", { date: dShort(since).toUpperCase() })}</Text>
           </View>
         </Slapped>
         <Animated.Text entering={FadeIn.duration(300).delay(T_BUMP + 700)} numberOfLines={1} maxFontSizeMultiplier={1.4} style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 13, color: P.ink, maxWidth: 120 }}>{otherName}</Animated.Text>
@@ -227,7 +227,7 @@ function MosaicRitual({
               <StickerChip id={notice.stickerId} i={1} size="lg" />
               {notice.shared && (
                 <View style={{ position: "absolute", top: -9, right: -12, backgroundColor: BRAND.inkOnBrand, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 2, borderColor: BRAND.paperWhite }}>
-                  <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.small, color: BRAND.paperWhite }}>×2</Text>
+                  <Text style={{ ...PFM.monoSemi, fontSize: MONO.small, color: BRAND.paperWhite }}>×2</Text>
                 </View>
               )}
             </View>
@@ -284,7 +284,7 @@ function Flight({ road, stamp, still = false }: { road: ThreadMessage[]; stamp?:
         ))}
       <Animated.Text
         entering={still ? undefined : FadeIn.duration(400).delay(T_ROAD + road.length * T_STEP + T_FLY + 100)}
-        style={{ position: "absolute", left: 0, right: 0, bottom: 0, textAlign: "center", fontFamily: PF.mono, fontSize: MONO.label, letterSpacing: 1.4, color: P.ink40 }}
+        style={{ position: "absolute", left: 0, right: 0, bottom: 0, textAlign: "center", ...PFM.mono, fontSize: MONO.label, letterSpacing: 1.4, color: P.ink40 }}
       >
         {t("in.road", { n: road.length })}
       </Animated.Text>
@@ -319,7 +319,7 @@ function Window({ x, y, label, count, roof, still }: { x: number; y: number; lab
       {!roof && <View style={{ width: WIN + 10, height: 3, backgroundColor: tk.ln, marginTop: -1 }} />}
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4, marginTop: 5 }}>
         <Animated.Text style={[{ fontFamily: PF.letter, fontWeight: "800", fontSize: 15, color: P.ink }, style]}>{count}</Animated.Text>
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.small, letterSpacing: 1.2, color: P.ink40 }}>{label}</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: MONO.small, letterSpacing: 1.2, color: P.ink40 }}>{label}</Text>
       </View>
     </View>
   );
@@ -381,7 +381,7 @@ function Crossing({ from, to, y, at, date, stamp, mine }: { from: number; to: nu
         <View style={{ position: "absolute", left: 0, right: 0, top: 0, height: 1, backgroundColor: P.ink12 }} />
         {stamp ? <Stamp id={stamp} width={STAMP_DOT_PT} style={{ position: "absolute", right: 3, top: 3 }} /> : null}
         <Animated.View style={[{ paddingHorizontal: 3, paddingVertical: 1, borderWidth: 1, borderColor: P.pen, borderRadius: 2, backgroundColor: P.sheet }, stampStyle]}>
-          <Text style={{ fontFamily: PF.monoSemi, fontSize: 6.5, letterSpacing: 0.4, color: P.pen }}>{date ? dShort(date).toUpperCase() : "—"}</Text>
+          <Text style={{ ...PFM.monoSemi, fontSize: 6.5, letterSpacing: 0.4, color: P.pen }}>{date ? dShort(date).toUpperCase() : "—"}</Text>
         </Animated.View>
       </View>
     </Animated.View>
@@ -582,7 +582,7 @@ function SignedRitual({
   );
   const chip = (
     <View style={{ backgroundColor: BRAND.paperWhite, borderRadius: 999, borderWidth: 1.5, borderColor: BRAND.greenText, paddingHorizontal: 9, paddingVertical: 3 }}>
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.small, letterSpacing: 1.4, color: BRAND.greenText }}>{t("in.sinceChip", { date: dShort(since).toUpperCase() })}</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: MONO.small, letterSpacing: 1.4, color: BRAND.greenText }}>{t("in.sinceChip", { date: dShort(since).toUpperCase() })}</Text>
     </View>
   );
   return (
@@ -618,7 +618,7 @@ function SignedRitual({
                 <StickerChip id={notice.stickerId} i={1} size="lg" />
                 {notice.shared && (
                   <View style={{ position: "absolute", top: -9, right: -12, backgroundColor: BRAND.inkOnBrand, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 2, borderColor: BRAND.paperWhite }}>
-                    <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.small, color: BRAND.paperWhite }}>×2</Text>
+                    <Text style={{ ...PFM.monoSemi, fontSize: MONO.small, color: BRAND.paperWhite }}>×2</Text>
                   </View>
                 )}
               </View>
@@ -774,7 +774,7 @@ function StruckName({ text, at, still }: { text: string; at: number; still: bool
   const fs = Math.max(8, Math.min(MONO.title, COL_W / monoEms(text, 0.6 / MONO.title)));
   return (
     <View onLayout={(e) => (w.value = e.nativeEvent.layout.width)} style={{ marginTop: 8, maxWidth: COL_W, alignSelf: "center", justifyContent: "center" }}>
-      <Animated.Text style={[{ fontFamily: PF.monoMed, fontSize: fs, letterSpacing: 0.6, color: tk.sub }, nameStyle]}>{text}</Animated.Text>
+      <Animated.Text style={[{ ...PFM.monoMed, fontSize: fs, letterSpacing: 0.6, color: tk.sub }, nameStyle]}>{text}</Animated.Text>
       <Animated.View style={[{ position: "absolute", left: 0, top: "50%", height: 1.5, marginTop: -0.5, backgroundColor: tk.ink }, line]} />
     </View>
   );
@@ -838,10 +838,13 @@ function StrokeIn({ step, clock, width, ink }: { step: PenDrawStep; clock: Share
   return <AnimatedPath d={step.d} fill="none" stroke={ink} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={[dash, dash]} animatedProps={props} />;
 }
 
-/* a typed side: the pen name fades into the slot in the italic (upright for CJK), 20pt, once */
+/* a typed side: the pen name fades into the slot in the reader's Letter font's italic (upright for
+   CJK, and in a face without an italic), 20pt, once: a signature is something someone wrote */
 function TypedSig({ name, at, still }: { name: string; at: number; still: boolean }) {
   const tk = useTheme().t;
   const upright = penTypedUpright(name);
+  const slanted = useLetterFamily(true);
+  const plain = useLetterFamily();
   const v = useSharedValue(still ? 1 : 0);
   useEffect(() => {
     if (still) {
@@ -857,7 +860,7 @@ function TypedSig({ name, at, still }: { name: string; at: number; still: boolea
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.5}
-        style={{ fontFamily: upright ? PF.letter : "Newsreader-Italic", fontStyle: upright ? "normal" : "italic", fontSize: 20, color: tk.ink, maxWidth: SLOT_W }}
+        style={{ ...(upright ? plain : slanted), fontSize: 20, color: tk.ink, maxWidth: SLOT_W }}
       >
         {name}
       </Text>

@@ -6,7 +6,7 @@ import { BigType, Finger, MiniScreen, Pop, Rise, useLoop, useOnce, useStep, type
 import { Envelope, Kindreds, Me, Notes } from "../PostTabBar";
 import { Seal } from "../Seal";
 import { WrenBird } from "../WrenBird";
-import { P, PF } from "../../theme/post";
+import { P, PF, PFM } from "../../theme/post";
 import { t } from "../../lib/i18n";
 
 /* THE SEALED JOURNAL, AS A REEL — the Notes tab is tapped and a page is
@@ -50,7 +50,7 @@ const pageOf = (s: number) => {
 const BAR_H = 0.018; // a written line's thickness, × s
 
 const fill = { position: "absolute" as const, left: 0, top: 0, right: 0, bottom: 0 };
-const label = (s: number) => ({ fontFamily: PF.monoSemi, fontSize: s * 0.042, letterSpacing: s * 0.004, color: P.ink, textAlign: "center" as const });
+const label = (s: number) => ({ ...PFM.monoSemi, fontSize: s * 0.042, letterSpacing: s * 0.004, color: P.ink, textAlign: "center" as const });
 const paper = (s: number) => ({ backgroundColor: "#FFFFFF", borderWidth: 1.5, borderColor: "rgba(17,17,19,0.16)" as string, borderRadius: s * 0.03 });
 
 /* a written line, already there, at `top` inside its half */

@@ -4,8 +4,8 @@ import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { getLang, t, useLang } from "../../lib/i18n";
-import { PF } from "../../theme/post";
-import { useP, useTheme } from "../../lib/theme";
+import { PFM } from "../../theme/post";
+import { useLetterFamily, useP, useTheme } from "../../lib/theme";
 import { ChatField } from "../../components/ChatField";
 import { OfficialBird } from "../../components/WrenDesk";
 import { GuideCard, GuideChips } from "../../components/GuideCard";
@@ -101,6 +101,9 @@ export default function WrenDeskScreen() {
   // the theme's colours: P keyed like the static palette (useP), T the 10a tokens
   const P = useP();
   const T = useTheme().t;
+  // what is said here (hers and yours, and what you type) is content: the reader's letter font
+  const letter = useLetterFamily();
+  const wrenLine = useLetterFamily(true);
   const router = useRouter();
   const params = useLocalSearchParams<{ guide?: string }>();
   const { isGuest } = useAuth();
@@ -361,8 +364,8 @@ export default function WrenDeskScreen() {
         <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 11 }}>
           <OfficialBird size={46} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: PF.letter, fontSize: 19, fontWeight: "600", color: P.ink }}>{OFFICIAL_NAME}</Text>
-            <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.1, color: P.ink40, marginTop: 2 }}>{t("wo.role").toUpperCase()}</Text>
+            <Text style={{ fontSize: 19, fontWeight: "600", color: P.ink }}>{OFFICIAL_NAME}</Text>
+            <Text style={{ ...PFM.mono, fontSize: 9, letterSpacing: 1.1, color: P.ink40, marginTop: 2 }}>{t("wo.role").toUpperCase()}</Text>
           </View>
         </View>
       </View>
@@ -389,7 +392,7 @@ export default function WrenDeskScreen() {
           {stream.length === 0 && (
             <View style={{ alignItems: "center", paddingTop: 28, paddingBottom: 8 }}>
               <OfficialBird size={64} mood="curious" />
-              <Text style={{ fontFamily: PF.serifItalic, fontStyle: "italic", fontSize: 14.5, lineHeight: 22, color: P.ink60, textAlign: "center", marginTop: 16, maxWidth: 260 }}>
+              <Text style={{ ...wrenLine, fontSize: 14.5, lineHeight: 22, color: P.ink60, textAlign: "center", marginTop: 16, maxWidth: 260 }}>
                 {t("wo.empty")}
               </Text>
             </View>
@@ -399,7 +402,7 @@ export default function WrenDeskScreen() {
             const day = dShort(it.at).toUpperCase();
             const newDay = !prev || day !== dShort(prev.at).toUpperCase();
             const dayRule = newDay && (
-              <Text style={{ fontFamily: PF.mono, fontSize: 9, letterSpacing: 1.4, color: P.ink40, textAlign: "center", marginTop: i ? 22 : 0, marginBottom: 16 }}>
+              <Text style={{ ...PFM.mono, fontSize: 9, letterSpacing: 1.4, color: P.ink40, textAlign: "center", marginTop: i ? 22 : 0, marginBottom: 16 }}>
                 {day}
               </Text>
             );
@@ -408,7 +411,7 @@ export default function WrenDeskScreen() {
             // one label per run of the same voice — WREN, WREN · EVENT, YOU · BUG
             const sameSpeaker = !!prev && labelOf(prev) === label;
             const Label = (l: string, own: boolean, first: boolean) => (
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: own ? P.ink40 : P.pen, marginTop: first ? 0 : 16, marginBottom: 5 }}>{l}</Text>
+              <Text style={{ ...PFM.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: own ? P.ink40 : P.pen, marginTop: first ? 0 : 16, marginBottom: 5 }}>{l}</Text>
             );
             const key = it.type === "post" ? `p-${it.post.id}` : it.type === "local" ? `l-${it.local.id}` : it.type === "reply" ? `r-${it.mail.id}` : `m-${it.mail.id}`;
 
@@ -420,14 +423,14 @@ export default function WrenDeskScreen() {
                   {it.local.q ? (
                     <>
                       {(newDay || !sameSpeaker) && Label(t("ui.you"), true, newDay)}
-                      <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: P.ink60, marginBottom: 3 }}>{it.local.q}</Text>
+                      <Text style={{ ...letter, fontSize: 16, lineHeight: 24, color: P.ink60, marginBottom: 3 }}>{it.local.q}</Text>
                       {Label(OFFICIAL_NAME.toUpperCase(), false, false)}
                     </>
                   ) : (
                     (newDay || !sameSpeaker) && Label(OFFICIAL_NAME.toUpperCase(), false, newDay)
                   )}
                   {a.kind === "text" && (
-                    <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: P.ink, marginBottom: 3 }}>{a.text}</Text>
+                    <Text style={{ ...letter, fontSize: 16, lineHeight: 24, color: P.ink, marginBottom: 3 }}>{a.text}</Text>
                   )}
                   {a.guide && <GuideCard guide={a.guide} onNotIt={it.local.q ? notIt(it.local.q) : undefined} />}
                 </View>
@@ -445,7 +448,7 @@ export default function WrenDeskScreen() {
                     <MediaImage path={photo} style={{ width: "100%", aspectRatio: 0.75, backgroundColor: T.soft2 }} />
                   </Pressable>
                 ) : (
-                  <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: mine ? P.ink60 : P.ink, marginBottom: 3 }}>{body}</Text>
+                  <Text style={{ ...letter, fontSize: 16, lineHeight: 24, color: mine ? P.ink60 : P.ink, marginBottom: 3 }}>{body}</Text>
                 )}
                 {/* a release's reel plays right under its post; a reel this build
                     doesn't ship leaves the words alone, with no dead button */}
@@ -453,7 +456,7 @@ export default function WrenDeskScreen() {
                   <NewsCard id={newsIdOf(it.post.link)!} label={body.split("\n")[0]} />
                 ) : it.type === "post" && !!it.post.link && (
                   <Pressable onPress={() => openLink(it.post.link!)} hitSlop={6} style={{ alignSelf: "flex-start", marginTop: 4, marginBottom: 6 }}>
-                    <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1, color: P.pen }}>{t("wo.open")} ›</Text>
+                    <Text style={{ fontSize: 12, fontWeight: "600", letterSpacing: 0.6, color: P.pen }}>{t("wo.open")} ›</Text>
                   </Pressable>
                 )}
               </View>
@@ -470,16 +473,16 @@ export default function WrenDeskScreen() {
 
           {/* the one honest line about where your words go */}
           {mail.length > 0 && (
-            <Text style={{ fontFamily: PF.mono, fontSize: 9.5, letterSpacing: 0.6, lineHeight: 15, color: P.ink40, marginTop: 18 }}>{t("wo.mailNote")}</Text>
+            <Text style={{ ...PFM.mono, fontSize: 9.5, letterSpacing: 0.6, lineHeight: 15, color: P.ink40, marginTop: 18 }}>{t("wo.mailNote")}</Text>
           )}
         </ScrollView>
 
         {mode && (
           <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingBottom: 8, gap: 8 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1.5, borderColor: P.pen, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: P.penWash }}>
-              <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1, color: P.pen }}>{(mode === "bug" ? t("wo.bug.t") : t("wo.idea.t")).toUpperCase()}</Text>
+              <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1, color: P.pen }}>{(mode === "bug" ? t("wo.bug.t") : t("wo.idea.t")).toUpperCase()}</Text>
               <Pressable onPress={() => setMode(null)} hitSlop={8}>
-                <Text style={{ fontFamily: PF.mono, fontSize: 12, color: P.pen }}>×</Text>
+                <Text style={{ ...PFM.mono, fontSize: 12, color: P.pen }}>×</Text>
               </Pressable>
             </View>
           </View>
@@ -502,6 +505,7 @@ export default function WrenDeskScreen() {
             onChangeText={setText}
             // the keyboard's rise closes the tray, in the same commit (not the focus, a frame early)
             onFocus={trayKit.onFieldFocus}
+            style={letter}
             placeholder={mode === "bug" ? t("wo.bug.ph") : mode === "idea" ? t("wo.idea.ph") : t("wo.ph")}
           />
         </View>

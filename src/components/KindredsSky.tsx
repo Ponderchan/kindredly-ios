@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { Pressable, Text, View, useWindowDimensions } from "react-native";
 import Animated, { Easing, Extrapolation, ReduceMotion, interpolate, useAnimatedStyle, useDerivedValue, useSharedValue, withTiming } from "react-native-reanimated";
 import Svg, { Ellipse, Path, Rect } from "react-native-svg";
-import { MONO, PF } from "../theme/post";
+import { MONO, PFM } from "../theme/post";
 import { useTheme } from "../lib/theme";
 import { OrbitMap, orbitBox } from "./OrbitMap";
 import { Frost } from "./Frost";
@@ -130,7 +130,7 @@ function Legend({ mark, text, color }: { mark: ReactNode; text: string; color: s
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
       <View style={{ width: 18, alignItems: "center" }}>{mark}</View>
-      <Text style={{ flex: 1, fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color }}>{text}</Text>
+      <Text style={{ flex: 1, ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color }}>{text}</Text>
     </View>
   );
 }

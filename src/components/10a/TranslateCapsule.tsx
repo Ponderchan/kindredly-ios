@@ -1,5 +1,5 @@
 import { Pressable, Text, View, type StyleProp, type ViewStyle } from "react-native";
-import { PF } from "../../theme/post";
+import { PFM } from "../../theme/post";
 import { useTheme } from "../../lib/theme";
 import { StickerBox } from "./StickerBox";
 
@@ -54,7 +54,7 @@ export function TranslateCapsule({
           pressed={pressed}
           faceStyle={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 6, paddingHorizontal: 12 }}
         >
-          <Text numberOfLines={1} style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 1, color: tk.ind }}>
+          <Text numberOfLines={1} style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1, color: tk.ind }}>
             {code}
           </Text>
           <View style={{ flexShrink: 1 }}>

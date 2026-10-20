@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
-import { PF } from "../../theme/post";
+import { PFM } from "../../theme/post";
 import { THEME_KEYS, THEMES, type ThemeKey } from "../../theme/themes";
 import { setDevFares } from "../../lib/fares";
 import type { IapPackage } from "../../lib/iap";
@@ -189,7 +189,7 @@ function Me4aFc() {
         ) : rc ? (
           <View style={{ flex: 1 }}>
             <PaywallSwift source="unknown" onClose={back} onDone={back} dev={dev} sheet={false} />
-            <Text style={{ position: "absolute", top: safe.top + 4, left: 12, right: 12, fontFamily: PF.monoSemi, fontSize: 10, color: tk.ink, backgroundColor: tk.sf, padding: 4 }}>
+            <Text style={{ position: "absolute", top: safe.top + 4, left: 12, right: 12, ...PFM.monoSemi, fontSize: 10, color: tk.ink, backgroundColor: tk.sf, padding: 4 }}>
               Default type / AX5: the button stays last and on screen
             </Text>
             <FirstClassReceipt key={page} plan={rc.plan} price={rc.price} productId={null} offeredTrial={rc.offeredTrial} dev={rc.dev} onDone={() => setPage("paywall")} />
@@ -275,7 +275,7 @@ function Chip({ label, on = false, onPress }: { label: string; on?: boolean; onP
       accessibilityState={{ selected: on }}
       style={({ pressed }) => ({ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 16, borderWidth: 1.5, borderColor: on ? tk.ink : tk.line, backgroundColor: on ? tk.ink : tk.sf, opacity: pressed ? 0.7 : 1 })}
     >
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 0.8, color: on ? tk.bg : tk.ink }}>{label}</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 0.8, color: on ? tk.bg : tk.ink }}>{label}</Text>
     </Pressable>
   );
 }

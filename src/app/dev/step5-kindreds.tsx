@@ -10,7 +10,7 @@ import { setDevIdentityPreview, useIdentityOn } from "../../lib/identity";
 import { useWhoBook } from "../../lib/who";
 import { OFFICIAL_NAME } from "../../lib/wren-desk";
 import { THEME_KEYS, THEMES, type ThemeKey } from "../../theme/themes";
-import { PF } from "../../theme/post";
+import { PFM } from "../../theme/post";
 import { DEMO_ROOM_SEEN, DEMO_WREN_POSTS, demoThreads } from "../../data/demo";
 import { LeaveSheet } from "../../components/LeaveSheet";
 import { buildKindredsView, threadById, type ListTab, type LoadState, type Show } from "../../screens/kindreds/kindreds-model";
@@ -212,7 +212,7 @@ function KindredsLab() {
             <Chip label="NAMES" on={names} onPress={() => setDevIdentityPreview(!names)} />
             <Chip label="RESET ROWS" onPress={() => { setGone(new Set()); setLedger(DEMO_ROOM_SEEN); setTab("all"); setShow(null); }} />
           </Row>
-          <Text style={{ fontFamily: PF.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>
+          <Text style={{ ...PFM.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>
             {`THEME ${themeLabel} (${key}) · ${swift && swiftAvailable ? "SWIFTUI" : "REACT NATIVE"}${swiftAvailable ? "" : " (no KKindredsView in this build)"} · ${view.waiting} ON YOU`}
           </Text>
         </View>
@@ -240,7 +240,7 @@ function Chip({ label, on = false, onPress }: { label: string; on?: boolean; onP
       accessibilityState={{ selected: on }}
       style={({ pressed }) => ({ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 16, borderWidth: 1.5, borderColor: on ? tk.ink : tk.line, backgroundColor: on ? tk.ink : tk.sf, opacity: pressed ? 0.7 : 1 })}
     >
-      <Text style={{ fontFamily: PF.monoSemi, fontSize: 10, letterSpacing: 0.8, color: on ? tk.bg : tk.ink }}>{label}</Text>
+      <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 0.8, color: on ? tk.bg : tk.ink }}>{label}</Text>
     </Pressable>
   );
 }

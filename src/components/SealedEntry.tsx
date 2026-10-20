@@ -1,7 +1,7 @@
 import { Image, Pressable, Text, View, type ViewStyle } from "react-native";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { PF } from "../theme/post";
-import { useP, useTheme } from "../lib/theme";
+import { letterFitLines, PFM } from "../theme/post";
+import { useLetterFamily, useLetterFont, useP, useTheme } from "../lib/theme";
 import { AudioCard } from "./AudioCard";
 import { moodArtKey, moodGroup } from "../data/moods";
 import { MoodChip, moodColors } from "../screens/notes/notes-glyphs";
@@ -61,7 +61,7 @@ export function SealedEntry({ e, onPress }: { e: JournalEntry; onPress: () => vo
           Notes card head's 36/r11/22 */}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 11, paddingBottom: hasMedia ? 12 : 8 }}>
         <MoodChip group={group} icon={moodArtKey(e.mood)} size={36} radius={11} face={22} />
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: 11, letterSpacing: 1.32, color: P.ink60 }}>{meta(e)}</Text>
+        <Text style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.32, color: P.ink60 }}>{meta(e)}</Text>
       </View>
 
       {/* photo — one fills, several become a mosaic (edge to edge) */}
@@ -98,7 +98,7 @@ function VideoInline({ uri, dur }: { uri: string; dur?: number }) {
     <View style={{ position: "relative", backgroundColor: "#1C1A22" }}>
       <VideoView player={player} style={{ width: "100%", aspectRatio: 4 / 3 }} contentFit="cover" nativeControls={false} pointerEvents="none" />
       <View style={{ position: "absolute", right: 12, bottom: 12, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10 }}>
-        <Text style={{ color: "#fff", fontFamily: PF.mono, fontSize: 11, letterSpacing: 0.4 }}>{fmt(dur || 0)}</Text>
+        <Text style={{ color: "#fff", ...PFM.mono, fontSize: 11, letterSpacing: 0.4 }}>{fmt(dur || 0)}</Text>
       </View>
     </View>
   );
@@ -172,7 +172,7 @@ function Tile({ uri, style, plus = 0 }: { uri: string; style: ViewStyle; plus?: 
       <Image source={{ uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
       {plus > 0 && (
         <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: "#fff", fontFamily: PF.monoSemi, fontSize: 19 }}>+{plus}</Text>
+          <Text style={{ color: "#fff", ...PFM.monoSemi, fontSize: 19 }}>+{plus}</Text>
         </View>
       )}
     </View>
@@ -182,12 +182,15 @@ function Tile({ uri, style, plus = 0 }: { uri: string; style: ViewStyle; plus?: 
 function Body({ e, pure, lines }: { e: JournalEntry; pure: boolean; lines: number }) {
   const P = useP();
   const { dark } = useTheme();
-  const style = { fontFamily: PF.letter, fontSize: pure ? 18 : 15, lineHeight: pure ? 28 : 24, color: pure ? P.ink : P.ink60 } as const;
+  // the page is content: the reader's Letter font, a line more in a roomier face (SF Mono, Garamond)
+  const face = useLetterFamily();
+  const fit = letterFitLines(useLetterFont(), lines);
+  const style = { ...face, fontSize: pure ? 18 : 15, lineHeight: pure ? 28 : 24, color: pure ? P.ink : P.ink60 } as const;
   const line = e.driftedLine;
   if (line && e.body.includes(line)) {
     const i = e.body.indexOf(line);
     return (
-      <Text style={style} numberOfLines={lines}>
+      <Text style={style} numberOfLines={fit}>
         {e.body.slice(0, i)}
         {/* the highlight is pale in every theme, so on a dark theme the
             words on it keep a dark ink instead of the page's light one */}
@@ -197,7 +200,7 @@ function Body({ e, pure, lines }: { e: JournalEntry; pure: boolean; lines: numbe
     );
   }
   return (
-    <Text style={style} numberOfLines={lines}>
+    <Text style={style} numberOfLines={fit}>
       {e.body}
     </Text>
   );

@@ -8,7 +8,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
-import { MONO, PF } from "../theme/post";
+import { MONO, PFM } from "../theme/post";
 import { useP } from "../lib/theme";
 import { WrenBird } from "./WrenBird";
 import { t } from "../lib/i18n";
@@ -89,7 +89,7 @@ export function LetterInFlight({ to, slow }: { to?: string | null; slow?: boolea
     return (
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, borderBottomWidth: 1, borderBottomColor: P.ink12, paddingVertical: 16 }}>
         <WrenBird size={26} pose="fly" mood="content" />
-        <Text style={{ fontFamily: PF.monoSemi, fontSize: MONO.title, letterSpacing: 1.3, color: P.pen }}>
+        <Text style={{ ...PFM.monoSemi, fontSize: MONO.title, letterSpacing: 1.3, color: P.pen }}>
           {t("ld.onItsWay")}
           {to ? ` · ${to}` : ""}
         </Text>
@@ -119,7 +119,7 @@ export function LetterInFlight({ to, slow }: { to?: string | null; slow?: boolea
       </View>
       {to ? (
         <Text
-          style={{ position: "absolute", right: 0, top: 46, fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: P.ink40 }}
+          style={{ position: "absolute", right: 0, top: 46, ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: P.ink40 }}
         >
           {to}
         </Text>
@@ -130,7 +130,7 @@ export function LetterInFlight({ to, slow }: { to?: string | null; slow?: boolea
           send; when the send is slow, the row says so. */}
       {slow ? (
         <Text
-          style={{ position: "absolute", left: 0, top: 46, fontFamily: PF.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: P.ink40, textTransform: "uppercase" }}
+          style={{ position: "absolute", left: 0, top: 46, ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: P.ink40, textTransform: "uppercase" }}
         >
           {t("net.slow")}
         </Text>
