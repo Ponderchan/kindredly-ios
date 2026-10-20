@@ -3,6 +3,12 @@
 import SwiftUI
 
 /*
+ R2 (owner, 2026-10-20, "Reply Bar" options: R2, the hairline capsule with the plane outside):
+ a white capsule 46 tall, fully round, a 1pt #DAD8E6 line that turns ind while the field has focus,
+ the field (system 16) and the emoji key inside it; the send key its own 46 circle 8 to its right —
+ lav with a faint plane while there is nothing to send (at .92), ind with a white plane once there
+ is. No reply arrow, no outline, no shadow. The notes below describe the bar before R2.
+
  THE REPLY BAR (chat composers, Prompt 1; the owner's final, 2026-10-18): one object in two
  places, the Today reply (Today/KReplyDock.swift) and the pen-pal chat before names are traded
  (Chat/KDock.swift, letters). What leaves it is a letter: words and emoji, nothing else. No Wren
@@ -40,10 +46,14 @@ import SwiftUI
  */
 public struct KReplyBar: View {
   /// the bar's numbers (Prompt 1)
-  public static let minHeight: CGFloat = 54
-  public static let borderWidth: CGFloat = 2
-  public static let cornerRadius: CGFloat = 16
-  public static let shadowOffset: CGFloat = 2
+  /// R2 (owner, 2026-10-20): a white capsule 46 tall with a 1pt line, the send key its own circle
+  public static let minHeight: CGFloat = 46
+  public static let borderWidth: CGFloat = 1
+  public static let cornerRadius: CGFloat = 23
+  /// nothing hangs outside it any more (it had a hard shadow); kept for the screens that leave room
+  public static let shadowOffset: CGFloat = 0
+  /// R2's capsule line at rest (#DAD8E6); ind while the field has focus
+  static let restLine = Color(hex: "#DAD8E6")
 
   private let theme: KTheme
   private let controller: KFieldController
@@ -64,6 +74,8 @@ public struct KReplyBar: View {
   private let onSend: () -> Void
 
   @Environment(\.dynamicTypeSize) private var typeSize
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @State private var focused = false
 
   /// - Parameters:
   ///   - controller: the field's handle
@@ -138,45 +150,48 @@ public struct KReplyBar: View {
     }
   }
 
+  /// R2 · the capsule and, outside it on the right, the send circle
   private var bar: some View {
-    HStack(alignment: .bottom, spacing: 6) {
-      KLineIcon(.replyArrow, size: 20, lineWidth: 1.9, color: theme.ink)
-        .alignmentGuide(.bottom) { $0[VerticalAlignment.center] + innerHeight / 2 }
-      KComposerField(
-        theme: theme,
-        controller: controller,
-        placeholder: placeholder,
-        size: 16,
-        // at the accessibility sizes a line is ~40pt: three (two where the screen is tight), then
-        // it scrolls inside
-        maxLines: typeSize.isAccessibilitySize ? (tightRoom ? 2 : 3) : 4,
-        returnSends: returnSends,
-        autocapitalize: autocapitalize,
-        onChange: onChange,
-        onSubmit: onSubmit,
-        onFocus: onFocus,
-        onEscape: onEscape
-      )
-      .padding(.vertical, 12)
-      .frame(minHeight: innerHeight)
-      .frame(maxWidth: .infinity, alignment: .leading)
-      KEmojiKey(theme: theme, controller: controller, label: emojiLabel)
-        .alignmentGuide(.bottom) { $0[VerticalAlignment.center] + innerHeight / 2 }
-      KSendDisc(theme: theme, state: sendState, label: sendLabel, action: onSend)
-        .alignmentGuide(.bottom) { $0[VerticalAlignment.center] + innerHeight / 2 }
-    }
-    // padding 0 8 0 14 inside the 2 outline (border-box)
-    .padding(.leading, 14 + Self.borderWidth)
-    .padding(.trailing, 8 + Self.borderWidth)
-    .padding(.vertical, Self.borderWidth)
-    .frame(minHeight: Self.minHeight)
-    .background {
-      // (owner, 2026-10-20: no black frame) the soft field the Kindreds bar wears: a light line, a
-      // faint shadow, no ink outline and no hard shadow
-      RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
-        .fill(theme.sf)
-        .overlay(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous).strokeBorder(theme.line, lineWidth: 1))
-        .shadow(color: .black.opacity(theme.isDark ? 0.35 : 0.08), radius: 10, y: 3)
+    HStack(alignment: .bottom, spacing: 8) {
+      HStack(alignment: .bottom, spacing: 4) {
+        KComposerField(
+          theme: theme,
+          controller: controller,
+          placeholder: placeholder,
+          size: 16,
+          // at the accessibility sizes a line is ~40pt: three (two where the screen is tight), then
+          // it scrolls inside
+          maxLines: typeSize.isAccessibilitySize ? (tightRoom ? 2 : 3) : 4,
+          returnSends: returnSends,
+          autocapitalize: autocapitalize,
+          onChange: onChange,
+          onSubmit: onSubmit,
+          onFocus: { on in
+            focused = on
+            onFocus(on)
+          },
+          onEscape: onEscape
+        )
+        .padding(.vertical, 10)
+        .frame(minHeight: Self.minHeight - 2 * Self.borderWidth)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        KEmojiKey(theme: theme, controller: controller, label: emojiLabel)
+          .alignmentGuide(.bottom) { $0[VerticalAlignment.center] + (Self.minHeight - 2 * Self.borderWidth) / 2 }
+      }
+      .padding(.leading, 16)
+      .padding(.trailing, 4)
+      .padding(.vertical, Self.borderWidth)
+      .frame(minHeight: Self.minHeight)
+      .background {
+        let shape = RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
+        shape
+          .fill(theme.sf)
+          // the system focus ring's way: the line turns ind while you write
+          .overlay(shape.strokeBorder(focused ? theme.ind : (theme.isDark ? theme.line : Self.restLine), lineWidth: Self.borderWidth))
+          .animation(.easeOut(duration: 0.2), value: focused)
+      }
+      KReplySendCircle(theme: theme, state: sendState, label: sendLabel, action: onSend)
+        .alignmentGuide(.bottom) { $0[.bottom] }
     }
     .accessibilityElement(children: .contain)
   }
@@ -301,6 +316,32 @@ public struct KSendDisc: View {
     .opacity(state == .dimmed ? 0.35 : 1)
     .disabled(state == .disabled)
     .animation(.easeOut(duration: 0.2), value: state)
+    .accessibilityLabel(label)
+  }
+}
+
+/// R2's send key: a 46 circle beside the capsule. Nothing to send: lav, the plane faint, at .92, not
+/// pressable. Words that can go: ind, the plane white, full size (.2s). Dimmed (a full pouch): drawn
+/// as nothing-to-send but still pressed, so TS can say why.
+struct KReplySendCircle: View {
+  let theme: KTheme
+  let state: KSendState
+  let label: String
+  let action: () -> Void
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  var body: some View {
+    let on = state == .enabled
+    SwiftUI.Button(action: action) {
+      KLineIcon(.planeLine, size: 20, lineWidth: 2.2, color: on ? KBrand.paperWhite : theme.faint)
+        .frame(width: KReplyBar.minHeight, height: KReplyBar.minHeight)
+        .background(Circle().fill(on ? theme.ind : theme.lav))
+        .scaleEffect(on ? 1 : 0.92)
+        .animation(reduceMotion ? nil : .spring(duration: 0.2, bounce: 0.3), value: on)
+        .contentShape(Circle())
+    }
+    .buttonStyle(KFadePressStyle())
+    .disabled(state == .disabled)
     .accessibilityLabel(label)
   }
 }
