@@ -186,20 +186,22 @@ private struct KComposeIconKey<Glyph: View>: View {
   }
 }
 
-/// The paper key's face (Prompt 3, I9): 30 × 30 with corners of 7, the 22 glyph on the 24 grid.
+/// The paper key's face (Prompt 3, I9): 34 × 34 with corners of 7, the glyph on the 24 grid at 30.4 so its square matches the stamp key.
 private struct KComposePaperGlyph: View {
   let theme: KTheme
   let open: Bool
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
-    let g: CGFloat = 22
+    // (owner, 2026-10-20) the square drawn as wide as the stamp key's frame (17 of 24 at 27 ≈ 19):
+    // its 15 units at 30.4 ≈ 19
+    let g: CGFloat = 30.4
     let u = g / 24
     let stroke = open ? theme.ind : theme.ink
     ZStack {
       RoundedRectangle(cornerRadius: 7, style: .circular)
         .fill(open ? theme.lav : Color.clear)
-        .frame(width: 30, height: 30)
+        .frame(width: 34, height: 34)
       ZStack {
         KStampKeyPiece(d: "M7.5 4.5h9a3 3 0 0 1 3 3v9a3 3 0 0 1 -3 3h-9a3 3 0 0 1 -3 -3v-9a3 3 0 0 1 3 -3z")
           .fill(open ? theme.sf : Color.clear)
@@ -223,7 +225,8 @@ private struct KComposePlusGlyph: View {
 
   var body: some View {
     let s = KComposeKeySize.glyph
-    KStampKeyPiece(d: "M12 6v12M6 12h12")
+    // as wide as the stamp key's frame (17 of 24), owner 2026-10-20
+    KStampKeyPiece(d: "M12 3.5v17M3.5 12h17")
       .stroke(color, style: StrokeStyle(lineWidth: 1.8 * s / 24, lineCap: .round))
       .frame(width: s, height: s)
       .rotationEffect(.degrees(open ? 45 : 0))
