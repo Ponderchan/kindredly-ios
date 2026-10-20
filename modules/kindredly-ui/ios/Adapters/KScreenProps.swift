@@ -15,7 +15,7 @@ import os
 
  and gets, with no further work:
  - theme: a key of src/theme/themes.json; read it resolved as `props.kTheme`.
- - letterFont: the owner's Letter font, "newsreader" | "newyork" | "garamond"; read it as
+ - letterFont: the owner's Letter font, "newsreader" | "system" | "garamond" | "sfmono"; read it as
    `props.letterFontKey`, which is "newsreader" for anything else, and also while EB Garamond
    isn't embedded in this binary (the font file needs the owner's approval and a native build).
  - insets: { top, bottom, tabBarRoom } in points. Screen Hosts ignore the container safe area
@@ -172,7 +172,7 @@ struct KFrostRecord: Record {
 class KScreenProps: UIBaseViewProps {
   /// a key of src/theme/themes.json: classic, midnight, lavender or paper
   @Field var theme: String = "classic"
-  /// the owner's Letter font: newsreader, newyork or garamond (read letterFontKey)
+  /// the owner's Letter font: newsreader, system, garamond or sfmono (read letterFontKey)
   @Field var letterFont: String = "newsreader"
   @Field var insets: KInsetsRecord = KInsetsRecord()
   /// bumped by TS whenever a heavy array prop changes; keys `cached(_:_:)`. 0 (what the TS
@@ -197,12 +197,12 @@ class KScreenProps: UIBaseViewProps {
     KTheme.named(theme) ?? .classic
   }
 
-  /// The Letter font to draw letters in: "newsreader", "newyork", "garamond" or "sfmono". Anything else is
+  /// The Letter font to draw letters in: "newsreader", "system", "garamond" or "sfmono". Anything else is
   /// "newsreader", and so is "garamond" while EB Garamond isn't in this binary, so a phone that
   /// stored it never gets a silent system-font fallback.
   var letterFontKey: String {
     switch letterFont {
-    case "newyork": return "newyork"
+    case "system": return "system"
     case "sfmono": return "sfmono"
     case "garamond": return Self.garamondEmbedded ? "garamond" : "newsreader"
     default: return "newsreader"
@@ -247,8 +247,8 @@ extension View {
   /// KImage inside (KImageStore.shared) and the owner's Letter font for every letter serif.
   func kScreenEnvironment(_ props: KScreenProps) -> some View {
     environment(\.kImageLoader, KImageStore.shared)
-      // KLetterFace's newYork case has the raw value "newyork", the key TS sends, so init(key:)
-      // maps all three; letterFontKey has already turned an unembedded "garamond" into
+      // KLetterFace's raw values are the keys TS sends, so init(key:) maps all four (a retired
+      // "newyork" is none of them and reads as Newsreader); letterFontKey has already turned an unembedded "garamond" into
       // "newsreader". Only styles that follow the Letter font move (KTextStyle.followsLetterFont:
       // letters being read), every other serif stays Newsreader.
       .kLetterFace(KLetterFace(key: props.letterFontKey))

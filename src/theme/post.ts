@@ -138,7 +138,7 @@ export const MONO = {
 
 /* ── THE LETTER FONT (10a, a device setting) ───────────────────────────────
    CONTENT is set in the face the reader chose: Newsreader (the default,
-   embedded), New York (Apple's own serif, in every iPhone, no file
+   embedded), System (SF Pro, the interface's own face, no file
    needed), EB Garamond or SF Mono. It reaches all content (owner,
    2026-10-20): letters, replies, notes, chat bubbles, translations,
    quotes, fold answers, Wren's lines everywhere, my-letter previews, and
@@ -162,19 +162,19 @@ export const MONO = {
    so no update reaches a binary without it). */
 export const GARAMOND_READY: boolean = true;
 
-export type LetterFontKey = "newsreader" | "newyork" | "garamond" | "sfmono";
+export type LetterFontKey = "newsreader" | "system" | "garamond" | "sfmono";
 /** every value the setting can hold, in the order Settings lists them */
-export const LETTER_FONT_KEYS: readonly LetterFontKey[] = ["newsreader", "newyork", "garamond", "sfmono"];
+export const LETTER_FONT_KEYS: readonly LetterFontKey[] = ["newsreader", "system", "garamond", "sfmono"];
 export const DEFAULT_LETTER_FONT: LetterFontKey = "newsreader";
 /** the choices Settings may offer on this build: no Garamond until GARAMOND_READY */
 export const LETTER_FONT_CHOICES: readonly LetterFontKey[] = LETTER_FONT_KEYS.filter((k) => k !== "garamond" || GARAMOND_READY);
 
-/* the faces, by PostScript name. New York has no file and no name: React
-   Native (Fabric) maps "ui-serif" to the system serif design, which is New
-   York (RCTFontUtils.mm:321-345), and finds its italic from fontStyle. */
+/* the faces, by PostScript name. System is SF Pro, the interface's own face
+   (owner, 2026-10-20: it replaced New York, which read as a second Newsreader):
+   no file, React Native's "System" family, its italic found from fontStyle. */
 const LETTER_FACES: Readonly<Record<LetterFontKey, { regular: string; italic: string }>> = {
   newsreader: { regular: "Newsreader-Regular", italic: "Newsreader-Italic" },
-  newyork: { regular: "ui-serif", italic: "ui-serif" },
+  system: { regular: "System", italic: "System" },
   garamond: { regular: "EBGaramond-Regular", italic: "EBGaramond-Regular" },
   // SF Mono, the system monospaced design (owner, 2026-10-20: the typewriter one): no file either,
   // "ui-monospace" is mapped by the same RCTFontUtils table as ui-serif
@@ -184,7 +184,8 @@ const LETTER_FACES: Readonly<Record<LetterFontKey, { regular: string; italic: st
 /** Whatever was stored, as a letter font this build can draw: an unknown
     value (or Garamond before GARAMOND_READY) is the default. */
 export function letterFontKey(raw: unknown): LetterFontKey {
-  if (raw === "newsreader" || raw === "newyork" || raw === "sfmono") return raw;
+  if (raw === "newsreader" || raw === "system" || raw === "sfmono") return raw;
+  // "newyork" (until 2026-10-20) is not offered any more: it reads as the default, a serif like it
   if (raw === "garamond" && GARAMOND_READY) return raw;
   return DEFAULT_LETTER_FONT;
 }
@@ -192,11 +193,11 @@ export function letterFontKey(raw: unknown): LetterFontKey {
 /** a Text style fragment: spread it into the style of a letter's text */
 export type LetterFace = { fontFamily: string; fontStyle: "normal" | "italic" };
 
-/** Whether the face has a true italic: Newsreader and New York do;
+/** Whether the face has a true italic: Newsreader and System do;
     Garamond (Regular only) and SF Mono don't. */
 export function letterHasItalic(key: LetterFontKey): boolean {
   const k = letterFontKey(key);
-  return k === "newsreader" || k === "newyork";
+  return k === "newsreader" || k === "system";
 }
 
 /** The React Native type for content set in `key`. Italic is said twice —

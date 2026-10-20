@@ -181,7 +181,7 @@ export const STORE_VERSION = "1.0.5";
 /** The Letter font's names: proper nouns, never translated (the endonyms' rule). */
 export const LETTER_FONT_NAMES: Readonly<Record<string, string>> = {
   newsreader: "Newsreader",
-  newyork: "New York",
+  system: "System",
   garamond: "EB Garamond",
   sfmono: "SF Mono",
 };
@@ -292,11 +292,11 @@ export function swatches(theme: ThemeFacts, t: TFn): SwatchVM[] {
   }));
 }
 
-/** The Letter font tiles: the choices this build can draw, by their own names; the system serif's
-    comes through set.font.system, which says New York in every language (owner, 2026-10-20: it
-    was "System", which read as SF Pro). */
+/** The Letter font tiles: the choices this build can draw, by their own names; the system font's
+    (SF Pro) comes through set.font.system, "System" as each language's Settings says it (owner,
+    2026-10-20: the real System replaced New York). */
 export function fontTiles(choices: readonly string[], t?: TFn): FontVM[] {
-  return choices.map((k) => ({ key: k, name: k === "newyork" && t ? t("set.font.system") : LETTER_FONT_NAMES[k] ?? k, sample: LETTER_FONT_SAMPLE }));
+  return choices.map((k) => ({ key: k, name: k === "system" && t ? t("set.font.system") : LETTER_FONT_NAMES[k] ?? k, sample: LETTER_FONT_SAMPLE }));
 }
 
 /** The membership row's value: Cofounder No. 007, First Class, or Not yet. */

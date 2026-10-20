@@ -5,7 +5,7 @@ import SwiftUI
 /*
  THE LETTER FONT PICKER (owner, 10a; styled after the swatches, H:99): the face letters are set in
  when you read them. Three tiles in three columns (four go two by two), 10 apart, each corners of 12, padding 10, on
- sf: the specimen ("Aa", from TS) at 24 in its own face (Newsreader, New York — the system serif —,
+ sf: the specimen ("Aa", from TS) at 24 in its own face (Newsreader, System — SF Pro —,
  EB Garamond or SF Mono — the system monospaced), on a 34 line so the tiles match, and under it the face's name in system 500 11. The names are proper nouns and
  come in untranslated. The selected tile wears the swatches' selected look (KSelectableTile: 2pt
  ind border, 3pt lav halo) and its name turns ind. Each tile is one button; VoiceOver reads the
@@ -21,7 +21,7 @@ import SwiftUI
  (up to three lines) instead of being cut.
  */
 public struct KFontOption: Identifiable, Equatable, Sendable {
-  /// the key TS sends: newsreader, newyork, garamond, sfmono
+  /// the key TS sends: newsreader, system, garamond, sfmono
   public let key: String
   /// the face's own name, untranslated
   public let name: String

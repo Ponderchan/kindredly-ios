@@ -18,7 +18,7 @@ import { strings } from "../lib/i18n";
    set.wrenPrompt.body, ob.naming.reserved, set.cantSave, set.push.saveFail,
    a11y.back (strings-step5-kitrn), bl.*, hp.*, wu.*.
 
-   The font names (Newsreader, New York, EB Garamond, SF Mono) are proper nouns and
+   The font names (Newsreader, System, EB Garamond, SF Mono) are proper nouns and
    never translated, like the language endonyms (screens/settings
    settings-model LETTER_FONT_NAMES). */
 
@@ -37,13 +37,14 @@ strings(
     "theme.midnight": "Midnight",
     "theme.lavender": "Lavender",
     "theme.paper": "Paper",
-    // the font picker (Newsreader / New York / EB Garamond / SF Mono): the one face for
+    // the font picker (Newsreader / System / EB Garamond / SF Mono): the one face for
     // everything people write, not only letters read (owner, 2026-10-20)
     "set.letterFont": "Font",
     "set.letterFont.sub": "Letters, notes and chats use it.",
-    // the system serif's tile: its own name, New York (owner, 2026-10-20; it was "System",
-    // which read as SF Pro); a proper noun, so every language keeps it
-    "set.font.system": "New York",
+    // the system font's tile: SF Pro, the face of the interface, under the name every iOS app's
+    // font setting gives it (owner, 2026-10-20: New York out, the real System in), in each
+    // language as its own Settings app says it
+    "set.font.system": "System",
     // a restore that failed (offline, the App Store unreachable): never "Nothing to restore";
     // the body reuses set.push.saveFail
     "set.restoreFail": "Couldn't restore",
@@ -87,7 +88,7 @@ strings(
     "theme.paper": "Papel",
     "set.letterFont": "Letra",
     "set.letterFont.sub": "Se usa en cartas, notas y chats.",
-    "set.font.system": "New York",
+    "set.font.system": "Sistema",
     "set.restoreFail": "No se pudo restaurar",
     "fc.tryCta": "Probar Primera Clase",
     "ep.cameraA11y": "Cambiar tu cara",
@@ -116,7 +117,7 @@ strings(
     "theme.paper": "Papel",
     "set.letterFont": "Fonte",
     "set.letterFont.sub": "Usada nas cartas, notas e chats.",
-    "set.font.system": "New York",
+    "set.font.system": "Sistema",
     "set.restoreFail": "Não foi possível restaurar",
     "fc.tryCta": "Experimente a Primeira Classe",
     "ep.cameraA11y": "Trocar de rosto",
@@ -145,7 +146,7 @@ strings(
     "theme.paper": "Kertas",
     "set.letterFont": "Font",
     "set.letterFont.sub": "Dipakai di surat, catatan, dan obrolan.",
-    "set.font.system": "New York",
+    "set.font.system": "Sistem",
     "set.restoreFail": "Tak bisa memulihkan",
     "fc.tryCta": "Coba Kelas Utama",
     "ep.cameraA11y": "Ganti wajahmu",
@@ -174,7 +175,7 @@ strings(
     "theme.paper": "Papier",
     "set.letterFont": "Police",
     "set.letterFont.sub": "Pour les lettres, les notes et les discussions.",
-    "set.font.system": "New York",
+    "set.font.system": "Système",
     "set.restoreFail": "Impossible de restaurer",
     "fc.tryCta": "Essayer la Première classe",
     "ep.cameraA11y": "Changer de visage",
@@ -203,7 +204,7 @@ strings(
     "theme.paper": "Papier",
     "set.letterFont": "Schrift",
     "set.letterFont.sub": "Für Briefe, Notizen und Chats.",
-    "set.font.system": "New York",
+    "set.font.system": "System",
     "set.restoreFail": "Wiederherstellen nicht möglich",
     "fc.tryCta": "Erste Klasse testen",
     "ep.cameraA11y": "Gesicht ändern",
@@ -232,7 +233,7 @@ strings(
     "theme.paper": "Carta",
     "set.letterFont": "Carattere",
     "set.letterFont.sub": "Per lettere, note e chat.",
-    "set.font.system": "New York",
+    "set.font.system": "Sistema",
     "set.restoreFail": "Impossibile ripristinare",
     "fc.tryCta": "Prova la Prima classe",
     "ep.cameraA11y": "Cambia il tuo volto",
@@ -261,7 +262,7 @@ strings(
     "theme.paper": "きなり",
     "set.letterFont": "書体",
     "set.letterFont.sub": "手紙・ノート・チャットに使われます。",
-    "set.font.system": "New York",
+    "set.font.system": "システム",
     "set.restoreFail": "復元できませんでした",
     "fc.tryCta": "ファーストクラスを試す",
     "ep.cameraA11y": "顔を変える",
@@ -290,7 +291,7 @@ strings(
     "theme.paper": "종이",
     "set.letterFont": "글꼴",
     "set.letterFont.sub": "편지, 노트, 채팅에 쓰여요.",
-    "set.font.system": "New York",
+    "set.font.system": "시스템",
     "set.restoreFail": "복원하지 못했어요",
     "fc.tryCta": "퍼스트 클래스 체험하기",
     "ep.cameraA11y": "얼굴 바꾸기",

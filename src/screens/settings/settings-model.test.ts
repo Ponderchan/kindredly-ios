@@ -66,7 +66,7 @@ const facts = (over: Partial<SettingsFacts> = {}): SettingsFacts => ({
   language: { flag: "🇺🇸", label: "English" },
   wren: "Pip",
   theme: theme(),
-  letterFont: { selected: "newsreader", choices: ["newsreader", "newyork"] },
+  letterFont: { selected: "newsreader", choices: ["newsreader", "system"] },
   perm: "granted",
   notifyOn: true,
   knock: false,
@@ -129,7 +129,7 @@ const facts = (over: Partial<SettingsFacts> = {}): SettingsFacts => ({
   ok("an unknown key shows as itself", swatches(theme({ choices: ["neon"] }), t)[0].label === "neon");
   const fc2 = readFileSync(new URL("../../data/strings-fc2.ts", import.meta.url), "utf8");
   ok("fc2.ap.* are in strings-fc2 (nine times each)", ["fc2.ap.system", "fc2.ap.light", "fc2.ap.dark", "fc2.ap.systemHint"].every((k) => fc2.split(`"${k}"`).length - 1 === 9));
-  ok("the font tiles: Newsreader and New York, by their own names", v.appearance.fonts.map((f) => `${f.key}=${f.name}`).join(",") === "newsreader=Newsreader,newyork=set.font.system");
+  ok("the font tiles: Newsreader and System, by their own names", v.appearance.fonts.map((f) => `${f.key}=${f.name}`).join(",") === "newsreader=Newsreader,system=set.font.system");
   ok("each tile carries the specimen (Aa, the same in every language)", v.appearance.fonts.every((f) => f.sample === "Aa"));
   ok("Garamond has its name ready for when it lands", LETTER_FONT_NAMES.garamond === "EB Garamond");
   ok("the font picked is selected", v.appearance.selectedFont === "newsreader");

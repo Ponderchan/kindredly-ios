@@ -41,7 +41,7 @@ import UIKit
  - THE FONT is the system face at `size`, or with content: true (the reply bar, the Kindreds
    bar: what is written there is a letter or a message) the reader's Letter font, the
    environment's KLetterFace, as .kText draws KTextStyle.content: Newsreader and Garamond by
-   name, New York and SF Mono as the system's serif and monospaced designs. Either is scaled
+   name, System and SF Mono as the system's own text and monospaced fonts. Either is scaled
    with Dynamic Type exactly as .kText scales it (UIFontMetrics on the text style KType picks
    for that size), and capped by any .dynamicTypeSize(...) the field sits under: the size is
    read from the environment, not from the device. The lines it grows by follow the face's own
@@ -242,9 +242,8 @@ public struct KComposerField: View {
     case .garamond:
       base = UIFont(name: KType.garamondRegular, size: size)
         ?? UIFont(name: KType.serifRegular, size: size) ?? .systemFont(ofSize: size)
-    case .newYork:
-      let system = UIFont.systemFont(ofSize: size)
-      base = system.fontDescriptor.withDesign(.serif).map { UIFont(descriptor: $0, size: size) } ?? system
+    case .system:
+      base = .systemFont(ofSize: size)
     case .sfMono:
       base = .monospacedSystemFont(ofSize: size, weight: .regular)
     }

@@ -11,7 +11,7 @@ import SwiftUI
    (500 and 600). It replaced IBM Plex Mono: the face is .system(size:weight:design: .monospaced),
    scaled by .kText like the system font. the Plex PostScript
    names, are left for a later step to remove; nothing draws them;
- - the reader's LETTER font (Settings: Newsreader, the default; New York; EB Garamond; SF Mono)
+ - the reader's LETTER font (Settings: Newsreader, the default; System; EB Garamond; SF Mono)
    for CONTENT: letters, replies, notes, chat bubbles, translations, quotes, the answers in a
    fold, Wren's spoken lines everywhere, and every field where someone writes. Content styles
    are .content(…) (and .letterRead(…), the older name for a letter being read); they follow
@@ -23,7 +23,7 @@ import SwiftUI
 
  Everything scales with Dynamic Type, as the app's React Native text does (nothing in src
  turns allowFontScaling off). The embedded serifs (Newsreader, Garamond) come from
- Font.custom(_:size:relativeTo:). The system faces (SF Pro, SF Mono, New York) have no
+ Font.custom(_:size:relativeTo:). The system faces (SF Pro, SF Mono) have no
  relativeTo, so .kText scales their size with @ScaledMetric against the same text style. A surface of a fixed height (the tab bar) caps it with .dynamicTypeSize(...).
 
  Letter spacing and line height are CSS's, in the mock's own units:
@@ -35,7 +35,7 @@ import SwiftUI
    (half-leading). A one-line label then has the height of its CSS box too.
    The natural line heights, read from the fonts' hhea tables: Newsreader 1.0 (1470 + 530 of
    2000 units), SF about 1.19 (UIFont reports 20.29 at 17), SF Mono on SF's metrics (1.19),
-   New York 1.19 (CoreText: ascent .952 + descent .241 of the size, the same at 13, 17 and 30,
+   System (SF Pro) 1.19 (CoreText: ascent .952 + descent .241 of the size, the same at 13, 17 and 30,
    italic included), EB Garamond 1.305. No lineHeight means CSS "normal", the natural one.
 
  Use it as Text("YOU").kText(.monoSection), Text(words).kText(.content(16, lineHeight: 1.44)).
@@ -59,7 +59,7 @@ public struct KTextStyle: Equatable, Sendable {
     /// it (followsLetterFont, every .content style), Newsreader otherwise
     case serif
     /// the content face, italic: as .serif, slanted where the face has a true italic (Newsreader,
-    /// New York); Garamond and SF Mono have none and are drawn upright (KLetterFace.hasItalic)
+    /// System); Garamond and SF Mono have none and are drawn upright (KLetterFace.hasItalic)
     case serifItalic
   }
 
@@ -122,7 +122,7 @@ public struct KTextStyle: Equatable, Sendable {
   /// chat bubbles, translations, quotes, fold answers, Wren's lines, my-letter previews, and the
   /// fields people write content in (KField style:, KComposerField content:). Two tiers by size:
   /// the long letter (19–30, with a lineHeight) and the short line (13–17). `italic` slants it
-  /// where the face has a true italic (Newsreader, New York) and leaves Garamond and SF Mono
+  /// where the face has a true italic (Newsreader, System) and leaves Garamond and SF Mono
   /// upright (KLetterFace.hasItalic). For a face that takes more room (SF Mono wider, Garamond
   /// taller) under a lineLimit or a fixed height, see KLetterFace.fitLines / fitSize.
   public static func content(_ size: CGFloat, italic: Bool = false, lineHeight: CGFloat? = nil) -> KTextStyle {
@@ -138,7 +138,7 @@ public struct KTextStyle: Equatable, Sendable {
 
   /// The font at this style's own size, a content style in the given Letter face (an old
   /// .letter serif stays Newsreader). A bare Font, for the places that take nothing else: no
-  /// tracking, no line height, and the system faces (New York, SF Mono) don't scale with Dynamic
+  /// tracking, no line height, and the system faces (System, SF Mono) don't scale with Dynamic
   /// Type here (.kText scales everything).
   public func font(letterFace: KLetterFace) -> Font {
     switch face {
@@ -171,14 +171,14 @@ public enum KType {
   }
 
   /// The letter serif, in Newsreader unless a face is given. Newsreader and Garamond scale with
-  /// Dynamic Type; New York is the system serif and scales only under .kText.
+  /// Dynamic Type; System (SF Pro) scales only under .kText.
   public static func letter(_ size: CGFloat, italic: Bool = false, face: KLetterFace = .newsreader) -> Font {
     letterFont(face, italic: italic, size: size, scaledSize: size, relativeTo: textStyle(near: size))
   }
 
   /// The content face in a Letter face. `size` is the size at the default Dynamic Type setting,
   /// which the embedded faces scale themselves (relativeTo); `scaledSize` is that size already
-  /// scaled, which the system faces (New York, SF Mono) need instead. A face this binary can't
+  /// scaled, which the system faces (System, SF Mono) need instead. A face this binary can't
   /// draw yet (KLetterFace.drawn) falls back to Newsreader, never to the system sans. Italic is
   /// drawn only where the face has one (KLetterFace.hasItalic): Garamond and SF Mono stay upright
   /// rather than take SwiftUI's synthetic slant.
@@ -186,8 +186,8 @@ public enum KType {
     switch face.drawn {
     case .newsreader:
       return .custom(italic ? serifItalic : serifRegular, size: size, relativeTo: style)
-    case .newYork:
-      let upright = Font.system(size: scaledSize, weight: .regular, design: .serif)
+    case .system:
+      let upright = Font.system(size: scaledSize, weight: .regular)
       return italic ? upright.italic() : upright
     case .garamond:
       return .custom(garamondRegular, size: size, relativeTo: style)
@@ -398,7 +398,7 @@ struct KTextModifier: ViewModifier {
     // what CSS line-height adds over the natural line, in points at the scaled size
     let natural = KType.naturalLineHeight(style.face, letterFace: letterFace)
     // A line height set for Newsreader (natural 1.0) can fall at or under a taller face's own
-    // line (Garamond 1.305, New York and SF Mono 1.19). CSS would then pull the lines together;
+    // line (Garamond 1.305, System and SF Mono 1.19). CSS would then pull the lines together;
     // SwiftUI can't (a negative lineSpacing overlaps the glyphs), so the leading never goes under
     // a floor: nothing for a label, and for text that asks for a line height a little air
     // (KType.minLeading of the size), so a paragraph in a tall face is never set solid.
@@ -408,7 +408,7 @@ struct KTextModifier: ViewModifier {
     if KType.tallScript, style.face == .serif || style.face == .serifItalic {
       leading = max(leading, (KType.tallScriptLineHeight - natural) * size)
     }
-    // the system faces (SF Pro, SF Mono, New York) are sized here; the embedded faces scale
+    // the system faces (SF Pro, SF Mono) are sized here; the embedded faces scale
     // themselves (relativeTo) by the same metric
     let font: Font
     switch style.face {
@@ -471,7 +471,7 @@ public enum KMonoSizes {
 
 /*
  LETTER FACE: the reader's Letter font (a device preference set in Settings: Newsreader, the
- default; New York; EB Garamond; SF Mono), as SwiftUI sees it. It is one value in the
+ default; System; EB Garamond; SF Mono), as SwiftUI sees it. It is one value in the
  environment:
 
      KTodayDesk(…).kLetterFace(KLetterFace(key: props.letterFont))
@@ -486,14 +486,14 @@ public enum KMonoSizes {
  texture and size: the reader's face wins over it.
 
  - Newsreader is embedded and scales through relativeTo. It has a true italic.
- - New York is the system serif, .system(size:weight:design: .serif), scaled by .kText's
+ - System is SF Pro, .system(size:weight:), scaled by .kText's
    @ScaledMetric as the system sans is. It needs no file and has a true italic.
  - EB Garamond is embedded (owner approved the download, 2026-10-16): Regular only, cut to
    Latin, so no italic (content italic is drawn upright). Its natural line is tall (1.305).
    garamondReady guards a build without it: the choice is left out of pickers (choices) and a
    stored "garamond" is drawn as Newsreader (drawn), never as the system sans a missing custom
    font would silently turn into.
- - SF Mono is the system monospaced design, like New York a system face with no file. No italic
+ - SF Mono is the system monospaced design, like System a system face with no file. No italic
    (drawn upright); about 20% wider than Newsreader.
  Where content sits under a lineLimit or in a fixed height, the wider and taller faces get room
  (fitLines) or a smaller size (fitSize) rather than being cut.
@@ -501,18 +501,19 @@ public enum KMonoSizes {
 public enum KLetterFace: String, CaseIterable, Sendable {
   /// Newsreader, the default
   case newsreader
-  /// New York, the system serif; the JS side calls it "newyork"
-  case newYork = "newyork"
+  /// System: SF Pro, the interface's own face (owner, 2026-10-20: it replaced New York); the JS
+  /// side calls it "system". A stored "newyork" from before is no case and reads as Newsreader.
+  case system
   /// EB Garamond, the mock's own serif, once it is embedded
   case garamond
-  /// SF Mono, the system monospaced design (owner, 2026-10-20); no file, like New York
+  /// SF Mono, the system monospaced design (owner, 2026-10-20); no file, like System
   case sfMono = "sfmono"
 
   /// GARAMOND_READY: EBGaramond-Regular.ttf is in assets/fonts and app.json's expo-font list, so
   /// a binary built from here carries it; the JS side keeps its own GARAMOND_READY in step.
   public static let garamondReady = true
 
-  /// The face for a key the JS side sends ("newsreader", "newyork", "garamond", "sfmono"). Anything else
+  /// The face for a key the JS side sends ("newsreader", "system", "garamond", "sfmono"). Anything else
   /// is Newsreader.
   public init(key: String) {
     self = KLetterFace(rawValue: key) ?? .newsreader
@@ -532,7 +533,7 @@ public enum KLetterFace: String, CaseIterable, Sendable {
   /// SF Mono) is drawn upright, never with SwiftUI's synthetic slant.
   public var hasItalic: Bool {
     switch drawn {
-    case .newsreader, .newYork: return true
+    case .newsreader, .system: return true
     case .garamond, .sfMono: return false
     }
   }
@@ -556,7 +557,7 @@ public enum KLetterFace: String, CaseIterable, Sendable {
     switch drawn {
     case .sfMono: return (size * 0.85 * 2).rounded() / 2
     case .garamond: return (size * 0.92 * 2).rounded() / 2
-    case .newsreader, .newYork: return size
+    case .newsreader, .system: return size
     }
   }
 
@@ -564,10 +565,10 @@ public enum KLetterFace: String, CaseIterable, Sendable {
   public var naturalLineHeight: CGFloat {
     switch self {
     case .newsreader: return 1.0
-    case .newYork: return 1.19
+    case .system: return 1.19
     // measured from the embedded file: (hhea ascender 1007 + |descender| 298 + lineGap 0) / 1000
     case .garamond: return 1.305
-    // the system monospaced design sits on SF's metrics, as New York does
+    // the system monospaced design sits on SF's metrics, as System does
     case .sfMono: return 1.19
     }
   }
