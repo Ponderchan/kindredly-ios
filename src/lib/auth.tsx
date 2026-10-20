@@ -127,13 +127,21 @@ async function inBrowserRoundTrip<T>(run: () => Promise<T>): Promise<T> {
 }
 
 const exchanges = new Map<string, Promise<{ error: string | null }>>();
-function exchangeOnce(code: string): Promise<{ error: string | null }> {
+/* THE FLOW'S OWN VERIFIER (2026-10-20). supabase-js 2.112 keeps one verifier per sign-in flow and
+   adds the flow's id to the redirect (sb_flow_id); an exchange that does not name it reads a shared
+   legacy key that any other flow or exchange may have cleared — "PKCE code verifier not found" on a
+   sign-in that had a verifier all along. Every exchange names its flow when the callback carries one. */
+function callbackFlowId(params: Record<string, unknown> | null | undefined): string | undefined {
+  const v = params?.sb_flow_id;
+  return typeof v === "string" && v ? v : undefined;
+}
+function exchangeOnce(code: string, flowId?: string): Promise<{ error: string | null }> {
   const running = exchanges.get(code);
   if (running) return running;
   const p = (async () => {
     if (!supabase) return { error: "Auth not configured." };
     try {
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      const { error } = await supabase.auth.exchangeCodeForSession(code, flowId ? { flowId } : undefined);
       if (!error) return { error: null };
       const { data } = await supabase.auth.getSession();
       if (data.session && !data.session.user.is_anonymous) return { error: null };
@@ -319,9 +327,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const exchange = useCallback(async (url: string) => {
     if (!supabase || !url) return;
     try {
-      const code = (Linking.parse(url).queryParams?.code as string) || "";
+      const qp = Linking.parse(url).queryParams;
+      const code = (qp?.code as string) || "";
       if (code) {
-        const { error } = await exchangeOnce(code);
+        const { error } = await exchangeOnce(code, callbackFlowId(qp));
         if (error) console.warn("[auth] link sign-in:", error);
       }
     } catch (e) {
@@ -429,7 +438,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const q = callbackParams(res.url);
       if (q.error || q.error_code) return { error: q.error_description || q.error || t("auth.err.google"), code: q.error_code || q.error || "" };
       if (q.code) {
-        const { error: e2 } = await exchangeOnce(q.code);
+        const { error: e2 } = await exchangeOnce(q.code, callbackFlowId(q as any));
         if (e2) return { error: e2 };
         return { ok: true };
       }
