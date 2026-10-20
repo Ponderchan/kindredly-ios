@@ -795,8 +795,10 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
 /*
  The owner's "Me First Class Rollout" (D3 / D7 / D30), drawn as its prompts say; every tap goes to
  our own First Class page (TS: the paywall), never a sheet of its own (owner, 10-20).
- - D3, the Post's letter: 74 × 50 on the Courier card's top right (14 in, 12 above it), cream with a
-   2 ink edge and corners of 6, a 5pt gold-and-ink stripe along its top, the flap's V in ink, a 14
+ (owner, 10-20: no black edges anywhere on these: thin gold lines and soft shadows instead of the
+ prompts' 2pt ink edges and hard shadows.)
+ - D3, the Post's letter: 74 × 50 on the Courier card's top right (14 in, 12 above it), cream,
+   corners of 6, a 5pt gold-and-ink stripe along its top, the flap's V in ink, a 14
    gold wax seal, THE POST in mono 7 gold at its bottom right, a 2/2 ink drop shadow; it bobs 4pt
    over 3.4s.
  - D7, the boarding pass: full width over the Courier card, cream, a 2 ink edge, corners 18, a 4/4
@@ -832,19 +834,18 @@ struct KFcEnvelope: View {
           p.addLine(to: CGPoint(x: 37, y: 29))
           p.addLine(to: CGPoint(x: 72, y: 7))
         }
-        .stroke(KBrand.inkOnBrand, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
+        .stroke(KBrand.goldText.opacity(0.7), style: StrokeStyle(lineWidth: 1.5, lineJoin: .round))
         Circle().fill(KBrand.waxGold)
-          .overlay(Circle().strokeBorder(KBrand.inkOnBrand, lineWidth: 1.5))
           .frame(width: 14, height: 14)
           .position(x: 37, y: 29)
         Text(fc.post)
           .font(.system(size: 7, weight: .semibold, design: .monospaced))
           .foregroundStyle(KBrand.goldText)
           .position(x: 50, y: 43)
-        RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(KBrand.inkOnBrand, lineWidth: 2)
+        RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(KBrand.waxGold.opacity(0.6), lineWidth: 1)
       }
       .frame(width: 74, height: 50)
-      .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(KBrand.inkOnBrand).offset(x: 2, y: 2))
+      .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
       .offset(y: up ? -4 : 0)
       .contentShape(Rectangle())
     }
@@ -960,15 +961,17 @@ struct KFcBoardingPass: View {
         .frame(width: 10)
       }
       .background(KBrand.cream)
-      .clipShape(shape)
-      .overlay(shape.strokeBorder(KBrand.inkOnBrand, lineWidth: 2))
+      // (owner, 10-20: no black edges) a thin gold line, a soft shadow; the notch is cut, not drawn
       .overlay(alignment: .trailing) {
-        Circle().fill(KBrand.paperWhite)
-          .overlay(Circle().strokeBorder(KBrand.inkOnBrand, lineWidth: 2))
+        Circle().fill(Color.white)
           .frame(width: 14, height: 14)
           .offset(x: 7)
+          .blendMode(.destinationOut)
       }
-      .background(shape.fill(KBrand.waxGold).offset(x: 4, y: 4))
+      .compositingGroup()
+      .clipShape(shape)
+      .overlay(shape.strokeBorder(KBrand.waxGold.opacity(0.55), lineWidth: 1))
+      .shadow(color: KBrand.waxGold.opacity(0.25), radius: 10, y: 4)
       .contentShape(shape)
     }
     .buttonStyle(KFadePressStyle())
@@ -1012,15 +1015,15 @@ struct KFcSealedReport: View {
         .padding(.horizontal, 14)
         .frame(height: 32)
         .background(Capsule().fill(KBrand.waxGold))
-        .overlay(Capsule().strokeBorder(KBrand.inkOnBrand, lineWidth: 1.5))
         .padding(.top, 2)
       }
       .padding(.vertical, 14)
       .padding(.horizontal, 16)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .background(shape.fill(KBrand.paperWhite))
-      .overlay(shape.strokeBorder(KBrand.inkOnBrand, lineWidth: 2))
-      .background(shape.fill(KBrand.waxGold).offset(x: 4, y: 4))
+      // (owner, 10-20: no black edges) cream, a thin gold line, a soft shadow
+      .background(shape.fill(KBrand.cream))
+      .overlay(shape.strokeBorder(KBrand.waxGold.opacity(0.55), lineWidth: 1))
+      .shadow(color: KBrand.waxGold.opacity(0.25), radius: 10, y: 4)
       .contentShape(shape)
     }
     .buttonStyle(KFadePressStyle())
@@ -1045,29 +1048,12 @@ struct KFcPullTab: View {
         .rotationEffect(.degrees(-90))
         .frame(width: Self.size.width, height: Self.size.height)
         .background(shape.fill(KBrand.waxGold))
-        .overlay(KFcTabEdge().stroke(KBrand.inkOnBrand, lineWidth: 2))
-        .background(shape.fill(KBrand.inkOnBrand).offset(x: -2, y: 2))
+        .shadow(color: .black.opacity(0.18), radius: 6, x: -2, y: 2)
         .contentShape(shape)
         .modifier(KFcNudge(every: 4, distance: 6))
     }
     .buttonStyle(KFadePressStyle())
     .accessibilityLabel(fc.tabA11y)
-  }
-}
-
-/// the pull-tab's edge: top, left (rounded 14) and bottom, open on the right
-struct KFcTabEdge: Shape {
-  func path(in r: CGRect) -> Path {
-    let rad: CGFloat = 14
-    let i: CGFloat = 1
-    var p = Path()
-    p.move(to: CGPoint(x: r.maxX + 2, y: r.minY + i))
-    p.addLine(to: CGPoint(x: r.minX + rad, y: r.minY + i))
-    p.addArc(center: CGPoint(x: r.minX + rad, y: r.minY + rad), radius: rad - i, startAngle: .degrees(-90), endAngle: .degrees(180), clockwise: true)
-    p.addLine(to: CGPoint(x: r.minX + i, y: r.maxY - rad))
-    p.addArc(center: CGPoint(x: r.minX + rad, y: r.maxY - rad), radius: rad - i, startAngle: .degrees(180), endAngle: .degrees(90), clockwise: true)
-    p.addLine(to: CGPoint(x: r.maxX + 2, y: r.maxY - i))
-    return p
   }
 }
 
