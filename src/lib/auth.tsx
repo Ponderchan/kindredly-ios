@@ -98,6 +98,34 @@ const redirectTo = Linking.createURL("auth-callback");
    worked. Now every caller of a code shares one exchange, and an exchange
    that errors while a session is already there (the other path won) counts
    as done. */
+/* A DEAD SESSION TAKES THE SIGN-IN WITH IT (owner's phone, 2026-10-20: "PKCE code verifier not
+   found in storage" again, on the shipped build that already exchanges once). The phone still held
+   a session whose account was gone (deleted elsewhere, or its refresh token revoked). Supabase drops
+   such a session the first time it tries to refresh it, and dropping a session also deletes every
+   PKCE verifier in storage — including the one Google's sign-in had just written, so the code came
+   back to nothing. Before a browser sign-in starts, ask the server about the stored session and let
+   go of a dead one here; and hold the token refresher still while the browser is up. */
+const GONE = new Set(["user_not_found", "session_not_found", "bad_jwt", "refresh_token_not_found"]);
+async function letGoOfDeadSession(): Promise<void> {
+  if (!supabase) return;
+  try {
+    const { data } = await supabase.auth.getSession();   // an expired token refreshes (or drops) here, before the verifier exists
+    if (!data.session) return;
+    const { error } = await supabase.auth.getUser();
+    if (error && (GONE.has((error as any).code) || error.status === 401 || error.status === 403)) {
+      console.warn("[auth] the stored session has no account on the server; signing out on this phone first");
+      await supabase.auth.signOut({ scope: "local" });
+    }
+  } catch (e) {
+    console.warn("[auth] couldn't check the stored session before sign-in:", e);
+  }
+}
+async function inBrowserRoundTrip<T>(run: () => Promise<T>): Promise<T> {
+  if (!supabase) return run();
+  try { await supabase.auth.stopAutoRefresh(); } catch {}
+  try { return await run(); } finally { try { await supabase.auth.startAutoRefresh(); } catch {} }
+}
+
 const exchanges = new Map<string, Promise<{ error: string | null }>>();
 function exchangeOnce(code: string): Promise<{ error: string | null }> {
   const running = exchanges.get(code);
@@ -395,7 +423,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
      way back (the redirect's error / error_code) comes back as { error, code }
      so the caller can tell "already an account" from a real failure. */
   const googleRoundTrip = useCallback(async (url: string): Promise<AuthResult | { error: string; code: string }> => {
-    const res = await WebBrowser.openAuthSessionAsync(url, redirectTo);
+    const res = await inBrowserRoundTrip(() => WebBrowser.openAuthSessionAsync(url, redirectTo));
     if (res.type === "cancel" || res.type === "dismiss") return { cancelled: true };
     if (res.type === "success" && res.url) {
       const q = callbackParams(res.url);
@@ -413,6 +441,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
      on the spot if there is none) */
   const googleSignIn = useCallback(async (): Promise<AuthResult> => {
     if (!supabase) return { error: "Auth not configured." };
+    await letGoOfDeadSession();
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo, skipBrowserRedirect: true },
@@ -441,6 +470,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const anon = (await supabase.auth.getUser()).data.user?.is_anonymous === true;
       if (!anon) return await googleSignIn();
+      await letGoOfDeadSession();
       const { data, error } = await supabase.auth.linkIdentity({
         provider: "google",
         options: { redirectTo, skipBrowserRedirect: true },
