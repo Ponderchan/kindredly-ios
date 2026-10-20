@@ -61,7 +61,7 @@ const KEY = "kindredly_theme"; // {"appearance":"…"} as JSON (older builds: { 
    and where it applies: theme/post (LETTER_FACES, letterFamily). Garamond
    can't be chosen until GARAMOND_READY, and a stored "garamond" reads as
    the default until then. */
-const LETTER_KEY = "kindredly_letter_font"; // "newsreader" | "newyork" | "garamond"
+const LETTER_KEY = "kindredly_letter_font"; // "newsreader" | "newyork" | "garamond" | "sfmono"
 
 export { APPEARANCES, type Appearance } from "../theme/themes";
 

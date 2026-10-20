@@ -26,9 +26,11 @@ const ok = (name: string, cond: boolean) => { console.log((cond ? "ok  " : "FAIL
 
 /* ── the letter font ── */
 ok("the default is Newsreader", DEFAULT_LETTER_FONT === "newsreader");
-ok("three values in all", LETTER_FONT_KEYS.join() === "newsreader,newyork,garamond");
+ok("four values in all", LETTER_FONT_KEYS.join() === "newsreader,newyork,garamond,sfmono");
 ok("Garamond is embedded on this build", GARAMOND_READY === true);
-ok("Settings offers all three", LETTER_FONT_CHOICES.join() === "newsreader,newyork,garamond");
+ok("Settings offers all four", LETTER_FONT_CHOICES.join() === "newsreader,newyork,garamond,sfmono");
+ok("a stored SF Mono stays SF Mono", letterFontKey("sfmono") === "sfmono");
+ok("SF Mono is the system monospaced design (ui-monospace)", (() => { const u = letterFamily("sfmono"); const i = letterFamily("sfmono", true); return u.fontFamily === "ui-monospace" && u.fontStyle === "normal" && i.fontFamily === "ui-monospace" && i.fontStyle === "italic"; })());
 ok("a stored New York stays New York", letterFontKey("newyork") === "newyork");
 ok("a stored Garamond stays Garamond", letterFontKey("garamond") === "garamond");
 ok("junk reads as the default", ["", null, undefined, 3, "NewYork", "times"].every((v) => letterFontKey(v) === "newsreader"));

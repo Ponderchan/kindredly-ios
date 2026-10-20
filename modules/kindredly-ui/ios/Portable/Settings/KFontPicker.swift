@@ -4,9 +4,9 @@ import SwiftUI
 
 /*
  THE LETTER FONT PICKER (owner, 10a; styled after the swatches, H:99): the face letters are set in
- when you read them. Three tiles in three columns, 10 apart, each corners of 12, padding 10, on
- sf: the specimen ("Aa", from TS) at 24 in its own face (Newsreader, New York — the system serif —
- or EB Garamond), and under it the face's name in system 500 11. The names are proper nouns and
+ when you read them. Three tiles in three columns (four go two by two), 10 apart, each corners of 12, padding 10, on
+ sf: the specimen ("Aa", from TS) at 24 in its own face (Newsreader, New York — the system serif —,
+ EB Garamond or SF Mono — the system monospaced), on a 34 line so the tiles match, and under it the face's name in system 500 11. The names are proper nouns and
  come in untranslated. The selected tile wears the swatches' selected look (KSelectableTile: 2pt
  ind border, 3pt lav halo) and its name turns ind. Each tile is one button; VoiceOver reads the
  face's name with the selected trait (the specimen is a picture of the face, not read).
@@ -21,7 +21,7 @@ import SwiftUI
  (up to three lines) instead of being cut.
  */
 public struct KFontOption: Identifiable, Equatable, Sendable {
-  /// the key TS sends: newsreader, newyork, garamond
+  /// the key TS sends: newsreader, newyork, garamond, sfmono
   public let key: String
   /// the face's own name, untranslated
   public let name: String
@@ -55,7 +55,10 @@ public struct KFontPicker: View {
 
   @Environment(\.dynamicTypeSize) private var typeSize
 
-  private static let columns = Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: 3)
+  /// three to a row, or two by two for four faces (SF Mono joined, 2026-10-20: 3 + 1 looked lopsided)
+  private var columns: [GridItem] {
+    Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: options.count == 4 ? 2 : 3)
+  }
 
   private var large: Bool { typeSize.isAccessibilitySize }
 
@@ -67,7 +70,7 @@ public struct KFontPicker: View {
         }
       }
     } else {
-      LazyVGrid(columns: Self.columns, alignment: .leading, spacing: 10) {
+      LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
         ForEach(options) { option in
           tile(option)
         }
@@ -87,6 +90,8 @@ public struct KFontPicker: View {
         KFontSpecimen(face: option.face, sample: option.sample)
           .foregroundStyle(theme.ink)
           .fixedSize()
+          // every tile the same height, whatever the face's own line height
+          .frame(minHeight: large ? nil : 34)
         Text(option.name)
           .kText(.swatchLabel)
           .foregroundStyle(selected ? theme.ind : theme.sub)

@@ -11,7 +11,7 @@ export type { KThemeKey };
 
 /** The owner's Letter font, a device preference (ThemeProvider's letterFont). Swift draws
     "garamond" as "newsreader" while EB Garamond isn't embedded in the binary. */
-export type LetterFontKey = "newsreader" | "newyork" | "garamond";
+export type LetterFontKey = "newsreader" | "newyork" | "garamond" | "sfmono";
 
 /** What a screen's Host doesn't lay out for it (useScreenInsets() in src/lib/screen-insets.ts),
     in points. Screen Hosts ignore the container safe area, so Swift places its own status-bar

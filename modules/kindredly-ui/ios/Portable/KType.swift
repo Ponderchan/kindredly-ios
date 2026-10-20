@@ -174,6 +174,9 @@ public enum KType {
     case .garamond:
       let upright = Font.custom(garamondRegular, size: size, relativeTo: style)
       return italic ? upright.italic() : upright
+    case .sfMono:
+      let upright = Font.system(size: scaledSize, weight: .regular, design: .monospaced)
+      return italic ? upright.italic() : upright
     }
   }
 
@@ -466,12 +469,14 @@ public enum KLetterFace: String, CaseIterable, Sendable {
   case newYork = "newyork"
   /// EB Garamond, the mock's own serif, once it is embedded
   case garamond
+  /// SF Mono, the system monospaced design (owner, 2026-10-20); no file, like New York
+  case sfMono = "sfmono"
 
   /// GARAMOND_READY: EBGaramond-Regular.ttf is in assets/fonts and app.json's expo-font list, so
   /// a binary built from here carries it; the JS side keeps its own GARAMOND_READY in step.
   public static let garamondReady = true
 
-  /// The face for a key the JS side sends ("newsreader", "newyork", "garamond"). Anything else
+  /// The face for a key the JS side sends ("newsreader", "newyork", "garamond", "sfmono"). Anything else
   /// is Newsreader.
   public init(key: String) {
     self = KLetterFace(rawValue: key) ?? .newsreader
@@ -494,6 +499,8 @@ public enum KLetterFace: String, CaseIterable, Sendable {
     case .newYork: return 1.19
     // measured from the embedded file: (hhea ascender 1007 + |descender| 298 + lineGap 0) / 1000
     case .garamond: return 1.305
+    // the system monospaced design sits on SF's metrics, as New York does
+    case .sfMono: return 1.19
     }
   }
 }

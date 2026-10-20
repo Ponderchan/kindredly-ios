@@ -132,9 +132,9 @@ export const MONO = {
    so no update reaches a binary without it). */
 export const GARAMOND_READY: boolean = true;
 
-export type LetterFontKey = "newsreader" | "newyork" | "garamond";
+export type LetterFontKey = "newsreader" | "newyork" | "garamond" | "sfmono";
 /** every value the setting can hold, in the order Settings lists them */
-export const LETTER_FONT_KEYS: readonly LetterFontKey[] = ["newsreader", "newyork", "garamond"];
+export const LETTER_FONT_KEYS: readonly LetterFontKey[] = ["newsreader", "newyork", "garamond", "sfmono"];
 export const DEFAULT_LETTER_FONT: LetterFontKey = "newsreader";
 /** the choices Settings may offer on this build: no Garamond until GARAMOND_READY */
 export const LETTER_FONT_CHOICES: readonly LetterFontKey[] = LETTER_FONT_KEYS.filter((k) => k !== "garamond" || GARAMOND_READY);
@@ -146,12 +146,15 @@ const LETTER_FACES: Readonly<Record<LetterFontKey, { regular: string; italic: st
   newsreader: { regular: "Newsreader-Regular", italic: "Newsreader-Italic" },
   newyork: { regular: "ui-serif", italic: "ui-serif" },
   garamond: { regular: "EBGaramond-Regular", italic: "EBGaramond-Regular" },
+  // SF Mono, the system monospaced design (owner, 2026-10-20: the typewriter one): no file either,
+  // "ui-monospace" is mapped by the same RCTFontUtils table as ui-serif
+  sfmono: { regular: "ui-monospace", italic: "ui-monospace" },
 };
 
 /** Whatever was stored, as a letter font this build can draw: an unknown
     value (or Garamond before GARAMOND_READY) is the default. */
 export function letterFontKey(raw: unknown): LetterFontKey {
-  if (raw === "newsreader" || raw === "newyork") return raw;
+  if (raw === "newsreader" || raw === "newyork" || raw === "sfmono") return raw;
   if (raw === "garamond" && GARAMOND_READY) return raw;
   return DEFAULT_LETTER_FONT;
 }

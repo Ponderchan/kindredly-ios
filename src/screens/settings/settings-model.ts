@@ -183,6 +183,7 @@ export const LETTER_FONT_NAMES: Readonly<Record<string, string>> = {
   newsreader: "Newsreader",
   newyork: "New York",
   garamond: "EB Garamond",
+  sfmono: "SF Mono",
 };
 
 /** The specimen each Letter font tile is drawn with: a pair of letters, not a word, so it

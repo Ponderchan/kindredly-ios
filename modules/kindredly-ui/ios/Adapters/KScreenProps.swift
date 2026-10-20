@@ -197,12 +197,13 @@ class KScreenProps: UIBaseViewProps {
     KTheme.named(theme) ?? .classic
   }
 
-  /// The Letter font to draw letters in: "newsreader", "newyork" or "garamond". Anything else is
+  /// The Letter font to draw letters in: "newsreader", "newyork", "garamond" or "sfmono". Anything else is
   /// "newsreader", and so is "garamond" while EB Garamond isn't in this binary, so a phone that
   /// stored it never gets a silent system-font fallback.
   var letterFontKey: String {
     switch letterFont {
     case "newyork": return "newyork"
+    case "sfmono": return "sfmono"
     case "garamond": return Self.garamondEmbedded ? "garamond" : "newsreader"
     default: return "newsreader"
     }
