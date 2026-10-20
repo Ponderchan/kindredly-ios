@@ -28,7 +28,9 @@ import SwiftUI
  + 78 (the mock's 176 on a 393 phone), so the last note ends where the fade begins. The scroll
  indicators are hidden, as they were.
 
- GRID is rows of two, each row as tall as its taller note; at accessibility text sizes it is one
+ GRID is a waterfall (owner, 2026-10-20: side-by-side cards needn't line up, they should fill each
+other's gaps): two columns, each card its own height, the next note going under whichever column
+is shorter by an estimate of the cards' heights (KNotesScreen.masonry); at accessibility text sizes it is one
  column (the notes keep their Grid dress). Wren's line and the evening rows span the width.
 
  THE LIST IS A WINDOW. TS sends the first 60 notes and 60 more each time the list nears its end
@@ -361,8 +363,9 @@ public struct KNotesScreen: View {
 
   /// the row that holds a note (in Grid, a note's row is its pair's first note)
   private func rowId(for noteId: String) -> String? {
-    guard let i = content.index[noteId] else { return nil }
-    return columns == 2 ? content.notes[i - i % 2].id : noteId
+    // every card carries its own id (Grid is a waterfall since 2026-10-20, no rows)
+    guard content.index[noteId] != nil else { return nil }
+    return noteId
   }
 
   private var list: some View {
@@ -381,9 +384,13 @@ public struct KNotesScreen: View {
             }
           }
           eveningRow
-          ForEach(rows) { row in
-            rowView(row)
-              .id(row.id)
+          if columns == 2 {
+            masonry
+          } else {
+            ForEach(rows) { row in
+              rowView(row)
+                .id(row.id)
+            }
           }
         }
         .scrollTargetLayout()
@@ -449,7 +456,7 @@ public struct KNotesScreen: View {
   private func firstId(_ rows: [KNotesRow]) -> String? {
     if !content.wrenLine.isEmpty { return Self.wrenId }
     if content.evening != .none { return Self.eveningId }
-    return rows.first?.id
+    return content.notes.first?.id
   }
 
   private func scroll(_ proxy: ScrollViewProxy, to id: String?, animated: Bool) {
@@ -511,7 +518,7 @@ public struct KNotesScreen: View {
     scrollState.visible(top: top?.id)
     // near the end of the window: ask for more, once per window
     guard content.hasMore, last >= 0 else { return }
-    let lastIndex = columns == 2 ? last + 1 : last
+    let lastIndex = last
     if lastIndex >= content.notes.count - 8 && box.reachedAt != content.notes.count {
       box.reachedAt = content.notes.count
       actions.onReachEnd()
@@ -537,6 +544,64 @@ public struct KNotesScreen: View {
     case .none:
       EmptyView()
     }
+  }
+
+  /// Grid: two columns, each card its own height. Both columns mark their cards as scroll
+  /// targets, so the visibility read (the top note, the end of the window) and the jumps (by note
+  /// id) work card by card as they do in Card.
+  private var masonry: some View {
+    let cols = Self.masonry(content.notes)
+    return HStack(alignment: .top, spacing: 12) {
+      VStack(spacing: 12) {
+        ForEach(cols.left) { note in
+          card(note).id(note.id)
+        }
+      }
+      .scrollTargetLayout()
+      .frame(maxWidth: .infinity, alignment: .top)
+      VStack(spacing: 12) {
+        ForEach(cols.right) { note in
+          card(note).id(note.id)
+        }
+      }
+      .scrollTargetLayout()
+      .frame(maxWidth: .infinity, alignment: .top)
+    }
+  }
+
+  /// The waterfall's split, in reading order: each note goes under the column that is shorter so
+  /// far, by an estimate of its Grid card (the head, up to five lines of words — CJK counts double,
+  /// as the composer counts — the voice bar, the pictures' block). Ties go left.
+  static func masonry(_ notes: [KNote]) -> (left: [KNote], right: [KNote]) {
+    var left: [KNote] = []
+    var right: [KNote] = []
+    var lh: CGFloat = 0
+    var rh: CGFloat = 0
+    for n in notes {
+      let h = gridHeight(n)
+      if lh <= rh {
+        left.append(n)
+        lh += h + 12
+      } else {
+        right.append(n)
+        rh += h + 12
+      }
+    }
+    return (left, right)
+  }
+
+  static func gridHeight(_ n: KNote) -> CGFloat {
+    var h: CGFloat = 64 // padding, the head, the gap under it
+    let words = n.words
+    if n.textTier != .empty && !words.isEmpty {
+      let weight = words.unicodeScalars.reduce(0) { $0 + ($1.value >= 0x2E80 ? 2 : 1) }
+      let lines = min(n.gridLines, max(1, Int((Double(weight) / 22).rounded(.up))))
+      h += CGFloat(lines) * 22.5 + 10
+    }
+    if n.kind == .voice { h += 62 }
+    if let block = KNotePhotos.Block(count: n.photoCount, grid: true) { h += block.height + 10 }
+    if n.kind == .video { h += 140 }
+    return h
   }
 
   @ViewBuilder

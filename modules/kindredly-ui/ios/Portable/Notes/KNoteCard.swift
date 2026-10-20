@@ -185,6 +185,18 @@ public struct KNote: Identifiable, Equatable, Sendable {
 
   /// The words as a card shows them (TS draws body.trim()).
   var words: String { body.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+  /// Grid's lines for the words (owner, 2026-10-20): five, six when the words are mostly Chinese,
+  /// Japanese or Korean (a line of them holds less of a thought than a line of Latin letters).
+  var gridLines: Int {
+    var cjk = 0
+    var letters = 0
+    for u in words.unicodeScalars where !u.properties.isWhitespace {
+      letters += 1
+      if u.value >= 0x2E80 { cjk += 1 }
+    }
+    return letters > 0 && cjk * 2 >= letters ? 6 : 5
+  }
 }
 
 /// What the screen's one player is doing with one note, as TS reports it on each transition.
@@ -254,7 +266,8 @@ public struct KNoteCard: View, Equatable {
       // React Native counts the 1.5 outline inside the card's padding box
       .padding(padding)
       .padding(1.5)
-      .frame(maxWidth: .infinity, maxHeight: layout == .grid ? .infinity : nil, alignment: .topLeading)
+      // its own height everywhere: Grid is a waterfall, nothing stretches a card to a neighbour's
+      .frame(maxWidth: .infinity, alignment: .topLeading)
       .background { shape.fill(theme.sf) }
       // one weight for the whole diary: the soft line on Card, Grid and List (owner, 2026-10-18)
       .overlay { shape.strokeBorder(theme.line, lineWidth: 1.5) }
@@ -314,43 +327,12 @@ public struct KNoteCard: View, Equatable {
   /// The words in their size (see THE WORDS); Grid keeps 15 in five lines.
   @ViewBuilder
   private var words: some View {
-    if layout == .grid && note.kind == .text {
-      gridTextFill
-    } else {
-      wordsSized
-    }
-  }
-
-  /// Grid, a page of words only (owner, 2026-10-20: a long Chinese note stopped at five lines with
-  /// half its card empty beside a photo page): five lines are what it asks for, but it takes the
-  /// whole height its row gives it, as many lines as fit, cut with … only at the bottom. The five
-  /// hidden lines set the size it asks for; the words drawn over them follow the size it gets.
-  private var gridTextFill: some View {
-    Text(note.words)
-      .kText(Self.smallBody)
-      .lineLimit(5, reservesSpace: false)
-      .hidden()
-      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-      .overlay(alignment: .topLeading) {
-        Text(note.words)
-          .kText(Self.smallBody)
-          .foregroundStyle(theme.ink)
-          .truncationMode(.tail)
-          .multilineTextAlignment(.leading)
-          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-          .clipped()
-      }
-      .accessibilityHidden(true)
-  }
-
-  @ViewBuilder
-  private var wordsSized: some View {
     let text = Text(note.words)
     Group {
       if layout == .grid {
         text
           .kText(Self.smallBody)
-          .lineLimit(5)
+          .lineLimit(note.gridLines)
       } else {
         switch note.textTier {
         case .short:
