@@ -363,14 +363,22 @@ enum KPublishMetrics {
 
   /// The grouped list's fill on the sheet's sf: soft, the theme's wash for grouped lists; in
   /// Midnight soft is sf itself, so soft2 there, or the list wouldn't show.
+  /// Midnight is a step lighter than soft2 (owner, 2026-10-21: "太暗了"): the list must read as a
+  /// surface lifted off the sheet, not a darker hole in it.
   static func listFill(for theme: KTheme) -> Color {
-    theme.isDark ? theme.soft2 : theme.soft
+    theme.isDark ? Color(hex: "#322E5A") : theme.soft
+  }
+
+  /// The pop discs' face: lav2 in the light themes; in Midnight a lifted violet, since lav2 there
+  /// (#242150) sinks into the dimmed page (owner, 2026-10-21).
+  static func popFill(for theme: KTheme) -> Color {
+    theme.isDark ? Color(hex: "#3D3878") : theme.lav2
   }
 
   /// The pop discs' face: the pale wash of the accent (lav2), ringed in a 1pt hairline (sf in the
   /// light themes, catching the light on the dim; line in Midnight, where sf is the page's).
   static func popRim(for theme: KTheme) -> Color {
-    theme.isDark ? theme.line : theme.sf
+    theme.isDark ? Color.white.opacity(0.16) : theme.sf
   }
 
   /// The pop discs' soft lift: 0 4 14 -4 navy at .22 (black at .45 in Midnight).
@@ -681,7 +689,7 @@ struct KPublishPop: View {
         .frame(width: KPublishMetrics.popDisc, height: KPublishMetrics.popDisc)
         .background {
           Circle()
-            .fill(theme.lav2)
+            .fill(KPublishMetrics.popFill(for: theme))
             .overlay(Circle().strokeBorder(KPublishMetrics.popRim(for: theme), lineWidth: 1))
             .kSoftShadows(KPublishMetrics.popShadow(for: theme), in: Circle())
         }
