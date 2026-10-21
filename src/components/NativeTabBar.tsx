@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ComponentProps } from "react";
-import { View } from "react-native";
+import { View, type LayoutChangeEvent } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Host } from "@expo/ui/swift-ui";
@@ -215,6 +215,17 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
     return () => clearTimeout(id);
   }, [closedAt]);
   const full = open || closedAt > 0;
+  /* THE PANEL OPENS ONLY ONCE THE HOST IS FULL SCREEN (owner, b32: "the two discs and the sheet
+     come down from the top — not logical, not native"). Opening in the same frame the Host grew
+     from the strip, SwiftUI animated from the strip's layout, whose top is the top of the new
+     frame: the discs and the sheet came from the top of the screen. Now the Host grows first
+     (laid out closed, at the bar), and the panel opens on the next layout, from the + itself. */
+  const [grown, setGrown] = useState(false);
+  if (!full && grown) setGrown(false);
+  const strip = nativeTabBarSpace(insets.bottom);
+  const onLayout = (e: LayoutChangeEvent) => {
+    if (full && !grown && e.nativeEvent.layout.height > strip + 1) requestAnimationFrame(() => setGrown(true));
+  };
 
   /* what the + opens: the two buttons on Today, the sheet on the other tabs —
      HELD for the life of an opening, so a tab tapped while it is open (which
@@ -287,9 +298,9 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
     [lang, left],
   );
 
-  const strip = nativeTabBarSpace(insets.bottom);
   return (
     <View
+      onLayout={onLayout}
       pointerEvents={hidden ? "none" : "box-none"}
       style={full ? { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 } : { position: "absolute", left: 0, right: 0, bottom: 0, height: strip }}
     >
@@ -298,7 +309,7 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
           theme={theme}
           tabs={tabs}
           activeIndex={TABS.findIndex((tab) => tab.name === current)}
-          panelOpen={open}
+          panelOpen={open && grown}
           safeAreaBottom={insets.bottom}
           plusLabel={t("pc.post")}
           closeLabel={t("wren.trackClose")}

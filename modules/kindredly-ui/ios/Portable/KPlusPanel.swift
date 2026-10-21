@@ -577,17 +577,18 @@ struct KPublishSheetLayer: View {
       style: .circular
     )
     let full = max(KPublishMetrics.sheetMinHeight, contentHeight + safeAreaBottom + 12)
-    // with Reduce Motion it doesn't grow: it is there at full height and fades
+    // slides up whole from below the screen, as an iOS sheet does (owner, b32: it used to grow
+    // its frame with the content held at the top, which read as coming down); with Reduce Motion
+    // it doesn't move: it is there and fades
     let grows = !reduceMotion
-    let height = open || !grows ? full : 0
+    let below = open || !grows ? 0 : full + 40
 
     KPublishSheet(theme: theme, model: model, onAction: onAction, letterFocus: $letterFocused)
       .dynamicTypeSize(...DynamicTypeSize.xxLarge)
       .fixedSize(horizontal: false, vertical: true)
       .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
-      // held at the top of a frame that grows: the sheet is pulled up, its content uncovered
       .frame(maxWidth: .infinity, alignment: .top)
-      .frame(height: height, alignment: .top)
+      .frame(height: full, alignment: .top)
       .clipShape(shape)
       .background(shape.fill(theme.sf))
       .overlay {
@@ -597,8 +598,8 @@ struct KPublishSheetLayer: View {
         }
       }
       .kSoftShadows(KPublishMetrics.sheetShadow(for: theme), in: shape)
-      .animation(grows ? KMotion.publishSheetGrow : nil, value: height)
-      .offset(y: drag)
+      .offset(y: below + drag)
+      .animation(grows ? KMotion.publishSheetGrow : nil, value: below)
       .opacity(grows || open ? 1 : 0)
       .animation(reduceMotion ? KMotion.publishReduced : nil, value: open)
       .gesture(
