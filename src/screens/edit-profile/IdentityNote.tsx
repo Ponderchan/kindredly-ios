@@ -35,7 +35,7 @@ import "../../data/strings-identity";
      │          OCT.18                   │   the name a stranger's courier in
      └───────────────────────────────────┘   your language gives you, the glyphs
      ON YOUR LETTERS                           as the switches stand
-     Show ♀ on your letters          ( )
+     Show ♀ on your letters          (●)   on unless they saved it off
      Star sign on your letters       (●)
      Change either any time in Edit profile.
      [ DONE ]
@@ -185,7 +185,10 @@ export function IdentityNote() {
   const sign = useMemo(() => zodiacFromDob(dob), [dob]);
   const [markOn, setMarkOn] = useState<boolean | null>(null);
   const [signOn, setSignOn] = useState<boolean | null>(null);
-  const mark = markOn ?? showsMark(profile?.showMark);
+  /* she / he with nothing saved: the ♀/♂ switch starts ON in the note (owner, 2026-10-21: almost no
+     card showed a mark, because everyone from before the switch had to opt in). It is still their
+     choice, made on this screen; nothing is shown until Done saves it. */
+  const mark = markOn ?? (typeof profile?.showMark === "boolean" ? showsMark(profile.showMark) : true);
   const signShown = signOn ?? showsSign(profile?.showSign);
 
   const uid = user?.id ?? null;
