@@ -52,6 +52,7 @@ import ExpoUI
  - onTodayBringBack {}                      the ⋯'s Bring back the last letter
  - onTodayReplyOpen { letterId }            REPLY opened the field for the shown letter
  - onTodayWindow {}                         the window, while she can play
+ - onTodayArrivalDismiss {}                 her arrival bubble tapped (or Wren under it): TS settles it for good
  - onTodayReplyChange { letterId, text }    the reader's edit
  - onTodayReplySend { letterId, text, serial }   the send key (enabled or dimmed)
  - onTodayReplyFocus { focused }        reply mode (the chat composers' A1, owner 2026-10-18): TS
@@ -191,6 +192,8 @@ struct KTodayStringsRecord: Record {
   @Field var offlineTitle: String = ""
   @Field var offlineBody: String = ""
   @Field var loadingA11y: String = ""
+  /// VoiceOver: her arrival bubble is a button that puts it away ("Close")
+  @Field var arrivalDismiss: String = ""
 
   var labels: KTodayLabels {
     var l = KTodayLabels()
@@ -359,6 +362,8 @@ final class KTodayViewProps: KScreenProps {
   var onTodayBringBack = EventDispatcher()
   var onTodayReplyOpen = EventDispatcher()
   var onTodayWindow = EventDispatcher()
+  /// her arrival bubble tapped (or Wren under it): TS settles the arrival for good
+  var onTodayArrivalDismiss = EventDispatcher()
   var onTodayReplyChange = EventDispatcher()
   var onTodayReplySend = EventDispatcher()
   var onTodayReplyFocus = EventDispatcher()
@@ -462,6 +467,8 @@ struct KTodayView: ExpoSwiftUI.View {
       flow: props.flow,
       actions: props.actions
     )
+    // her arrival bubble's tap (KWireWren reads it from the environment: the desk passes nothing else of it)
+    .environment(\.kArrivalDismiss, KArrivalDismiss(label: strings.arrivalDismiss) { [weak props] in props?.onTodayArrivalDismiss() })
     .kScreenEnvironment(props)
     .onKCommand(props.commands) { name, args in
       props.handle(name, args)

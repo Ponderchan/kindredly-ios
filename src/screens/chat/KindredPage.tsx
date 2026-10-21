@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
-import { Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
+import { Pressable, ScrollView, Text, View, useWindowDimensions, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRouter, type Href } from "expo-router";
 import { getLang, t, useLang } from "../../lib/i18n";
@@ -27,7 +27,7 @@ import { useSignatureHold } from "../../components/SignatureHold";
 import { ReportMenu } from "../../components/ReportMenu";
 import { Stamp } from "../../components/Stamp";
 import { isCustomStampId, tagOf, useCustomStamps } from "../../lib/custom-stamps";
-import { InkPanel, SecondaryHeader } from "../../components/10a";
+import { SecondaryHeader } from "../../components/10a";
 import { isVoiceLetter, largeType, readerLetters } from "./reader";
 import { canTalk, faceKind, firstMetAs, lettersValue, openingLetter, pageFace, pageTitle, showsArrivalMosaic, talkTo, whoBegan, writingOf, type RouteBelow } from "./kindred-page";
 import { VoiceOpeningCard, useOpeningVoiceRN } from "./VoiceOpeningRN";
@@ -50,10 +50,12 @@ import "../../data/strings-a11y-chat"; // kd.resA11y, kd.resTogether
    is exactly where safety tools must not disappear (owner).
 
    10a, on the theme: the secondary header (H:90: the 36pt chevron, the
-   page's title in System 500 17 centred, the ⋯ on the right, no rule); the person on an
-   InkCard (.me: 2.5 ln, corners 24, 5/5); what you've learned and how
-   alike you write as soft groups (corners 16); the facts as grouped rows;
-   the opening letter on an InkCard in the reader's Letter font (owner
+   page's title in System 500 17 centred, the ⋯ on the right, no rule); the person on a
+   soft card (soft, continuous corners 22, no outline or shadow — it was an
+   InkCard .me until the owner called the black frame ugly, 2026-10-21);
+   what you've learned and how alike you write as soft groups (corners 16);
+   the facts as grouped rows; the opening letter on the same soft card in
+   the reader's Letter font (owner
    question 1: a kindred's opening letter is a letter being read), playing
    when it is a voice letter (known bug 2); TALK TO as the 10a secondary
    key (ink, the page colour on it, corners 14); mono on 9/10/11.
@@ -179,7 +181,7 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
       {detail && (
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 + insets.bottom, gap: 14 }} showsVerticalScrollIndicator={false}>
           {/* who they are — the face they gave, beside the one you watched develop */}
-          <InkPanel variant="me" style={{ marginRight: 5, marginBottom: 5 }}>
+          <SoftCard>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
               {stamp && kind === "round" ? (
                 <View accessible accessibilityLabel={stampSpoken(stamp, t)}>
@@ -231,7 +233,7 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
                 )}
               </View>
             </View>
-          </InkPanel>
+          </SoftCard>
 
           {/* THE NAME THEY SIGNED (identity Phase 2) — their hand, kept as it was given, then the name
               they wore while you were strangers */}
@@ -338,7 +340,7 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
 
           {/* the letter that started it */}
           {opening && (
-            <InkPanel variant="me" style={{ marginRight: 5, marginBottom: 5 }} contentStyle={{ gap: 10 }}>
+            <SoftCard style={{ gap: 10 }}>
               <Text style={label}>{t("kd.whereBegan")}</Text>
               {isVoiceLetter(opening, detail) && <VoiceOpeningCard voice={voice} />}
               {!!opening.body && (
@@ -347,7 +349,7 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
                 </Text>
               )}
               <Text style={label}>{whoBegan(detail, name, t, locale, identity)}</Text>
-            </InkPanel>
+            </SoftCard>
           )}
 
           {/* readable, not actionable: no door into a thread the server calls missing */}
@@ -367,6 +369,14 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
       {hold.sheet}
     </View>
   );
+}
+
+/** the page's two cards (the person; the opening letter): soft, continuous
+    corners 22, the InkCard's 16 padding kept, no outline, no shadow (owner,
+    2026-10-21: the ink frame and its hard shadow were too heavy here) */
+function SoftCard({ style, children }: { style?: ViewStyle; children: ReactNode }) {
+  const { t: tk } = useTheme();
+  return <View style={[{ borderRadius: 22, borderCurve: "continuous", backgroundColor: tk.soft, padding: 16 }, style]}>{children}</View>;
 }
 
 /** a soft group (H:92): soft, corners 16, no outline, no shadow */

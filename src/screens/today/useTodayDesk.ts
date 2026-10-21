@@ -160,6 +160,8 @@ export function restartRealDay(): void {
 
 /** the first arrival lasts the day she came back */
 const ARRIVAL_TTL = 20 * 60 * 60 * 1000;
+/** her arrival bubble puts itself away this long after it first shows */
+const ARRIVAL_BUBBLE_MS = 10_000;
 /** a fresh pool is fresh for this long; a tab switch inside it doesn't refetch */
 const REFOCUS_MS = 45_000;
 
@@ -552,6 +554,8 @@ export type TodayStrings = {
   offlineTitle: string;
   offlineBody: string;
   loadingA11y: string;
+  /** VoiceOver: her arrival bubble is a button that puts it away ("Close") */
+  arrivalDismiss: string;
   /** legacy: ↑ PASS, on the step-5 card */
   pass: string;
   /** legacy: VoiceOver's "Previous letter" on the step-5 card */
@@ -652,6 +656,8 @@ export type TodayActions = {
   replyOpen: (letterId: string) => void;
   /** the window: her game, when she can play */
   window: () => void;
+  /** her arrival bubble tapped (or Wren under it): it goes for good (settleArrival; the 10 s timer does the same) */
+  dismissArrival: () => void;
   changeDraft: (letterId: string, text: string) => void;
   /** send the reply to `letterId`; `text` from the field (else the draft); `serial` the press's, echoed when answered */
   send: (letterId: string, text?: string, serial?: number) => void;
@@ -1289,6 +1295,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
       window: () => {
         if (canPlayRef.current) blurThen(() => depsRef.current.openWindow(), viewRef);
       },
+      dismissArrival: () => sourceRef.current.settleArrival(),
       changeDraft,
       send: (id, text, serial) => void send(id, text, serial),
       cardAction,
@@ -1356,6 +1363,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
       offlineTitle: t("net.offline.title"),
       offlineBody: t("ld.offlineDesk"),
       loadingA11y: t("ld.loading.a11y"),
+      arrivalDismiss: t("nb.close"),
       pass: t("ld.pass"),
       previous: t("ld.prev.a11y"),
     }),
@@ -1369,6 +1377,12 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   const left = unpassed.length;
   // only over letters she brought back, and only while the first three are up: a quiet day draws no arrival, in either renderer
   const arrivalOpen = C.arrivalShows({ fresh: source.fresh, onDesk: left }) && phase === "reading" && rec.passed.length < C.ARRIVAL_LETTERS;
+  // her line goes by itself ARRIVAL_BUBBLE_MS after it first shows (owner, 2026-10-21: it stayed and couldn't be tapped away); settled, it never returns
+  useEffect(() => {
+    if (!arrivalOpen) return;
+    const timer = setTimeout(() => sourceRef.current.settleArrival(), ARRIVAL_BUBBLE_MS);
+    return () => clearTimeout(timer);
+  }, [arrivalOpen]);
   const states = C.envelopeStates(idx + rec.passed.length);
   const stateWord = { opened: t("ld.env.read"), current: t("ld.env.open"), sealed: t("ld.env.sealed") };
   const arrival = {

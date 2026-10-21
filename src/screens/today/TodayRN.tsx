@@ -726,13 +726,16 @@ export function TodayRN({ model }: { model: TodayModel }) {
   const bubbleShown = view.arrival.open && view.arrival.line !== "" && groundShown && !writing && !errand.away;
   /* a tap on her: 8 up and back with a light haptic, delighted for a moment (not while writing, away, or once the day is ending) */
   const tappable = groundShown && flow.reading && flow.face == null && !writing && !errand.away;
+  const dismissArrival = act.dismissArrival;
   const onHop = useCallback(() => {
+    // under her bubble, a tap on her puts it away as well (owner, 2026-10-21)
+    if (bubbleShown) dismissArrival();
     setHop((n) => n + 1);
     setHopping(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (hopTimer.current) clearTimeout(hopTimer.current);
     hopTimer.current = setTimeout(() => setHopping(false), HOP_FACE_MS);
-  }, []);
+  }, [bubbleShown, dismissArrival]);
   const replyState = view.reply.state;
   const stripKey = current ? `${current.id}:${view.draftEpoch}` : "";
   useEffect(() => {
@@ -850,7 +853,7 @@ export function TodayRN({ model }: { model: TodayModel }) {
       <NestWren x={NEST.x} y={geo.controlTop + NEST.y} shown={nestShown} looping={flow.looping} face={face} wilt={view.wren.wilt} perchFly={perchFly} reduce={reduce} />
 
       {/* her first-arrival line, over her head */}
-      {bubbleShown && <ArrivalBubble line={view.arrival.line} bottom={H - (geo.controlTop + BUBBLE_TIP)} />}
+      {bubbleShown && <ArrivalBubble line={view.arrival.line} dismiss={view.strings.arrivalDismiss} onDismiss={dismissArrival} bottom={H - (geo.controlTop + BUBBLE_TIP)} />}
 
       {/* while you write: the desk dims, a tap on it puts the keyboard away */}
       {writing && (
@@ -1573,19 +1576,22 @@ const BUBBLE_IN = new Keyframe({
   .duration(300)
   .delay(400);
 
-function ArrivalBubble({ line, bottom }: { line: string; bottom: number }) {
+/** a tap on it puts it away for good (owner, 2026-10-21: it stayed and couldn't be tapped away); VoiceOver: a "Close" button saying her line */
+function ArrivalBubble({ line, dismiss, onDismiss, bottom }: { line: string; dismiss: string; onDismiss: () => void; bottom: number }) {
   const { t: tk } = useTheme();
   const key = useLetterFont();
   const italic = useLetterFamily(true);
   return (
-    <View pointerEvents="none" style={{ position: "absolute", left: 16, right: 16, bottom, alignItems: "center" }}>
+    <View pointerEvents="box-none" style={{ position: "absolute", left: 16, right: 16, bottom, alignItems: "center" }}>
       <Animated.View entering={BUBBLE_IN} exiting={FadeOut.duration(250)} style={{ maxWidth: 232, alignItems: "center", transformOrigin: "bottom" }}>
-        <StickerBox fill={tk.sf} stroke={tk.ln} lineWidth={2} radius={16} shadow={tk.ln} offset={3} faceStyle={{ paddingVertical: 10, paddingHorizontal: 14 }}>
-          {/* her line, in the reader's Letter font (italic where it has one); a roomier face gets a fourth line */}
-          <Text accessible numberOfLines={letterFitLines(key, 3)} style={[{ fontSize: 15, lineHeight: 19.5, color: tk.ink }, italic]}>
-            {line}
-          </Text>
-        </StickerBox>
+        <Pressable onPress={onDismiss} accessibilityRole="button" accessibilityLabel={dismiss} accessibilityValue={{ text: line }}>
+          <StickerBox fill={tk.sf} stroke={tk.ln} lineWidth={2} radius={16} shadow={tk.ln} offset={3} faceStyle={{ paddingVertical: 10, paddingHorizontal: 14 }}>
+            {/* her line, in the reader's Letter font (italic where it has one); a roomier face gets a fourth line */}
+            <Text numberOfLines={letterFitLines(key, 3)} style={[{ fontSize: 15, lineHeight: 19.5, color: tk.ink }, italic]}>
+              {line}
+            </Text>
+          </StickerBox>
+        </Pressable>
         {/* the tail, pointing down at her */}
         <Svg width={10} height={7} viewBox="0 0 10 7" style={{ marginTop: -2 }}>
           <Path d="M0 0 L5 7 L10 0" fill={tk.sf} stroke={tk.ln} strokeWidth={2} strokeLinejoin="round" />

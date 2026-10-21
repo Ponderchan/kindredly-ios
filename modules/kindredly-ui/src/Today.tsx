@@ -133,6 +133,8 @@ export type KTodayStrings = {
   offlineTitle: string;
   offlineBody: string;
   loadingA11y: string;
+  /** VoiceOver: her arrival bubble is a button that puts it away */
+  arrivalDismiss: string;
 };
 
 /** Her counted note when the desk is done (today-cards WrenLetterVM). */
@@ -210,6 +212,8 @@ export type KTodayViewProps = CommonViewModifierProps &
     onBringBack?: () => void;
     onReplyOpen?: (letterId: string) => void;
     onWindow?: () => void;
+    /** her arrival bubble tapped (or Wren under it): TS settles the arrival */
+    onArrivalDismiss?: () => void;
     onReplyChange?: (letterId: string, text: string) => void;
     onReplySend?: (letterId: string, text: string, serial: number) => void;
     onReplyFocus?: (focused: boolean) => void;
@@ -231,7 +235,7 @@ type NativeCard = Omit<KTodayCard, "who" | "capsule" | "menu"> & {
 type NativeImageRef = Required<KImageRefProps>;
 type NativeBirds = { idle: NativeImageRef; curious: NativeImageRef; delight: NativeImageRef; sleepy: NativeImageRef; fly: NativeImageRef; flyIsPerch: boolean };
 
-type Handlers = "onPass" | "onBringBack" | "onReplyOpen" | "onWindow" | "onReplyChange" | "onReplySend" | "onReplyFocus" | "onCardAction" | "onStampMenu";
+type Handlers = "onPass" | "onBringBack" | "onReplyOpen" | "onWindow" | "onArrivalDismiss" | "onReplyChange" | "onReplySend" | "onReplyFocus" | "onCardAction" | "onStampMenu";
 
 type NativeKTodayViewProps = Omit<KTodayViewProps, "letterFont" | "insets" | "rev" | "cards" | "birds" | Handlers> &
   Required<Pick<KTodayViewProps, "letterFont" | "insets" | "rev">> & {
@@ -242,6 +246,7 @@ type NativeKTodayViewProps = Omit<KTodayViewProps, "letterFont" | "insets" | "re
     onTodayBringBack?: Ev<Record<string, never>>;
     onTodayReplyOpen?: Ev<{ letterId: string }>;
     onTodayWindow?: Ev<Record<string, never>>;
+    onTodayArrivalDismiss?: Ev<Record<string, never>>;
     onTodayReplyChange?: Ev<{ letterId: string; text: string }>;
     onTodayReplySend?: Ev<{ letterId: string; text: string; serial: number }>;
     onTodayReplyFocus?: Ev<{ focused: boolean }>;
@@ -291,7 +296,7 @@ const NativeKTodayView = requireNativeView<NativeKTodayViewProps>("KindredlyUI",
     view, whose every props update re-converts the whole map. */
 export const KTodayView = memo(
   forwardRef<KScreenHandle, KTodayViewProps>(function KTodayView(
-    { modifiers, letterFont, insets, rev, cards, birds, onPass, onBringBack, onReplyOpen, onWindow, onReplyChange, onReplySend, onReplyFocus, onCardAction, onStampMenu, ...rest },
+    { modifiers, letterFont, insets, rev, cards, birds, onPass, onBringBack, onReplyOpen, onWindow, onArrivalDismiss, onReplyChange, onReplySend, onReplyFocus, onCardAction, onStampMenu, ...rest },
     ref,
   ) {
     const sent = useMemo(() => nativeTodayCards(cards), [cards]);
@@ -313,6 +318,7 @@ export const KTodayView = memo(
         onTodayBringBack={onBringBack ? () => onBringBack() : undefined}
         onTodayReplyOpen={onReplyOpen ? (e) => onReplyOpen(e.nativeEvent.letterId) : undefined}
         onTodayWindow={onWindow ? () => onWindow() : undefined}
+        onTodayArrivalDismiss={onArrivalDismiss ? () => onArrivalDismiss() : undefined}
         onTodayReplyChange={onReplyChange ? (e) => onReplyChange(e.nativeEvent.letterId, e.nativeEvent.text) : undefined}
         onTodayReplySend={onReplySend ? (e) => onReplySend(e.nativeEvent.letterId, e.nativeEvent.text, e.nativeEvent.serial) : undefined}
         onTodayReplyFocus={onReplyFocus ? (e) => onReplyFocus(e.nativeEvent.focused) : undefined}

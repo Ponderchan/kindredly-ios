@@ -217,6 +217,7 @@ export function TodayNative({ model }: { model: TodayModel }) {
     offlineTitle: s.offlineTitle,
     offlineBody: s.offlineBody,
     loadingA11y: s.loadingA11y,
+    arrivalDismiss: s.arrivalDismiss,
   });
   const wrenLetter = useSame<KTodayWrenLetter>(view.wrenLetter);
   const flightWindow = useSame<KTodayWindow>(view.window);
@@ -251,6 +252,7 @@ export function TodayNative({ model }: { model: TodayModel }) {
           onBringBack={act.bringBack}
           onReplyOpen={act.replyOpen}
           onWindow={act.window}
+          onArrivalDismiss={act.dismissArrival}
           onReplyChange={act.changeDraft}
           onReplySend={act.send}
           onReplyFocus={setReplying}

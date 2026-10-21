@@ -37,9 +37,10 @@ import SwiftUI
    (SwiftUI's sensoryFeedback .impact(weight: .light), the UIImpactFeedbackGenerator .light
    tap, so this file stays SwiftUI-only), delighted for 600ms. Not while the reader types, while
    she's away, or once the day is ending.
- - SHE TAKES THE LETTER: each time TS's wren.carry moves (a reply leaving the phone) she switches
-   to fly and lifts off with a small envelope at her feet, up and out past the top right (900ms,
-   climbing first); 2.5s after take-off she comes back in from the top left, drops onto her spot
+ - SHE TAKES THE LETTER: each time TS's wren.carry moves (a reply leaving the phone) she picks
+   the envelope up in her beak and holds it a beat (pickUp, 450ms; owner, 2026-10-21: the send
+   must read as her carrying it, not just leaving), then switches to fly and lifts off, up and out
+   past the top right (900ms, climbing first); 2.5s after take-off she comes back in from the top left, drops onto her spot
    (700ms) and settles in her resting face. This is the send's only bird: no React Native fly-by
    sits over the Host. If that reply was the last letter, the day's end takes over: she flies
    into the window from wherever the errand has taken her.
@@ -66,8 +67,33 @@ import SwiftUI
  THE ARRIVAL BUBBLE (owner question 7): on her first day her line from TS sits in a speech bubble
  just over her head while the first three letters are up. It shows only while she is on the band,
  not hidden or away, and the reader isn't typing; it pops in 400ms after that, and fades when it
- goes. VoiceOver reads it as text after the card. Every word is TS's.
+ goes. A tap on it, or on her under it, puts it away for good (owner, 2026-10-21: it stayed and
+ couldn't be tapped away): TS hears onArrivalDismiss (KArrivalDismiss, from the environment) and
+ clears the line, and the bubble fades; TS also clears it by itself 10 s after it first shows.
+ VoiceOver reads it as a "Close" button saying her line, after the card. Every word is TS's.
  */
+
+/// Her arrival bubble's tap: the word VoiceOver calls the button, and what the tap does (TS settles
+/// the arrival). KTodayView sets it in the environment; the desk passes nothing else of it.
+public struct KArrivalDismiss {
+  public var label: String
+  public var act: () -> Void
+  public init(label: String = "", act: @escaping () -> Void = {}) {
+    self.label = label
+    self.act = act
+  }
+}
+
+private struct KArrivalDismissKey: EnvironmentKey {
+  static let defaultValue = KArrivalDismiss()
+}
+
+extension EnvironmentValues {
+  public var kArrivalDismiss: KArrivalDismiss {
+    get { self[KArrivalDismissKey.self] }
+    set { self[KArrivalDismissKey.self] = newValue }
+  }
+}
 
 /// What Wren keeps without drawing: the generations that make a superseded delayed step a no-op,
 /// and the latest facts such a step reads (never a captured copy of the view).
@@ -93,6 +119,7 @@ struct KWireWren: View {
   @ObservedObject private var flow: KDayFlow
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.kArrivalDismiss) private var arrivalDismiss
   @State private var box = KWireWrenBox()
   /// the pass beat keeping her curious for 1.2s, nil once it has run out
   @State private var curiousBeat: Int?
@@ -116,6 +143,8 @@ struct KWireWren: View {
   static let errandAway = 2.5
   /// out of sight by then (the take-off's 900ms)
   static let errandOut = 0.9
+  /// the beat she holds the letter before lifting off
+  static let pickUp = 0.45
   /// the unfold's lean waits this long for the reader before she straightens up
   static let leanWait = 1.5
   /// delighted this long after a tap
@@ -169,6 +198,7 @@ struct KWireWren: View {
     let hide = hidden || (wren.reader && onBand)
     // her rest on the band: the bubble's tail points at her head
     let rest = KBandLayout.flightPlace(width, 0)
+    let bubbleWanted = !arrivalLine.isEmpty && onBand && !hide && !typing && !away
     ZStack(alignment: .topLeading) {
       bird(tappable: onBand && !ending && !typing && !away && !hide)
         // out with the band while the reader writes back, in place (the band's own fade)
@@ -178,12 +208,15 @@ struct KWireWren: View {
       KArrivalBubble(
         theme: theme,
         line: arrivalLine,
-        wanted: !arrivalLine.isEmpty && onBand && !hide && !typing && !away,
+        wanted: bubbleWanted,
+        dismissLabel: arrivalDismiss.label,
+        onDismiss: arrivalDismiss.act,
         herX: rest.center.x,
         width: width,
         tipY: controlTop + rest.center.y - rest.size / 2 - 6
       )
-      .allowsHitTesting(false)
+      // only the bubble itself takes a touch, and only while it is up
+      .allowsHitTesting(bubbleWanted)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     // the hop's light tap (UIImpactFeedbackGenerator .light underneath)
@@ -235,19 +268,26 @@ struct KWireWren: View {
     )
   }
 
-  /// Her figure as the one standing on the band: a tap (VoiceOver: activate) makes her hop. The
-  /// touch area is her frame and 6 around it, so it never reaches NEXT or REPLY.
+  /// Her figure as the one standing on the band: a tap (VoiceOver: activate) makes her hop, and
+  /// puts her arrival bubble away while it is up. The touch area is her frame and 6 around it, so
+  /// it never reaches NEXT or REPLY.
   private func courier(tappable: Bool) -> some View {
     figure()
       .contentShape(Rectangle().inset(by: -6))
-      .onTapGesture { hop() }
+      .onTapGesture { tapped() }
       .allowsHitTesting(tappable)
       .accessibilityElement(children: .ignore)
       .accessibilityLabel(wren.a11y)
       .accessibilityValue(wren.name)
       .accessibilityAddTraits(.isButton)
-      .accessibilityAction { hop() }
+      .accessibilityAction { tapped() }
       .accessibilityHidden(!tappable)
+  }
+
+  /// A tap on her: her bubble goes (TS settles the arrival) while it is up; she hops either way.
+  private func tapped() {
+    if !arrivalLine.isEmpty { arrivalDismiss.act() }
+    hop()
   }
 
   /// Her figure where the flow (and an errand) says. Each curve is pinned here: the flow may land
@@ -340,16 +380,16 @@ struct KWireWren: View {
       }
       return
     }
-    withAnimation(KTodayMotion.takeOff) { errand = 1 }
-    later(Self.errandOut, if: current) {
+    later(Self.pickUp, if: current) { withAnimation(KTodayMotion.takeOff) { errand = 1 } }
+    later(Self.pickUp + Self.errandOut, if: current) {
       // out of sight: round to the other side, where she comes back from
       carrying = false
       still { errand = -1 }
     }
-    later(Self.errandAway, if: current) {
+    later(Self.pickUp + Self.errandAway, if: current) {
       withAnimation(KTodayMotion.landing) { errand = 0 }
     }
-    later(Self.errandAway + 0.7, if: current) { away = false }
+    later(Self.pickUp + Self.errandAway + 0.7, if: current) { away = false }
   }
 
   /// The day's end has begun: whatever she was doing gives way. Away with a reply, she flies into
@@ -392,7 +432,9 @@ private struct KWrenFigure: View {
   static let size: CGFloat = KBandLayout.wrenSize
   static let feet = UnitPoint(x: 0.5, y: KBandLayout.feetY)
   /// the envelope's top, down her frame (LetterInFlight: just under her, overlapping by 6 of 34)
-  static let envelopeTop: CGFloat = 0.82
+  /// the envelope in her beak: past her right edge (the fly art faces right), a little above centre
+  static let envelopeOut: CGFloat = 0.30
+  static let envelopeUp: CGFloat = 0.08
 
   let theme: KTheme
   let birds: KTodayBirds
@@ -466,10 +508,11 @@ private struct KWrenFigure: View {
     }
     .frame(width: Self.size, height: Self.size)
     .animation(KTodayMotion.face, value: visible)
-    .overlay(alignment: .top) {
+    .overlay(alignment: .center) {
       if carrying {
         KWrenEnvelope(theme: theme)
-          .offset(y: Self.size * Self.envelopeTop)
+          .rotationEffect(.degrees(-8))
+          .offset(x: Self.size * Self.envelopeOut, y: -Self.size * Self.envelopeUp)
           .transition(.opacity)
       }
     }
@@ -482,18 +525,19 @@ private struct KWrenFigure: View {
   }
 }
 
-/// The reply she takes off the band: LetterInFlight's little envelope, 15 × 11, corners of 1, on the
-/// card face with a 1pt ink outline and the flap's V.
+/// The reply she carries: LetterInFlight's envelope at 22 × 16 (owner, 2026-10-21: large enough to
+/// read as a letter in her beak), corners of 1.5, on the card face with a 1pt ink outline and the
+/// flap's V.
 private struct KWrenEnvelope: View {
   let theme: KTheme
 
   var body: some View {
     ZStack {
-      RoundedRectangle(cornerRadius: 1).fill(theme.sf)
-      RoundedRectangle(cornerRadius: 1).strokeBorder(theme.ink, lineWidth: 1)
+      RoundedRectangle(cornerRadius: 1.5).fill(theme.sf)
+      RoundedRectangle(cornerRadius: 1.5).strokeBorder(theme.ink, lineWidth: 1)
       KEnvelopeFlap().stroke(theme.ink, style: StrokeStyle(lineWidth: 1, lineJoin: .round))
     }
-    .frame(width: 15, height: 11)
+    .frame(width: 22, height: 16)
     .accessibilityHidden(true)
   }
 }
@@ -587,7 +631,8 @@ private struct KWrenFlap: ViewModifier {
  most 3 lines (4 in a roomier face: KLetterFace.fitLines) and 232 wide. Centred on her, kept 16
  from either edge, its 10 × 7 tail pointing down at her with its tip 6 over her head. It pops in
  (scale .7 → 1 from the tail, with opacity, .3s) 400ms after it is wanted, and goes with a .25s
- fade; under Reduce Motion it only fades.
+ fade; under Reduce Motion it only fades. A tap on it (VoiceOver: a "Close" button saying her
+ line) calls onDismiss; TS clears the line and it fades.
  */
 private struct KArrivalBubble: View {
   static let tail: CGFloat = 7
@@ -600,6 +645,10 @@ private struct KArrivalBubble: View {
   let theme: KTheme
   let line: String
   let wanted: Bool
+  /// what VoiceOver calls the bubble's button
+  let dismissLabel: String
+  /// the tap: TS settles the arrival
+  let onDismiss: () -> Void
   /// her centre's x
   let herX: CGFloat
   let width: CGFloat
@@ -625,11 +674,17 @@ private struct KArrivalBubble: View {
       .onGeometryChange(for: CGSize.self) { $0.size } action: { new in
         if abs(new.width - size.width) > 0.5 || abs(new.height - size.height) > 0.5 { size = new }
       }
+      // the touch is the bubble's own box (the frame below is the whole desk's width)
+      .contentShape(Rectangle())
+      .onTapGesture { onDismiss() }
+      .allowsHitTesting(visible)
       .scaleEffect(popped || reduceMotion ? 1 : 0.7, anchor: anchor)
       .opacity(visible ? 1 : 0)
       .accessibilityElement(children: .ignore)
-      .accessibilityLabel(shownLine)
-      .accessibilityAddTraits(.isStaticText)
+      .accessibilityLabel(dismissLabel)
+      .accessibilityValue(shownLine)
+      .accessibilityAddTraits(.isButton)
+      .accessibilityAction { onDismiss() }
       .accessibilityHidden(!visible || shownLine.isEmpty)
       .accessibilitySortPriority(-1)
       // its bottom (the tail's tip) at tipY, centred on cx
