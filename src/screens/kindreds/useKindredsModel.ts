@@ -6,6 +6,7 @@ import { listWhen, localeTag, penPalName } from "../../lib/format";
 import { useWhoBook } from "../../lib/who";
 import type { WhoBook } from "../../lib/stranger-who";
 import { markRoomSeen, markRoomUnread, readRoomSeen } from "../../lib/room-seen";
+import { syncAppBadge } from "../../lib/app-badge";
 import {
   blockUser,
   fetchThreadMessages,
@@ -268,6 +269,10 @@ export function useKindredsModel(): KindredsModel {
 
   // the tab bar's number, from the count the title shows
   useEffect(() => setWaiting(view.waiting), [view.waiting]);
+  // the app icon's number, from the real list (never the dev demo rows)
+  useEffect(() => {
+    if (!useDemo && answeredState) void syncAppBadge(threads);
+  }, [useDemo, answeredState, threads, effLedger]);
 
   /* ── report and block ── */
   const [blocking, setBlocking] = useState<string | null>(null);

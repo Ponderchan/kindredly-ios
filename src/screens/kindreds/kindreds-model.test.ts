@@ -137,6 +137,10 @@ const rowOf = (v: ReturnType<typeof M.buildKindredsView>, id: string) => {
   const ledger = { k1: 2, kq: 1 };
   ok("waiting: kindred unread letters each + one per pen pal on you; closed owe nothing; quiet rooms count", M.countOnYou(ts, ledger) === 3 + 1 + 2);
   ok("a room never opened claims nothing", M.countOnYou([th({ id: "k9", revealed: true, theirs: 5 })], {}) === 0);
+  // the app icon (owner, 2026-10-21): every unread message, read is read
+  ok("icon: a kindred's 3 unread + a never-opened pen pal on you (1); closed owe nothing", M.appBadgeCount(ts, ledger) === 3 + 1 + 2);
+  ok("icon: a pen pal read but not answered no longer counts", M.appBadgeCount([th({ id: "p1", lastSenderMe: false, theirs: 2 })], { p1: 2 }) === 0);
+  ok("icon: a pen pal's two unread letters are 2", M.appBadgeCount([th({ id: "p1", lastSenderMe: false, theirs: 3 })], { p1: 1 }) === 2);
   const v = M.buildKindredsView(base(ts, { ledger }), fmt);
   ok("status: N letters to answer, active", v.status === "kindreds.toAnswer(n=6)" && v.statusActive);
   const one = M.buildKindredsView(base([th({ id: "p1" })]), fmt);

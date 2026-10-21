@@ -256,6 +256,22 @@ export function countOnYou(threads: readonly ThreadSummary[], ledger: Readonly<R
   return n;
 }
 
+/** THE APP ICON'S NUMBER (owner, 2026-10-21: "as many as there are messages"): every letter or
+    message of theirs you haven't had in front of you, summed — a kindred's five unread lines are
+    5, a pen pal's new letter is 1. Read is read, answered or not. A correspondence this phone has
+    never opened counts 1 if it is waiting on you (a stranger's first answer) and nothing otherwise:
+    its history from before the count was kept isn't claimed as new. Closed accounts and Wren's
+    desk don't count. */
+export function appBadgeCount(threads: readonly ThreadSummary[], ledger: Readonly<Record<string, number>>): number {
+  let n = 0;
+  for (const t of threads) {
+    if (t.gone) continue;
+    if (t.id in ledger) n += unreadIn(ledger, t);
+    else if (!t.revealed && THREAD_STATE[stateKind(t)].needsYou) n += 1;
+  }
+  return n;
+}
+
 /** The long-press menu's items, in order (kindreds.tsx before 10a, unchanged): a kindred gets
     Rekindle (quiet rooms), Mark as read (when something is unread) or Mark as unread (not
     quiet, something of theirs to read), Their page; everyone Report and Block. Closed accounts

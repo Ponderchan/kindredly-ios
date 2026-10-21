@@ -11,6 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { adoptGuestBucket, claimLegacyKeys, scopedTo, setStorageUser, storageOwner } from "./scoped-store";
 import { applyPatch, fillGaps, hasAnswers, ownerOf, parseLocal, syncPayload, visibleProfile } from "./profile-local-core";
 import { clearAvatarPhoto } from "./avatar-photo";
+import { clearAppBadge } from "./app-badge";
 import { handOverJournal } from "./journal";
 import { forgetThisDevice } from "./notify";
 import * as AppleAuthentication from "expo-apple-authentication";
@@ -711,6 +712,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         /* local session already cleared; onAuthStateChange reconciles */
       }
     }
+    clearAppBadge();
     setSession(null);
   }, []);
 
@@ -776,6 +778,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       /* the server user no longer exists; only the local session matters */
     }
+    clearAppBadge();
     setSession(null);
     return { ok: true };
   }, []);

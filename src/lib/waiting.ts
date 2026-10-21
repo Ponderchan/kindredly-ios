@@ -5,6 +5,7 @@ import { track } from "./track";
 import { readRoomSeen } from "./room-seen";
 import { fetchWrenPosts, readPostsCache, wrenUnread } from "./wren-desk";
 import { countOnYou } from "../screens/kindreds/kindreds-model";
+import { syncAppBadge } from "./app-badge";
 
 /* How many correspondences are waiting on YOU — someone answered your letter
    and you have not written back.
@@ -83,6 +84,7 @@ export async function refreshWaiting(): Promise<void> {
   const t = await fetchThreads();
   if (!t) return;
   setWaiting(onYou(t, await readRoomSeen()));
+  void syncAppBadge(t);
   void countNewReplies(t);
 }
 

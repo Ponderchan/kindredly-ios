@@ -26,6 +26,7 @@ export async function markRoomSeen(threadId: string, theirs: number): Promise<vo
     if (l[threadId] === theirs) return;
     l[threadId] = theirs;
     await AsyncStorage.setItem(KEY, JSON.stringify(l));
+    void import("./app-badge").then((m) => m.syncAppBadge());
   } catch {
     /* a missed mark shows one badge too many, once */
   }
@@ -41,6 +42,7 @@ export async function markRoomUnread(threadId: string, theirs: number): Promise<
     const l = await readRoomSeen();
     l[threadId] = theirs - 1;
     await AsyncStorage.setItem(KEY, JSON.stringify(l));
+    void import("./app-badge").then((m) => m.syncAppBadge());
   } catch {
     /* the row simply stays read */
   }
