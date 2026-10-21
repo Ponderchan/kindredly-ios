@@ -20,6 +20,7 @@ import * as block from "./device-block";
 import * as drafts from "./draft-store";
 import type { FinishPayload, NotifState, ObCtx } from "./flow";
 import type { ObServices } from "./types";
+import { withoutEmpty } from "../../lib/profile-local-core";
 
 /* WHAT THE RUN ASKS OF THE WORLD — the real services and the DEMO stubs.
    ────────────────────────────────────────────────────────────────────────
@@ -147,7 +148,8 @@ export function useObServices({ demo, patchDemoCtx }: { demo: boolean; patchDemo
           console.warn("[onboarding] the bird wasn't fully saved:", e);
         }
         // the pronoun goes up with the rest: the matcher reads it (0021), quietly; NO pen name
-        const r = await saveProfile({ ...p.profile });
+        // an unanswered field ("Later" on the face) says nothing: it never clears an account's own
+        const r = await saveProfile(withoutEmpty(p.profile));
         if ("error" in r) console.warn("[onboarding] the profile didn't reach the account (kept on the phone):", r.error);
         wrenStageDirty();
       },

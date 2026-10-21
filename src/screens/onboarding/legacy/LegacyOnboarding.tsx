@@ -57,6 +57,7 @@ import { OPENING_MIN, weightedCount } from "../../../lib/weighted-count";
 import { MOOD_IDS, moodGroup, moodName, moodTone, type MoodId } from "../../../data/moods";
 import { MoodFace, moodColors } from "../../notes/notes-glyphs";
 import { dangerInk } from "../../settings/settings-model";
+import { withoutEmpty } from "../../../lib/profile-local-core";
 
 /* MOVED, NOT REWRITTEN (2026-10-19). This was src/app/onboarding.tsx. It is
    the onboarding for the identity switch OFF, exactly as it shipped; the
@@ -490,7 +491,8 @@ export default function Onboarding() {
       /* best-effort */
     }
     /* the pronoun goes up with the rest: the matcher reads it (0021), quietly */
-    await auth.saveProfile({ handle, dob: dobStr, avatarId, firstLine: fed[0] || undefined, pronoun: youPro });
+    // an unanswered field says nothing: it never clears an account's own (lib/profile-local-core)
+    await auth.saveProfile(withoutEmpty({ handle, dob: dobStr, avatarId, firstLine: fed[0] || undefined, pronoun: youPro }));
     wrenStageDirty();
   };
 

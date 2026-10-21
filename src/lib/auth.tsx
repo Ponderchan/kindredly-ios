@@ -8,7 +8,9 @@ import React, {
 } from "react";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { adoptGuestBucket, claimLegacyKeys, scoped, setStorageUser } from "./scoped-store";
+import { adoptGuestBucket, claimLegacyKeys, scopedTo, setStorageUser, storageOwner } from "./scoped-store";
+import { applyPatch, hasAnswers, ownerOf, parseLocal, syncPayload, visibleProfile } from "./profile-local-core";
+import { clearAvatarPhoto } from "./avatar-photo";
 import { handOverJournal } from "./journal";
 import { forgetThisDevice } from "./notify";
 import * as AppleAuthentication from "expo-apple-authentication";
@@ -255,6 +257,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
      localProfile some render's closure captured), so two saves in a row — a face, then a pen
      name — can't put back what the other just changed. setLocalProfile only ever follows it. */
   const localRef = useRef<Record<string, any>>({});
+  /* WHOSE the local picture is (a uid, or "anon"; null before auth has resolved), and the read of
+     that account's stored copy. The picture used to be read once, at launch, and then kept across
+     sign-outs and sign-ins: account B was shown, and synced, account A's copy — or a guest's, whose
+     empty face then went up over B's (owner, 2026-10-21: "my avatar is gone"). Now each change of
+     account swaps in that account's own stored copy, and a save waits for it before merging. */
+  const localOwner = useRef<string | null>(null);
+  const localLoad = useRef<Promise<void>>(Promise.resolve());
+  /* the last session's user, to tell a guest LINKING an identity (same user id, no longer
+     anonymous — their own bucket, adopted whatever the account says) from a sign-in to another
+     account */
+  const lastUser = useRef<{ id: string; anon: boolean } | null>(null);
   /* the account syncs, one after another: each sends the whole local picture as it is when its
      turn comes, so the last one out always carries every change (10a: Edit profile saves each
      field on its own) */
@@ -267,10 +280,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const user = session?.user ?? null;
   // local edits (name/avatar) always win and survive without a session;
   // they sync to user_metadata whenever a session exists.
-  const profile = {
-    ...((user?.user_metadata as Record<string, any>) || {}),
-    ...localProfile,
-  } as Record<string, any>;
+  // an empty face / pen name / pronoun / birthday on the phone only hides the account's when it was
+  // cleared on purpose (lib/profile-local-core)
+  const profile = visibleProfile(user?.user_metadata as Record<string, any> | undefined, localProfile);
   /* THE PEN NAME IS ONLY EVER THE PEN NAME. It used to fall back to user_metadata.full_name /
      name, which Apple and Google fill with the person's legal name: anyone who never typed a pen
      name (the new onboarding no longer asks for one; it is chosen at the first trade) would have
@@ -281,65 +293,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // no session at all, or one that belongs to nobody yet
   const isGuest = !session || user?.is_anonymous === true;
 
-  /* the storage namespace follows the session — set the moment it is known
-     (including "nobody" → the anon bucket), so no module can read another
-     account's bucket during boot. scoped reads gate on this. */
+  /* the storage namespace follows the session — set the moment it is KNOWN (including "nobody" →
+     the anon bucket), so no module can read another account's bucket during boot. scoped reads
+     gate on this. It used to be set on the first render too, before the stored session had been
+     read: every cold start opened the anon bucket first, and the local profile (read once, then)
+     came from there — a guest's picture laid over the signed-in account's.
+
+     With it, the local picture follows the account: that account's stored copy is read in (after
+     a guest's bucket has moved into an account that adopts it), and nothing of the last account's
+     stays in memory. */
   useEffect(() => {
-    const u = session?.user;
-    setStorageUser(u && !u.is_anonymous ? u.id : null);
-  }, [session]);
+    if (!ready) return;
+    const u = session?.user ?? null;
+    const owner = ownerOf(u);
+    setStorageUser(owner === "anon" ? null : owner);
+    const was = lastUser.current;
+    lastUser.current = u ? { id: u.id, anon: !!u.is_anonymous } : null;
+    if (owner === localOwner.current) return;
+    localOwner.current = owner;
+    localRef.current = {};
+    setLocalProfile({});
+    const meta = (u?.user_metadata as Record<string, any>) || {};
+    const linked = !!u && !!was && was.anon && was.id === u.id;
+    localLoad.current = (async () => {
+      let adopt = false;
+      if (owner !== "anon") {
+        await claimLegacyKeys(owner); // one-time: see scoped-store.claimLegacyKeys
+        /* SIGNING IN MID-APP ADOPTS THE GHOST, it doesn't start over.
+           ────────────────────────────────────────────────────────────────
+           Someone who chose "Just looking" walks the whole console — pen name, birthday, face,
+           courier, its name and pronoun, the first letter — and all of it lands in the anon
+           bucket, because saveProfile writes locally with or without an account. `onboarded:
+           true` was only ever set on the signed-in branch, so the next cold start would march them
+           back through onboarding. So when a real identity arrives with a guest's answers waiting
+           and no flag on the account, the account adopts them — and a guest who LINKED an identity
+           onto their own user id always takes their own bucket. An account that already exists
+           adopts nothing: the guest's answers are never laid over it. */
+        const anon = parseLocal(await scopedTo("anon").getItem(LOCAL_PROFILE_KEY).catch(() => null));
+        adopt = linked || (!meta.onboarded && hasAnswers(anon));
+        if (adopt) await adoptGuestBucket(owner);
+      }
+      let stored: Record<string, any> = {};
+      try {
+        stored = parseLocal(await scopedTo(owner).getItem(LOCAL_PROFILE_KEY));
+      } catch (e) {
+        console.warn("[auth] the local profile wasn't read:", e);
+      }
+      if (localOwner.current !== owner) return; // another account since
+      localRef.current = stored;
+      setLocalProfile(stored);
+      if (adopt && !meta.onboarded) void saveProfileRef.current({});
+    })();
+  }, [ready, session]);
 
   useEffect(() => {
-    scoped
-      .getItem(LOCAL_PROFILE_KEY)
-      .then((raw) => {
-        if (!raw) return;
-        // an edit made before this read came back wins over the stored copy
-        localRef.current = { ...JSON.parse(raw), ...localRef.current };
-        setLocalProfile(localRef.current);
-      })
-      .catch((e) => console.warn("[auth] the local profile wasn't read:", e));
     if (!supabase) {
-      setStorageUser(null);
       setReady(true);
       return;
     }
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session ?? null);
-      setReady(true);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => setSession(data.session ?? null))
+      .catch((e) => console.warn("[auth] the stored session wasn't read:", e))
+      .finally(() => setReady(true));
     const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => data.subscription.unsubscribe();
   }, []);
-
-  /* SIGNING IN MID-APP ADOPTS THE GHOST, it doesn't start over.
-     ────────────────────────────────────────────────────────────────────
-     Someone who chose "Just looking" walks the whole console — pen name,
-     birthday, face, courier, its name and pronoun, the first letter — and
-     all of it lands in localProfile and AsyncStorage, because saveProfile
-     writes locally with or without a session.
-
-     But `onboarded: true` was only ever set on the SIGNED-IN branch, so a
-     ghost never got the flag. They could sign in from the sheet, carry on
-     happily... and the next cold start would hit index.tsx's
-     `!session || !onboarded` and march them back through onboarding, where
-     finishing again would overwrite the courier they had already named.
-
-     So the moment a session appears with local work waiting and no flag on
-     the account, the account adopts it. That is what makes signing in later
-     mean "keep this" instead of "start over". */
-  const adopted = useRef(false);
-  useEffect(() => {
-    /* An anonymous session is NOT an account adopting anything — it is the
-       guest themselves. Adoption is for the moment a real identity arrives. */
-    if (!supabase || !session || user?.is_anonymous || adopted.current) return;
-    const meta = (session.user?.user_metadata as Record<string, any>) || {};
-    if (meta.onboarded) return; // the account already knows
-    if (!Object.keys(localProfile).length) return; // nothing to adopt
-    adopted.current = true;
-    // the guest's whole local life — bird, journal, drafts — moves with them
-    void adoptGuestBucket(session.user.id).then(() => saveProfileRef.current({}));
-  }, [session, user, localProfile]);
 
   useEffect(() => {
     if (Platform.OS === "ios") {
@@ -376,13 +395,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data } = await supabase.auth.getSession();
     setSession(data.session ?? null);
   }, []);
-
-  /* one-time: bare pre-namespacing keys are claimed by the first real
-     account to sign in on this build — see scoped-store.claimLegacyKeys */
-  useEffect(() => {
-    const u = session?.user;
-    if (u && !u.is_anonymous) void claimLegacyKeys(u.id);
-  }, [session]);
 
   /* "Just looking" gets a REAL session, not no session. Every RLS policy in
      this project is `to authenticated`, and an anonymous user carries exactly
@@ -636,20 +648,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
      calls the same thing. */
   const saveProfile = useCallback(
     async (p: Record<string, any>): Promise<AuthResult> => {
-      const nextLocal = { ...localRef.current, ...p };
+      /* into THIS account's picture, once its stored copy is in (a save merged into the empty
+         picture of an account still being read would write that stored copy over) */
+      if (localOwner.current === null) await storageOwner();
+      for (let l = localLoad.current; ; l = localLoad.current) {
+        await l;
+        if (l === localLoad.current) break;
+      }
+      const owner = localOwner.current as string;
+      // an identity field named with nothing in it is a clear on purpose (lib/profile-local-core)
+      const nextLocal = applyPatch(localRef.current, p);
       localRef.current = nextLocal;
       setLocalProfile(nextLocal);
-      scoped.setItem(LOCAL_PROFILE_KEY, JSON.stringify(nextLocal)).catch((e) => console.warn("[auth] the local profile wasn't saved:", e));
+      scopedTo(owner).setItem(LOCAL_PROFILE_KEY, JSON.stringify(nextLocal)).catch((e) => console.warn("[auth] the local profile wasn't saved:", e));
       const client = supabase;
       if (!client || !sessionRef.current) return { ok: true };
       const run = syncChain.current.then(async (): Promise<AuthResult> => {
         if (!sessionRef.current) return { ok: true }; // signed out while it waited its turn
+        // another account since: this picture is not its to receive (it syncs its own on its next save)
+        if (ownerOf(sessionRef.current.user) !== owner || localOwner.current !== owner) return { ok: true };
         /* The whole local picture goes up, as it is NOW, not just this call's delta. A
            catch-up sync passes {} — with the old code that pushed nothing but the onboarded
            flag and left the account without the handle, the birthday or the first line that
            were already sitting on the phone. */
-        const data: Record<string, any> = { ...localRef.current, onboarded: true };
-        if (data.handle) data.full_name = data.handle;
+        // never an empty face / pen name / pronoun / birthday the person didn't clear
+        const data = syncPayload(localRef.current);
         try {
           const { error } = await client.auth.updateUser({ data });
           if (error) {
@@ -704,6 +727,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) {
       return { error: t("auth.err.delete") };
     }
+    // the photo worn as a face: the scrub below forgets its name, this deletes its file too
+    await clearAvatarPhoto().catch(() => {});
     try {
       const uid = sessionRef.current?.user?.id;
       /* …except the journal (owner, 2026-10-15: "日记留吧"): sealed pages
