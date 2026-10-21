@@ -4,6 +4,7 @@ import Animated, { Easing, runOnJS, useAnimatedStyle, useDerivedValue, useReduce
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Svg, { Path } from "react-native-svg";
+import { Lightbulb } from "lucide-react-native";
 import { localeTag } from "../../../lib/format";
 import { getLang, t } from "../../../lib/i18n";
 import { screenNow } from "../../../lib/wren";
@@ -249,7 +250,8 @@ export default function S07Letter(props: ObScreenProps) {
               opacity: pressed ? 0.75 : 1,
             })}
           >
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.label, { color: "#7A5A12", letterSpacing: 1.4 }]}>{t("ob2.letter.stuck")}</Text>
+            {/* a lightbulb instead of the STUCK? label (owner, b31): the cue gets the room; VoiceOver still says "Stuck?" */}
+            <Lightbulb size={18} color="#7A5A12" strokeWidth={2.2} accessible={false} />
             <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={3} style={{ flex: 1, marginLeft: 9, marginRight: 6, ...said, fontSize: 14.5, lineHeight: 19, color: OB.ink }}>
               {t(cueKey)}
             </Text>
