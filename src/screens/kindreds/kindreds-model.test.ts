@@ -416,8 +416,8 @@ const rowOf = (v: ReturnType<typeof M.buildKindredsView>, id: string) => {
   ok("identity on: the mark and the sign on the row", p.mark === "she" && p.markLabel === "id.mark.she" && p.sign === "gemini" && p.signLabel === "zd.gemini");
   ok("identity on: a sign alone, no mark", rowOf(on, "o3")!.mark === null && rowOf(on, "o3")!.sign === "leo");
   ok("identity on: the row's face is their frosted window (FROST v1), never developing", p.face?.role === "penpal" && JSON.stringify(p.face.frost) === JSON.stringify(frostSpec("u-p", false)));
-  ok("identity on: a thread from before the switch says was No. for its first 14 days", p.was === "id.was(no=No. u-p)");
-  ok("identity on: VoiceOver says Pen pal, the name, mark, sign, was, then the state", p.a11yLabel === `id.vo.penPal, ${name}, id.mark.she, zd.gemini, id.was(no=No. u-p), state.yourTurn, mk.ofFive(n=2), ${p.time}`);
+  ok("identity on: a pen pal from before the switch never says was No. (owner, 2026-10-21)", p.was === "");
+  ok("identity on: VoiceOver says Pen pal, the name, mark, sign, was, then the state", p.a11yLabel === `id.vo.penPal, ${name}, id.mark.she, zd.gemini, state.yourTurn, mk.ofFive(n=2), ${p.time}`);
   const fresh = M.buildKindredsView(base([th({ id: "n", createdAt: now - DAY })]), { ...fmt, who: onBook });
   ok("identity on: a thread opened after the switch never had a number", rowOf(fresh, "n")!.was === "");
   const later = whoBook({ identity: true, t: fmt.t, lang: "en", penPal, namer, marks, firstOnAt: now - 15 * DAY });

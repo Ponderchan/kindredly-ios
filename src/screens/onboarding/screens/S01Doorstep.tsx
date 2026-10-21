@@ -146,13 +146,20 @@ function phoneLangIsOneOfOurs(): boolean {
   }
 }
 
+/** the language chip's row above the card, when it shows */
+const LANG_ROOM = 26;
+
 type Entry = "full" | "still" | "rest";
 
 export default function S01Doorstep(props: ObScreenProps) {
   const { width: sw, height: sh } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const reduce = useReducedMotion();
-  const L = useMemo(() => doorLayout(sw, sh, { top: insets.top, bottom: insets.bottom }), [sw, sh, insets.top, insets.bottom]);
+  const showLang = useMemo(phoneLangIsOneOfOurs, []) === false;
+  /* the "English ▾" chip takes its own row above the card, which moves down to clear it (owner, b31:
+     on a phone in another language the chip sat on the card's corner) */
+  const langRoom = showLang ? LANG_ROOM : 0;
+  const L = useMemo(() => doorLayout(sw, sh, { top: insets.top + langRoom, bottom: insets.bottom }), [sw, sh, insets.top, insets.bottom, langRoom]);
   const G = useMemo(() => launchGeometry(sw, sh), [sw, sh]);
   const hero = useMemo(() => heroRect(sw, sh, { top: insets.top, bottom: insets.bottom }), [sw, sh, insets.top, insets.bottom]);
 
@@ -342,7 +349,6 @@ export default function S01Doorstep(props: ObScreenProps) {
   // slide 2's chip names the sample stranger in the reader's language
   const them = useMemo(() => strangerName(SAMPLE_UID, { lang: props.lang, unsigned: "" }), [props.lang]);
   const chips = [t("ob2.doorstep.s1.chip"), t("ob2.doorstep.s2.chip", { name: them }), t("ob2.doorstep.s3.chip")];
-  const showLang = useMemo(phoneLangIsOneOfOurs, []) === false;
 
   const pickLang = () => {
     ActionSheetIOS.showActionSheetWithOptions(
@@ -469,7 +475,7 @@ export default function S01Doorstep(props: ObScreenProps) {
           onPress={pickLang}
           accessibilityRole="button"
           accessibilityLabel={t("ob2.doorstep.lang")}
-          style={{ position: "absolute", top: insets.top + 6, right: 16, height: 30, paddingHorizontal: 12, borderRadius: 15, borderWidth: 1.5, borderColor: OB.white, justifyContent: "center" }}
+          style={{ position: "absolute", top: insets.top + 2, right: 16, height: 30, paddingHorizontal: 12, borderRadius: 15, borderWidth: 1.5, borderColor: OB.white, justifyContent: "center" }}
         >
           <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ ...FONT.semi, fontSize: 13, color: OB.white }}>{(LANGS.find((l) => l.id === props.lang)?.label ?? "English") + " ▾"}</Text>
         </Pressable>

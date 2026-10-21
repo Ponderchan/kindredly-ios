@@ -235,7 +235,9 @@ export default function S07Letter(props: ObScreenProps) {
             accessibilityHint={t("ob2.letter.stuckA11y")}
             style={({ pressed }) => ({
               marginTop: 14,
-              height: 40,
+              // the whole cue, wrapped (owner, b31: cut to one line it said nothing): two or three lines grow the chip
+              minHeight: 40,
+              paddingVertical: 7,
               borderRadius: 20,
               borderWidth: 2,
               borderColor: OB.ink,
@@ -248,7 +250,7 @@ export default function S07Letter(props: ObScreenProps) {
             })}
           >
             <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.label, { color: "#7A5A12", letterSpacing: 1.4 }]}>{t("ob2.letter.stuck")}</Text>
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ flex: 1, marginLeft: 9, marginRight: 6, ...said, fontSize: 14.5, color: OB.ink }}>
+            <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={3} style={{ flex: 1, marginLeft: 9, marginRight: 6, ...said, fontSize: 14.5, lineHeight: 19, color: OB.ink }}>
               {t(cueKey)}
             </Text>
             <Deal turn={draft.cue} />

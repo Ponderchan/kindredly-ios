@@ -453,9 +453,9 @@ struct KLetterBlock: View {
   /// The head line, the words, and the time at the foot on the right.
   private var textCard: some View {
     // as wide as its words (a short line is a small slip), the time at the foot on the right
-    KHugColumn(spacing: 8) {
+    KHugColumn(spacing: 4) {
       Text(item.body)
-        .kText(.letterRead(19, lineHeight: 1.35, place: .penPalLetter))
+        .kText(.letterRead(17, lineHeight: 1.4, place: .penPalLetter))
         .foregroundStyle(theme.ink)
         .multilineTextAlignment(.leading)
         .fixedSize(horizontal: false, vertical: true)
@@ -514,23 +514,26 @@ struct KLetterCardFrame: ViewModifier {
   let theme: KTheme
   let mine: Bool
 
-  /// (owner, 2026-10-20: "the live version's pen-pal messages look good") the live app's paper
-  /// slips: square, a 1pt rule; theirs white with an ink hairline, mine the accent's palest wash
-  /// ruled in lav
-  static let radius: CGFloat = 2
-  private static let shape = RoundedRectangle(cornerRadius: radius, style: .circular)
+  /// (owner, b31 2026-10-21: "why are the message boxes so big", the black frames ugly) soft
+  /// slips: rounded 14, no ink frame; theirs the soft grey of a room's bubbles (a hairline only
+  /// where soft barely leaves the page, as KChatPalette), mine the accent's palest wash
+  static let radius: CGFloat = 14
+  private static let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
 
   static func fill(_ theme: KTheme, mine: Bool) -> Color {
-    guard mine else { return theme.sf }
-    return theme.lav2
+    mine ? theme.lav2 : theme.soft
   }
 
   func body(content: Content) -> some View {
     content
-      .padding(.horizontal, 16)
-      .padding(.vertical, 14)
+      .padding(.horizontal, 14)
+      .padding(.vertical, 10)
       .background(Self.shape.fill(Self.fill(theme, mine: mine)))
-      .overlay(Self.shape.strokeBorder(mine ? theme.lav : theme.ln, lineWidth: 1))
+      .overlay {
+        if !mine, let line = KChatPalette.theirsStroke(theme) {
+          Self.shape.strokeBorder(line, lineWidth: 1)
+        }
+      }
       .contentShape(Self.shape)
   }
 }

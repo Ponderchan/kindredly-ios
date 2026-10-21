@@ -9,7 +9,7 @@ import React, {
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { adoptGuestBucket, claimLegacyKeys, scopedTo, setStorageUser, storageOwner } from "./scoped-store";
-import { applyPatch, hasAnswers, ownerOf, parseLocal, syncPayload, visibleProfile } from "./profile-local-core";
+import { applyPatch, fillGaps, hasAnswers, ownerOf, parseLocal, syncPayload, visibleProfile } from "./profile-local-core";
 import { clearAvatarPhoto } from "./avatar-photo";
 import { handOverJournal } from "./journal";
 import { forgetThisDevice } from "./notify";
@@ -317,6 +317,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const linked = !!u && !!was && was.anon && was.id === u.id;
     localLoad.current = (async () => {
       let adopt = false;
+      let anon: Record<string, any> = {};
       if (owner !== "anon") {
         await claimLegacyKeys(owner); // one-time: see scoped-store.claimLegacyKeys
         /* SIGNING IN MID-APP ADOPTS THE GHOST, it doesn't start over.
@@ -329,7 +330,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
            and no flag on the account, the account adopts them — and a guest who LINKED an identity
            onto their own user id always takes their own bucket. An account that already exists
            adopts nothing: the guest's answers are never laid over it. */
-        const anon = parseLocal(await scopedTo("anon").getItem(LOCAL_PROFILE_KEY).catch(() => null));
+        anon = parseLocal(await scopedTo("anon").getItem(LOCAL_PROFILE_KEY).catch(() => null));
         adopt = linked || (!meta.onboarded && hasAnswers(anon));
         if (adopt) await adoptGuestBucket(owner);
       }
@@ -340,9 +341,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn("[auth] the local profile wasn't read:", e);
       }
       if (localOwner.current !== owner) return; // another account since
-      localRef.current = stored;
-      setLocalProfile(stored);
-      if (adopt && !meta.onboarded) void saveProfileRef.current({});
+      /* an identity field this account has nowhere (server or own copy) comes back from the guest
+         copy, which every cold start used to read: for accounts whose server value an older bug
+         emptied, it is the only place the pen name or face still is (owner, b31: "my name is gone") */
+      const gaps = owner !== "anon" && !adopt ? fillGaps(meta, stored, anon) : { next: stored, filled: false };
+      localRef.current = gaps.next;
+      setLocalProfile(gaps.next);
+      if (gaps.filled) {
+        void scopedTo(owner).setItem(LOCAL_PROFILE_KEY, JSON.stringify(gaps.next)).catch((e) => console.warn("[auth] the filled profile wasn't stored:", e));
+        void saveProfileRef.current({});
+      } else if (adopt && !meta.onboarded) void saveProfileRef.current({});
     })();
   }, [ready, session]);
 

@@ -23,7 +23,7 @@ import SwiftUI
       a 24pt line glyph.
    ③ YOUR STAMPS: the official stamps used, up to three, the name under each; none: three dashed
       slots stroked in three category colours, the owner's line and "Write a letter →".
-   ④ "Open the album →", full width, 46 tall, 2 ln outline, sf, hard 3/3 shadow; hidden while all
+   ④ "Open the album →", full width, 46 tall, a soft lav pill in ind (no ink frame); hidden while all
       three areas are empty.
 
  THE ALBUM (/album, KStampAlbumScreen below): the standard back bar with ALBUM; the page ruled
@@ -164,13 +164,12 @@ struct KStampsWideButton: View {
     SwiftUI.Button(action: action) {
       Text(title)
         .kText(.system(15, .semibold))
-        .foregroundStyle(theme.ink)
+        .foregroundStyle(theme.ind)
         .lineLimit(1)
         .minimumScaleFactor(0.8)
         .frame(maxWidth: .infinity, minHeight: 46)
-        .background {
-          KStickerBackground(shape: RoundedRectangle(cornerRadius: 14, style: .circular), fill: theme.sf, stroke: theme.ln, lineWidth: 2, shadow: theme.ln, shadowOffset: 3)
-        }
+        // soft, no ink frame (owner, 2026-10-21: the black-framed button read as ugly)
+        .background(theme.lav, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .contentShape(Rectangle())
     }
     .buttonStyle(KFadePressStyle())

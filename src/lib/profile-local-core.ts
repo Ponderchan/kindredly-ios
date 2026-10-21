@@ -109,3 +109,22 @@ export function parseLocal(raw: string | null | undefined): LocalProfile {
 export function ownerOf(user: { id: string; is_anonymous?: boolean } | null | undefined): string {
   return user && !user.is_anonymous ? user.id : "anon";
 }
+
+/** The account's own copy with its gaps filled from another copy on this phone (the guest bucket):
+    an identity field the account has nowhere — empty on the server, empty in its own copy, and not
+    cleared on purpose — takes the other copy's value. Nothing the account has is ever replaced.
+    Until 2026-10-21 every cold start read the guest bucket, so for some accounts (whose server
+    value an older bug had emptied) that bucket is the only place their pen name or face still is
+    (owner, b31: "my name is gone"). `filled` says whether anything came across, to sync it up. */
+export function fillGaps(meta: LocalProfile | null | undefined, own: LocalProfile, donor: LocalProfile | null | undefined): { next: LocalProfile; filled: boolean } {
+  if (!donor) return { next: own, filled: false };
+  const cleared = new Set(clearedOf(own));
+  const next: LocalProfile = { ...own };
+  let filled = false;
+  for (const k of IDENTITY_KEYS) {
+    if (cleared.has(k) || !isEmpty(meta?.[k]) || !isEmpty(own[k]) || isEmpty(donor[k])) continue;
+    next[k] = donor[k];
+    filled = true;
+  }
+  return { next, filled };
+}

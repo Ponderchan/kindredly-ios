@@ -6,7 +6,7 @@
    and then went up over it. An empty identity field only counts when it was cleared on purpose. */
 
 const C = await import("./profile-local-core.ts");
-const { CLEARED, applyPatch, hasAnswers, ownerOf, parseLocal, syncPayload, visibleProfile, withoutEmpty } = C;
+const { CLEARED, applyPatch, fillGaps, hasAnswers, ownerOf, parseLocal, syncPayload, visibleProfile, withoutEmpty } = C;
 
 let fails = 0;
 const ok = (name: string, cond: boolean, extra = "") => {
@@ -72,6 +72,17 @@ ok("a guest with a face has answers", hasAnswers({ avatarId: "f1" }) && hasAnswe
 ok("parseLocal: junk is an empty copy", same(parseLocal(null), {}) && same(parseLocal("{"), {}) && same(parseLocal("[1]"), {}) && same(parseLocal("3"), {}));
 ok("parseLocal reads an object", same(parseLocal('{"avatarId":"f1"}'), { avatarId: "f1" }));
 ok("owner: an account is its id; a guest or nobody is anon", ownerOf({ id: "u1" }) === "u1" && ownerOf({ id: "u2", is_anonymous: true }) === "anon" && ownerOf(null) === "anon");
+
+{
+  const g = fillGaps({ avatarId: "f2" }, { avatarId: null }, { handle: "Moth", avatarId: "f9", pronoun: "she" });
+  ok("gaps: the guest copy's pen name fills an account that has none", g.filled && g.next.handle === "Moth" && g.next.pronoun === "she");
+  ok("gaps: …never the face the server already has", g.next.avatarId === null && visibleProfile({ avatarId: "f2" }, g.next).avatarId === "f2");
+  const c = fillGaps({}, applyPatch({}, { handle: "" }), { handle: "Moth" });
+  ok("gaps: a pen name cleared on purpose stays cleared", !c.filled && c.next.handle === null);
+  const o = fillGaps({}, { handle: "Kite" }, { handle: "Moth" });
+  ok("gaps: the account's own copy wins", !o.filled && o.next.handle === "Kite");
+  ok("gaps: no donor, nothing", !fillGaps({}, {}, null).filled);
+}
 
 console.log(fails ? `\n${fails} FAILED` : "\nall ok");
 if (fails) process.exit(1);

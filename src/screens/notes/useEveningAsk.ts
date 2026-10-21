@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import { getFlags, setFlag } from "../../lib/flags";
 import { PREF_JOB_MS, askForNotifications, getNotifyOn, readPushPrefs, setPushPref, within } from "../../lib/local-push";
+import { setNotifyOn } from "../../lib/notify";
 import { t } from "../../lib/i18n";
 import { decideEvening, type EveningShow } from "./notes-model";
 
@@ -110,43 +111,53 @@ export function useEveningAsk(pages: number, opts: { enabled: boolean; wren: str
     }
   }, []);
 
+  // "Not now" always works, even while a yes is still on its way (owner, b31: "can't get rid of it")
   const no = useCallback(() => {
-    if (busyRef.current) return;
     setState("none");
     void setFlag(FLAG);
   }, []);
 
+  /* YES SHOWS AT ONCE (owner, b31: "Yes, at 9" still greyed and nothing happened). The account
+     write can take up to PREF_JOB_MS on a slow network, and the card used to wait for it, dimmed.
+     Now only iOS's own question is waited on; the card turns into the "on" row straight away and
+     the save runs behind it — if it fails the card comes back with the alert. Saying yes also turns
+     this phone's Notifications switch back on: off, the 9 o'clock line would never be sent. */
   const yes = useCallback(async () => {
     if (busyRef.current) return;
     hold(true);
+    let allowed: boolean;
     try {
-      let allowed: boolean;
-      try {
-        allowed = await askForNotifications();
-      } catch (e) {
-        // iOS never answered (or the read failed): nothing was decided, so the card stays
-        console.warn("[evening-ask] permission:", e);
-        Alert.alert(t("set.cantSave"), t("set.push.saveFail"));
-        return;
-      }
-      if (!allowed) {
-        setState("none");
-        void setFlag(FLAG); // they said yes; iOS said no — nothing is on, so no row either
-        Alert.alert(t("set.knock.deniedTitle"), t("set.push.deniedBody", { wren: wren.current }));
-        return;
-      }
-      try {
-        await save("daily_line", true);
-        // on: the card gives way to the slim off row (the line's only off switch)
-        setState("on");
-        void setFlag(FLAG);
-      } catch (e) {
-        console.warn("[evening-ask] save:", e);
-        Alert.alert(t("set.cantSave"), t("set.push.saveFail")); // the card stays: nothing was answered yet
-      }
+      allowed = await askForNotifications();
+    } catch (e) {
+      // iOS never answered (or the read failed): nothing was decided, so the card stays
+      console.warn("[evening-ask] permission:", e);
+      Alert.alert(t("set.cantSave"), t("set.push.saveFail"));
+      return;
     } finally {
       hold(false);
     }
+    if (!allowed) {
+      setState("none");
+      void setFlag(FLAG); // they said yes; iOS said no — nothing is on, so no row either
+      Alert.alert(t("set.knock.deniedTitle"), t("set.push.deniedBody", { wren: wren.current }));
+      return;
+    }
+    setState("on");
+    void (async () => {
+      try {
+        if (!(await getNotifyOn())) await setNotifyOn(true);
+      } catch (e) {
+        console.warn("[evening-ask] notifications switch:", e);
+      }
+      try {
+        await save("daily_line", true);
+        void setFlag(FLAG);
+      } catch (e) {
+        console.warn("[evening-ask] save:", e);
+        setState("ask"); // nothing was answered yet: the card comes back
+        Alert.alert(t("set.cantSave"), t("set.push.saveFail"));
+      }
+    })();
   }, []);
 
   return {
