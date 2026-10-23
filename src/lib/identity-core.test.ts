@@ -36,12 +36,12 @@ const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 
 /* ── the switch ── */
 ok("the key is 'identity'", IDENTITY_SURFACE === "identity");
-ok("nothing known → off", identitySwitch(null) === false);
-ok("no row → off", identitySwitch({}) === false);
+ok("nothing known → on (1.2.4 ships the identity)", identitySwitch(null) === true);
+ok("no row → on", identitySwitch({}) === true);
 ok("a true row → on; a false row → off", identitySwitch({ identity: true }) === true && identitySwitch({ identity: false }) === false);
-ok("junk is not on ('true', 1)", identitySwitch({ identity: "true" as unknown as boolean }) === false && identitySwitch({ identity: 1 as unknown as boolean }) === false);
-ok("other surfaces don't turn it on", identitySwitch({ today: true, chat: true }) === false);
-ok("the dev preview wins either way", identitySwitch({ identity: false }, true) === true && identitySwitch({ identity: true }, false) === false && identitySwitch(null, null) === false);
+ok("junk is no answer: the default ('true', 1)", identitySwitch({ identity: "true" as unknown as boolean }) === true && identitySwitch({ identity: 1 as unknown as boolean }) === true);
+ok("other surfaces don't change it", identitySwitch({ today: true, chat: true }) === true && identitySwitch({ today: false }) === true);
+ok("the dev preview wins either way", identitySwitch({ identity: false }, true) === true && identitySwitch({ identity: true }, false) === false && identitySwitch(null, null) === true);
 
 /* ── one row ── */
 ok("row: she + gemini", same(marksOfRow({ uid: "u", mark: "she", sign: "gemini" }), { uid: "u", marks: { mark: "she", sign: "gemini" } }));

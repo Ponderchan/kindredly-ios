@@ -75,9 +75,16 @@ export const MARKS_ABSENT_MS = 10 * 60_000;
  * answer (this binary's row beats '*', lib/surfaces-resolve), else OFF.
  * Only a real `true` counts.
  */
+/* ON BY DEFAULT FROM 1.2.4 (App Store 1.0.5; owner, 2026-10-23: a fresh install showed the OLD
+   onboarding — the first launch reads only the phone's copy of the table, empty after an install,
+   so every new person, App Review included, met the old run and then the new identity). This
+   binary ships the identity, so with nothing known it is on; a false row still turns it off
+   (the kill switch), from the next read of the table. */
+const IDENTITY_DEFAULT: SurfaceMap = { [IDENTITY_SURFACE]: true };
+
 export function identitySwitch(remote: SurfaceMap | null, devForced: boolean | null = null): boolean {
   if (devForced !== null) return devForced;
-  return surfaceOn(remote, {}, IDENTITY_SURFACE);
+  return surfaceOn(remote, IDENTITY_DEFAULT, IDENTITY_SURFACE);
 }
 
 /* ── one row of marks_for ───────────────────────────────────────────────── */
