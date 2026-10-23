@@ -193,7 +193,7 @@ strings(
     "ob2.address.terms": "By sending, you agree to our {terms} and {privacy}: zero tolerance for abuse, and anyone can be reported or blocked in one tap.", // 11, small, above the keys (covers all four choices; {terms}/{privacy} are the two links below)
     "ob2.address.termsLink": "Terms", // the link word in ob2.address.terms
     "ob2.address.privacyLink": "Privacy Policy", // the link words in ob2.address.terms
-    "ob2.address.guest": "Not now, keep it on this phone", // 11 text key: the guest (≤ 34)
+    "ob2.address.guest": "Not now", // 11 text key: the guest (≤ 34)
     "ob2.address.guestLine": "Guests live on this phone only. Add an address anytime in Settings.", // 11, small, under the text key, 2 lines
     "ob2.address.exists": "That's already an account. Switch to it?", // 11 edge: the address already owns a Kindredly account (≤ 44)
     "ob2.address.existsLine": "Your letter comes with you; the bird you have there will carry it.", // 11 edge, under it, 2 lines
@@ -329,7 +329,7 @@ strings(
     "ob2.address.terms": "Al enviar, aceptas nuestros {terms} y nuestra {privacy}: tolerancia cero con el abuso, y puedes reportar o bloquear a quien sea con un toque.",
     "ob2.address.termsLink": "Términos",
     "ob2.address.privacyLink": "Política de privacidad",
-    "ob2.address.guest": "Ahora no, solo en este teléfono",
+    "ob2.address.guest": "Ahora no",
     "ob2.address.guestLine": "Sin cuenta, todo se queda en este teléfono. Puedes añadir una dirección cuando quieras en Ajustes.",
     "ob2.address.exists": "Ya tienes una cuenta ahí. ¿Cambiar a ella?",
     "ob2.address.existsLine": "Tu carta viene contigo; la llevará el pájaro que tienes allí.",
@@ -460,7 +460,7 @@ strings(
     "ob2.address.terms": "Ao enviar, você aceita nossos {terms} e nossa {privacy}: tolerância zero com abuso, e qualquer pessoa pode ser denunciada ou bloqueada com um toque.",
     "ob2.address.termsLink": "Termos",
     "ob2.address.privacyLink": "Política de Privacidade",
-    "ob2.address.guest": "Agora não, fica neste celular",
+    "ob2.address.guest": "Agora não",
     "ob2.address.guestLine": "Sem conta, tudo fica só neste celular. Adicione um endereço quando quiser em Ajustes.",
     "ob2.address.exists": "Já existe uma conta com isso. Trocar pra ela?",
     "ob2.address.existsLine": "Sua carta vai junto; quem leva é o pássaro que você tem lá.",
@@ -591,7 +591,7 @@ strings(
     "ob2.address.terms": "Dengan mengirim, kamu menyetujui {terms} dan {privacy} kami: tanpa toleransi untuk pelecehan, dan siapa pun bisa dilaporkan atau diblokir dengan sekali ketuk.",
     "ob2.address.termsLink": "Ketentuan",
     "ob2.address.privacyLink": "Kebijakan Privasi",
-    "ob2.address.guest": "Nanti saja, simpan di ponsel ini",
+    "ob2.address.guest": "Nanti saja",
     "ob2.address.guestLine": "Akun tamu hanya ada di ponsel ini. Tambahkan alamat kapan saja di Pengaturan.",
     "ob2.address.exists": "Akun itu sudah ada. Pindah ke sana?",
     "ob2.address.existsLine": "Suratmu ikut pindah; burung yang ada di sana yang akan mengantarnya.",
@@ -722,7 +722,7 @@ strings(
     "ob2.address.terms": "En envoyant, tu acceptes nos {terms} et notre {privacy} : tolérance zéro pour les abus, et tu peux signaler ou bloquer n'importe qui d'un geste.",
     "ob2.address.termsLink": "Conditions",
     "ob2.address.privacyLink": "Politique de confidentialité",
-    "ob2.address.guest": "Pas maintenant, juste ce téléphone",
+    "ob2.address.guest": "Pas maintenant",
     "ob2.address.guestLine": "Sans compte, tout reste sur ce téléphone. Ajoute une adresse quand tu veux dans Réglages.",
     "ob2.address.exists": "Ce compte existe déjà. Changer de compte ?",
     "ob2.address.existsLine": "Ta lettre vient avec toi ; c'est l'oiseau que tu as là-bas qui la portera.",
@@ -853,7 +853,7 @@ strings(
     "ob2.address.terms": "Mit dem Absenden stimmst du unseren {terms} und der {privacy} zu: null Toleranz für Belästigung, und du kannst jede Person mit einem Tipp melden oder blockieren.",
     "ob2.address.termsLink": "Nutzungsbedingungen",
     "ob2.address.privacyLink": "Datenschutzerklärung",
-    "ob2.address.guest": "Jetzt nicht, nur auf diesem Handy",
+    "ob2.address.guest": "Jetzt nicht",
     "ob2.address.guestLine": "Als Gast bleibt alles auf diesem Handy. Eine Adresse kannst du jederzeit in den Einstellungen hinzufügen.",
     "ob2.address.exists": "Dazu gibt es schon ein Konto. Wechseln?",
     "ob2.address.existsLine": "Dein Brief kommt mit; der Vogel, den du dort hast, trägt ihn.",
@@ -984,7 +984,7 @@ strings(
     "ob2.address.terms": "Inviando accetti i nostri {terms} e l'{privacy}: tolleranza zero per gli abusi, e puoi segnalare o bloccare chiunque con un tocco.",
     "ob2.address.termsLink": "Termini",
     "ob2.address.privacyLink": "Informativa sulla privacy",
-    "ob2.address.guest": "Non ora, resta su questo telefono",
+    "ob2.address.guest": "Non ora",
     "ob2.address.guestLine": "Come ospite, tutto resta su questo telefono. Aggiungi un indirizzo quando vuoi in Impostazioni.",
     "ob2.address.exists": "C'è già un account. Passare a quello?",
     "ob2.address.existsLine": "La tua lettera viene con te; la porterà l'uccello che hai lì.",
@@ -1115,7 +1115,7 @@ strings(
     "ob2.address.terms": "送信すると、{terms}と{privacy}に同意したことになります。嫌がらせは一切許しません。誰でもワンタップで通報・ブロックできます。",
     "ob2.address.termsLink": "利用規約",
     "ob2.address.privacyLink": "プライバシーポリシー",
-    "ob2.address.guest": "今はいい。このスマホだけで",
+    "ob2.address.guest": "あとで",
     "ob2.address.guestLine": "ゲストのデータはこのスマホにだけ残ります。住所は設定からいつでも追加できます。",
     "ob2.address.exists": "そのアカウントはすでにあります。切り替えますか？",
     "ob2.address.existsLine": "手紙も一緒に移ります。運ぶのは、そちらにいる鳥です。",
@@ -1246,7 +1246,7 @@ strings(
     "ob2.address.terms": "보내면 {terms} 및 {privacy}에 동의하게 돼요. 괴롭힘은 절대 용납하지 않으며, 누구든 한 번만 눌러 신고하거나 차단할 수 있어요.",
     "ob2.address.termsLink": "이용약관",
     "ob2.address.privacyLink": "개인정보 처리방침",
-    "ob2.address.guest": "지금은 됐어요, 이 폰에만 둘게요",
+    "ob2.address.guest": "나중에",
     "ob2.address.guestLine": "게스트는 이 폰에만 머물러요. 주소는 설정에서 언제든 추가할 수 있어요.",
     "ob2.address.exists": "이미 있는 계정이에요. 그 계정으로 바꿀까요?",
     "ob2.address.existsLine": "편지도 함께 가요. 그 계정의 새가 날라 줄 거예요.",
