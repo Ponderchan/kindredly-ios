@@ -350,7 +350,7 @@ export function useNotesModel(opts: { demo?: NotesDemo; forceEmpty?: boolean } =
   const strings = useMemo<NotesStrings>(
     () => ({
       title: t("jt.notes"),
-      justYou: t("jt.justYou"),
+      justYou: "", // owner, 2026-10-23: the empty page's "JUST YOU" said nothing the question doesn't
       viewA11y: t("jt.viewA11y"),
       viewMenu: t("jt.viewMenu"),
       viewCard: t("jt.viewCard"),
