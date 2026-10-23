@@ -244,6 +244,14 @@ const DEVICE_PREFS: ReadonlySet<string> = new Set([
   "kindredly_ob2_minor", // screens/onboarding/device-block: the under-18 answer is the phone's, and outlives any account
 ]);
 
+/* THE APP REVIEW ACCOUNT (App Review 2.1(a), 2026-10-23: "provide a user name and password").
+   Kindredly signs in with Apple, Google or an emailed code — nothing a reviewer can use. For this
+   one address only, "Continue with email" sends nothing and the six-digit code screen takes the
+   account's password (Supabase email + password, set by the owner in the dashboard; never in the
+   code). Everyone else's email sign-in is exactly as before. */
+const REVIEW_EMAIL = "review@kindredly.io";
+const isReviewEmail = (email: string): boolean => email.trim().toLowerCase() === REVIEW_EMAIL;
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(!supabaseReady);
   const [session, setSession] = useState<Session | null>(null);
@@ -548,6 +556,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithEmail = useCallback(
     async (email: string, name?: string, opts?: LinkOpts): Promise<AuthResult> => {
       if (!supabase) return { error: "Auth not configured." };
+      // the App Review account: no email is sent; its code screen takes the account's password
+      if (isReviewEmail(email)) return { sent: true, mode: "otp" };
       try {
         /* Same principle as Apple: an anonymous user doesn't sign in with
            email, they ATTACH an email to the account they already are.
@@ -588,6 +598,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const verifyEmailCode = useCallback(
     async (email: string, token: string, mode: "otp" | "attach"): Promise<AuthResult> => {
       if (!supabase) return { error: "Auth not configured." };
+      if (isReviewEmail(email)) {
+        try {
+          const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password: token });
+          if (error) return { error: error.message };
+          await refresh();
+          return { ok: true };
+        } catch (e: any) {
+          return { error: e?.message || "Could not sign in." };
+        }
+      }
       try {
         const { error } = await supabase.auth.verifyOtp({
           email,

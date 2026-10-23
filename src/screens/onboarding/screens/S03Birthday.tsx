@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Text, View, useWindowDimensions } from "react-native";
+import { Pressable, Text, View, useWindowDimensions } from "react-native";
 import Animated, { Easing, FadeIn, ZoomIn, useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LineIcon, type LineIconName } from "../../../components/10a/LineIcon";
@@ -11,7 +11,7 @@ import { Headline, Line, ScreenFrame, TOPBAR_H } from "../parts/frame";
 import * as haptics from "../parts/haptics";
 import { AcidKey } from "../parts/keys";
 import { NEST_SLOT_H } from "../parts/nest-egg";
-import { EDGE, OB, SHADOW, TYPE } from "../parts/tokens";
+import { EDGE, FONT, OB, SHADOW, TYPE } from "../parts/tokens";
 import type { ObScreenProps } from "../types";
 import { keyAreaTop } from "./s01-geometry";
 import { useGlyphFlight } from "./s03-glyph-flight";
@@ -76,6 +76,11 @@ export default function S03Birthday(props: ObScreenProps) {
         <Animated.View entering={FadeIn.duration(320)} style={{ marginTop: 18 }}>
           <Headline>{t("ob2.underage.head")}</Headline>
           <Line>{t("ob2.underage.line")}</Line>
+          {props.changeAge ? (
+            <Pressable onPress={props.changeAge} accessibilityRole="button" hitSlop={12} style={{ alignSelf: "center", marginTop: 28, paddingVertical: 8 }}>
+              <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ ...FONT.semi, fontSize: 15, color: OB.white, textDecorationLine: "underline" }}>{t("ob2.underage.change")}</Text>
+            </Pressable>
+          ) : null}
         </Animated.View>
       </ScreenFrame>
     );

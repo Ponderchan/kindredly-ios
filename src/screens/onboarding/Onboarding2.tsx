@@ -104,6 +104,7 @@ function useRealCtx(active: boolean): ObCtx | null {
         });
     void readNotif();
     void block.isBlocked(false).then((b) => alive && setBlocked(b));
+    const offAge = block.onAgeChanged(() => alive && setBlocked(false));
     void drafts.finishedUid(false).then((u) => alive && setFinished(u));
     // back from Settings (13 after a refusal) or the system prompt: read it again
     const sub = AppState.addEventListener("change", (st) => {
@@ -112,6 +113,7 @@ function useRealCtx(active: boolean): ObCtx | null {
     return () => {
       alive = false;
       sub.remove();
+      offAge();
     };
   }, [active]);
 
@@ -356,9 +358,29 @@ export default function Onboarding2() {
     runRef.current = { ...r, side };
     setRun(runRef.current);
   }, []);
+  /* 3x's one way out (owner, 2026-10-23): "Wrong year? Change it", once per phone (device-block) */
+  const [ageChangeLeft, setAgeChangeLeft] = useState(false);
+  const underageNow = run?.side === "underage";
+  useEffect(() => {
+    if (!underageNow) return;
+    let alive = true;
+    void block.canChangeAge(demo).then((c) => alive && setAgeChangeLeft(c));
+    return () => {
+      alive = false;
+    };
+  }, [underageNow, demo]);
+  const changeAge = useCallback(async () => {
+    await block.changeAge(demo);
+    if (demo) patchDemoCtx({ blocked: false });
+    setAgeChangeLeft(false);
+    const r = runRef.current;
+    if (!r) return;
+    runRef.current = { ...r, side: null, draft: { ...r.draft, dob: null, screen: "birthday" } };
+    setRun(runRef.current);
+  }, [demo, patchDemoCtx]);
   const closeSide = useCallback(() => {
     const r = runRef.current;
-    if (!r || r.side === "underage") return; // 3x has no way out
+    if (!r || r.side === "underage") return; // 3x leaves only through changeAge
     runRef.current = { ...r, side: null };
     setRun(runRef.current);
   }, []);
@@ -398,6 +420,7 @@ export default function Onboarding2() {
     back: hasBack ? goBack : null,
     openSide,
     closeSide,
+    changeAge: ageChangeLeft ? () => void changeAge() : null,
     signedIn,
     addressDone,
     finished,

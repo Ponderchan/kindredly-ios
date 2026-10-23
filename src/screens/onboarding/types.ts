@@ -38,6 +38,8 @@ export type ObScreenProps = {
   back: (() => void) | null;
   openSide: (side: SideId) => void;
   closeSide: () => void;
+  /** 3x: "Wrong year? Change it" — back to the wheel, once per phone; null when it was used */
+  changeAge?: (() => void) | null;
   /** 1a: a sign-in succeeded (the runner waits for the account to land, then: Today, or 2 with the known answers) */
   signedIn: () => void;
   /** 11: how replies find you ("guest" is skip()); the runner waits for the account to land, then 12, which posts */
