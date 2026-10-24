@@ -223,8 +223,13 @@ a small bug) should reach phones without waiting for App Review.
   Swift fixes, so the same JavaScript runs on both. But `runtimeVersion` follows
   `"version"`, and `eas update` publishes to exactly one runtime: from HEAD (`1.2.5`) only
   1.0.6 phones get it. So publish twice — HEAD as it is, then the same commit with
-  `"version": "1.2.4"` in a throwaway worktree (never edit `runtimeVersion` instead, and
-  never commit the 1.2.4). 1.0.4 (1.2.3) still comes only from the hotfix worktree above.
+  `"version": "1.2.4"` set for the moment in this same checkout and put back right after
+  (never edit `runtimeVersion` instead, and never commit the 1.2.4). Not in a throwaway
+  worktree: without `ios/` the export falls back to `node_modules/hermes-compiler`'s
+  hermesc, the same Hermes release and bytecode (v98) but 1.7 MB larger output, where this
+  checkout's `ios/Pods/hermes-engine` hermesc matches the shipped bundles byte for byte in
+  size (13.5 MB; done this way 2026-10-25). 1.0.4 (1.2.3) still comes only from the hotfix
+  worktree above.
   Before every release from here, add its line to `STORE_OF_BINARY`
   (`src/lib/update-prompt-core.ts`), or the update prompt can't tell the new binary is
   already the newest.
@@ -236,15 +241,12 @@ git status --short src                           # nothing: publish committed co
 node -p "require('./app.json').expo.version"     # 1.2.5
 # runtime 1.2.5 (App Store 1.0.6): the bundle check below, then
 eas update --channel production --environment production --clear-cache --message "<what changed>"
-# runtime 1.2.4 (App Store 1.0.5): the same commit, version 1.2.4, in a throwaway worktree
-git worktree add --detach ../kindredly-ios-ota124 HEAD
-cd ../kindredly-ios-ota124
-cp -cR ../kindredly-ios/node_modules . && cp ../kindredly-ios/.env.local .
+# runtime 1.2.4 (App Store 1.0.5): the same commit, version 1.2.4 for the moment, here
 sed -i '' 's/"version": "1.2.5"/"version": "1.2.4"/' app.json
 node -p "require('./app.json').expo.version"     # 1.2.4
-# the bundle check below, here, then
+# the bundle check below (same size as the 1.2.5 one), then
 eas update --channel production --environment production --clear-cache --message "<what changed>"
-cd ../kindredly-ios && git worktree remove --force ../kindredly-ios-ota124
+git checkout -- app.json && node -p "require('./app.json').expo.version"   # 1.2.5 again
 eas update:list --branch production --limit 4    # two new groups: runtime 1.2.5 and 1.2.4
 ```
 
