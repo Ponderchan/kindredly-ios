@@ -104,7 +104,16 @@ function KnockRouting() {
       }
       router.push(revealed ? `/room/${id}` : `/chat/${id}`);
     };
-    Notifications.getLastNotificationResponseAsync().then((r) => r && void open(r));
+    /* the cold-start tap, once: cleared after it is read, so a React tree started again in the same
+       process (the scene life cycle reconnects a discarded scene, plugins/with-scene-lifecycle.js)
+       doesn't open the same letter a second time */
+    Notifications.getLastNotificationResponseAsync()
+      .then((r) => {
+        if (!r) return;
+        Notifications.clearLastNotificationResponse();
+        void open(r);
+      })
+      .catch((e) => console.log("[knock] the last tap couldn't be read:", e));
     const sub = Notifications.addNotificationResponseReceivedListener((r) => void open(r));
     return () => sub.remove();
   }, [router]);
