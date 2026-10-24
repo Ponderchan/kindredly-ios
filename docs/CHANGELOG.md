@@ -36,11 +36,11 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 ## Unreleased
 
 New
-- What's new: Wren's post for this release carries a big card (the reel, a paragraph and a "Press your first stamp" button), like the guide cards. [OTA]
-- An update prompt for builds the server flags (a sheet once, then a slim banner on Today). [switch: update_prompt] [OTA]
+- What's new: Wren's post for this release carries a big card (the reel, a paragraph and a "Press your first stamp" button), like the guide cards, in all nine languages. [OTA]
+- An update prompt for builds the server flags: Wren flies in with a parcel and sits on it ("special delivery. it's me, but newer."), Update opens the App Store, Later leaves a slim "a parcel's waiting for you" banner on Today. Once per release, at most once a day, and never for the release the phone already has; a hard mode with no Later exists but stays off. Nine languages. [switch: update_prompt, update_force] [OTA]
 
 Changed
-- The guides in Wren's room show today's product: courier names and frosted windows instead of mosaics and numbers, signing to trade names, Stamp Press, tomorrow's bag, the two notification switches. [OTA]
+- The guides in Wren's room show today's product: courier names and frosted windows instead of mosaics and numbers, signing to trade names, Stamp Press, tomorrow's bag, the two notification switches. Their words are rewritten in all nine languages, and Wren understands questions about pen names, signing and pressing your own stamps in each. [OTA]
 
 ---
 

@@ -5,6 +5,7 @@ import { useTodayDesk } from "../../screens/today/useTodayDesk";
 import { TodayNative } from "../../screens/today/TodayNative";
 import { TodayRN } from "../../screens/today/TodayRN";
 import { TodayOverlays } from "../../screens/today/TodayOverlays";
+import { TodayUpdate } from "../../screens/today/TodayUpdate";
 import "../../data/strings-step5-today";
 
 /* TODAY (Today 3d × 25b) — the post: today's strangers' letters, one card
@@ -28,21 +29,25 @@ import "../../data/strings-step5-today";
    decides once, because the desk holds a field and drafts.
 
    The toast, the sheets, the report card and the unfolded reader sit over
-   either (TodayOverlays). */
+   either (TodayOverlays). The update prompt (TodayUpdate) wraps them all: its
+   sheet when the server asks this binary to update, then its banner at the
+   top, which both renderers and the overlays make room for. */
 export default function LettersTab() {
   const { t: tk } = useTheme();
   const model = useTodayDesk();
 
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
-      <NativeSurface
-        surface="today"
-        view="KTodayView"
-        mode="mount"
-        native={() => <TodayNative model={model} />}
-        fallback={() => <TodayRN model={model} />}
-      />
-      <TodayOverlays model={model} />
+      <TodayUpdate model={model}>
+        <NativeSurface
+          surface="today"
+          view="KTodayView"
+          mode="mount"
+          native={() => <TodayNative model={model} />}
+          fallback={() => <TodayRN model={model} />}
+        />
+        <TodayOverlays model={model} />
+      </TodayUpdate>
     </View>
   );
 }

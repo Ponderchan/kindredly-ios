@@ -146,6 +146,26 @@ export function IdentityNoteSheet({
 /* the table's switch alone (never the dev preview: see the header) */
 const tableOn = () => identitySwitch(remoteSurfaces(), null);
 
+/* WHETHER THE NOTE IS UP, for a sheet that must not rise over it (the update prompt,
+   screens/today/TodayUpdate). Only the connected note below sets it. */
+let noteUp = false;
+const noteListeners = new Set<() => void>();
+function setNoteUp(v: boolean): void {
+  if (v === noteUp) return;
+  noteUp = v;
+  noteListeners.forEach((f) => f());
+}
+const subscribeNoteUp = (f: () => void) => {
+  noteListeners.add(f);
+  return () => {
+    noteListeners.delete(f);
+  };
+};
+/** true while the one-time note is on screen */
+export function useIdentityNoteUp(): boolean {
+  return useSyncExternalStore(subscribeNoteUp, () => noteUp);
+}
+
 /**
  * The note, connected: mounted once over the tabs ((tabs)/_layout). Draws
  * nothing unless showIdentityNote says so; then the sheet, until Done.
@@ -218,6 +238,12 @@ export function IdentityNote() {
     void save(identityNoteSave(pronoun, mark, signShown)).catch((e) => console.warn("[identity-note] the answers weren't saved (they stay on this phone):", e));
   }, [save, pronoun, mark, signShown]);
 
-  if (!open || !uid) return null;
+  const up = open && !!uid;
+  useEffect(() => {
+    setNoteUp(up);
+    return () => setNoteUp(false);
+  }, [up]);
+
+  if (!up) return null;
   return <IdentityNoteSheet note={note} frost={frost} pronoun={pronoun} sign={sign} when={postmark(new Date())} onMark={onMark} onSign={onSign} onDone={onDone} />;
 }

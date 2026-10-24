@@ -13,9 +13,8 @@ import { strings } from "../lib/i18n";
    ga.mira. What the reel lacked was a pen name for the reader themselves —
    typed into the sheet, signed on the pad, written in under their face.
 
-   English only for now: every other language falls back to it (t() does)
-   until the next copy pass writes it there. Imported for its side effect by
-   the reel. */
+   Nine languages (2026-10-25), each one's own word written natively, not
+   translated. Imported for its side effect by the reel. */
 
 strings(
   /* ── en ── */
@@ -26,10 +25,36 @@ strings(
     // in their own script, as ga.mira is (ミラ, 미라)
     "ga.rowan": "ROWAN",
   },
-  /* ── es ── */
-  {},
-  /* ── pt ── */
-  {},
-  /* ── id ── */
-  {},
+  /* ── es · Español ── */
+  {
+    "ga.rowan": "DANI",
+  },
+  /* ── pt · Português (Brasil) ── */
+  {
+    "ga.rowan": "CRIS",
+  },
+  /* ── id · Bahasa Indonesia ── */
+  {
+    "ga.rowan": "SENJA",
+  },
+  /* ── fr · Français ── */
+  {
+    "ga.rowan": "CAMILLE",
+  },
+  /* ── de · Deutsch ── */
+  {
+    "ga.rowan": "ROBIN",
+  },
+  /* ── it · Italiano ── */
+  {
+    "ga.rowan": "ALEX",
+  },
+  /* ── ja · 日本語 ── */
+  {
+    "ga.rowan": "ハル",
+  },
+  /* ── ko · 한국어 ── */
+  {
+    "ga.rowan": "서우",
+  },
 );

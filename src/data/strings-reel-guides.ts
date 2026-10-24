@@ -14,9 +14,8 @@ import { strings } from "../lib/i18n";
    set.notify.title and set.knock.title from Settings. What the stamps reel
    lacked was a #topic for the moment it presses.
 
-   English only for now: every other language falls back to it (t() does)
-   until the next copy pass writes it there. Imported for its side effect by
-   the reel. */
+   Nine languages (2026-10-25), each one's own word written natively, not
+   translated. Imported for its side effect by the reel. */
 
 strings(
   /* ── en ── */
@@ -26,10 +25,36 @@ strings(
     // the kind of name a reader gives a moment they photographed
     "gd.stamps.pressTopic": "first light",
   },
-  /* ── es ── */
-  {},
-  /* ── pt ── */
-  {},
-  /* ── id ── */
-  {},
+  /* ── es · Español ── */
+  {
+    "gd.stamps.pressTopic": "primeros rayos",
+  },
+  /* ── pt · Português (Brasil) ── */
+  {
+    "gd.stamps.pressTopic": "bom dia, sol",
+  },
+  /* ── id · Bahasa Indonesia ── */
+  {
+    "gd.stamps.pressTopic": "fajar di bukit",
+  },
+  /* ── fr · Français ── */
+  {
+    "gd.stamps.pressTopic": "premières lueurs",
+  },
+  /* ── de · Deutsch ── */
+  {
+    "gd.stamps.pressTopic": "morgenlicht",
+  },
+  /* ── it · Italiano ── */
+  {
+    "gd.stamps.pressTopic": "prime luci",
+  },
+  /* ── ja · 日本語 ── */
+  {
+    "gd.stamps.pressTopic": "朝いちばんの光",
+  },
+  /* ── ko · 한국어 ── */
+  {
+    "gd.stamps.pressTopic": "첫 햇살",
+  },
 );
