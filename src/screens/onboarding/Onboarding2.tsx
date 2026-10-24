@@ -148,6 +148,9 @@ export default function Onboarding2() {
   const lang = useLang();
   const insets = useSafeAreaInsets();
   const [demo] = useState(demoOn); // fixed for this run
+  const demoRef = useRef(demo);
+  /* 3x's one way out (owner, 2026-10-23): "Wrong year? Change it", once per phone (device-block) */
+  const [ageChangeLeft, setAgeChangeLeft] = useState(false);
   const [devStart] = useState<DevStart | null>(() => (__DEV__ ? takeDevStart() : null));
   // the launch's note is read once, at mount (takeLaunchHandoff consumes it)
   const [firstHandoff] = useState<LaunchHandoff | null>(takeLaunchHandoff);
@@ -194,6 +197,9 @@ export default function Onboarding2() {
               break;
             case "remember-block":
               await services.rememberBlock();
+              // the 3x link reads the stored answer only now that it is written (crash-hunt: the
+              // read used to win the race and the first slip showed no way back)
+              void block.canChangeAge(demoRef.current).then(setAgeChangeLeft);
               break;
             case "drop-session":
               await services.dropGuestSession();
@@ -358,8 +364,7 @@ export default function Onboarding2() {
     runRef.current = { ...r, side };
     setRun(runRef.current);
   }, []);
-  /* 3x's one way out (owner, 2026-10-23): "Wrong year? Change it", once per phone (device-block) */
-  const [ageChangeLeft, setAgeChangeLeft] = useState(false);
+  // a 3x reached on a later launch (the block already written): read it as the side opens
   const underageNow = run?.side === "underage";
   useEffect(() => {
     if (!underageNow) return;

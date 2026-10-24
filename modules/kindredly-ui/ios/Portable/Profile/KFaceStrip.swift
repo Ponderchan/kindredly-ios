@@ -703,7 +703,9 @@ public struct KStampEditScreen: View {
         .padding(.horizontal, 96)
         .accessibilityAddTraits(.isHeader)
       HStack {
-        Button(action: actions.onRetake) {
+        // the #topic field lets go of the keyboard before the screen is taken away (crash-hunt,
+        // 2026-10-25: a focused field torn down with its Host is the Expo focus crash)
+        Button(action: { typing = false; actions.onRetake() }) {
           Text(content.retake)
             .kText(.system(13, .semibold))
             .foregroundStyle(theme.ink)
@@ -1008,7 +1010,7 @@ public struct KStampEditScreen: View {
         .fixedSize(horizontal: false, vertical: true)
       HStack(spacing: 14) {
         if !content.rejectRetry.isEmpty {
-          Button(content.rejectRetry, action: actions.onRetake)
+          Button(content.rejectRetry, action: { typing = false; actions.onRetake() })
             .buttonStyle(KPressScaleStyle(scale: 0.97))
         }
         if !content.rejectRename.isEmpty {

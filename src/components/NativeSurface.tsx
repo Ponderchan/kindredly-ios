@@ -53,7 +53,8 @@ import { useTheme } from "../lib/theme";
    Native for this mount and the late mark is taken back). The Host's
    first onLayoutContent starts a 3s clock, and the mark is cleared when it
    runs out — or 1s after the screen goes away sooner, or when the app goes
-   to the background after it has laid out, or after 6s whatever happens,
+   inactive or to the background, or the screen loses focus, after it has
+   laid out, or after 6s whatever happens,
    so a screen that never reports a layout can't be blamed for a phone
    simply being closed. A mark still set at the next launch is a strike
    (lib/surfaces-resolve).
@@ -364,10 +365,21 @@ function useClearOnStand(surface: string, active: boolean, focused: boolean, arm
     }
     s.timers.push(setTimeout(clearNow, CLEAR_ANYWAY_MS));
     if (s.laidOut) s.timers.push(setTimeout(clearNow, CLEAR_AFTER_LAYOUT_MS));
+    /* leaving the screen in any way once it has laid out is standing, not dying (owner's b34 crash
+       log, 2026-10-24: the app was swiped away from the app switcher 7 s after launch — the app
+       switcher only makes the app INACTIVE, never background, and React Native's teardown then
+       crashed on the way out — which counted as the open Swift screen dying, twice, and sent Me
+       back to React Native) */
     s.sub = AppState.addEventListener("change", (a) => {
-      if (a === "background" && s.laidOut) clearNow();
+      if ((a === "background" || a === "inactive") && s.laidOut) clearNow();
     });
   }, [active, focused, surface, clearNow]);
+
+  // laid out and then left (a push over it, another tab): it stood; a death elsewhere isn't its own
+  useEffect(() => {
+    const s = st.current;
+    if (active && s.watching && !s.cleared && !focused && s.laidOut) clearNow();
+  }, [active, focused, clearNow]);
 
   return useCallback(
     (_e: LayoutEvent) => {

@@ -433,3 +433,12 @@ struct KStampEditView: ExpoSwiftUI.View {
     .onKCommand(props.commands) { _, _ in }
   }
 }
+
+/* It holds the #topic field, so it is an ExpoSwiftUI.FocusableView like the other screens with a
+   field (KField.swift's rule): before the view is taken off screen — Retake while typing, a
+   reject's retry — the keyboard is let go, so the field is never torn down as first responder. */
+extension KStampEditView: ExpoSwiftUI.FocusableView {
+  func forceResignFirstResponder() {
+    _ = UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+  }
+}
