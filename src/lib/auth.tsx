@@ -242,6 +242,8 @@ const DEVICE_PREFS: ReadonlySet<string> = new Set([
   "kindredly_surfaces", // lib/surfaces: the remote switch's table
   "kindredly_native_arming", // lib/surfaces: the crash breadcrumb (the binary's, not the account's)
   "kindredly_ob2_minor", // screens/onboarding/device-block: the under-18 answer is the phone's, and outlives any account
+  "kindredly_update_seen", // lib/update-prompt: the update sheet was shown on this binary
+  "kindredly_store_version", // lib/update-prompt: the App Store's release, as Apple last answered
 ]);
 
 /* THE APP REVIEW ACCOUNT (App Review 2.1(a), 2026-10-23: "provide a user name and password").

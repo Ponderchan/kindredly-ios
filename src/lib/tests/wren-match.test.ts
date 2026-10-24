@@ -37,6 +37,24 @@ is("편지는 어떻게 가나요", "ko", "letters");
 is("¿quién lee mi carta?", "es", "letters");
 is("comment ça marche", "fr", "letters");
 
+// the 1.0.5 words (2026-10-25): pen names, signing and pressing your own stamps find their guide,
+// and none of them takes a question that belongs to another guide or to people
+is("how does a pen name work", "en", "kindreds");
+is("필명이 뭐예요", "ko", "kindreds");
+is("서명은 어떻게 해요", "ko", "kindreds");
+is("署名って何", "ja", "kindreds");
+is("c'est quoi un pseudo", "fr", "kindreds");
+is("¿qué es la firma?", "es", "kindreds");
+is("como mudo o apelido do meu mensageiro", "pt", "courier"); // renaming your own courier
+is("wie ändere ich den spitznamen meiner botin", "de", "courier");
+is("come cambio il soprannome della messaggera", "it", "courier");
+is("posso dare un nome personalizzato alla mia messaggera?", "it", "courier");
+is("posso avere un tema personalizzato?", "it", null);
+is("¿cómo funciona el intercambio de cartas?", "es", "letters"); // the everyday pen-pal exchange, not trading names
+is("busco un intercambio de cartas", "es", null);
+is("写真がぼやけて切手にならない", "ja", "stamps");
+is("mein foto ist verschwommen", "de", null);
+
 // a makers' row outranks a guide when it speaks more directly
 const rows = [{ id: 7, triggers: { en: ["voice letter", "voice letters", "record"] }, answer: { en: "Voice letters are on the way." }, guide: null }];
 const r = answerFor("can i record a voice letter", rows, "en");

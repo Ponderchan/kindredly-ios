@@ -1221,9 +1221,10 @@ function Font({ s }: { s: number }) {
           <View key={f.key} style={{ position: "absolute", left: p.x, top: p.y, width: tw, height: th }}>
             <Rise delay={250 + i * 60} dy={s * 0.02}>
               <View style={{ width: tw, height: th, borderRadius: 12, borderWidth: 1, borderColor: L.line, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", gap: s * 0.004 }}>
-                {/* explicit line heights: Garamond's tall ascent pushed the name onto the border */}
-                <Text style={{ ...letterFamily(f.key as LetterFontKey), fontSize: s * 0.058, lineHeight: s * 0.066, color: L.ink }}>{f.sample}</Text>
-                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontSize: s * 0.03, lineHeight: s * 0.038, fontWeight: "500", color: L.sub }}>
+                {/* explicit line heights (Garamond's tall ascent pushed the name onto the border), and a picture's
+                    size, not Dynamic Type's: the tile is drawn at the square's own scale */}
+                <Text maxFontSizeMultiplier={1} style={{ ...letterFamily(f.key as LetterFontKey), fontSize: s * 0.058, lineHeight: s * 0.066, color: L.ink }}>{f.sample}</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1} style={{ fontSize: s * 0.03, lineHeight: s * 0.038, fontWeight: "500", color: L.sub }}>
                   {f.name}
                 </Text>
               </View>

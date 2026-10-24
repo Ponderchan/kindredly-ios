@@ -6,7 +6,7 @@ import Constants from "expo-constants";
 import { fetchWithin } from "./net";
 import { readSurfaces, remoteSurfaces, subscribeSurfaces, surfacesReady } from "./surfaces";
 import type { SurfaceMap } from "./surfaces-resolve";
-import { localDay, parcelWaiting, parseSeen, storeVersionOf, updateAsk, type SheetSeen, type UpdateAsk } from "./update-prompt-core";
+import { keepNewer, localDay, parcelWaiting, parseSeen, storeVersionOf, updateAsk, type SheetSeen, type UpdateAsk } from "./update-prompt-core";
 
 /* THE UPDATE PROMPT, FOR THE SCREENS (OTA, 2026-10-25).
    ────────────────────────────────────────────────────────────────────────
@@ -19,9 +19,11 @@ import { localDay, parcelWaiting, parseSeen, storeVersionOf, updateAsk, type She
       (remoteSurfaces). No row = off.
 
    2. WHICH VERSION IS WAITING? Apple's public lookup for the app (country us), asked only on a
-      phone the table asks to update, at launch and on each return to the front, at most every
-      six hours (ten minutes after a failure), with an 8 s deadline, and kept on the phone (raw
-      AsyncStorage: it is about the binary, not the account). Failures are logged, never thrown.
+      phone the table asks to update: once each launch and again on return to the front, every
+      six hours while a newer release is known, every half hour while it isn't (ten minutes after
+      a failure), past Apple's CDN cache, with an 8 s deadline, and kept on the phone (raw
+      AsyncStorage: it is about the binary, not the account; auth's DEVICE_PREFS keeps it through
+      a sign-out). A stale answer older than one already seen is ignored. Failures are logged.
       Nothing shows until that version is newer than this binary's own release (core
       parcelWaiting), so a row switched on early never asks a phone to update to itself.
 
@@ -38,11 +40,15 @@ const APP_STORE_ID = "6805318131";
 const APP_STORE_URL = `itms-apps://apps.apple.com/app/id${APP_STORE_ID}`;
 /* the same page on the web, if the App Store app can't be opened */
 const APP_STORE_WEB = `https://apps.apple.com/app/id${APP_STORE_ID}`;
-const LOOKUP_URL = `https://itunes.apple.com/lookup?id=${APP_STORE_ID}&country=us`;
+/* Apple's lookup sits behind a CDN that kept answering 1.0.5 for over twenty minutes after 1.0.6
+   went live (2026-10-25); a parameter that changes every hour asks past it */
+const lookupUrl = () => `https://itunes.apple.com/lookup?id=${APP_STORE_ID}&country=us&h=${Math.floor(Date.now() / 3600_000)}`;
 
 /* the version is a label, never worth a long wait */
 const LOOKUP_MS = 8000;
 const LOOKUP_FRESH_MS = 6 * 3600_000;
+/* while Apple has nothing newer than this binary's own release, ask again sooner */
+const LOOKUP_NOTHING_NEW_MS = 30 * 60_000;
 const LOOKUP_RETRY_MS = 10 * 60_000;
 
 const STORE_KEY = "kindredly_store_version"; // {"version":"1.0.6","at":<epoch ms>}
@@ -131,24 +137,28 @@ function readLocal(): Promise<void> {
   return localRead;
 }
 
-/* Apple's lookup, throttled and de-duplicated; never rejects */
+/* Apple's lookup, throttled and de-duplicated; never rejects. Asked once per launch at least (the
+   kept answer only fills the wait); after that every six hours while a newer release is known,
+   every half hour while it isn't. An answer older than one already seen is a stale cache: kept out. */
 function refreshStoreVersion(): Promise<void> {
-  const now = Date.now();
   if (lookup) return lookup;
-  if (now < nextLookupAt || (storeVersion && now - storeAt < LOOKUP_FRESH_MS)) return Promise.resolve();
+  if (Date.now() < nextLookupAt) return Promise.resolve();
   lookup = (async () => {
     try {
-      const res = await fetchWithin(LOOKUP_URL, undefined, LOOKUP_MS);
+      const res = await fetchWithin(lookupUrl(), undefined, LOOKUP_MS);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const v = storeVersionOf(await res.json());
       if (!v) throw new Error("no version in Apple's answer");
       storeAt = Date.now();
-      nextLookupAt = storeAt + LOOKUP_FRESH_MS;
-      if (v !== storeVersion) {
-        storeVersion = v;
+      const next = keepNewer(storeVersion, v);
+      if (next !== v) console.log(`[update] Apple answered ${v}, older than ${next} already seen; keeping ${next}`);
+      if (next !== storeVersion) {
+        storeVersion = next;
         changed();
       }
-      void AsyncStorage.setItem(STORE_KEY, JSON.stringify({ version: v, at: storeAt })).catch((e) => console.log("[update] the App Store version couldn't be kept:", e));
+      nextLookupAt = storeAt + (parcelWaiting(BINARY, storeVersion) ? LOOKUP_FRESH_MS : LOOKUP_NOTHING_NEW_MS);
+      const kept = storeVersion;
+      void AsyncStorage.setItem(STORE_KEY, JSON.stringify({ version: kept, at: storeAt })).catch((e) => console.log("[update] the App Store version couldn't be kept:", e));
     } catch (e) {
       nextLookupAt = Date.now() + LOOKUP_RETRY_MS;
       console.log(`[update] Apple's lookup failed; ${storeVersion ? `keeping ${storeVersion}` : "the parcel shows no number"}:`, (e as { message?: string })?.message ?? e);
@@ -184,7 +194,28 @@ export function useUpdatePrompt(): UpdatePrompt {
   return s;
 }
 
-/** The sheet has been raised: write it down (for this binary, this parcel, today). */
+/* WHETHER THE UPDATE SHEET IS UP, for another sheet that must not rise over it (the one-time
+   identity note, screens/edit-profile/IdentityNote): two RN Modals can't be up at once, UIKit
+   refuses the second. Only screens/today/TodayUpdate sets it. */
+let sheetUp = false;
+const sheetUpListeners = new Set<() => void>();
+export function setUpdateSheetUp(v: boolean): void {
+  if (v === sheetUp) return;
+  sheetUp = v;
+  sheetUpListeners.forEach((f) => f());
+}
+const subscribeSheetUp = (f: () => void) => {
+  sheetUpListeners.add(f);
+  return () => {
+    sheetUpListeners.delete(f);
+  };
+};
+/** true while the update sheet is on screen (or on its way up) */
+export function useUpdateSheetUp(): boolean {
+  return useSyncExternalStore(subscribeSheetUp, () => sheetUp);
+}
+
+/** The sheet is on screen: write it down (for this binary, this parcel, today). */
 export function markSheetShown(version: string | null): void {
   seen = { binary: BINARY, version, day: localDay(new Date()) };
   changed();

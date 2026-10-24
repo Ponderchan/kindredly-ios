@@ -421,6 +421,7 @@ function ParcelScene({ width, version, enter, opening, still }: { width: number;
  * where Update plays everything but never opens the App Store; with `autoPlay` it also presses
  * Update by itself once she has settled, for a hands-free screen recording. `onLater`: put away
  * (soft mode only). `onUpdated`: the App Store was opened (or, in a demo, would have been).
+ * `onShown`: the sheet is really on screen (the Modal's onShow; UIKit refuses a second Modal).
  */
 export function UpdateSheet({
   open,
@@ -428,6 +429,7 @@ export function UpdateSheet({
   force,
   demo = false,
   autoPlay = false,
+  onShown,
   onLater,
   onUpdated,
 }: {
@@ -436,14 +438,15 @@ export function UpdateSheet({
   force: boolean;
   demo?: boolean;
   autoPlay?: boolean;
+  onShown?: () => void;
   onLater: () => void;
   onUpdated: () => void;
 }) {
   if (!open) return null;
-  return <SheetBody version={version} force={force} demo={demo} autoPlay={demo && autoPlay} onLater={onLater} onUpdated={onUpdated} />;
+  return <SheetBody version={version} force={force} demo={demo} autoPlay={demo && autoPlay} onShown={onShown} onLater={onLater} onUpdated={onUpdated} />;
 }
 
-function SheetBody({ version, force, demo, autoPlay, onLater, onUpdated }: { version: string | null; force: boolean; demo: boolean; autoPlay: boolean; onLater: () => void; onUpdated: () => void }) {
+function SheetBody({ version, force, demo, autoPlay, onShown, onLater, onUpdated }: { version: string | null; force: boolean; demo: boolean; autoPlay: boolean; onShown?: () => void; onLater: () => void; onUpdated: () => void }) {
   useLang(); // repaint when the reader changes language
   const P = useP();
   const { t: tk, dark } = useTheme();
@@ -525,7 +528,7 @@ function SheetBody({ version, force, demo, autoPlay, onLater, onUpdated }: { ver
   const dimStyle = useAnimatedStyle(() => ({ opacity: 1 - Math.min(1, drag.value / 400) }));
 
   return (
-    <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={dismiss}>
+    <Modal visible transparent animationType="none" statusBarTranslucent onShow={onShown} onRequestClose={dismiss}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View accessibilityViewIsModal onAccessibilityEscape={force ? undefined : dismiss} style={{ flex: 1, justifyContent: "flex-end" }}>
           <Animated.View entering={FadeIn.duration(160)} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
@@ -584,7 +587,7 @@ export const UPDATE_BANNER_ROOM = 52;
 /** The slim bar on Today after Later: pinned `top` from the screen's top (the status bar's inset). */
 export function UpdateBanner({ top, onPress }: { top: number; onPress: () => void }) {
   useLang();
-  const { t: tk } = useTheme();
+  const { t: tk, dark } = useTheme();
   return (
     <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, top, height: UPDATE_BANNER_ROOM, paddingHorizontal: 16, paddingTop: 4, paddingBottom: 6 }}>
       <Pressable
@@ -605,11 +608,13 @@ export function UpdateBanner({ top, onPress }: { top: number; onPress: () => voi
         })}
       >
         <ParcelGlyph size={26} />
-        {/* the line gives way to the key: it shrinks a little before it would be cut ("Aktualisieren ›", "Atualizar ›") */}
-        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} maxFontSizeMultiplier={1.3} style={{ flex: 1, fontSize: 15, color: tk.ink }}>
+        {/* the line gives way to the key: it shrinks before it would be cut ("Aktualisieren ›", "Atualizar ›"),
+            and the bar's text grows with Dynamic Type only so far (1.15) that every language still fits at 375 */}
+        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} maxFontSizeMultiplier={1.15} style={{ flex: 1, fontSize: 15, color: tk.ink }}>
           {t("upd.banner")}
         </Text>
-        <Text numberOfLines={1} maxFontSizeMultiplier={1.3} style={{ flexShrink: 0, fontSize: 15, fontWeight: "600", color: tk.ind }}>
+        {/* Midnight's ind on lav is 4.38:1, under AA for 15 pt: the key is ink there */}
+        <Text numberOfLines={1} maxFontSizeMultiplier={1.15} style={{ flexShrink: 0, fontSize: 15, fontWeight: "600", color: dark ? tk.ink : tk.ind }}>
           {t("upd.banner.cta")}
         </Text>
       </Pressable>

@@ -60,6 +60,12 @@ export function parcelWaiting(binary: string | null, store: string | null): bool
   return !!store && newerVersion(store, own);
 }
 
+/** Apple's answer against the release already seen: a CDN's stale copy never takes a phone back
+    (on 2026-10-25 the lookup kept answering 1.0.5 for over twenty minutes after 1.0.6 went live). */
+export function keepNewer(seen: string | null, answer: string): string {
+  return !seen || newerVersion(answer, seen) ? answer : seen;
+}
+
 /** Apple's lookup answer → the store's version ("1.0.6"), or null for anything else. */
 export function storeVersionOf(json: unknown): string | null {
   if (!json || typeof json !== "object") return null;

@@ -86,7 +86,7 @@ strings(
     "nw105.trade.pen": "Ari",
     "nw105.font.line": "Kadang, sepucuk surat jadi bagian terbaik hariku.",
     "nw105.card.title": "Yang baru",
-    "nw105.card.body": "Sekarang kamu bisa mencetak perangko sendiri dari foto dan menulis di tujuh pilihan kertas. Orang asing kini dipanggil dengan nama pemberian kurirmu, dan bertukar nama berarti saling tanda tangan: keduanya terbuka bersamaan. Di ruang kerabat ada Ini atau Itu dan Sapa dengan foto langitmu. Font tulisanmu pun bisa kamu pilih.",
+    "nw105.card.body": "Sekarang kamu bisa mencetak perangko sendiri dari foto dan menulis di tujuh pilihan kertas. Orang asing kini dipanggil dengan nama pemberian kurirmu, dan bertukar nama berarti saling tanda tangan: keduanya terbuka bersamaan. Di ruang kerabat ada Ini atau Itu dan Sapa dengan langitmu. Font tulisanmu pun bisa kamu pilih.",
     "nw105.card.cta": "Cetak perangko pertamamu",
   },
   /* ── fr · Français ── */

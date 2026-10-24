@@ -20,7 +20,7 @@ registerHooks({
   },
 });
 
-const { updateAsk, storeVersionOf, parseSeen, sheetDue, bannerShows, localDay, newerVersion, parcelWaiting } = await import("./update-prompt-core.ts");
+const { updateAsk, storeVersionOf, parseSeen, sheetDue, bannerShows, localDay, newerVersion, parcelWaiting, keepNewer } = await import("./update-prompt-core.ts");
 
 let fails = 0;
 const ok = (name: string, cond: boolean) => {
@@ -55,6 +55,9 @@ ok("1.0.6 out → 1.2.4 is asked", parcelWaiting("1.2.4", "1.0.6"));
 ok("1.0.6 out → 1.2.5 is not (itself)", !parcelWaiting("1.2.5", "1.0.6"));
 ok("a known binary waits for Apple's answer", !parcelWaiting("1.2.4", null));
 ok("an unlisted binary follows the table", parcelWaiting("9.9.9", null) && parcelWaiting(null, "1.0.6"));
+
+ok("a stale cache never takes a phone back", keepNewer("1.0.6", "1.0.5") === "1.0.6");
+ok("a newer answer is taken", keepNewer("1.0.5", "1.0.6") === "1.0.6" && keepNewer(null, "1.0.5") === "1.0.5");
 
 /* ── the record ── */
 const rec = JSON.stringify({ binary: "1.2.4", version: "1.0.6", day: "2026-10-25" });

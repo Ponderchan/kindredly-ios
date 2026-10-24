@@ -10,6 +10,7 @@ import { postmark } from "../../lib/format";
 import { readYourPronoun } from "../../lib/pronouns";
 import { readSurfaces, remoteSurfaces, subscribeSurfaces, surfacesReady } from "../../lib/surfaces";
 import { identitySwitch, type Mark } from "../../lib/identity-core";
+import { useUpdateSheetUp } from "../../lib/update-prompt";
 import { frostSpec, type FrostSpec } from "../../lib/frost";
 import { strangerName } from "../../lib/stranger-name";
 import { zodiacFromDob, type Zodiac } from "../../lib/zodiac";
@@ -195,7 +196,9 @@ export function IdentityNote() {
 
   // opened once the rule says so, and kept open until Done (a switch saved meanwhile mustn't close it)
   const [open, setOpen] = useState(false);
-  const due = seen === false && showIdentityNote({ identity: on, session: !!user, onboarded, showMark: profile?.showMark, showSign: profile?.showSign, seen: false });
+  // never over the update sheet (UIKit refuses a second Modal); it comes once that is down
+  const updateUp = useUpdateSheetUp();
+  const due = !updateUp && seen === false && showIdentityNote({ identity: on, session: !!user, onboarded, showMark: profile?.showMark, showSign: profile?.showSign, seen: false });
   useEffect(() => {
     if (due) setOpen(true);
   }, [due]);
