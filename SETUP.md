@@ -217,6 +217,36 @@ a small bug) should reach phones without waiting for App Review.
 - **The overhaul's version must move past the live one** (1.3.0, say) before it builds
   or publishes anything — merging `hotfix-1.0.4` into it brings `"version": "1.2.3"`
   along without a conflict, and from then on its updates would land on 1.0.4 phones.
+- **From 1.0.5 on, one update per live runtime, all from the main checkout** (2026-10-25
+  review). 1.0.5 (binary 1.2.4, build 34) and 1.0.6 (binary 1.2.5, build 35) are both
+  built from `ios-1.2.3`; their native code differs only by the scene plugin and two
+  Swift fixes, so the same JavaScript runs on both. But `runtimeVersion` follows
+  `"version"`, and `eas update` publishes to exactly one runtime: from HEAD (`1.2.5`) only
+  1.0.6 phones get it. So publish twice — HEAD as it is, then the same commit with
+  `"version": "1.2.4"` in a throwaway worktree (never edit `runtimeVersion` instead, and
+  never commit the 1.2.4). 1.0.4 (1.2.3) still comes only from the hotfix worktree above.
+  Before every release from here, add its line to `STORE_OF_BINARY`
+  (`src/lib/update-prompt-core.ts`), or the update prompt can't tell the new binary is
+  already the newest.
+
+```bash
+cd ~/Desktop/claude-projects/kindredly-ios
+git branch --show-current                        # ios-1.2.3
+git status --short src                           # nothing: publish committed code only
+node -p "require('./app.json').expo.version"     # 1.2.5
+# runtime 1.2.5 (App Store 1.0.6): the bundle check below, then
+eas update --channel production --environment production --clear-cache --message "<what changed>"
+# runtime 1.2.4 (App Store 1.0.5): the same commit, version 1.2.4, in a throwaway worktree
+git worktree add --detach ../kindredly-ios-ota124 HEAD
+cd ../kindredly-ios-ota124
+cp -cR ../kindredly-ios/node_modules . && cp ../kindredly-ios/.env.local .
+sed -i '' 's/"version": "1.2.5"/"version": "1.2.4"/' app.json
+node -p "require('./app.json').expo.version"     # 1.2.4
+# the bundle check below, here, then
+eas update --channel production --environment production --clear-cache --message "<what changed>"
+cd ../kindredly-ios && git worktree remove --force ../kindredly-ios-ota124
+eas update:list --branch production --limit 4    # two new groups: runtime 1.2.5 and 1.2.4
+```
 
 **The pitfall: what gets inlined.** `EXPO_PUBLIC_*` values are baked into the bundle
 at build/update time. Supabase and the API base come from the `production` profile's

@@ -25,7 +25,7 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 | App Store | Binary | Builds | Code | Dates |
 |---|---|---|---|---|
-| 1.0.6 | 1.2.5 | 35 | `ios-1.2.3` after b710f2f | uploaded 10-25, in review (expedited) |
+| 1.0.6 | 1.2.5 | 35 | `ios-1.2.3` at b355ff6 | uploaded 10-25, expedited review, **live 10-25 03:03 Beijing** (Apple lookup) |
 | 1.0.5 | 1.2.4 | 29–34 | `ios-1.2.3` up to b710f2f | b34 rejected for a launch crash, then approved and **released automatically 10-25** — it crashes at launch on every iOS 27 phone (built with Xcode 27 without the scene life cycle); 1.0.6 fixes it. Web launch-day deploy and 0035 the same day |
 | 1.0.4 | 1.2.3 | 28 | `hotfix-1.0.4` (worktree `../kindredly-ios-hotfix`) | submitted 10-15, approved about 10-16 |
 | 1.0.3 | 1.2.2 | 27 | `plan-c-sealed` at 0906ab5 | approved 10-13 |
