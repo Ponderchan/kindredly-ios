@@ -1168,7 +1168,7 @@ function Font({ s }: { s: number }) {
   const x = s * 0.07, w = s * 0.86;
   const cardY = s * 0.25, cardH = s * 0.2;
   const boxY = s * 0.5, pad = s * 0.04, gap = s * 0.025;
-  const tw = (w - 2 * pad - gap) / 2, th = s * 0.11;
+  const tw = (w - 2 * pad - gap) / 2, th = s * 0.12;
   const tilesY = boxY + pad + s * 0.12;
   const tileAt = (i: number) => ({ x: x + pad + (i % 2) * (tw + gap), y: tilesY + Math.floor(i / 2) * (th + gap) });
   const runOf = (key: string) => FONT_RUN.findIndex((r) => r.key === key);
@@ -1220,9 +1220,10 @@ function Font({ s }: { s: number }) {
         return (
           <View key={f.key} style={{ position: "absolute", left: p.x, top: p.y, width: tw, height: th }}>
             <Rise delay={250 + i * 60} dy={s * 0.02}>
-              <View style={{ width: tw, height: th, borderRadius: 12, borderWidth: 1, borderColor: L.line, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", gap: s * 0.006 }}>
-                <Text style={{ ...letterFamily(f.key as LetterFontKey), fontSize: s * 0.058, color: L.ink }}>{f.sample}</Text>
-                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontSize: s * 0.03, fontWeight: "500", color: L.sub }}>
+              <View style={{ width: tw, height: th, borderRadius: 12, borderWidth: 1, borderColor: L.line, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", gap: s * 0.004 }}>
+                {/* explicit line heights: Garamond's tall ascent pushed the name onto the border */}
+                <Text style={{ ...letterFamily(f.key as LetterFontKey), fontSize: s * 0.058, lineHeight: s * 0.066, color: L.ink }}>{f.sample}</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontSize: s * 0.03, lineHeight: s * 0.038, fontWeight: "500", color: L.sub }}>
                   {f.name}
                 </Text>
               </View>
