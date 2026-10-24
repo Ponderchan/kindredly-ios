@@ -1,6 +1,6 @@
 import { memo, useEffect, useState, type ReactNode } from "react";
 import { Text, View } from "react-native";
-import Animated, { Easing, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { Easing, ReduceMotion, interpolateColor, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSequence, withTiming, type SharedValue } from "react-native-reanimated";
 import Svg, { Circle, G, Path, Polygon, Rect } from "react-native-svg";
 import { BigType, Finger, useLoop, useOnce, type Reel } from "./kit";
 import { CHICK_FILL, WrenBird, type WrenAccessory, type WrenSkin, type WrenStage } from "../WrenBird";
@@ -11,7 +11,7 @@ import { t } from "../../lib/i18n";
 import { P, PF, PFM } from "../../theme/post";
 import { Y } from "../../theme/y2k";
 
-/* THE COURIER'S REEL — five scenes, all of them her.
+/* THE COURIER'S REEL — six scenes, all of them her.
    1  the egg you picked knocks, cracks and opens; she rises out of the
       bottom shell and a finger pokes her (she answers with a heart, as
       the hatch does)
@@ -20,7 +20,9 @@ import { Y } from "../../theme/y2k";
       the three First Class coats carry a small lock on their swatches
    4  the lock screen: her Live Activity rises in with your letter out,
       desks tick up, then a reply lands — she knocks, and she's back
-   5  the guide's title, in big type, with her flying past
+   5  what she knocks for: Settings' two switches, Notifications and the
+      8 o'clock knock, and a finger turns the knock on
+   6  the guide's title, in big type, with her flying past
    Every size is a fraction of the square's side `s`. */
 
 const RM = ReduceMotion.System;
@@ -465,7 +467,83 @@ const LockScreen = memo(function LockScreen({ s }: { s: number }) {
   );
 });
 
-/* ── 5 · the title ─────────────────────────────────────────────────────── */
+/* ── 5 · two switches ──────────────────────────────────────────────────── */
+
+/* What she knocks for is Settings' to say, and from 1.0.5 it says it with
+   two switches under THE QUIET, in Settings' own order (settings-model):
+   Notifications — every kind of knock at once — and the 8 o'clock knock
+   (owner, 2026-10-13: nine kinds are not the reader's to pick one by one).
+   The knock starts off and a finger turns it on; she's glad of it. */
+const KNOCK_AT = 1300;
+const KNOCK_BEATS = [KNOCK_AT + 120] as const;
+const TRACK_OFF = "#D8D8D6";
+
+function Toggle({ s, on }: { s: number; on: SharedValue<number> }) {
+  const w = s * 0.13;
+  const h = w * 0.6;
+  const knob = h - 4;
+  const track = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(on.value, [0, 1], [TRACK_OFF, P.pen]) }));
+  const slide = useAnimatedStyle(() => ({ transform: [{ translateX: on.value * (w - knob - 4) }] }));
+  return (
+    <Animated.View style={[{ width: w, height: h, borderRadius: h / 2, justifyContent: "center", paddingHorizontal: 2 }, track]}>
+      <Animated.View style={[{ width: knob, height: knob, borderRadius: knob / 2, backgroundColor: "#FFFFFF" }, slide]} />
+    </Animated.View>
+  );
+}
+
+const Knocks = memo(function Knocks({ s }: { s: number }) {
+  const stage = useHatchedStage();
+  const glad = useBeats(KNOCK_BEATS) >= 1;
+  const notify = useSharedValue(1);
+  const knock = useOnce(240, KNOCK_AT + 60, OUT);
+  const come = useOnce(460, 120, BACK);
+  const hop = useSharedValue(0);
+  useEffect(() => {
+    hop.value = withDelay(
+      KNOCK_AT + 120,
+      withSequence(withTiming(1, { duration: 150, easing: Easing.out(Easing.quad), reduceMotion: RM }), withTiming(0, { duration: 300, easing: Easing.bounce, reduceMotion: RM })),
+    );
+  }, [hop]);
+  const cardSt = useAnimatedStyle(() => ({ opacity: come.value, transform: [{ translateY: (1 - come.value) * s * 0.05 }] }));
+  const birdSt = useAnimatedStyle(() => ({ transform: [{ translateY: -hop.value * s * 0.05 }] }));
+
+  const CL = s * 0.07;
+  const CW = s * 0.86;
+  const CT = s * 0.25;
+  const rowH = s * 0.15;
+  const padX = s * 0.05;
+  const B = s * 0.27;
+  const line = { borderBottomWidth: 1, borderBottomColor: "rgba(17,17,19,0.12)" };
+  // a plain call, not a component: her mood changing re-renders the scene, and a row made anew would remount
+  const row = (title: string, on: SharedValue<number>, last = false) => (
+    <View style={[{ height: rowH, flexDirection: "row", alignItems: "center", gap: s * 0.03, paddingHorizontal: padX }, last ? null : line]}>
+      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ flex: 1, fontSize: s * 0.05, color: P.ink }}>
+        {title}
+      </Text>
+      <Toggle s={s} on={on} />
+    </View>
+  );
+  return (
+    <View style={{ width: s, height: s }}>
+      <Animated.View style={[{ position: "absolute", left: CL, top: 0, width: CW, height: s }, cardSt]}>
+        <Text numberOfLines={1} style={{ position: "absolute", left: padX, right: padX, top: CT - s * 0.062, ...PFM.monoSemi, fontSize: s * 0.034, letterSpacing: s * 0.004, color: P.ink60 }}>
+          {t("set.sec.quiet")}
+        </Text>
+        <View style={{ position: "absolute", left: 0, right: 0, top: CT, backgroundColor: "#FFFFFF", borderRadius: s * 0.045, overflow: "hidden" }}>
+          {row(t("set.notify.title"), notify)}
+          {row(t("set.knock.title"), knock, true)}
+        </View>
+      </Animated.View>
+      {/* her, under the switches: glad when the knock goes on */}
+      <Animated.View style={[{ position: "absolute", left: (s - B) / 2, top: CT + 2 * rowH + s * 0.07, width: B, height: B }, birdSt]}>
+        <WrenBird size={B} stage={stage} mood={glad ? "delight" : "curious"} />
+      </Animated.View>
+      <StillFinger x={CL + CW - padX - s * 0.065} y={CT + rowH * 1.5} at={KNOCK_AT} size={s * 0.15} />
+    </View>
+  );
+});
+
+/* ── 6 · the title ─────────────────────────────────────────────────────── */
 
 /* memo'd like the rest: BigType's words fade in on the kit's per-render
    easing, so a re-render from the card around it would restart them */
@@ -495,6 +573,7 @@ export const reel: Reel = {
     { key: "name", ms: 3000, render: (s) => <NameTag s={s} /> },
     { key: "dress", ms: 3200, render: (s) => <Dress s={s} /> },
     { key: "lock", ms: 3400, render: (s) => <LockScreen s={s} /> },
+    { key: "knocks", ms: 3000, render: (s) => <Knocks s={s} /> },
     { key: "title", ms: 2600, render: (s) => <Title s={s} /> },
   ],
 };

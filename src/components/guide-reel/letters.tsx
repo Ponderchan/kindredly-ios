@@ -1,30 +1,36 @@
-import { memo, useEffect, useState, type ReactNode } from "react";
+import { memo, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Text, View } from "react-native";
 import Animated, { Easing, interpolateColor, useAnimatedStyle, useReducedMotion } from "react-native-reanimated";
-import Svg, { Circle, Path } from "react-native-svg";
-import { BigType, FACE_INK, Finger, useLoop, useOnce, type Reel } from "./kit";
+import Svg, { Path } from "react-native-svg";
+import { BigType, Finger, useLoop, useOnce, type Reel } from "./kit";
 import { WrenBird } from "../WrenBird";
 import { EnvelopeArt } from "../EnvelopeArt";
 import { GUIDE_REEL_WIDTHS, Stamp, snapStampWidth } from "../Stamp";
-import { MosaicId } from "../MosaicId";
+import { Frost } from "../Frost";
 import { Seal } from "../Seal";
 import { Envelope, Kindreds, Me, Notes } from "../PostTabBar";
 import { STARTER_STAMPS } from "../../data/stamps";
 import { OPENING_MIN } from "../../lib/weighted-count";
 import { stampHeight } from "../../lib/stamp-frame";
+import { frostSpec } from "../../lib/frost";
+import { MORNING_HOUR } from "../../lib/day";
+import { clockTime, localeTag } from "../../lib/format";
 import { P, PF, PFM } from "../../theme/post";
 import { t, useLang } from "../../lib/i18n";
+import "../../data/strings-today3d"; // pub.popLetter / pub.popNote, bag.opens
 
 /* HOW LETTERS TRAVEL — the reel (owner, 2026-10-11: "大的清楚的动态演示").
    Four moving pictures and a line of type, each built from the parts the
    app itself draws, at the size of the square:
-     1 · the + opens its fan, "to a stranger" opens the page, one line is
-         typed and the key turns blue, asking for a mood stamp
+     1 · the + on Today pops its two discs, Letter opens the page, one line
+         is typed and the key turns blue, asking for a mood stamp
      2 · a stamp is picked from the tray and lands on the envelope, the
          seal presses on, LET IT TRAVEL — and the letter is gone
-     3 · the courier carries it over three strangers' desks
-     4 · your own desk: fifteen letters, read one by one, the counter's
-         shutter comes down till morning
+     3 · the courier carries it over three strangers' desks, each desk its
+         owner's frosted window (identity, 1.0.5: no mosaic, no number)
+     4 · your own desk: fifteen letters, read one by one; when the last is
+         read, THAT'S ALL FOR TODAY and tomorrow's bag drops in (Today 3d ×
+         25b, which retired the counter's shutter)
      5 · the title
    Every size is a fraction of `s` (u = s/100), so nothing is a small
    picture scaled up.
@@ -44,8 +50,8 @@ import { t, useLang } from "../../lib/i18n";
 
    REDUCE MOTION. The kit's timings finish at once (delays skipped) when the
    system asks for less motion, so every scene shows its last frame. The
-   JS-side steps follow: the counts start at their end, the shutter cuts in
-   on time rather than sliding, and the stamp scene keeps its stamped,
+   JS-side steps follow: the counts start at their end, tomorrow's bag cuts
+   in on time rather than dropping, and the stamp scene keeps its stamped,
    sealed envelope instead of ending on an empty square. */
 
 const E_OUT = Easing.out(Easing.cubic);
@@ -89,11 +95,11 @@ function useAfter(ms: number): boolean {
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   1 · OPEN — the + → the fan → "to a stranger" → the page, one line typed
+   1 · OPEN — the + → its two discs → Letter → the page, one line typed
    ════════════════════════════════════════════════════════════════════════ */
 
 const T_TAP = 560; // the + is pressed
-const T_PICK = 1250; // "to a stranger" is pressed
+const T_PICK = 1250; // Letter is pressed
 const T_SHEET = 1400; // the page slides up
 const T_TYPE = 1850; // the first character lands
 const T_CHAR = 55; // one character every …
@@ -149,12 +155,13 @@ const Open = memo(function Open({ s }: { s: number }) {
         </Svg>
       </Animated.View>
 
-      {/* the two choices rise out of the + */}
-      <FanChoice u={u} cx={30 * u} cy={FAN_Y} fromX={20 * u} fromY={cy - FAN_Y} delay={T_TAP + 100} label={t("pc.stranger")}>
-        <PlaneGlyph size={10 * u} />
+      {/* the two discs pop out of the + — on Today it is Letter and Note,
+          drawn as KPublishPop draws them: the envelope and the ruled card */}
+      <FanChoice u={u} cx={30 * u} cy={FAN_Y} fromX={20 * u} fromY={cy - FAN_Y} delay={T_TAP + 100} label={t("pub.popLetter")}>
+        <Envelope color={P.ink} size={10 * u} />
       </FanChoice>
-      <FanChoice u={u} cx={70 * u} cy={FAN_Y} fromX={-20 * u} fromY={cy - FAN_Y} delay={T_TAP + 170} label={t("pc.yourself")}>
-        <BookGlyph size={10 * u} />
+      <FanChoice u={u} cx={70 * u} cy={FAN_Y} fromX={-20 * u} fromY={cy - FAN_Y} delay={T_TAP + 170} label={t("pub.popNote")}>
+        <Notes color={P.ink} size={10 * u} />
       </FanChoice>
 
       <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, top: 0, width: s, height: s }, f1St]}>
@@ -191,27 +198,6 @@ function FanChoice({ u, cx, cy, fromX, fromY, delay, label, children }: { u: num
         {label}
       </Animated.Text>
     </Animated.View>
-  );
-}
-
-/** to a stranger — the courier's paper plane (the fan's own glyph) */
-function PlaneGlyph({ size }: { size: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={P.pen} strokeWidth={1.9} strokeLinejoin="round" strokeLinecap="round">
-      <Path d="M20.5 3.5L3.5 10.5l7.5 3 3 7.5 6.5-17.5z" />
-      <Path d="M11 13.5l9.5-10" />
-    </Svg>
-  );
-}
-
-/** to yourself — the sealed book */
-function BookGlyph({ size }: { size: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={1.9} strokeLinejoin="round" strokeLinecap="round">
-      <Path d="M6.5 3.5h11a2 2 0 0 1 2 2v15h-13a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2z" />
-      <Path d="M8.5 3.5v17" />
-      <Circle cx={14} cy={11} r={2.2} fill={P.brassSeal} stroke="none" />
-    </Svg>
   );
 }
 
@@ -449,7 +435,8 @@ const Flight = memo(function Flight({ s }: { s: number }) {
       <Svg width={s} height={s} viewBox="0 0 100 100" style={{ position: "absolute", left: 0, top: 0 }}>
         <Path d={path} fill="none" stroke={P.pen} strokeOpacity={0.45} strokeWidth={0.9} strokeDasharray="0.1 2.6" strokeLinecap="round" />
       </Svg>
-      <DeskTile u={u} cx={YOU_X} seed="guide-you" you />
+      {/* four seeds whose windows are four different tones (sage; lilac, butter, slate) */}
+      <DeskTile u={u} cx={YOU_X} seed="guide-me" you />
       {DESK_X.map((x, i) => (
         <DeskTile key={x} u={u} cx={x} seed={`guide-desk-${i}`} dropAt={HOP_T0 + (HOP_MS * (i + 1)) / 3 - 60} tilt={[-6, 5, -3][i]} />
       ))}
@@ -460,8 +447,18 @@ const Flight = memo(function Flight({ s }: { s: number }) {
   );
 });
 
+/* A DESK IS ITS OWNER'S FROSTED WINDOW (components/Frost, lib/frost FROST v1):
+   a stranger is never a face, and since 1.0.5 not a mosaic either. The
+   reel is a light picture in every theme (kit), so the windows take the
+   light tones. Yours carries the pen line and YOU; a desk the letter lands
+   on lights the same line. The line sits outside the window, 1pt clear,
+   its corners following the window's — Frost's own "your turn" ring. */
+const RING_W = 2;
+const RING_GAP = 1;
+
 function DeskTile({ u, cx, seed, you = false, dropAt, tilt = 0 }: { u: number; cx: number; seed: string; you?: boolean; dropAt?: number; tilt?: number }) {
   const T = 17 * u;
+  const spec = useMemo(() => frostSpec(seed), [seed]);
   const has = dropAt != null;
   const drop = useOnce(320, dropAt ?? 0, E_BACK);
   const env = useAnimatedStyle(() => ({
@@ -469,15 +466,13 @@ function DeskTile({ u, cx, seed, you = false, dropAt, tilt = 0 }: { u: number; c
     transform: [{ translateY: (1 - drop.value) * -8 * u }, { rotate: `${tilt}deg` }],
   }));
   const lit = useAnimatedStyle(() => ({ opacity: has ? Math.min(1, drop.value) : 0 }));
-  const radius = 2.6 * u;
+  const out = RING_W + RING_GAP;
+  const ring = { position: "absolute" as const, left: -out, top: -out, width: T + 2 * out, height: T + 2 * out, borderRadius: T * 0.25 + out, borderWidth: RING_W, borderColor: P.pen };
   return (
     <View style={{ position: "absolute", left: cx * u - T / 2, top: DESK_Y * u - T / 2, width: T, height: T }}>
-      <View style={{ position: "absolute", left: 0, top: 0, width: T, height: T, borderRadius: radius, backgroundColor: "#FFFFFF", borderWidth: you ? 2 : 1.5, borderColor: you ? P.pen : P.ink12 }} />
-      <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: T, height: T, borderRadius: radius, borderWidth: 2, borderColor: P.pen }, lit]} />
-      <View style={{ position: "absolute", left: 0, top: 0, width: T, height: T, alignItems: "center", justifyContent: "center" }}>
-        {/* the reel's fixed ink: the tile is white in every theme (kit) */}
-        <MosaicId seed={seed} cell={2 * u} gap={0.55 * u} develop={you ? 1 : 0.3} color={FACE_INK} />
-      </View>
+      {spec && <Frost spec={spec} size={T} />}
+      {you && <View style={ring} />}
+      <Animated.View style={[ring, lit]} />
       {has && (
         <Animated.View style={[{ position: "absolute", left: (T - 13 * u) / 2, top: -7.5 * u }, env]}>
           <EnvelopeArt w={13 * u} sealed />
@@ -493,11 +488,12 @@ function DeskTile({ u, cx, seed, you = false, dropAt, tilt = 0 }: { u: number; c
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   4 · DESK — fifteen letters land; read, each goes quiet; the counter
-   runs down and its shutter comes down till morning
+   4 · DESK — fifteen letters land; read, each goes quiet; the count runs
+   down, and with the last one it's all for today: the desk clears and
+   tomorrow's bag drops in
    ════════════════════════════════════════════════════════════════════════ */
 
-const DAY = 15;
+const DAY = 15; // lib/ration DAY_LETTERS; the desk below is laid out for exactly five by three
 const READ_T0 = 1000;
 const READ_EVERY = 105;
 const SHUT_T = READ_T0 + (DAY - 1) * READ_EVERY + 80;
@@ -521,39 +517,84 @@ const Desk = memo(function Desk({ s }: { s: number }) {
         {Array.from({ length: DAY }, (_, i) => (
           <DeskEnv key={i} u={u} i={i} w={EWd} x={left0 + (i % 5) * (EWd + GX)} y={19 * u + Math.floor(i / 5) * (EHd + GY)} />
         ))}
-        <Shutter u={u} w={inner} h={PH - 4} />
+        <TomorrowBag u={u} w={inner} h={PH - 4} />
       </View>
       <DeskWren u={u} at={SHUT_T - 80} />
     </View>
   );
 });
 
-/** the counter's shutter — slides down once the last letter is read; with less motion it cuts in at that moment */
-function Shutter({ u, w, h }: { u: number; w: number; h: number }) {
+/* TOMORROW'S BAG (Today 3d × 25b, TodayRN's Bag): rounded at the top, deep
+   at the bottom, three sealed envelopes inside — a picture of "some", never
+   a count — and the hour it opens on its tag, in the reader's clock. The
+   three rest where TodayRN's ENVELOPES put them in its 205-wide bag (each
+   52 wide), so the positions are those, scaled. */
+const BAG_W = 205;
+const BAG_ENV_W = 52;
+const BAG_ENVELOPES: readonly { x: number; y: number; r: number }[] = [
+  { x: 14, y: 26, r: -8 },
+  { x: 78, y: 36, r: 6 },
+  { x: 44, y: 62, r: -3 },
+];
+const BAG_CLUSTER = 78 + BAG_ENV_W - 14; // the three's own width, left edge to right edge
+
+/** the desk once it's all read: the read letters cleared away, the bag dropping in; with less motion it cuts in at that moment */
+function TomorrowBag({ u, w, h }: { u: number; w: number; h: number }) {
   const still = useReducedMotion();
   const due = useAfter(SHUT_T);
-  const shut = useOnce(420, SHUT_T, E_OUT);
-  const shutSt = useAnimatedStyle(() => ({ transform: [{ translateY: -(1 - shut.value) * h }] }));
+  const clear = useOnce(260, SHUT_T, E_OUT);
+  const drop = useOnce(520, SHUT_T + 140, E_BACK);
+  const clearSt = useAnimatedStyle(() => ({ opacity: clear.value }));
+  const dropSt = useAnimatedStyle(() => ({ opacity: Math.min(1, drop.value * 2), transform: [{ translateY: -(1 - drop.value) * 14 * u }] }));
   if (still && !due) return null;
+  const morning = new Date();
+  morning.setHours(MORNING_HOUR, 0, 0, 0);
+  const opens = t("bag.opens", { t: clockTime(morning) }).toLocaleUpperCase(localeTag());
+  const bw = 46 * u;
+  const bh = 31 * u;
+  const k = bw / BAG_W;
+  const shift = (BAG_W - BAG_CLUSTER) / 2 - BAG_ENVELOPES[0].x; // the three, centred in this narrower bag
+  const line = 2;
+  const tagH = 7 * u;
   return (
-    <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: w, height: h, backgroundColor: P.ink, alignItems: "center", justifyContent: "center" }, shutSt]}>
-      {Array.from({ length: 10 }, (_, k) => (
-        <View key={k} style={{ position: "absolute", left: 0, right: 0, top: (k + 1) * 6 * u, height: 1, backgroundColor: "rgba(255,255,255,0.10)" }} />
-      ))}
-      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ paddingHorizontal: 5 * u, ...PFM.monoSemi, fontSize: 5 * u, letterSpacing: 0.3 * u, color: "#FFFFFF" }}>
-        {t("ga.closed")}
-      </Text>
-      <View style={{ position: "absolute", bottom: 2.5 * u, left: w / 2 - 7 * u, width: 14 * u, height: 1.4 * u, borderRadius: 0.7 * u, backgroundColor: "rgba(255,255,255,0.35)" }} />
+    // below the count's rule, which stays: the label over it now says it's all for today
+    <Animated.View style={[{ position: "absolute", left: 0, top: 15 * u + 1, width: w, height: h - 15 * u - 1, backgroundColor: "#FFFFFF" }, clearSt]}>
+      <Animated.View style={[{ position: "absolute", left: (w - bw) / 2, top: 12 * u, width: bw, height: bh }, dropSt]}>
+        <View style={{ position: "absolute", left: 0, top: 0, width: bw, height: bh, borderTopLeftRadius: 22 * k, borderTopRightRadius: 22 * k, borderBottomLeftRadius: 96 * k, borderBottomRightRadius: 96 * k, borderWidth: line, borderColor: P.ink, backgroundColor: P.penWash, overflow: "hidden" }}>
+          {BAG_ENVELOPES.map((e, i) => (
+            <BagEnvelope key={i} u={u} x={(e.x + shift) * k} y={e.y * k} turn={e.r} w={BAG_ENV_W * k} at={SHUT_T + 360 + i * 160} />
+          ))}
+        </View>
+        <View style={{ position: "absolute", left: -12 * u, right: -12 * u, top: -tagH / 2, alignItems: "center" }}>
+          <View style={{ height: tagH, paddingHorizontal: 2.6 * u, borderRadius: tagH / 2, borderWidth: line, borderColor: P.ink, backgroundColor: "#FFFFFF", justifyContent: "center" }}>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ ...PFM.monoSemi, fontSize: 3.2 * u, letterSpacing: 0.4 * u, color: P.ink }}>
+              {opens}
+            </Text>
+          </View>
+        </View>
+      </Animated.View>
     </Animated.View>
   );
 }
 
-/** "15 LEFT TODAY", counting down as they're read */
+/** one of the bag's sealed envelopes, dropping in after the bag */
+function BagEnvelope({ u, x, y, turn, w, at }: { u: number; x: number; y: number; turn: number; w: number; at: number }) {
+  const drop = useOnce(420, at, E_BACK);
+  const st = useAnimatedStyle(() => ({ opacity: Math.min(1, drop.value * 2), transform: [{ translateY: -(1 - drop.value) * 10 * u }, { rotate: `${turn}deg` }] }));
+  return (
+    <Animated.View style={[{ position: "absolute", left: x, top: y }, st]}>
+      <EnvelopeArt w={w} sealed />
+    </Animated.View>
+  );
+}
+
+/** "15 LEFT TODAY", counting down as they're read; THAT'S ALL FOR TODAY once the last one is */
 function LeftLabel({ u }: { u: number }) {
   const n = useCount(DAY, 0, READ_EVERY, READ_T0);
+  const done = useAfter(SHUT_T);
   return (
     <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ position: "absolute", left: 5 * u, right: 5 * u, top: 4.2 * u, ...PFM.monoSemi, fontSize: 6 * u, letterSpacing: 0.25 * u, color: P.ink }}>
-      {t("ga.left", { n })}
+      {done ? t("cod.wholePost") : t("ga.left", { n })}
     </Text>
   );
 }
@@ -579,7 +620,7 @@ function DeskEnv({ u, i, w, x, y }: { u: number; i: number; w: number; x: number
   );
 }
 
-/** the courier by the counter — sleepy once it's shut */
+/** the courier by the desk — sleepy once the last letter is read */
 function DeskWren({ u, at }: { u: number; at: number }) {
   const shut = useAfter(at);
   const come = useOnce(380, 250, E_BACK);
@@ -623,7 +664,7 @@ export const reel: Reel = {
     { key: "open", ms: 3900, render: (s) => <Open s={s} /> },
     { key: "stamp", ms: 3000, render: (s) => <StampScene s={s} /> },
     { key: "flight", ms: 3100, render: (s) => <Flight s={s} /> },
-    { key: "desk", ms: 3800, render: (s) => <Desk s={s} /> },
+    { key: "desk", ms: 4300, render: (s) => <Desk s={s} /> }, // a beat longer for tomorrow's bag
     { key: "title", ms: 2600, render: (s) => <Title s={s} /> },
   ],
 };
