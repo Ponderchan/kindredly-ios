@@ -98,7 +98,8 @@
           "enablePushNotifications": true
         }
       ],
-      "expo-image"
+      "expo-image",
+      "./plugins/with-scene-lifecycle"
     ],
     "experiments": {
       "typedRoutes": false,
