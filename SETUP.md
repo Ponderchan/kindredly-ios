@@ -234,18 +234,30 @@ a small bug) should reach phones without waiting for App Review.
   (`src/lib/update-prompt-core.ts`), or the update prompt can't tell the new binary is
   already the newest.
 
+**Upload only the bundle you counted.** 2026-10-25: the check exported with
+`eas env:exec` (which reads `.env.local`) and counted Supabase = 1, then `eas update`
+bundled again on its own, without `.env.local`: both runtimes got a bundle with no
+Supabase ("Auth not configured", everyone signed out) for about half an hour, until the
+counted bundle was uploaded with `--skip-bundler`. So never let `eas update` bundle: export
+into `dist`, count `dist`, upload `dist` as it is.
+
 ```bash
 cd ~/Desktop/claude-projects/kindredly-ios
 git branch --show-current                        # ios-1.2.3
 git status --short src                           # nothing: publish committed code only
+ota() {   # export → count → upload exactly what was counted
+  rm -rf dist
+  eas env:exec production "npx expo export --platform ios --clear --output-dir dist" || return 1
+  F=$(ls dist/_expo/static/js/ios/*.hbc)
+  S=$(LC_ALL=C grep -c -a "wndkpoiuoxufvplnlaww" "$F"); A=$(LC_ALL=C grep -c -a "https://kindredly.io" "$F"); R=$(LC_ALL=C grep -c -a "appl_[A-Za-z0-9]" "$F")
+  echo "version $(node -p "require('./app.json').expo.version")  supabase=$S api=$A revenuecat=$R"
+  [ "$S" -ge 1 ] && [ "$A" -ge 1 ] && [ "$R" -ge 1 ] || { echo "STOP: config missing"; return 1; }
+  eas update --channel production --environment production --platform ios --skip-bundler --input-dir dist --non-interactive --message "$1"
+}
 node -p "require('./app.json').expo.version"     # 1.2.5
-# runtime 1.2.5 (App Store 1.0.6): the bundle check below, then
-eas update --channel production --environment production --clear-cache --message "<what changed>"
-# runtime 1.2.4 (App Store 1.0.5): the same commit, version 1.2.4 for the moment, here
+ota "<what changed>"                             # runtime 1.2.5 (App Store 1.0.6)
 sed -i '' 's/"version": "1.2.5"/"version": "1.2.4"/' app.json
-node -p "require('./app.json').expo.version"     # 1.2.4
-# the bundle check below (same size as the 1.2.5 one), then
-eas update --channel production --environment production --clear-cache --message "<what changed>"
+ota "<what changed> (at version 1.2.4)"          # runtime 1.2.4 (App Store 1.0.5)
 git checkout -- app.json && node -p "require('./app.json').expo.version"   # 1.2.5 again
 eas update:list --branch production --limit 4    # two new groups: runtime 1.2.5 and 1.2.4
 ```
