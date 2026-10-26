@@ -75,6 +75,15 @@ public class KindredlyUIModule: Module {
       }
     }
 
+    // the Notes composer (1.0.7, owner 2026-10-26: the Note Composer Bar design): adapter
+    // Adapters/KNoteComposeView.swift, the page Portable/Notes/KNoteComposePage.swift;
+    // src/app/journal-entry.tsx behind the "journalentry" switch
+    ExpoUIView(KNoteComposeView.self) {
+      AsyncFunction("command") { (view: KNoteComposeView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+
     // Me 4a: the First Class page and My letters (adapters appended to Adapters/KSettingsView.swift)
     ExpoUIView(KPaywallView.self) {
       AsyncFunction("command") { (view: KPaywallView, name: String, args: [String: Any]) in

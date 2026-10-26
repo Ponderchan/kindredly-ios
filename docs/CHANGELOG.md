@@ -43,6 +43,7 @@ New
 - Seasons have one remote switch each: the app_surfaces key `halloween` is on with no row (so it works offline); a false row turns the Halloween stamps and looks off. [switch: halloween]
 
 Changed
+- Writing a Notes page has a new bar: ＋ opens Photo, Video and Audio cards, a round mood capsule opens the four moods and their faces, and Seal it here turns ink as soon as there is something on the page (no counter). The page opens with the keyboard down and a blinking caret; sealing shows "Sealed. Just for you." and goes back to Notes. Nine languages. [binary] [switch: journalentry]
 - The guides in Wren's room show today's product: courier names and frosted windows instead of mosaics and numbers, signing to trade names, Stamp Press, tomorrow's bag, the two notification switches. Their words are rewritten in all nine languages, and Wren understands questions about pen names, signing and pressing your own stamps in each. [OTA]
 
 ---
