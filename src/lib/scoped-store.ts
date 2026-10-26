@@ -91,6 +91,7 @@ const OWNED_KEYS = [
   "kindredly_wren_accessory",
   "kindredly_wren_stage_floor",
   "kindredly_wren_stage_dates",
+  "kindredly_growth_seen",
   "kindredly_wren_souvenirs",
   "kindredly_wren_lastvisit",
   "kindredly_wren_type",

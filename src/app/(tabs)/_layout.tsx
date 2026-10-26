@@ -12,6 +12,7 @@ import { useTheme } from "../../lib/theme";
 import { PlusSheetOpen, TabBarAway } from "../../lib/screen-insets";
 import { PostFan } from "../../components/PostFan";
 import { IdentityNote } from "../../screens/edit-profile/IdentityNote";
+import { GrowthMoment } from "../../components/GrowthMoment";
 
 /* The fan lives HERE rather than inside the tab bar, and as a plain
    overlay rather than a Modal. Both matter for the same reason: a composer
@@ -91,6 +92,8 @@ export default function TabsLayout() {
 
       {!native && choosing && <PostFan onClose={() => setChoosing(false)} />}
       <IdentityNote />
+      {/* Wren fledged or grew up since last time: the moment, once per stage */}
+      <GrowthMoment />
     </View>
     </TabBarAway.Provider>
     </PlusSheetOpen.Provider>
