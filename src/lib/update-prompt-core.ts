@@ -39,6 +39,7 @@ export const STORE_OF_BINARY: Readonly<Record<string, string>> = {
   "1.2.3": "1.0.4",
   "1.2.4": "1.0.5",
   "1.2.5": "1.0.6",
+  "1.2.6": "1.0.7",
 };
 
 /** a > b, compared as dotted numbers ("1.0.10" > "1.0.9"); a missing part counts as 0. */

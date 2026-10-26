@@ -172,6 +172,8 @@ struct KComposeStampItemRecord: Record {
 struct KComposeSectionRecord: Record {
   @Field var title: String = ""
   @Field var items: [KComposeStampItemRecord] = []
+  /// a seasonal set's small marker beside its head ("SEASONAL"); "" (and older JS) for none
+  @Field var mark: String = ""
 }
 
 /// One paper in the strip (KComposePaperItem in TS).
@@ -327,7 +329,8 @@ final class KComposeViewProps: KScreenProps {
           title: s.title,
           items: s.items.map { item in
             KComposeStampItem(id: item.id, name: item.name, ink: kComposeColor(item.inkHex) ?? theme.ink, accessibilityLabel: item.a11yLabel)
-          }
+          },
+          mark: s.mark
         )
       }
     }

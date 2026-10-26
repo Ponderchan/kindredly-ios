@@ -640,11 +640,15 @@ export function buildPeekKindreds(threads: readonly PeekThreadSource[] | null, n
 
 /* ── WREN'S LOOKS (owner 2026-10-19: the accessories exactly as live) ──── */
 
-/** The three free looks, in the tray's order, then the First Class tile. */
+/** The three free looks, in the tray's order, then the First Class tile. In a season (owner,
+    2026-10-26) the season's two looks take the beanie's and the scarf's places: none · witch ·
+    ghost · fc for Halloween; after it, the row is as before. */
 export const LOOK_TILES = ["none", "beanie", "scarf", "fc"] as const;
-export type LookTileId = (typeof LOOK_TILES)[number];
+/** the looks a season can put on the row (lib/season-core SEASONS[].looks) */
+export const SEASON_LOOK_TILES = ["witch", "ghost"] as const;
+export type LookTileId = (typeof LOOK_TILES)[number] | (typeof SEASON_LOOK_TILES)[number];
 /** The snapshot pose each tile shows (lib/bird-images). */
-export type LookPose = "lookNone" | "lookBeanie" | "lookScarf" | "lookWorn";
+export type LookPose = "lookNone" | "lookBeanie" | "lookScarf" | "lookWitch" | "lookGhost" | "lookWorn";
 
 export type LookTileVM = {
   id: LookTileId;
@@ -673,19 +677,27 @@ export type LooksFacts = {
   accessory: string;
   premium: boolean;
   wren: string;
+  /** the season's looks on offer now (lib/season useSeason().looks); none or omitted = the every-day row */
+  season?: readonly string[];
 };
 
 const FREE_LOOKS = ["none", "beanie", "scarf"] as const;
+const POSE: Record<Exclude<LookTileId, "fc">, LookPose> = { none: "lookNone", beanie: "lookBeanie", scarf: "lookScarf", witch: "lookWitch", ghost: "lookGhost" };
+const isSeasonLook = (id: string): id is (typeof SEASON_LOOK_TILES)[number] => (SEASON_LOOK_TILES as readonly string[]).includes(id);
 
 export function buildLooks(f: LooksFacts, fmt: MeFormat): LooksVM {
   const { t, upper } = fmt;
-  const wearsPaid = !(FREE_LOOKS as readonly string[]).includes(f.accessory);
-  const free = FREE_LOOKS.map(
+  // the season's looks are free, like the three; only the First Class pieces are "paid"
+  const wearsPaid = !(FREE_LOOKS as readonly string[]).includes(f.accessory) && !isSeasonLook(f.accessory);
+  // in a season, its first two looks take the beanie's and the scarf's places (an id this build can't draw is skipped)
+  const season = (f.season ?? []).filter(isSeasonLook).slice(0, 2);
+  const row: Exclude<LookTileId, "fc">[] = season.length === 2 ? ["none", ...season] : [...FREE_LOOKS];
+  const free = row.map(
     (id): LookTileVM => ({
       id,
       label: upper(t(`ws.acc.${id}`)),
       name: t(`ws.acc.${id}`),
-      pose: id === "none" ? "lookNone" : id === "beanie" ? "lookBeanie" : "lookScarf",
+      pose: POSE[id],
       selected: f.accessory === id,
       locked: false,
       dim: false,

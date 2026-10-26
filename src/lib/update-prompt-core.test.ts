@@ -53,6 +53,8 @@ ok("older → not newer", !newerVersion("1.0.4", "1.0.5"));
 ok("1.0.5 asks 1.2.4 nothing (itself)", !parcelWaiting("1.2.4", "1.0.5"));
 ok("1.0.6 out → 1.2.4 is asked", parcelWaiting("1.2.4", "1.0.6"));
 ok("1.0.6 out → 1.2.5 is not (itself)", !parcelWaiting("1.2.5", "1.0.6"));
+ok("1.0.7 out → 1.2.5 is asked, 1.2.6 is not (itself)", parcelWaiting("1.2.5", "1.0.7") && !parcelWaiting("1.2.6", "1.0.7"));
+ok("1.2.6 knows its release (1.0.7) and waits for Apple's answer", !parcelWaiting("1.2.6", null) && !parcelWaiting("1.2.6", "1.0.6"));
 ok("a known binary waits for Apple's answer", !parcelWaiting("1.2.4", null));
 ok("an unlisted binary follows the table", parcelWaiting("9.9.9", null) && parcelWaiting(null, "1.0.6"));
 

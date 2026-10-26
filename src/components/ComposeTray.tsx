@@ -5,7 +5,10 @@ import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 import { t } from "../lib/i18n";
 import { MONO, P as STATIC_P, PFM } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
-import { STAMP_CATEGORIES, STAMPS, getStamp, sname, stampsByCat } from "../data/stamps";
+import { MOOD_CATEGORIES, SEASONAL_CAT, STAMP_CATEGORIES, STAMPS, getStamp, sname, stampsByCat } from "../data/stamps";
+import { SEASONAL_STAMPS } from "../lib/season-core";
+import { useSeason } from "../lib/season";
+import "../data/strings-season"; // season.tray.mark
 import { Stamp, StampSlot } from "./Stamp";
 import { STAMP_LADDER, stampSlotStroke } from "../lib/stamp-frame";
 import "../data/strings-stamps2"; // cs2.tray.* and the 3/3 card's words
@@ -198,7 +201,8 @@ const COLS = 6;
 
 /** One stamp as a tray section lists it (screens/compose compose-model StampItemVM). */
 export type TrayStamp = { id: string; name: string; inkHex: string; a11yLabel: string };
-export type TraySection = { title: string; items: TrayStamp[] };
+/** `mark`: a seasonal set's small marker beside its head ("SEASONAL") */
+export type TraySection = { title: string; items: TrayStamp[]; mark?: string };
 /** The custom tab (screens/compose compose-model customTray): hidden = no tab row. */
 export type TrayCustom = { state: "hidden" | "empty" | "list"; items: { id: string; topic: string; hex: string; a11yLabel: string }[]; full: boolean };
 
@@ -257,6 +261,8 @@ export function StampTray({
   // a name's room: the column (the tray's width less its two 10 gutters, over six) less 3 either
   // side, so two neighbours' names never read as one (can't sleep made my day)
   const room = (useWindowDimensions().width - 20) / COLS - 6;
+  // without `sections` the tray builds its own: the season's stamps first while it lasts
+  const seasonStamps = useSeason().stamps;
   const tile = (it: TrayStamp, sectionKey: string) => {
     const on = selected === it.id;
     const fit = trayNameFit(it.name, room);
@@ -281,14 +287,22 @@ export function StampTray({
       </Pressable>
     );
   };
-  const section = (key: string, label: string, items: TrayStamp[]) =>
+  const section = (key: string, label: string, items: TrayStamp[], mark = "") =>
     items.length ? (
       <View key={key} style={{ marginBottom: 6 }}>
-        <Text accessibilityRole="header" style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: P.ink40, paddingHorizontal: 6, marginTop: 10, marginBottom: 4 }}>{label}</Text>
+        <View accessible accessibilityRole="header" accessibilityLabel={mark ? `${label}, ${mark}` : label} style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 6, marginTop: 10, marginBottom: 4 }}>
+          <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: 1.4, color: P.ink40 }}>{label}</Text>
+          {/* a seasonal set (Halloween 2026): a small pumpkin tag, the same in every theme (KStampTray's) */}
+          {!!mark && (
+            <Text style={{ ...PFM.monoSemi, fontSize: 8, letterSpacing: 1, color: "#1E1B35", backgroundColor: "#FEF2E4", borderColor: "#F39420", borderWidth: 1, borderRadius: 8, overflow: "hidden", paddingHorizontal: 5, paddingVertical: 1 }}>{mark}</Text>
+          )}
+        </View>
         <View style={{ flexDirection: "row", flexWrap: "wrap" }}>{items.map((it) => tile(it, key))}</View>
       </View>
     ) : null;
-  const known = new Set(STAMPS.map((s) => s.id));
+  // a seasonal stamp out of its season is offered nowhere (not as a recent or a suggestion either)
+  const known = new Set(STAMPS.map((s) => s.id).filter((id) => !SEASONAL_STAMPS.has(id) || seasonStamps.includes(id)));
+  const seasonCat = STAMP_CATEGORIES.find((c) => c.id === SEASONAL_CAT);
   const own = (ids: string[]): TrayStamp[] =>
     ids
       .filter((id) => known.has(id))
@@ -370,12 +384,13 @@ export function StampTray({
             )}
           </View>
         ) : sections ? (
-          sections.map((s, i) => section(`${i}:${s.title}`, s.title, s.items))
+          sections.map((s, i) => section(`${i}:${s.title}`, s.title, s.items, s.mark))
         ) : (
           [
+            seasonCat && section(SEASONAL_CAT, sname(seasonCat.name).toUpperCase(), own(seasonStamps), t("season.tray.mark")),
             section("suggested", t("cp.forThisLetter"), own(suggested)),
             section("recent", t("cp.recent"), own(recent)),
-            ...STAMP_CATEGORIES.map((cat) => section(cat.id, sname(cat.name).toUpperCase(), own(stampsByCat(cat.id).map((s) => s.id)))),
+            ...MOOD_CATEGORIES.map((cat) => section(cat.id, sname(cat.name).toUpperCase(), own(stampsByCat(cat.id).map((s) => s.id)))),
           ]
         )}
       </ScrollView>

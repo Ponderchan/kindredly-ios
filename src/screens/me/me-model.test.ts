@@ -430,6 +430,18 @@ ok("no aura yet → no card (the skeleton)", buildAuraCard(null, fmt) === null);
   ok("looks: member hints open the wardrobe", paid.tiles[3].hint === "m4.a11y.opensWardrobe{wren:Pip}" && paid.member);
   const paidPlain = buildLooks({ accessory: "none", premium: true, wren: "Pip" }, fmt);
   ok("looks: a member in a free look", paidPlain.tiles[0].selected && !paidPlain.tiles[3].selected && paidPlain.tiles[3].pose === "lookNone");
+  /* the looks in a season (Halloween 2026: none · witch · ghost · fc; free for everyone) */
+  const hw = buildLooks({ accessory: "none", premium: false, wren: "Pip", season: ["witch", "ghost"] }, fmt);
+  ok("season: none · witch · ghost · fc", hw.tiles.map((x) => x.id).join() === "none,witch,ghost,fc");
+  ok("season: its tiles show her in each look", hw.tiles.map((x) => x.pose).join() === "lookNone,lookWitch,lookGhost,lookNone");
+  ok("season: free, never locked or dimmed", hw.tiles.slice(0, 3).every((x) => !x.locked && !x.dim && x.hint === ""));
+  ok("season: named by the app's own words", hw.tiles[1].name === "ws.acc.witch" && hw.tiles[2].label === "WS.ACC.GHOST");
+  const hwOn = buildLooks({ accessory: "ghost", premium: true, wren: "Pip", season: ["witch", "ghost"] }, fmt);
+  ok("season: the one she wears is selected, and it isn't a First Class piece", hwOn.tiles[2].selected && !hwOn.tiles[3].selected && hwOn.tiles[3].pose === "lookNone");
+  const after = buildLooks({ accessory: "witch", premium: true, wren: "Pip", season: [] }, fmt);
+  ok("after the season: the every-day row, nothing selected, her hat not counted as First Class", after.tiles.map((x) => x.id).join() === "none,beanie,scarf,fc" && after.tiles.every((x) => !x.selected) && after.tiles[3].pose === "lookNone");
+  ok("a season this build can't draw: the every-day row", buildLooks({ accessory: "none", premium: false, wren: "Pip", season: ["muffler", "mittens"] }, fmt).tiles.map((x) => x.id).join() === "none,beanie,scarf,fc");
+  ok("in a season, beanie worn: no tile selected but the row stays four", buildLooks({ accessory: "beanie", premium: false, wren: "Pip", season: ["witch", "ghost"] }, fmt).tiles.filter((x) => x.selected).length === 0);
 
   /* the First Class card */
   const fcFree = buildFirstClass4a({ premium: false, cofounderNo: null, wren: "Pip", trial: "7 days free" }, fmt);

@@ -2,17 +2,21 @@ import { useEffect, useState } from "react";
 import { scoped as AsyncStorage } from "./scoped-store";
 import { readWren, writeWren } from "./wren-profile";   // her coat and dress live on the account (WREN_FIELDS)
 import { t } from "./i18n";
+import "../data/strings-season"; // ws.acc.witch / ws.acc.ghost, wherever a piece is named
 import type { GrowthStats } from "../data/growth";
 import type { WrenAccessory, WrenSkin, WrenStage } from "../components/WrenBird";
 
-/* What Wren is wearing — local-only, like drafts. A cosmetic; nothing about
-   being heard is ever gated. Free birds get a couple of pieces; the rest are
-   First Class / seasonal drops. */
+/* What Wren is wearing (on the account, lib/wren-profile). A cosmetic; nothing
+   about being heard is ever gated. Free birds get a couple of pieces; the rest
+   are First Class, and the seasonal drops are free while their season lasts. */
 
 
 export const FREE_ACCESSORIES: WrenAccessory[] = ["none", "beanie", "scarf"];
 
-export const ACCESSORY_META: { id: WrenAccessory; label: string; emoji: string; free: boolean }[] = [
+/* Every piece she can have on. A value not listed here (from an older or newer app, or the web)
+   reads as "none" (getWrenAccessory). The seasonal ones are free and offered only in their
+   season (lib/season-core); offeredAccessories() is what a wardrobe shows. */
+export const ACCESSORY_META: { id: WrenAccessory; label: string; emoji: string; free: boolean; seasonal?: true }[] = [
   { id: "none", label: "Bare", emoji: "🐦", free: true },
   { id: "beanie", label: "Beanie", emoji: "🧢", free: true },
   { id: "scarf", label: "Scarf", emoji: "🧣", free: true },
@@ -20,7 +24,20 @@ export const ACCESSORY_META: { id: WrenAccessory; label: string; emoji: string; 
   { id: "flower", label: "Flower crown", emoji: "🌸", free: false },
   { id: "party", label: "Party hat", emoji: "🎉", free: false },
   { id: "shades", label: "Shades", emoji: "🕶", free: false },
+  // Halloween 2026 (owner, 2026-10-26): free for everyone, in the season window only
+  { id: "witch", label: "Witch hat", emoji: "🧙", free: true, seasonal: true },
+  { id: "ghost", label: "Bedsheet ghost", emoji: "👻", free: true, seasonal: true },
 ];
+
+/** What a wardrobe offers now: Bare, then the season's looks (useSeason().looks), then the
+ *  every-day pieces. A seasonal look out of its season isn't offered; one she already wears
+ *  stays on her (nothing here takes it off). */
+export function offeredAccessories(seasonLooks: readonly string[]): typeof ACCESSORY_META {
+  const season = seasonLooks
+    .map((id) => ACCESSORY_META.find((a) => a.id === id && a.seasonal))
+    .filter((a): a is (typeof ACCESSORY_META)[number] => !!a);
+  return [ACCESSORY_META[0], ...season, ...ACCESSORY_META.filter((a) => a.id !== "none" && !a.seasonal)];
+}
 
 /* Which skin Wren wears. sticker is the free default; plush unlocks at a
    milestone (first kindred); ink is First Class. The gate lives in the UI —

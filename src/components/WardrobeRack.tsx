@@ -6,7 +6,8 @@ import "../data/strings-a11y-compose";
 import { PFM } from "../theme/post";
 import { useP } from "../lib/theme";
 import { useEggOS } from "../lib/egg-os";
-import { ACCESSORY_META, SKINS, skinName, skinUnlocked, useHatchSkin } from "../lib/wren-style";
+import { SKINS, offeredAccessories, skinName, skinUnlocked, useHatchSkin } from "../lib/wren-style";
+import { useSeason } from "../lib/season";
 import { WrenBird, type WrenAccessory, type WrenSkin, type WrenStage } from "./WrenBird";
 
 /* THE WARDROBE RACK — one rack, wherever she gets dressed.
@@ -76,7 +77,10 @@ export function WardrobeRack({
 
   const hatch = useHatchSkin();   // the coat she hatched in on /aura: hers
   const looksOwned = SKINS.filter((s) => skinUnlocked(s.id, stats, premium, hatch)).length;
-  const pieces = ACCESSORY_META.filter((a) => a.id !== "none");
+  // the season's looks (free) come first while it lasts, and aren't offered after it
+  const season = useSeason();
+  const offered = offeredAccessories(season.looks);
+  const pieces = offered.filter((a) => a.id !== "none");
   const piecesOwned = pieces.filter((a) => a.free || premium).length;
 
   return (
@@ -109,7 +113,7 @@ export function WardrobeRack({
         <View style={{ marginTop: show === "both" ? 16 : 0 }}>
           {header(t("wren.dress"), `${piecesOwned}/${pieces.length}`)}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentOffset={{ x: 0, y: 0 }} contentContainerStyle={{ paddingRight: 24, paddingBottom: 4 }}>
-            {ACCESSORY_META.map((a) => {
+            {offered.map((a) => {
               const unlocked = a.free || premium;
               return (
                 <Tile

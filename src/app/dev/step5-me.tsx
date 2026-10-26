@@ -73,7 +73,7 @@ type DoorMode = "none" | "progress" | "ready" | "locked" | "done";
 const DOOR_MODES: readonly DoorMode[] = ["none", "progress", "ready", "locked", "done"];
 const LETTER_COUNTS = [null, 0, 2, 10] as const;
 const KIN_MODES = [null, 0, 3] as const;
-const LOOKS = ["none", "beanie", "scarf", "phones"] as const;
+const LOOKS = ["none", "beanie", "scarf", "phones", "witch", "ghost"] as const;
 
 /* the letters peek's fixtures: ten letters, newest first, quiet / answered / replied */
 const LETTER_BODIES = [

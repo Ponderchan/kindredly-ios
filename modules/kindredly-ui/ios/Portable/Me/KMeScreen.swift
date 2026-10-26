@@ -162,7 +162,7 @@ public struct KMePeekKindreds: Equatable, Sendable {
 
 /// One tile of WREN'S LOOKS.
 public struct KMeLookTile: Identifiable, Equatable, Sendable {
-  /// none | beanie | scarf | fc
+  /// none | beanie | scarf | fc; in Halloween none | witch | ghost | fc
   public let id: String
   /// BARE · BEANIE · SCARF · 1ST CLASS (drawn)
   public let label: String
@@ -197,7 +197,7 @@ public struct KMeLooks: Equatable, Sendable {
   public var all = ""
   /// VoiceOver's hint for All looks ("Opens First Class" or "Opens Wren's wardrobe")
   public var allHint = ""
-  /// always four: none, beanie, scarf, fc
+  /// always four: none, beanie, scarf, fc (in Halloween none, witch, ghost, fc)
   public var tiles: [KMeLookTile] = []
 
   public init() {}
@@ -474,7 +474,7 @@ public final class KMeActions {
   /// the segment now showing, after a chip or a segment command
   public var onSegment: (Int) -> Void = { _ in }
   public var onCourier: () -> Void = {}
-  /// a looks tile: none | beanie | scarf | fc
+  /// a looks tile: none | beanie | scarf | fc (or witch | ghost in Halloween)
   public var onLook: (String) -> Void = { _ in }
   public var onAllLooks: () -> Void = {}
   public var onAuraOpen: () -> Void = {}

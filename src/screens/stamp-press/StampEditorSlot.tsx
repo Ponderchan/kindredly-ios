@@ -11,7 +11,7 @@ import { t, useLang } from "../../lib/i18n";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
 import { defaultName } from "../../lib/default-name";
-import { STAMP_CATEGORIES, sname } from "../../data/stamps";
+import { MOOD_CATEGORIES, sname } from "../../data/stamps";
 import {
   DEFAULT_CATEGORY,
   FREE_STAMPS,
@@ -203,7 +203,8 @@ export function StampEditorSlot({ photo, onRetake, onClose, editing = null }: St
 
   const insets = useMemo(() => ({ top: screen.top, bottom: screen.bottom, tabBarRoom: 0 }), [screen.top, screen.bottom]);
 
-  const categories = useMemo(() => STAMP_CATEGORIES.map((c) => ({ id: c.id, hex: c.color, name: sname(c.name) })), [lang]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the six mood categories' colours (the seasonal one is not a photo stamp's colour)
+  const categories = useMemo(() => MOOD_CATEGORIES.map((c) => ({ id: c.id, hex: c.color, name: sname(c.name) })), [lang]); // eslint-disable-line react-hooks/exhaustive-deps
   const filters = useMemo(() => filtersFor(plan).map((f) => ({ id: f.id, name: t(`cs2.ed.f.${f.id}`), locked: f.locked })), [plan, lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const meName = useMemo(() => (user?.id ? defaultName(user.id, lang) : null), [user?.id, lang]);

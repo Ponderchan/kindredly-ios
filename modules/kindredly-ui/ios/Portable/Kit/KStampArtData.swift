@@ -92,16 +92,19 @@ struct KStampV3Entry: Sendable {
   }
 }
 
-/// The 36 stamps v3 (KStampArtData.v3, below) and, while src/data/stamp-art-v2.ts exists, the v2 set
+/// The 39 stamps v3 (KStampArtData.v3, below) and, while src/data/stamp-art-v2.ts exists, the v2 set
 /// (KStampArtData.stamps) the v2 KStamp draws until it moves to v3.
 ///
-/// The 36 stamps v2 as src/data/stamp-art-v2.ts holds them (components/Stamp draws them in React
+/// The 39 stamps v2 as src/data/stamp-art-v2.ts holds them (components/Stamp draws them in React
 /// Native): each stamp's marks, path data verbatim on the 100 × 120 box, in three layers (art, soft, xs),
 /// with its category and its own colour, in src/data/stamps.ts order. KStamp draws it over the frame
 /// (Kit/KStampFrame.swift): art and xs in white, soft in softHex, strokes at the tier's width.
 ///
-/// Read by the generator: 36 of 36 stamps; 117 art, 43 soft and 61 xs marks.
-/// Drawn as the template instead: none.
+/// Read by the generator: 36 of 39 stamps; 117 art, 43 soft and 61 xs marks.
+/// Drawn as the template instead (no marks), because the generator could not read their drawing:
+///   - spooky-season: no drawing in stamp-art-v2.ts
+///   - boo: no drawing in stamp-art-v2.ts
+///   - trick-or-treat: no drawing in stamp-art-v2.ts
 enum KStampArtData {
   /// The box the marks are drawn on: viewBox 0 0 100 120.
   static let box = CGSize(width: 100, height: 120)
@@ -109,7 +112,7 @@ enum KStampArtData {
   /// The colour an id this build doesn't know is drawn in (STAMP_FALLBACK_HEX, #8B7FE8).
   static let unknownTint: UInt32 = 0x8B7FE8FF
 
-  // ── STAMPS v3: 36 of 36 from src/data/stamp-art-v3.ts; 90 rim, 167 body, 15 mark, 269 face elements ──
+  // ── STAMPS v3: 39 of 39 from src/data/stamp-art-v3.ts; 98 rim, 183 body, 18 mark, 288 face elements ──
 
   /// v3's ink role (#1E1B35): edges, eye rings, pupils, lids, lines on the paper; the #tag's words.
   static let v3Ink: UInt32 = 0x1E1B35FF
@@ -138,6 +141,7 @@ enum KStampArtData {
     "small": 0xFBBF3EFF,
     "becoming": 0x27C8BDFF,
     "missing": 0xFB765AFF,
+    "seasonal": 0xF39420FF,
   ]
 
   static let v3: [KStampV3Entry] = [
@@ -1023,6 +1027,83 @@ enum KStampArtData {
         .p("M50.98,50.17A8,8 0 0 1 64.8,49.2Z", .ink, .none, 0),
       ]
     ),
+    // ── Halloween ──
+    KStampV3Entry("spooky-season", category: "seasonal", hex: 0xF39420FF, tint: 0xFEF2E4FF, nameLight: 0x965806FF, nameDark: 0xF39420FF,
+      rims: [
+        .p("M29.01,60.8A11,18.5 6 1 1 50.89,63.1A11,18.5 6 1 1 29.01,60.8Z", .tint, .tint, 20),
+        .p("M48.9,62.89A11,18.5 6 1 1 70.78,65.19A11,18.5 6 1 1 48.9,62.89Z", .tint, .tint, 20),
+        .p("M35.79,58.5A14.5,25 6 1 1 64.63,61.53A14.5,25 6 1 1 35.79,58.5Z", .tint, .tint, 20),
+        .p("M49.24,35.78L50.78,25.88Q51.41,19.92 57.48,19.55L60.46,19.86Q61.64,23 58.45,24.68Q56.85,25.52 56.54,28.5L56.2,36.51Z", .tint, .tint, 20),
+      ],
+      body: [
+        .p("M29.01,60.8A11,18.5 6 1 1 50.89,63.1A11,18.5 6 1 1 29.01,60.8Z", .ink, .ink, 12),
+        .p("M48.9,62.89A11,18.5 6 1 1 70.78,65.19A11,18.5 6 1 1 48.9,62.89Z", .ink, .ink, 12),
+        .p("M35.79,58.5A14.5,25 6 1 1 64.63,61.53A14.5,25 6 1 1 35.79,58.5Z", .ink, .ink, 12),
+        .p("M29.01,60.8A11,18.5 6 1 1 50.89,63.1A11,18.5 6 1 1 29.01,60.8Z", .hex, .none, 0),
+        .p("M48.9,62.89A11,18.5 6 1 1 70.78,65.19A11,18.5 6 1 1 48.9,62.89Z", .hex, .none, 0),
+        .p("M35.79,58.5A14.5,25 6 1 1 64.63,61.53A14.5,25 6 1 1 35.79,58.5Z", .hex, .none, 0),
+        .p("M49.24,35.78L50.78,25.88Q51.41,19.92 57.48,19.55L60.46,19.86Q61.64,23 58.45,24.68Q56.85,25.52 56.54,28.5L56.2,36.51Z", .ink, .ink, 12),
+        .p("M49.24,35.78L50.78,25.88Q51.41,19.92 57.48,19.55L60.46,19.86Q61.64,23 58.45,24.68Q56.85,25.52 56.54,28.5L56.2,36.51Z", .hex, .none, 0),
+      ],
+      marks: [
+        .p("M37.33,67.71Q47.75,73.83 61.46,67.73Q59.87,78.12 49.27,78.51L48.69,74.43L45.21,74.07L44.35,77.49Q38.59,74.88 37.33,67.71Z", .tint, .none, 0),
+      ],
+      face: [
+        .c(42.59, 52.17, 10.5, .ink, .none, 0),
+        .c(59.29, 53.93, 10.5, .ink, .none, 0),
+        .c(42.59, 52.17, 8, .tint, .none, 0),
+        .c(43.45, 49.72, 4.2, .ink, .none, 0),
+        .c(59.29, 53.93, 8, .tint, .none, 0),
+        .c(60.15, 51.47, 4.2, .ink, .none, 0),
+      ]
+    ),
+    KStampV3Entry("boo", category: "seasonal", hex: 0xD6D3F7FF, tint: 0xFAFAFEFF, nameLight: 0x686488FF, nameDark: 0xD6D3F7FF,
+      rims: [
+        .p("M28.86,43.05A18,21 -6 0 1 64.66,39.29C66.44,56.2 68.69,68.02 71.43,79.8A6.83,6.83 -6 0 1 57.84,81.23A6.83,6.83 -6 0 1 44.25,82.66A6.83,6.83 -6 0 1 30.66,84.09C30.9,72 30.64,59.96 28.86,43.05Z", .tint, .tint, 20),
+      ],
+      body: [
+        .p("M28.86,43.05A18,21 -6 0 1 64.66,39.29C66.44,56.2 68.69,68.02 71.43,79.8A6.83,6.83 -6 0 1 57.84,81.23A6.83,6.83 -6 0 1 44.25,82.66A6.83,6.83 -6 0 1 30.66,84.09C30.9,72 30.64,59.96 28.86,43.05Z", .ink, .ink, 12),
+        .p("M28.86,43.05A18,21 -6 0 1 64.66,39.29C66.44,56.2 68.69,68.02 71.43,79.8A6.83,6.83 -6 0 1 57.84,81.23A6.83,6.83 -6 0 1 44.25,82.66A6.83,6.83 -6 0 1 30.66,84.09C30.9,72 30.64,59.96 28.86,43.05Z", .hex, .none, 0),
+      ],
+      marks: [
+        .p("M60.18,58.86Q63.51,66.56 62.35,74.72", .none, .tint, 6),
+      ],
+      face: [
+        .c(38.43, 46.07, 10.9, .ink, .none, 0),
+        .c(54.74, 44.35, 9.7, .ink, .none, 0),
+        .c(38.43, 46.07, 8.4, .tint, .none, 0),
+        .c(35.46, 46.51, 4.2, .ink, .none, 0),
+        .c(54.74, 44.35, 7.2, .tint, .none, 0),
+        .c(52.96, 44.62, 4.2, .ink, .none, 0),
+        .p("M42.69,63.72A3.4,3.5 -6 1 1 49.46,63.01A3.4,3.5 -6 1 1 42.69,63.72Z", .tint, .none, 0),
+      ]
+    ),
+    KStampV3Entry("trick-or-treat", category: "seasonal", hex: 0xD55AC7FF, tint: 0xFAEBF8FF, nameLight: 0xAD0BA1FF, nameDark: 0xD55AC7FF,
+      rims: [
+        .p("M43.74,41.2L30.41,27Q32.47,22.88 36.47,24.46Q38.53,20.34 42.17,22.52Q44.36,18.89 48.11,21.56Q50.91,18.28 53.69,21.2L48.59,39.99Z", .tint, .tint, 20),
+        .p("M53.41,80.01L50.74,92.01Q55.34,93.96 58.74,91.05Q63.11,92.02 66.26,88.14L58.26,78.8Z", .tint, .tint, 20),
+        .p("M31.11,64.96A20.5,20.5 -14 1 1 70.89,55.04A20.5,20.5 -14 1 1 31.11,64.96Z", .tint, .tint, 20),
+      ],
+      body: [
+        .p("M43.74,41.2L30.41,27Q32.47,22.88 36.47,24.46Q38.53,20.34 42.17,22.52Q44.36,18.89 48.11,21.56Q50.91,18.28 53.69,21.2L48.59,39.99Z", .ink, .ink, 12),
+        .p("M43.74,41.2L30.41,27Q32.47,22.88 36.47,24.46Q38.53,20.34 42.17,22.52Q44.36,18.89 48.11,21.56Q50.91,18.28 53.69,21.2L48.59,39.99Z", .tint, .none, 0),
+        .p("M53.41,80.01L50.74,92.01Q55.34,93.96 58.74,91.05Q63.11,92.02 66.26,88.14L58.26,78.8Z", .ink, .ink, 12),
+        .p("M53.41,80.01L50.74,92.01Q55.34,93.96 58.74,91.05Q63.11,92.02 66.26,88.14L58.26,78.8Z", .tint, .none, 0),
+        .p("M31.11,64.96A20.5,20.5 -14 1 1 70.89,55.04A20.5,20.5 -14 1 1 31.11,64.96Z", .ink, .ink, 12),
+        .p("M31.11,64.96A20.5,20.5 -14 1 1 70.89,55.04A20.5,20.5 -14 1 1 31.11,64.96Z", .hex, .none, 0),
+      ],
+      marks: [
+        .p("M43.35,74.79Q55.11,76.5 65.18,69.35", .none, .tint, 6),
+      ],
+      face: [
+        .c(42.42, 56.99, 9.7, .ink, .none, 0),
+        .c(58.33, 53.02, 10.9, .ink, .none, 0),
+        .c(42.42, 56.99, 7.2, .tint, .none, 0),
+        .c(44.04, 56.27, 4.2, .ink, .none, 0),
+        .c(58.33, 53.02, 8.4, .tint, .none, 0),
+        .c(61.03, 51.82, 4.2, .ink, .none, 0),
+      ]
+    ),
   ]
 
   // ── STAMPS v2 (deprecated: written while src/data/stamp-art-v2.ts exists) ──
@@ -1542,5 +1623,12 @@ enum KStampArtData {
         KStampMark("M52,62L64,48L70,36", .stroke),
       ]
     ),
+    // ── Halloween ──
+    // spooky-season: the template, no drawing in stamp-art-v2.ts
+    KStampArtEntry("spooky-season", category: "seasonal", tint: 0xF39420FF, art: [], soft: [], xs: []),
+    // boo: the template, no drawing in stamp-art-v2.ts
+    KStampArtEntry("boo", category: "seasonal", tint: 0xD6D3F7FF, art: [], soft: [], xs: []),
+    // trick-or-treat: the template, no drawing in stamp-art-v2.ts
+    KStampArtEntry("trick-or-treat", category: "seasonal", tint: 0xD55AC7FF, art: [], soft: [], xs: []),
   ]
 }

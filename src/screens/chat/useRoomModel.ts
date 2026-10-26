@@ -24,7 +24,7 @@ import { noteWrote } from "../../lib/local-push";
 import { readCorrespondent, type CorrespondentRead } from "../../lib/correspondent";
 import { noticeThings, type Notice } from "../../lib/notice";
 import { noticeAboutUs, type KindredNotice } from "../../lib/kindred-read";
-import { STAMPS, getStamp, sname } from "../../data/stamps";
+import { MOOD_STAMPS, getStamp, sname } from "../../data/stamps";
 import { stampsHeard } from "../../lib/stamp-suggest";
 import { customStampNow } from "../../lib/custom-stamps";
 import { useWrenName } from "../../lib/wren-name";
@@ -519,7 +519,8 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
     return () => task.cancel();
   }, [detail]);
   const ideas = useMemo(
-    () => ideaOrder(STAMPS.map((st) => ({ cat: st.cat, text: sname(st.prompt) })), theirCats, id ?? ""),
+    // the 36 mood stamps' prompts (a seasonal stamp's line would outlive its season here)
+    () => ideaOrder(MOOD_STAMPS.map((st) => ({ cat: st.cat, text: sname(st.prompt) })), theirCats, id ?? ""),
     // the prompts are read in the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [theirCats, id, getLang()],
@@ -980,7 +981,7 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
 
   /** Wren hands you a question: a random stamp's prompt, question mode, the field. */
   const seedQuestion = useCallback(() => {
-    const seed = STAMPS[Math.floor(Math.random() * STAMPS.length)];
+    const seed = MOOD_STAMPS[Math.floor(Math.random() * MOOD_STAMPS.length)];
     const prompt = sname(seed.prompt);
     setReplyTo(null);
     setMode({ kind: "question", prompt });

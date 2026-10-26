@@ -8,7 +8,10 @@ import { useWrenOnce } from "../../components/WrenSaysOnce";
 import type { WrenMood } from "../../components/WrenBird";
 import { openLeaveSheet } from "../../components/LeaveSheet";
 import { openSignUpSheet } from "../../components/SignUpSheet";
-import { STAMP_CATEGORIES, getStamp, sname, stampsByCat, type Stamp } from "../../data/stamps";
+import { MOOD_CATEGORIES, SEASONAL_CAT, STAMP_CATEGORIES, getStamp, sname, stampsByCat, type Stamp } from "../../data/stamps";
+import { SEASONAL_STAMPS } from "../../lib/season-core";
+import { useSeason } from "../../lib/season";
+import "../../data/strings-season"; // season.* (the seasonal set's marker), ws.acc.witch / ghost
 import { topicTagLook } from "../../components/10a/kit";
 import type { ThemeTokens } from "../../theme/themes";
 import { blurTarget, blurThen, dismissKeyboard, type CommandTarget } from "../../lib/keyboard";
@@ -237,12 +240,18 @@ const TRAY_TAB_KEY = "kindredly_tray_tab";
 
 /** The tray's sections for the stamps it shows now: names in the stamp's own name colour
     (nameLight on the light themes, nameDark on Midnight: compose-model trayNameHex, measured on
-    the tray's soft), unknown ids dropped. */
-export function traySections(p: { suggested: string[]; recent: string[]; tk: ThemeTokens }): StampSectionVM[] {
+    the tray's soft), unknown ids dropped. `season`: the seasonal stamps on offer now (lib/season
+    useSeason().stamps), shown first under their category's name with the SEASONAL marker; a
+    seasonal stamp out of its season is offered nowhere, not even as a recent or a suggestion. */
+export function traySections(p: { suggested: string[]; recent: string[]; tk: ThemeTokens; season?: readonly string[] }): StampSectionVM[] {
+  const season = p.season ?? [];
+  const offered = (ids: readonly string[]) => ids.filter((id) => !SEASONAL_STAMPS.has(id) || season.includes(id));
+  const seasonCat = STAMP_CATEGORIES.find((c) => c.id === SEASONAL_CAT);
   return buildStampSections({
-    suggested: { title: t("cp.forThisLetter"), ids: p.suggested },
-    recent: { title: t("cp.recent"), ids: p.recent },
-    categories: STAMP_CATEGORIES.map((cat) => ({ title: sname(cat.name).toUpperCase(), ids: stampsByCat(cat.id).map((s) => s.id) })),
+    seasonal: season.length && seasonCat ? { title: sname(seasonCat.name).toUpperCase(), mark: t("season.tray.mark"), ids: season } : null,
+    suggested: { title: t("cp.forThisLetter"), ids: offered(p.suggested) },
+    recent: { title: t("cp.recent"), ids: offered(p.recent) },
+    categories: MOOD_CATEGORIES.map((cat) => ({ title: sname(cat.name).toUpperCase(), ids: stampsByCat(cat.id).map((s) => s.id) })),
     item: (id) => {
       const st = getStamp(id);
       if (!st) return null;
@@ -591,13 +600,15 @@ export function useComposeState(opts: {
 
   const askCellNow = askCell({ askOpen, mode });
 
-  // the stamp tray's sections, read off the letter as it stands when the tray opens
+  // the stamp tray's sections, read off the letter as it stands when the tray opens; the season's
+  // stamps first while it lasts (on a binary that draws them)
+  const seasonStamps = useSeason().stamps;
   const trayText = tray === "stamps" ? text : "";
   const sections = useMemo(
-    () => (tray === "stamps" ? traySections({ suggested: suggestStamps(trayText), recent, tk }) : []),
+    () => (tray === "stamps" ? traySections({ suggested: suggestStamps(trayText), recent, tk, season: seasonStamps }) : []),
     // the words follow the reader's language (getLang inside sname / t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [tray, trayText, recent, tk, getLang()],
+    [tray, trayText, recent, tk, seasonStamps, getLang()],
   );
 
   // ── actions ──

@@ -3,10 +3,10 @@
    from data/stamp-art-v3 and data/stamps.ts is exactly what the kit drew:
      - design/stamps-v3/golden.json was cut by the kit's own tierSVG with the colours literal as the
        SVGs paint them, so it is independent of the importer's role mapping and of this file's code;
-     - for every one of the 36 at every tier (and at each tier's edges), stampDrawListV3 gives the
+     - for every one of the 39 (36 mood stamps, 3 seasonal) at every tier (and at each tier's edges), stampDrawListV3 gives the
        same elements, in the same order, with the same geometry, fill, stroke and width;
      - the tier rule, the dot, the frame-only fallback, the slot, the colours in stamps.ts (hex,
-       nameLight, nameDark, the six category colours) and the rules on them (ink ≥ 4.5:1 on every
+       nameLight, nameDark, the six category colours and the seasonal one) and the rules on them (ink ≥ 4.5:1 on every
        hex, no hex literal in the art data), and that stamp-art-v3.ts and the golden file are what
        the importer writes from the SVGs today.
    Not wired to a runner; run by hand from the repo root with plain node:
@@ -70,11 +70,14 @@ const asGolden = (e: import("./stamp-frame").StampDrawEl): GoldenEl => {
 
 /* ── stamps.ts: the bright palette ── */
 
-ok("stamps.ts lists 36 stamps, each with color, nameLight and nameDark", STAMPS.length === 36);
-ok("the golden covers the same 36, in the same order", same(Object.keys(G.draw), STAMPS.map((s) => s.id)));
+ok("stamps.ts lists 39 stamps, each with color, nameLight and nameDark", STAMPS.length === 39);
+ok("36 mood stamps, 6 to each of the six categories", STAMPS.filter((s) => s.cat !== "seasonal").length === 36 && CATS.filter((c) => c.id !== "seasonal").every((c) => STAMPS.filter((s) => s.cat === c.id).length === 6));
+ok("then the 3 seasonal ones, last (Halloween 2026: spooky-season, boo, trick-or-treat)", same(STAMPS.slice(36).map((s) => s.id), ["spooky-season", "boo", "trick-or-treat"]) && STAMPS.slice(36).every((s) => s.cat === "seasonal"));
+ok("the golden knows which are seasonal", same((G as unknown as { seasonal: string[] }).seasonal, ["spooky-season", "boo", "trick-or-treat"]));
+ok("the golden covers the same 39, in the same order", same(Object.keys(G.draw), STAMPS.map((s) => s.id)));
 ok("every stamp's colour is the palette's hex (golden colours, from palette.json via the kit)", STAMPS.every((s) => G.colours[s.id]?.hex === s.color));
 ok("every nameLight / nameDark is the palette's name_classic / name_midnight", STAMPS.every((s) => G.colours[s.id].nameLight === s.nameLight && G.colours[s.id].nameDark === s.nameDark));
-ok("six category colours, rung 3 of each family", CATS.length === 6 && CATS.every((c) => G.categories[c.id] === c.color));
+ok("six category colours, rung 3 of each family, and the seasonal one (the pumpkin)", CATS.length === 7 && CATS.every((c) => G.categories[c.id] === c.color) && CATS[6].id === "seasonal" && CATS[6].color === "#F39420");
 const lin = (v: number) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
 const lum = (h: string) => { const n = parseInt(h.slice(1), 16); return 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255); };
 const cr = (a: string, b: string) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
@@ -84,7 +87,7 @@ ok("white fails 4.5:1 on every stamp colour (never white words on a hex)", STAMP
 /* ── colours ── */
 
 ok("the ink role is #1E1B35, the tint mix 0.88", F.STAMP_V3_INK === G.ink && F.STAMP_V3_TINT_MIX === G.tintMix);
-ok("stampTint is the kit's tintOf on all 36", STAMPS.every((s) => F.stampTint(s.color) === G.colours[s.id].tint));
+ok("stampTint is the kit's tintOf on all 39", STAMPS.every((s) => F.stampTint(s.color) === G.colours[s.id].tint));
 ok("stampColoursV3: hex, ink, tint", same(F.stampColoursV3("#9774F0"), { hex: "#9774F0", ink: "#1E1B35", tint: "#F3EEFD" }));
 ok("stampColoursV3 reads lower case and a missing #", same(F.stampColoursV3("9774f0"), F.stampColoursV3("#9774F0")));
 ok("a missing or malformed colour reads as the fallback", F.stampColoursV3(null).hex === G.fallbackHex && F.stampColoursV3("purple").hex === G.fallbackHex && F.STAMP_FALLBACK_HEX === G.fallbackHex);
@@ -127,7 +130,7 @@ for (const s of STAMPS) {
   if (F.stampDrawListV3(art, s.color, 14.99).length) misses.push(`${s.id}: draws something below 15`);
 }
 for (const m of misses.slice(0, 12)) console.log("     " + m);
-ok(`all 36 draw exactly the kit's element lists at xs, s and l (${drawn} of ${36 * 10} widths)`, misses.length === 0);
+ok(`all 39 draw exactly the kit's element lists at xs, s and l (${drawn} of ${STAMPS.length * 10} widths)`, misses.length === 0);
 ok("below 15pt nothing is drawn (the dot)", F.stampDrawListV3(A.STAMP_ART_V3["crush"], "#FAA7D8", 14).length === 0 && F.stampDrawListV3(null, null, 0).length === 0);
 ok("the face keeps the eye rings first at s and l (ink circles before every disc)", STAMPS.every((s) => {
   const face = F.stampDrawListV3(A.STAMP_ART_V3[s.id as keyof typeof A.STAMP_ART_V3], s.color, 40).filter((e) => e.layer === "face");
@@ -171,7 +174,7 @@ const svgDir = new URL("../../.claude/stamp-design/v3/final/svg/", import.meta.u
 if (existsSync(new URL("cringe.svg", svgDir))) {
   const I = await import("../../scripts/import-stamp-art-v3.mjs");
   const r = I.importAll();
-  ok("the importer reads all 36 SVGs (none missing, none rejected)", r.missing.length === 0 && r.rejected.length === 0);
+  ok("the importer reads all 39 SVGs (none missing, none rejected)", r.missing.length === 0 && r.rejected.length === 0);
   ok("stamp-art-v3.ts is up to date (node scripts/import-stamp-art-v3.mjs)", I.buildTs(r) === artText);
   ok("design/stamps-v3/golden.json is up to date", (await I.buildGolden(r)) === readFileSync(new URL("../../design/stamps-v3/golden.json", import.meta.url), "utf8"));
 } else {

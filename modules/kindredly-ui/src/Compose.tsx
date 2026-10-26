@@ -140,7 +140,8 @@ export type KComposeStamp = {
 };
 
 export type KComposeStampItem = { id: string; name: string; inkHex: string; a11yLabel: string };
-export type KComposeSection = { title: string; items: KComposeStampItem[] };
+/** `mark`: a seasonal set's small marker beside its head ("SEASONAL"); a binary before 1.2.6 ignores it */
+export type KComposeSection = { title: string; items: KComposeStampItem[]; mark?: string };
 
 /** The more tray's cells. askOn: lit (the question shows); askDisabled: off while speaking (a
     recording carries no question); voiceLocked: not First Class (a tap goes to the paywall). */
@@ -289,6 +290,7 @@ const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
 export function nativeComposeSections(sections: readonly KComposeSection[]): KComposeSection[] {
   return sections.map((s) => ({
     title: s.title ?? "",
+    mark: s.mark ?? "",
     items: s.items.map((i) => ({ id: i.id ?? "", name: i.name ?? "", inkHex: i.inkHex ?? "", a11yLabel: i.a11yLabel ?? "" })),
   }));
 }

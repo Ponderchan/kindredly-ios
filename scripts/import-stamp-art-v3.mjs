@@ -1,4 +1,4 @@
-// node scripts/import-stamp-art-v3.mjs            read the 36 v3 SVGs, write src/data/stamp-art-v3.ts and
+// node scripts/import-stamp-art-v3.mjs            read the 39 v3 SVGs, write src/data/stamp-art-v3.ts and
 //                                                 design/stamps-v3/golden.json
 // node scripts/import-stamp-art-v3.mjs --check    exit 1 if either file is out of date with the SVGs
 // node scripts/import-stamp-art-v3.mjs --web "<web repo>/app/engine/stamp-art-v3.js"
@@ -9,11 +9,11 @@
 // The contract for the renderers is .claude/stamp-design/v3/INTEGRATION.md.
 //
 // WHAT IT READS
-//   .claude/stamp-design/v3/final/svg/<id>.svg  the kit's output (kit/build.mjs, checked 36/36 by
+//   .claude/stamp-design/v3/final/svg/<id>.svg  the kit's output (kit/build.mjs, checked 39/39 by
 //       kit/check.mjs): 100 × 120, five layers <g id="frame|rims|body|marks|face"> in that order,
 //       plain path / circle (ellipse, line, polyline, polygon and rect are read too), every paint one
 //       of three colours: the stamp's hex, ink #1E1B35, tint = mix(hex, white, 0.88);
-//   src/data/stamps.ts   the 36 ids in order, each stamp's `color` (the hex), nameLight, nameDark;
+//   src/data/stamps.ts   the 39 ids in order (36 mood stamps, then the seasonal ones), each stamp's `color` (the hex), nameLight, nameDark;
 //   src/lib/stamp-frame.ts   STAMP_V3_FRAME_D, the frame path every SVG's frame layer must use;
 //   the kit itself (kit/lib.mjs tierSVG, kit/data.mjs = palette.json) for the golden file only.
 //
@@ -23,7 +23,7 @@
 //       fill and stroke as colour ROLES ("hex" | "ink" | "tint" | "none") and, when stroked, its
 //       width (box units), cap and join. No hex literal anywhere: the renderers resolve the roles
 //       at runtime from stamps.ts (lib/stamp-frame stampDrawListV3, Swift's KStampArtData entry).
-//       The frame layer is the same in all 36, so it is written once (STAMP_V3_FRAME) and shared.
+//       The frame layer is the same in every stamp, so it is written once (STAMP_V3_FRAME) and shared.
 //   design/stamps-v3/golden.json   for every id × tier (xs, s, l) the element list drawn, with
 //       LITERAL colours as the SVG has them, cut by the kit's own tierSVG — independent of the
 //       app's role mapping and tier code, so RN (src/lib/stamp-v3.test.ts), the web and Swift
@@ -43,6 +43,11 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { PATH_CHARS, parsePath } from "./art-path.mjs";
+
+/** how many stamps stamps.ts lists: the 36 mood stamps and the seasonal ones (category "seasonal",
+    offered only in their season, lib/season-core; drawn like any other) */
+export const STAMP_COUNT = 39;
+export const SEASONAL_CAT = "seasonal";
 
 export const SRC = new URL("../.claude/stamp-design/v3/final/svg/", import.meta.url);
 export const KIT = new URL("../.claude/stamp-design/v3/final/kit/", import.meta.url);
@@ -83,8 +88,8 @@ export function readStamps(text) {
   const stamps = [...block("STAMPS").matchAll(/\{ id: "([\w-]+)", cat: "(\w+)", emoji: "[^"]*", color: "(#[0-9A-Fa-f]{6})", nameLight: "(#[0-9A-Fa-f]{6})", nameDark: "(#[0-9A-Fa-f]{6})"/g)].map(
     ([, id, cat, color, nameLight, nameDark]) => ({ id, cat, color: color.toUpperCase(), nameLight: nameLight.toUpperCase(), nameDark: nameDark.toUpperCase() }),
   );
-  if (stamps.length !== 36) throw new Error(`stamps.ts: read ${stamps.length} stamps with color, nameLight and nameDark, expected 36`);
-  if (new Set(stamps.map((s) => s.id)).size !== 36) throw new Error("stamps.ts: a stamp id is listed twice");
+  if (stamps.length !== STAMP_COUNT) throw new Error(`stamps.ts: read ${stamps.length} stamps with color, nameLight and nameDark, expected ${STAMP_COUNT}`);
+  if (new Set(stamps.map((s) => s.id)).size !== STAMP_COUNT) throw new Error("stamps.ts: a stamp id is listed twice");
   return { stamps, cats };
 }
 
@@ -271,7 +276,7 @@ function header(r, kind) {
 
    Stamps v3 · B "character" (owner, 2026-10-19), the bright palette. Each stamp is five layers on the
    100 × 120 box, drawn in this order: frame (the perforated paper and its ink keyline; the same for
-   all 36: STAMP_V3_FRAME), rims (the tint die-cut rim of every body and line), body (ink edges,
+   every stamp: STAMP_V3_FRAME), rims (the tint die-cut rim of every body and line), body (ink edges,
    the hex and tint fills, ink lines), marks (tint marks on the body), face (the two ink eye rings
    first, then eye discs, pupils, lids, the mouth). Paint is a ROLE, resolved per stamp at runtime:
      hex  = the stamp's colour (src/data/stamps.ts \`color\`)    ink = #1E1B35 (never theme-swapped)
@@ -281,7 +286,7 @@ function header(r, kind) {
    (< 15 dot, 15–24 frame rims body, 25–39 + face, ≥ 40 all five). An id with no entry here is drawn
    as STAMP_V3_FRAME alone in its colour.
 
-   Imported: ${c.ids.length} of 36 (${c.rims} rim, ${c.body} body, ${c.marks} mark and ${c.face} face elements).
+   Imported: ${c.ids.length} of ${STAMP_COUNT} (${c.rims} rim, ${c.body} body, ${c.marks} mark and ${c.face} face elements).
    Left out: ${left.length ? left.join("; ") : "none"}. */
 `;
 }
@@ -312,9 +317,9 @@ export type StampArtV3 = { readonly [K in StampLayer]: readonly StampEl[] };
 export type StampArtV3Id =
 ${ids.map((id) => `  | ${json(id)}`).join("\n")};
 
-/** the frame path, the same in all 36 (= lib/stamp-frame STAMP_V3_FRAME_D) */
+/** the frame path, the same in every stamp (= lib/stamp-frame STAMP_V3_FRAME_D) */
 export const STAMP_V3_FRAME_PATH = ${json(r.frameD)};
-/** the frame layer, the same in all 36: the tint rim (14u) under the keyline (tint fill, ink 6u) */
+/** the frame layer, the same in every stamp: the tint rim (14u) under the keyline (tint fill, ink 6u) */
 export const STAMP_V3_FRAME: readonly StampEl[] = [
   ${FRAME_ELS("STAMP_V3_FRAME_PATH").join(",\n  ")},
 ];
@@ -324,7 +329,7 @@ const ART: { readonly [K in StampArtV3Id]?: Omit<StampArtV3, "frame"> } = {
 ${ids.filter((id) => r.art[id]).map((id) => stampLine(id, r.art[id])).join("\n")}
 };
 
-/** the 36 v3 drawings by stamp id (letters.stamp), each with its five layers */
+/** the v3 drawings (36 mood stamps and the seasonal ones) by stamp id (letters.stamp), each with its five layers */
 export const STAMP_ART_V3: { readonly [K in StampArtV3Id]?: StampArtV3 } = Object.fromEntries(
   Object.entries(ART).map(([id, a]) => [id, { frame: STAMP_V3_FRAME, ...a }]),
 );
@@ -344,9 +349,9 @@ export function buildWeb(r) {
  * @typedef {{ frame: StampEl[], rims: StampEl[], body: StampEl[], marks: StampEl[], face: StampEl[] }} StampArtV3
  */
 
-/** the frame path, the same in all 36 */
+/** the frame path, the same in every stamp */
 export const STAMP_V3_FRAME_PATH = ${json(r.frameD)};
-/** @type {StampEl[]} the frame layer, the same in all 36: the tint rim (14u) under the keyline (tint fill, ink 6u) */
+/** @type {StampEl[]} the frame layer, the same in every stamp: the tint rim (14u) under the keyline (tint fill, ink 6u) */
 export const STAMP_V3_FRAME = [
   ${FRAME_ELS("STAMP_V3_FRAME_PATH").join(",\n  ")},
 ];
@@ -434,6 +439,8 @@ export async function buildGolden(r) {
     tag: { text: INK, fill: "the stamp hex", border: "theme ln", shadow: "theme ln (hard 3/3)", borderPt: 2 },
     trayName: { light: "nameLight (classic, lavender, paper)", dark: "nameDark (midnight)" },
     categories: cats,
+    // the seasonal stamps (offered only in their season; drawn like the rest)
+    seasonal: r.stamps.filter((s) => s.cat === SEASONAL_CAT).map((s) => s.id),
     colours,
     draw,
   };
@@ -475,7 +482,7 @@ async function main() {
     ...(web ? [[web, buildWeb(r)]] : []),
   ];
   const c = count(r);
-  const summary = `${c.ids.length}/36 stamps · ${c.rims} rim, ${c.body} body, ${c.marks} mark, ${c.face} face elements`;
+  const summary = `${c.ids.length}/${STAMP_COUNT} stamps · ${c.rims} rim, ${c.body} body, ${c.marks} mark, ${c.face} face elements`;
   let stale = 0;
   for (const [path, text] of outputs) {
     if (CHECK) {

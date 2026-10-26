@@ -27,7 +27,7 @@ import { faceRecord, useFaceSources, type FaceInput, type FaceSource } from "../
 import type { ImageRefRecord } from "../../lib/images";
 import { t } from "../../lib/i18n";
 import { stampSpoken, useMemberStamps, useMyStamp } from "../../lib/member-marks";
-import { FIRST_CLASS_SEGMENT, type AuraCardVM, type LookPose, type Me4aView, type MeView } from "./me-model";
+import { FIRST_CLASS_SEGMENT, type AuraCardVM, type LookPose, type LookTileId, type Me4aView, type MeView } from "./me-model";
 import type { MeModel } from "./useMeModel";
 import { useStampCollection } from "./useStampCollection";
 
@@ -46,7 +46,8 @@ import { useStampCollection } from "./useStampCollection";
    looks, the First Class card and the report door) into the Swift records:
    - the kindreds' faces (lib/faces useFaceSources → faceRecord), the looks
      tiles' and the First Class stamp's birds as snapshots of the reader's
-     own courier (useBirdImageRef lookNone / lookBeanie / lookScarf /
+     own courier (useBirdImageRef lookNone, the two middle tiles' poses —
+     lookBeanie / lookScarf, or lookWitch / lookGhost in Halloween —,
      lookWorn, fcFree / fcMember);
    - the records kept by content, so a refocus that reads the same page
      again doesn't re-send them (every prop change re-sends the whole props
@@ -205,13 +206,22 @@ export function MeNative({ model }: { model: MeModel }) {
 
   // her pictures: the looks tiles (grown, each look pinned; lookWorn is whatever she has on) and
   // the First Class stamp
+  // the middle two tiles' poses come from the model (beanie and scarf, or the season's two looks),
+  // so only the four pictures on the row are captured
   const lookNone = useBirdImageRef("lookNone");
-  const lookBeanie = useBirdImageRef("lookBeanie");
-  const lookScarf = useBirdImageRef("lookScarf");
+  const pose1 = me4a.looks.tiles[1]?.pose ?? "lookBeanie";
+  const pose2 = me4a.looks.tiles[2]?.pose ?? "lookScarf";
+  const look1 = useBirdImageRef(pose1);
+  const look2 = useBirdImageRef(pose2);
   const lookWorn = useBirdImageRef("lookWorn");
   const fcPose: BirdPose = me4a.firstClass.pose;
   const fcBird = useBirdImageRef(fcPose);
-  const birds = useMemo(() => ({ lookNone, lookBeanie, lookScarf, lookWorn }), [lookNone, lookBeanie, lookScarf, lookWorn]);
+  const birds = useMemo(() => {
+    const b: Record<LookPose, ImageRefRecord | null> = { lookNone, lookBeanie: null, lookScarf: null, lookWitch: null, lookGhost: null, lookWorn };
+    b[pose1] = look1;
+    b[pose2] = look2;
+    return b;
+  }, [lookNone, pose1, look1, pose2, look2, lookWorn]);
 
   const strings = useSameContent(useMemo(() => nativeStrings(view, me4a), [view, me4a]));
   const profile = useSameContent(useMemo(() => nativeProfile(me4a, myStamp), [me4a, myStamp]));
@@ -251,7 +261,7 @@ export function MeNative({ model }: { model: MeModel }) {
   // chip would (Swift reports it back through onSegment); a member's: her wardrobe
   const member = me4a.looks.member;
   const toFirstClass = () => commands.send("segment", { index: FIRST_CLASS_SEGMENT });
-  const onLook = (id: "none" | "beanie" | "scarf" | "fc") => {
+  const onLook = (id: LookTileId) => {
     if (id === "fc" && !member) toFirstClass();
     else act.look(id);
   };

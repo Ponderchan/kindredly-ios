@@ -164,10 +164,14 @@ const BERRY = "#E05A6A", BERRY_D = "#BF4557", ROSE = "#F2A0B5", OLIVE = "#2F6B3B
 /* the night bird is ink herself, so nothing she wears may be ink: the
    headphones are cream with ink cushions, the lenses are amber-dark */
 const LENS = "#4E3325";
+/* Halloween 2026 (seasonal looks, free in the season window; see src/lib/season-core.ts) */
+const WITCH = "#6A3C9C", WITCH_D = "#4F2A7A", WITCH_HI = "#9466C9", PUMPKIN = "#F39420"; // the hat: plum, never ink (NIGHT is ink); the band is the spooky-season stamp's hex
+const SHEET = "#F4F2FB", SHEET_D = "#CDC8E4"; // the sheet: a cool white, a lilac-grey hem line and folds
+
 const HEADS = {
-  adult:     { EL: [93, 75, 6.3],   ER: [121, 69.75, 7],     hx: 103, crown: 40, collar: 112, cw: 60 },
-  fledgling: { EL: [93, 85.5, 6.3], ER: [121, 82, 7],        hx: 104, crown: 54, collar: 112, cw: 53 },
-  hatchling: { EL: [89.5, 103, 8],  ER: [117.5, 99.5, 8.75], hx: 100, crown: 56, collar: 128, cw: 50 },
+  adult:     { EL: [93, 75, 6.3],   ER: [121, 69.75, 7],     hx: 103, crown: 40, collar: 112, cw: 60, beak: [124.5, 83.8, 152.5, 101.3] },
+  fledgling: { EL: [93, 85.5, 6.3], ER: [121, 82, 7],        hx: 104, crown: 54, collar: 112, cw: 53, beak: [124.5, 94.3, 149, 108.3] },
+  hatchling: { EL: [89.5, 103, 8],  ER: [117.5, 99.5, 8.75], hx: 100, crown: 56, collar: 128, cw: 50, beak: [121, 110, 145.5, 124], spread: 5 },
 };
 const f1 = (n) => +n.toFixed(1);
 function pieces(h, roomOverride) {
@@ -290,6 +294,56 @@ function pieces(h, roomOverride) {
       V.path(`M${V.pt(rx - 8, ry - 3)} L${V.pt(rx - 4.5, ry - 5.5)}`, "none", { s: WHITE, sw: "2.2", lc: "round", o: ".85" }),
     ];
   }
+  /* ── HALLOWEEN 2026 (direction A · classic cute) ── seasonal looks, offered only
+     in the season window (src/lib/season-core.ts). They use the `beak` + `spread`
+     anchors in HEADS. Both are overlays drawn last, like the other six; neither
+     uses ink (the NIGHT bird is ink). */
+
+  /* WITCH HAT — a soft, slightly crooked plum cone whose tip has flopped over
+     to the near side, a wide brim tipped a few degrees, a pumpkin band, one
+     crease, a lighter lip on the brim so it reads on the SKY body. Hangs
+     from the brow like the beanie; squatter where the room is short (flight). */
+  {
+    const p = H.pt, top = -Math.min(52, room - 6);
+    out.witch = [
+      H.ell(4, -5, 55, 10.5, WITCH_D, -5),
+      H.path(`M${p(-49, -6)} Q${p(4, -15)} ${p(58, -11)}`, "none", { s: WITCH_HI, sw: "2.6", lc: "round" }),
+      H.path(`M${p(-27, -6)} Q${p(-15, top * 0.55)} ${p(-6, top * 0.88)} Q${p(0, top * 1.06)} ${p(17, top * 0.92)} Q${p(7, top * 0.92)} ${p(6, top * 0.74)} Q${p(14, top * 0.6)} ${p(30, -10)} Q${p(2, -1)} ${p(-27, -6)} Z`, WITCH),
+      H.path(`M${p(-26, -11)} Q${p(2, -5)} ${p(29, -15)}`, "none", { s: PUMPKIN, sw: "5.4", lc: "round" }),
+      H.path(`M${p(-2, top * 0.68)} Q${p(-6, top * 0.48)} ${p(-12, -16)}`, "none", { s: WITCH_D, sw: "2.4", lc: "round" }),
+    ];
+  }
+
+  /* BEDSHEET GHOST — a sheet over her head and shoulders that follows her own
+     outline a few units out, so she is still the same bird underneath: her
+     tail, wing tips, belly and feet stay out, the hem is a soft four-scallop
+     wave. Three holes are cut (counter-wound subpaths, so they work with the
+     default nonzero fill): two eye holes and a slit for the beak — whatever
+     she is doing with her eyes and beak (every mood, every skin) shows
+     through, because nothing is redrawn on top. A lilac-grey hem line and
+     two folds keep the white sheet readable on white paper. */
+  {
+    const [ex, ey, er] = h.EL, [nx, ny, nr] = h.ER, sp = h.spread || 0;
+    const L = h.hx - h.cw - 2, R = h.hx + h.cw + 2, top = h.crown - 4, hem = h.collar + 8, ax = h.hx + 6, span = hem - top;
+    const q = (x, y) => `${f1(x)},${f1(y)}`;
+    const waves = 4, ww = (R - L) / waves;
+    let d = `M${q(L, hem)} C${q(L, top + span * 0.33)} ${q(ax - (ax - L) * 0.55, top)} ${q(ax, top)} C${q(ax + (R - ax) * 0.55, top)} ${q(R, top + span * 0.3)} ${q(R, top + span * 0.62)} L${q(R, hem)}`;
+    for (let i = 0; i < waves; i++) { const x0 = R - i * ww, x1 = x0 - ww; d += ` Q${q((x0 + x1) / 2, hem + 13)} ${q(x1, hem)}`; }
+    d += " Z";
+    const hole = (cx, cy, rx, ry) => ` M${q(cx - rx, cy)} A${f1(rx)},${f1(ry)} 0 1 0 ${q(cx + rx, cy)} A${f1(rx)},${f1(ry)} 0 1 0 ${q(cx - rx, cy)} Z`;
+    /* holes must never overlap (two counter-wound holes on top of each other fill back in under
+       nonzero): on the chick, whose read can push her eyes `spread` outward, each eye hole is
+       centred half that far out and the beak slit starts just under the near eye's hole */
+    const pad = sp ? 4 : 5;
+    d += hole(ex - sp / 2, ey, er + pad + sp / 2, er + 4) + hole(nx + sp / 2, ny, nr + pad + sp / 2, nr + 4);
+    const [bx0, by0, bx1, by1] = h.beak, bm = (by0 + by1) / 2, bt = Math.max(by0 - 4.5, ny + nr + 5.5);
+    d += ` M${q(bx0 - 3, bt)} L${q(bx0 - 3, by1 + 4.5)} Q${q(bx1 + 2, bm + 4)} ${q(bx1 + 6, bm)} Q${q(bx1 + 2, Math.min(bm - 4, bt + 2))} ${q(bx0 - 3, bt)} Z`;
+    out.ghost = [
+      { d, f: SHEET, s: SHEET_D, sw: "2.4", lj: "round", t: "p" },
+      { d: `M${q(ax - 4, top + 7)} Q${q(ex - er - 14, ey - 8)} ${q(L + ww * 0.95, hem - 3)}`, f: "none", s: SHEET_D, sw: "2.2", lc: "round", t: "p" },
+      { d: `M${q(bx0 + 3, by1 + 10)} Q${q(bx0 + 1, hem - 10)} ${q(R - ww * 1.0, hem - 1)}`, f: "none", s: SHEET_D, sw: "2.2", lc: "round", t: "p" },
+    ];
+  }
   return out;
 }
 /* the flying adult is the perched one lifted and tilted; her clothes follow */
@@ -316,6 +370,7 @@ for (const [stage, h] of Object.entries(HEADS)) for (const [a, shapes] of Object
 /* in flight she is lifted 14 and tilted; her hats get the 38 units that leaves */
 for (const [a, shapes] of Object.entries(pieces(HEADS.adult, 38))) fam[`acc-shared-fly-${a}`] = shapes.map((sh) => ({ ...sh, tf: LIFT + (sh.tf ? " " + sh.tf : "") }));
 const count = Object.values(fam).reduce((n, l) => n + l.length, 0);
+
 
 /* ── emit ── */
 const attr = (sh) => {

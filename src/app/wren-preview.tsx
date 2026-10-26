@@ -14,7 +14,7 @@ const STAGES: { s: WrenStage; label: string }[] = [
   { s: "fledge", label: "Fledgling · ~5" },
   { s: "wren", label: "Grown · kindred" },
 ];
-const ACCS: WrenAccessory[] = ["beanie", "scarf", "phones", "flower", "party", "shades"];
+const ACCS: WrenAccessory[] = ["beanie", "scarf", "phones", "flower", "party", "shades", "witch", "ghost"];
 
 function Section({ title }: { title: string }) {
   return (

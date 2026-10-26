@@ -24,7 +24,7 @@ import ExpoUI
    tone (quiet | answered | replied), status, a11y }], seeAll, emptyText, emptyCta }
  - peekKindreds: { state, items: [{ id, name, line, face (KKindredsFaceRecord), a11y }], open,
    emptyText }
- - looks: { header, all, allHint, tiles: [{ id (none | beanie | scarf | fc), label, name, bird,
+ - looks: { header, all, allHint, tiles: [{ id (none | beanie | scarf | fc; witch | ghost in Halloween), label, name, bird,
    selected, locked, dim, hint }] }
  - aura: { present (false = the skeleton), label, title, from, chips: [{ id, name, emerging }],
    meterKind (ticks | slots), filled, total, slipsN, slipsOf (-1 for none), caption, cta, share,
@@ -58,7 +58,7 @@ import ExpoUI
  - onMeWrite {}                the empty letters peek's "Write a letter →"
  - onMeSegment { index }       a chip or a segment command (the card is already showing)
  - onMeCourier {}              the courier's scene
- - onMeLook { id }             a looks tile: none | beanie | scarf | fc
+ - onMeLook { id }             a looks tile: none | beanie | scarf | fc (witch | ghost in Halloween)
  - onMeAllLooks {}             "All looks →"
  - onMeAuraOpen {}             the top of the Aura card
  - onMeAuraCta {}              its call to action

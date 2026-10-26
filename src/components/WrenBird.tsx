@@ -24,7 +24,8 @@ export type WrenMood =
   | "wink"
   | "worry";
 export type WrenStage = "egg" | "hatch" | "fledge" | "wren";
-export type WrenAccessory = "none" | "beanie" | "scarf" | "phones" | "flower" | "party" | "shades";
+/* witch and ghost are the Halloween looks (lib/season-core): offered only in their season, worn for as long as she likes */
+export type WrenAccessory = "none" | "beanie" | "scarf" | "phones" | "flower" | "party" | "shades" | "witch" | "ghost";
 export type WrenPose = "perch" | "fly";
 export type WrenSkin = "sticker" | "plush" | "ink" | "moss" | "peach";
 

@@ -38,6 +38,7 @@ import { buildLetterCards } from "../letters/letters-model";
 import "../../data/strings-step5-me";
 import "../../data/strings-me4a";
 import { meFormat } from "./me-format";
+import { useSeason } from "../../lib/season";
 import {
   ME4A_ROUTES,
   ME_ROUTES,
@@ -194,6 +195,7 @@ export function useMeModel(): MeModel {
   const { user, handle, profile } = auth;
   const { premium, settled, cofounderNo } = useEntitlement();
   const { skin, pick, accessory, dress } = useWrenSkinControl();
+  const seasonLooks = useSeason().looks; // the season's looks take the beanie's and the scarf's tiles while it lasts
   const fares = useFares();
   const wren = useWrenName();
   const flightBest = useFlightBest();
@@ -453,7 +455,7 @@ export function useMeModel(): MeModel {
         stampHex: hexOf,
         threads: threadsIn ? threads : null,
         nameOf: (th) => book.threadName(th as ThreadSummary),
-        looks: { accessory, premium, wren },
+        looks: { accessory, premium, wren, season: seasonLooks },
         firstClass: { premium, cofounderNo, wren, trial: trialLabel(trial, t) },
         report,
       },
@@ -461,7 +463,7 @@ export function useMeModel(): MeModel {
     );
     // lang: every word follows the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handle, user?.created_at, cofounderNo, writing, aura, statsIn, stats.kindreds, threads, threadsIn, book, accessory, premium, wren, trial, report, lang, hexOf]);
+  }, [handle, user?.created_at, cofounderNo, writing, aura, statsIn, stats.kindreds, threads, threadsIn, book, accessory, premium, wren, seasonLooks, trial, report, lang, hexOf]);
 
   const ctaTo = view.aura?.ctaTo ?? "compose";
   const dayOffRef = useRef(dayOff);

@@ -38,6 +38,9 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 New
 - What's new: Wren's post for this release carries a big card (the reel, a paragraph and a "Press your first stamp" button), like the guide cards, in all nine languages. [OTA]
 - An update prompt for builds the server flags: Wren flies in with a parcel and sits on it ("special delivery. it's me, but newer."), Update opens the App Store, Later leaves a slim "a parcel's waiting for you" banner on Today. Once per release, at most once a day, and never for the release the phone already has; a hard mode with no Later exists but stays off. Nine languages. [switch: update_prompt, update_force] [OTA]
+- Halloween stamps: three free seasonal stamps (Spooky season, a jack-o'-lantern; Boo, a bedsheet ghost; Trick or treat, a wrapped sweet) sit first in the stamp tray with a small SEASONAL marker from Oct 24 to Nov 2 (local date). Outside those days they aren't offered, but letters stamped with them always show them. Nine languages. [binary] [switch: halloween]
+- Halloween looks for Wren: a witch hat and a bedsheet ghost, free for everyone, from Oct 24 to Nov 2. In those days the looks row on Me shows Bare · Witch hat · Ghost · First Class and the wardrobe offers them first; after the season they aren't offered, but a Wren already wearing one keeps it on. Nine languages. [OTA] [switch: halloween]
+- Seasons have one remote switch each: the app_surfaces key `halloween` is on with no row (so it works offline); a false row turns the Halloween stamps and looks off. [switch: halloween]
 
 Changed
 - The guides in Wren's room show today's product: courier names and frosted windows instead of mosaics and numbers, signing to trade names, Stamp Press, tomorrow's bag, the two notification switches. Their words are rewritten in all nine languages, and Wren understands questions about pen names, signing and pressing your own stamps in each. [OTA]

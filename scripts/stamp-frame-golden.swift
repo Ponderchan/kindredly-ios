@@ -8,6 +8,7 @@
        modules/kindredly-ui/ios/Portable/Kit/KLineGlyph.swift \
        modules/kindredly-ui/ios/Portable/Kit/KStampArtData.swift \
        modules/kindredly-ui/ios/Portable/Kit/KStampArt.swift \
+       modules/kindredly-ui/ios/Portable/Kit/KImage.swift \
        scripts/stamp-frame-golden.swift -o "$TMPDIR/stamp-frame-golden" \
        && "$TMPDIR/stamp-frame-golden" design/stamps-v3/golden.json \
        && "$TMPDIR/stamp-frame-golden" design/stamps-v2/golden.json
@@ -276,9 +277,14 @@ enum StampFrameGolden {
 
     // ── colours and the table ──
     let colours = json["colours"] as? [String: [String: String]] ?? [:]
-    ok("36 stamps in the golden and in KStampArtData.v3, the same ids",
-       colours.count == 36 && KStampArtData.v3.count == 36 && Set(colours.keys) == Set(KStampArt.ids))
-    ok("every id once in the table", Set(KStampArt.ids).count == KStampArt.ids.count && KStampArt.entries.count == 36)
+    // 36 mood stamps and the 3 seasonal ones (Halloween 2026; golden "seasonal")
+    ok("39 stamps in the golden and in KStampArtData.v3, the same ids",
+       colours.count == 39 && KStampArtData.v3.count == 39 && Set(colours.keys) == Set(KStampArt.ids))
+    ok("every id once in the table", Set(KStampArt.ids).count == KStampArt.ids.count && KStampArt.entries.count == 39)
+    let seasonal = json["seasonal"] as? [String] ?? []
+    ok("the seasonal three are in the table, in the seasonal category",
+       seasonal == ["spooky-season", "boo", "trick-or-treat"]
+         && seasonal.allSatisfy { id in KStampArtData.v3.first { $0.id == id }?.category == "seasonal" })
     ok("every stamp has a drawing (none drawn as the frame alone)", KStampArt.unread.isEmpty)
     for entry in KStampArtData.v3 {
       guard let c = colours[entry.id] else { ok("\(entry.id): in golden colours", false); continue }
@@ -291,7 +297,7 @@ enum StampFrameGolden {
            && entry.hex & 0xFF == 0xFF && entry.tint & 0xFF == 0xFF)
     }
     let cats = json["categories"] as? [String: String] ?? [:]
-    ok("the six category colours", cats.count == 6 && cats.allSatisfy { k, v in KStampArtData.v3Categories[k].map { KStampFrame.hexString($0 >> 8) } == v })
+    ok("the six category colours and the seasonal one", cats.count == 7 && cats["seasonal"] == "#F39420" && cats.allSatisfy { k, v in KStampArtData.v3Categories[k].map { KStampFrame.hexString($0 >> 8) } == v })
 
     // ── the drawings: every id × tier, and every width of the tier ──
     let draw = json["draw"] as? [String: [String: [[String: Any]]]] ?? [:]
@@ -310,7 +316,7 @@ enum StampFrameGolden {
         drawn += g.count
       }
     }
-    ok("read every element of every tier (\(drawn))", drawn > 36 * 3 * 2)
+    ok("read every element of every tier (\(drawn))", drawn > 39 * 3 * 2)
 
     // ── every path reads, and paint stays in x 3–97, y 8–120 ──
     let b = json["bounds"] as? [String: Double] ?? [:]
@@ -327,7 +333,7 @@ enum StampFrameGolden {
         if !limit.insetBy(dx: -0.05, dy: -0.05).contains(r) { outside.append(id) }
       }
     }
-    ok("KSVGPath reads every path of all 36" + (empty.isEmpty ? "" : ": empty in \(Set(empty).sorted())"), empty.isEmpty)
+    ok("KSVGPath reads every path of all 39" + (empty.isEmpty ? "" : ": empty in \(Set(empty).sorted())"), empty.isEmpty)
     ok("paint stays in x 3–97, y 8–120 (drawn: \(union.integral))" + (outside.isEmpty ? "" : ": out in \(Set(outside).sorted())"), outside.isEmpty && !limit.isEmpty)
 
     // ── the fallback chain ──

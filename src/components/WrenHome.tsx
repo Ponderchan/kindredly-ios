@@ -27,7 +27,8 @@ import { WardrobeRack } from "./WardrobeRack";
 import { FirstClassCard } from "./FirstClassStub";
 import type { FirstClass4aVM } from "../screens/me/me-model";
 import "../data/strings-a11y-compose";
-import { ACCESSORY_META, SKINS, skinName, STAGE_ORDER, skinUnlocked, stageIndex, stageInfo, useHatchSkin } from "../lib/wren-style";
+import { ACCESSORY_META, SKINS, offeredAccessories, skinName, STAGE_ORDER, skinUnlocked, stageIndex, stageInfo, useHatchSkin } from "../lib/wren-style";
+import { useSeason } from "../lib/season";
 import { useWrenSkinControl } from "../lib/wren-skin";
 import { WHEREABOUTS_META, fetchCarried, getStageDates, isDozing, mintSouvenirs, sinceLastVisit, whereabouts, flightLog, type AwayReport, type Souvenir, type Whereabouts } from "../lib/whereabouts";
 import type { ThreadSummary } from "../lib/db";
@@ -206,7 +207,9 @@ export function WrenHome({
   };
   const flies = info.stage !== "egg";
 
-  const items = ACCESSORY_META.filter((a) => a.id !== "none");
+  // the pieces on offer (the season's looks while it lasts); her own piece is named whatever it is
+  const season = useSeason();
+  const items = offeredAccessories(season.looks).filter((a) => a.id !== "none");
   const looksOwned = SKINS.filter((s) => skinUnlocked(s.id, stats, premium, hatch)).length;
   const dressName = accessory === "none" ? tr("wren.bare") : (() => { const a = ACCESSORY_META.find((x) => x.id === accessory); return a ? tr(`ws.acc.${a.id}`) : ""; })();
   const drivingT = drivingThread(threads, where.state);

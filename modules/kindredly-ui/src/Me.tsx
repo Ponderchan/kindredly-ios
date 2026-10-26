@@ -71,7 +71,8 @@ export type KMePeekKindred = { id: string; name: string; line: string; face: KKi
 export type KMePeekKindreds = { state: KMePeekState; items: KMePeekKindred[]; open: string; emptyText: string };
 
 export type KMeLookTile = {
-  id: "none" | "beanie" | "scarf" | "fc";
+  /** the season's looks (witch, ghost) take the beanie's and the scarf's places while it lasts (me-model buildLooks) */
+  id: "none" | "beanie" | "scarf" | "witch" | "ghost" | "fc";
   /** the drawn label (mono, upper-cased) */
   label: string;
   /** VoiceOver's name */

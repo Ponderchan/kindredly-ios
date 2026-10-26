@@ -5,7 +5,8 @@ import SwiftUI
 /*
  THE STAMP TRAY (ComposeTray.tsx StampTray, drawn the 10a way): where the keyboard was, 296
  above the home indicator, on soft with a 1pt line along its top. It scrolls: FOR THIS LETTER
- (stamps read off the letter itself), RECENTLY USED, then the six categories of six — each under
+ (stamps read off the letter itself), RECENTLY USED, then the six categories of six — and, in a
+ season (Halloween 2026), its stamps first of all, their head with a small pumpkin marker — each under
  its head in mono 600 10 at .14em in mute, six to a row. A tile is the stamp itself at the
  ladder's trayTile, 30×36 (the owner, 2026-10-18: the App Store tray's size, after 40×48 read too
  big for a picker of 36; KStamp, your own stamp so flat, and nothing
@@ -154,7 +155,7 @@ struct KStampTray: View {
     VStack(alignment: .leading, spacing: 6) {
       ForEach(sections) { section in
         VStack(alignment: .leading, spacing: 4) {
-          head(section.title)
+          head(section.title, mark: section.mark)
           LazyVGrid(columns: grid, spacing: 0) {
             ForEach(section.items) { item in
               tile(item)
@@ -165,14 +166,36 @@ struct KStampTray: View {
     }
   }
 
-  private func head(_ title: String) -> some View {
-    Text(title)
-      .kText(.monoSection)
-      .foregroundStyle(theme.mute)
-      .padding(.horizontal, 6)
-      .padding(.top, 10)
-      .accessibilityAddTraits(.isHeader)
+  private func head(_ title: String, mark: String = "") -> some View {
+    HStack(alignment: .center, spacing: 6) {
+      Text(title)
+        .kText(.monoSection)
+        .foregroundStyle(theme.mute)
+      if !mark.isEmpty {
+        // a seasonal set (Halloween 2026): a small pumpkin tag beside its head, ink words on the
+        // pumpkin's tint (the boo/spooky-season stamps' own tint and ink, ≥ 12:1)
+        Text(mark)
+          .kText(.mono(8, .semibold, tracking: 0.12))
+          .foregroundStyle(Self.seasonInk)
+          .padding(.horizontal, 5)
+          .padding(.vertical, 2)
+          .background(Capsule().fill(Self.seasonWash))
+          .overlay(Capsule().strokeBorder(Self.seasonEdge, lineWidth: 1))
+          .lineLimit(1)
+          .fixedSize()
+      }
+    }
+    .padding(.horizontal, 6)
+    .padding(.top, 10)
+    .accessibilityElement(children: .combine)
+    .accessibilityAddTraits(.isHeader)
   }
+
+  /// the seasonal marker's colours, the same in every theme (like the stamps): the pumpkin's tint
+  /// and hex as its edge, the stamps' ink as its words
+  static let seasonWash = Color(hex: "#FEF2E4")
+  static let seasonEdge = Color(hex: "#F39420")
+  static let seasonInk = Color(hex: "#1E1B35")
 
   // ── the custom tab ──
 

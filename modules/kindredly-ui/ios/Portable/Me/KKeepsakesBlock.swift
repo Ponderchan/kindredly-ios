@@ -16,6 +16,10 @@ import SwiftUI
      BARE      sf, a light line border (ink once chosen; 4a's PLAIN, the app's own word ws.acc.none)
      BEANIE    lav, its own colour as border (ws.acc.beanie: the live beanie, drawn as live)
      SCARF     pale green (on a dark theme the green at .28), the same
+     WITCH     in Halloween (owner 2026-10-26; the season's two looks take BEANIE's and SCARF's
+               places): a pale plum (the hat's lip #9466C9 at .30 on a dark theme), the same
+     GHOST     the same, a pale lilac (the boo stamp's #D6D3F7 at .22 on a dark theme); a binary
+               without these two draws them on sf, as BARE
      1ST CLASS cream, a 2pt dashed wax-gold border; for a free reader the bird at 35% and an 18
                gold lock at the top right; for a member her current First Class look, no lock.
  - the one she wears: an ink border, an 18 green check at the top left and the tile at 1.04 (a
@@ -89,9 +93,21 @@ struct KLookTile: View {
     switch tile.id {
     case "beanie": return theme.lav
     case "scarf": return scarfFill
+    case "witch": return witchFill
+    case "ghost": return ghostFill
     case "fc": return KBrand.cream
     default: return theme.sf
     }
+  }
+
+  /// Halloween's witch hat: a pale plum; on a dark theme the hat's lighter lip at .30
+  private var witchFill: Color {
+    theme.isDark ? Color(hex: "#9466C9").opacity(0.30) : Color(hex: "#ECE3F7")
+  }
+
+  /// Halloween's bedsheet ghost: a pale lilac; on a dark theme the boo stamp's lilac at .22
+  private var ghostFill: Color {
+    theme.isDark ? Color(hex: "#D6D3F7").opacity(0.22) : Color(hex: "#EFEEFC")
   }
 
   /// 4a's pale green; on a dark theme the green at .28, as the kindreds button's open fill
@@ -104,6 +120,8 @@ struct KLookTile: View {
     switch tile.id {
     case "beanie": return theme.lav
     case "scarf": return scarfFill
+    case "witch": return witchFill
+    case "ghost": return ghostFill
     case "fc": return KBrand.waxGold
     // 4a draws PLAIN's ink border even when another look is on, which made two tiles read as
     // chosen; unselected, the white tile keeps a light line so it still shows on the soft tray

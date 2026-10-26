@@ -249,11 +249,14 @@ public struct KComposeStampSection: Identifiable, Equatable, Sendable {
   public let id: String
   public let title: String
   public let items: [KComposeStampItem]
+  /// a seasonal set's small marker beside its head (mono caps, "SEASONAL"); "" for none
+  public let mark: String
 
-  public init(id: String, title: String, items: [KComposeStampItem]) {
+  public init(id: String, title: String, items: [KComposeStampItem], mark: String = "") {
     self.id = id
     self.title = title
     self.items = items
+    self.mark = mark
   }
 }
 

@@ -50,6 +50,8 @@ export type BirdPose =
   | "lookNone"
   | "lookBeanie"
   | "lookScarf"
+  | "lookWitch"
+  | "lookGhost"
   | "lookWorn"
   | "fcHero";
 
@@ -101,6 +103,9 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
   lookNone: { size: 48, mood: "content", stage: "wren", accessory: "none" },
   lookBeanie: { size: 48, mood: "content", stage: "wren", accessory: "beanie" },
   lookScarf: { size: 48, mood: "content", stage: "wren", accessory: "scarf" },
+  // the Halloween looks' tiles (in their season the Me row is none · witch · ghost · fc)
+  lookWitch: { size: 48, mood: "content", stage: "wren", accessory: "witch" },
+  lookGhost: { size: 48, mood: "content", stage: "wren", accessory: "ghost" },
   lookWorn: { size: 48, mood: "content", stage: "wren" },
   // the Swift paywall's hero: the grown bird flying, at 4a's 120, in her look
   fcHero: { size: 120, mood: "content", fly: true, stage: "wren" },
@@ -247,7 +252,7 @@ export function birdImageRef(pose: BirdPose, wilt = false): ImageRefRecord | nul
  * placeholder the screen already has. While a new look is being captured the
  * previous picture stays. Keeps the variant captured while mounted.
  *
- * @param pose  'content' 'mini' 'curious24' 'curious56' 'think20' 'official' 'fcFree' 'fcMember' 'lookNone' 'lookBeanie' 'lookScarf' 'lookWorn' 'fcHero' (or a Live Activity pose)
+ * @param pose  'content' 'mini' 'curious24' 'curious56' 'think20' 'official' 'fcFree' 'fcMember' 'lookNone' 'lookBeanie' 'lookScarf' 'lookWitch' 'lookGhost' 'lookWorn' 'fcHero' (or a Live Activity pose)
  * @param opts.wilt starving (lib/hunger → wilt): greyed and drooping. Its own capture.
  */
 export function useBirdImageRef(pose: BirdPose, opts: { wilt?: boolean } = {}): ImageRefRecord | null {

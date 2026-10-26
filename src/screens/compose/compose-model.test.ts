@@ -227,6 +227,19 @@ ok("sections: unknown ids dropped", sections[0].items.map((i) => i.id).join() ==
 ok("sections: a repeated id once", sections[0].items.length === 2);
 ok("sections: an emptied section isn't sent", !sections.some((s) => s.title === "RECENT" || s.title === "TWO"));
 ok("sections: in order", sections.map((s) => s.title).join() === "FOR,ONE");
+ok("sections: no marker on the every-day ones", sections.every((s) => !("mark" in s)));
+// a season (Halloween 2026): its set first, with its marker; gone when there is none
+const inSeason = M.stampSections({
+  seasonal: { title: "HALLOWEEN", mark: "SEASONAL", ids: ["d", "c", "nope"] },
+  suggested: { title: "FOR", ids: ["a"] },
+  recent: { title: "RECENT", ids: [] },
+  categories: [{ title: "ONE", ids: ["c", "d"] }],
+  item,
+});
+ok("season: its set comes first, marked", inSeason[0].title === "HALLOWEEN" && inSeason[0].mark === "SEASONAL" && inSeason.map((s) => s.title).join() === "HALLOWEEN,FOR,ONE");
+ok("season: in its own order, unknown ids dropped", inSeason[0].items.map((i) => i.id).join() === "d,c");
+ok("season: an empty seasonal set isn't sent", M.stampSections({ seasonal: { title: "HALLOWEEN", mark: "SEASONAL", ids: ["nope"] }, suggested: { title: "FOR", ids: ["a"] }, recent: { title: "R", ids: [] }, categories: [], item }).map((s) => s.title).join() === "FOR");
+ok("season: null is the every-day tray", M.stampSections({ seasonal: null, suggested: { title: "FOR", ids: ["a"] }, recent: { title: "R", ids: [] }, categories: [], item }).map((s) => s.title).join() === "FOR");
 
 /* ── the tray's names: their colour (the bright palette, owner 2026-10-19) ── */
 {
@@ -237,7 +250,7 @@ ok("sections: in order", sections.map((s) => s.title).join() === "FOR,ONE");
   ok("tray name colour: no stamp, the theme's ink", M.trayNameHex(null, false, "#1E1B35") === "#1E1B35" && M.trayNameHex(undefined, true, "#E8E5F6") === "#E8E5F6");
   ok("tray name colour: a missing or malformed shade, the theme's ink", M.trayNameHex({ nameDark: "#9774F0" }, false, "#1E1B35") === "#1E1B35" && M.trayNameHex({ nameLight: "#7443D1", nameDark: "purple" }, true, "#E8E5F6") === "#E8E5F6");
 
-  // the 36 shades in data/stamps.ts (read as text: it imports i18n), on each theme's tray ground (soft)
+  // the 39 shades in data/stamps.ts (read as text: it imports i18n), on each theme's tray ground (soft)
   const { readFileSync } = await import("node:fs");
   const text = readFileSync(new URL("../../data/stamps.ts", import.meta.url), "utf8");
   const rows = [...text.matchAll(/\{ id: "([\w-]+)", cat: "\w+", emoji: "[^"]*", color: "(#[0-9A-F]{6})", nameLight: "(#[0-9A-F]{6})", nameDark: "(#[0-9A-F]{6})"/g)].map((m) => ({ id: m[1], color: m[2], nameLight: m[3], nameDark: m[4] }));
@@ -245,7 +258,7 @@ ok("sections: in order", sections.map((s) => s.title).join() === "FOR,ONE");
   const lin = (v: number) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
   const lum = (h: string) => { const n = parseInt(h.slice(1), 16); return 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255); };
   const cr = (a: string, b: string) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
-  ok("stamps.ts gives all 36 stamps a nameLight and a nameDark", rows.length === 36);
+  ok("stamps.ts gives all 39 stamps (36 mood, 3 seasonal) a nameLight and a nameDark", rows.length === 39);
   ok("nameDark is the stamp colour itself (the palette's name_midnight)", rows.every((r) => r.nameDark === r.color));
   for (const [key, tk] of Object.entries(themes)) {
     const bad = rows.filter((r) => cr(M.trayNameHex(r, tk.dark, tk.ink), tk.soft) < 4.5).map((r) => r.id);

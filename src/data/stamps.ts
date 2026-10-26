@@ -1,7 +1,10 @@
 /* Stamps — the REAL backend vocabulary (kindredly/app/system.js), NOT the v20
    prototype's set. The `letters.stamp` column stores these ids, so the iOS app
    must use them verbatim for web↔iOS interop. Presented with v20's StampTile
-   visual treatment. 6 categories × 6 = 36 stamps. Localized en/zh/es/pt/id/fr/de/it/ja/ko. */
+   visual treatment. 6 categories × 6 = 36 mood stamps, plus the seasonal ones
+   (category "seasonal", owner 2026-10-26): offered only in their season
+   (lib/season-core), always drawn on a letter that carries one. Localized
+   en/zh/es/pt/id/fr/de/it/ja/ko. */
 
 export type Lang = "en" | "zh" | "es" | "pt" | "id" | "fr" | "de" | "it" | "ja" | "ko";
 export interface Loc {
@@ -57,6 +60,8 @@ export const STAMP_CATEGORIES: StampCat[] = [
   { id: "small", emoji: "🍵", color: "#FBBF3E", name: { en: "Small things", zh: "小事", es: "Pequeñas cosas", pt: "Coisas pequenas", id: "Hal kecil", fr: "Petites choses", de: "Kleine Dinge", it: "Piccole cose", ja: "小さなこと", ko: "작은 것들" } },
   { id: "becoming", emoji: "🧭", color: "#27C8BD", name: { en: "Becoming", zh: "成为", es: "Volverse", pt: "Tornar-se", id: "Menjadi", fr: "Devenir", de: "Werden", it: "Diventare", ja: "なっていく", ko: "되어 가기" } },
   { id: "missing", emoji: "🍂", color: "#FB765A", name: { en: "Missing", zh: "想念", es: "Añoranza", pt: "Saudade", id: "Kerinduan", fr: "Manque", de: "Vermissen", it: "Mancanza", ja: "恋しさ", ko: "그리움" } },
+  // seasonal (owner, 2026-10-26): the tray shows it first, and only in a season (lib/season-core); the pumpkin's hex
+  { id: "seasonal", emoji: "🎃", color: "#F39420", name: { en: "Halloween", zh: "万圣节", es: "Halloween", pt: "Halloween", id: "Halloween", fr: "Halloween", de: "Halloween", it: "Halloween", ja: "ハロウィン", ko: "할로윈" } },
 ];
 
 export const STAMPS: Stamp[] = [
@@ -102,10 +107,20 @@ export const STAMPS: Stamp[] = [
   { id: "then-now", cat: "missing", emoji: "📼", color: "#FC9A80", nameLight: "#AB4328", nameDark: "#FC9A80", name: { en: "Then vs now", zh: "从前", es: "Antes", pt: "Antes e agora", id: "Dulu vs kini", fr: "Avant / maintenant", de: "Damals und heute", it: "Prima e adesso", ja: "あの頃と今", ko: "그때와 지금" }, prompt: { en: "The way things used to be.", zh: "从前的样子。", es: "Cómo eran las cosas antes.", pt: "Como as coisas eram antes.", id: "Bagaimana dulu keadaannya.", fr: "Comme c'était avant.", de: "Wie es früher war.", it: "Com'erano le cose una volta.", ja: "昔はこうだった。", ko: "예전엔 이랬는데." } },
   { id: "old-friend", cat: "missing", emoji: "🫂", color: "#FB8A41", nameLight: "#A34D06", nameDark: "#FB8A41", name: { en: "Old friend", zh: "老朋友", es: "Un viejo amigo", pt: "Amigo antigo", id: "Teman lama", fr: "Vieil ami", de: "Alter Freund", it: "Vecchio amico", ja: "昔の友だち", ko: "옛 친구" }, prompt: { en: "Someone I drifted from.", zh: "一个渐渐走散的人。", es: "Alguien de quien me distancié.", pt: "Alguém de quem me afastei.", id: "Seseorang yang perlahan menjauh.", fr: "Quelqu'un dont je me suis éloigné.", de: "Jemand, von dem ich mich entfernt habe.", it: "Qualcuno da cui mi sono allontanato.", ja: "疎遠になった人。", ko: "멀어진 사람." } },
   { id: "seasons", cat: "missing", emoji: "🍁", color: "#EA711B", nameLight: "#A54B06", nameDark: "#EA711B", name: { en: "Seasons", zh: "季节", es: "Estaciones", pt: "Estações", id: "Musim", fr: "Saisons", de: "Jahreszeiten", it: "Stagioni", ja: "季節", ko: "계절" }, prompt: { en: "This time of year gets me.", zh: "每到这个季节就会这样。", es: "Esta época del año me afecta.", pt: "Esta época do ano me pega.", id: "Musim ini selalu menyentuhku.", fr: "Cette période de l'année me prend.", de: "Diese Jahreszeit erwischt mich.", it: "Questo periodo dell'anno mi prende.", ja: "この季節になると、来る。", ko: "이맘때면 마음이 그래." } },
+  // Seasonal · Halloween 2026 (#F39420; direction A, owner 2026-10-26): new hexes in the palette's gaps, tray names at OKLCH L 0.52
+  { id: "spooky-season", cat: "seasonal", emoji: "🎃", color: "#F39420", nameLight: "#965806", nameDark: "#F39420", name: { en: "Spooky season", zh: "万圣节到了", es: "Temporada de sustos", pt: "Clima de Halloween", id: "Musim seram", fr: "Saison des frissons", de: "Gruselzeit", it: "Aria di Halloween", ja: "ハロウィンの季節", ko: "할로윈 시즌" }, prompt: { en: "A little spooky, a little silly.", zh: "有点吓人，有点好笑。", es: "Un poco de miedo, un poco de risa.", pt: "Um pouco de medo, um pouco de bobeira.", id: "Agak seram, agak konyol.", fr: "Un peu flippant, un peu bête.", de: "Ein bisschen gruselig, ein bisschen albern.", it: "Un po' da paura, un po' da ridere.", ja: "ちょっとこわくて、ちょっとおかしい。", ko: "조금 으스스하고, 조금 웃긴." } },
+  { id: "boo", cat: "seasonal", emoji: "👻", color: "#D6D3F7", nameLight: "#686488", nameDark: "#D6D3F7", name: { en: "Boo", zh: "嘘", es: "¡Bu!", pt: "Bu!", id: "Dor!", fr: "Bouh !", de: "Buh!", it: "Bu!", ja: "ばあ！", ko: "까꿍" }, prompt: { en: "A shy hello from someone who's been lurking.", zh: "潜水很久，终于冒个头打招呼。", es: "Un hola tímido de alguien que solo miraba.", pt: "Um oi tímido de quem só ficava olhando.", id: "Sapaan malu-malu dari yang selama ini cuma ngintip.", fr: "Un petit coucou timide de quelqu'un qui observait en silence.", de: "Ein schüchternes Hallo von jemandem, der bisher nur mitgelesen hat.", it: "Un ciao timido da chi finora guardava e basta.", ja: "ずっと見てるだけだった人からの、照れくさいあいさつ。", ko: "그동안 눈팅만 하던 사람의 수줍은 인사." } },
+  { id: "trick-or-treat", cat: "seasonal", emoji: "🍬", color: "#D55AC7", nameLight: "#AD0BA1", nameDark: "#D55AC7", name: { en: "Trick or treat", zh: "不给糖就捣蛋", es: "¿Truco o trato?", pt: "Doces ou travessuras", id: "Trick or treat", fr: "Un bonbon ou un sort", de: "Süßes oder Saures", it: "Dolcetto o scherzetto", ja: "トリック・オア・トリート", ko: "트릭 오어 트릿" }, prompt: { en: "A small sweet thing, or a small mischief.", zh: "一点甜头，或者一点小坏。", es: "Algo dulce, o una pequeña travesura.", pt: "Um docinho, ou uma pequena travessura.", id: "Sesuatu yang manis, atau sedikit iseng.", fr: "Une petite douceur, ou une petite bêtise.", de: "Etwas Süßes oder ein kleiner Streich.", it: "Una piccola dolcezza, o un piccolo dispetto.", ja: "ちょっと甘いもの、それともちょっとしたいたずら。", ko: "작고 달콤한 것, 아니면 작은 장난." } },
 ];
 
 export const stampsByCat = (catId: string) =>
   STAMPS.filter((s) => s.cat === catId);
+/** the seasonal category's id: its stamps are offered only in their season (lib/season-core) */
+export const SEASONAL_CAT = "seasonal";
+/** the six mood categories, the tray's every-day sections (and the Stamp Press's colours) */
+export const MOOD_CATEGORIES: StampCat[] = STAMP_CATEGORIES.filter((c) => c.id !== SEASONAL_CAT);
+/** the 36 mood stamps: the every-day set (ideas, prompts, "all 36"); STAMPS adds the seasonal ones */
+export const MOOD_STAMPS: Stamp[] = STAMPS.filter((s) => s.cat !== SEASONAL_CAT);
 export const getStamp = (id?: string | null): Stamp | null =>
   STAMPS.find((s) => s.id === id) || null;
 

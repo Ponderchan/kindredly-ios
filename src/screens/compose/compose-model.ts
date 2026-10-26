@@ -114,7 +114,8 @@ export type DraftInput = { id: string | null; stamp: string; body: string; ask: 
 
 /** One stamp in the tray. */
 export type StampItemVM = { id: string; name: string; inkHex: string; a11yLabel: string };
-export type StampSectionVM = { title: string; items: StampItemVM[] };
+/** `mark`: a seasonal set's small marker beside its head (mono caps, "SEASONAL"); absent for the rest */
+export type StampSectionVM = { title: string; items: StampItemVM[]; mark?: string };
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
@@ -309,19 +310,23 @@ export function plusDot(p: { tray: ComposeTray; askOn: boolean; mode: ComposeMod
   return p.tray !== "more" && (p.askOn || p.mode === "speak");
 }
 
-/** The stamp tray's sections, in order: FOR THIS LETTER (read off the
-    letter), RECENTLY USED, then the six categories. An id no stamp has
+/** The stamp tray's sections, in order: the season's stamps while a season
+    lasts (owner, 2026-10-26: first of all, with a small marker), FOR THIS
+    LETTER (read off the letter), RECENTLY USED, then the six categories. An id no stamp has
     (a stale recent, a suggestion table naming a stamp since renamed) is
     dropped, as ComposeTray drops it, so Swift never gets an id it has no
     art or name for; a section left empty isn't sent. */
 export function stampSections(p: {
+  seasonal?: { title: string; mark: string; ids: readonly string[] } | null;
   suggested: { title: string; ids: readonly string[] };
   recent: { title: string; ids: readonly string[] };
   categories: readonly { title: string; ids: readonly string[] }[];
   item: (id: string) => StampItemVM | null;
 }): StampSectionVM[] {
   const out: StampSectionVM[] = [];
-  for (const s of [p.suggested, p.recent, ...p.categories]) {
+  const marked: { title: string; mark?: string; ids: readonly string[] }[] = p.seasonal ? [p.seasonal] : [];
+  const all: { title: string; mark?: string; ids: readonly string[] }[] = [...marked, p.suggested, p.recent, ...p.categories];
+  for (const s of all) {
     const seen = new Set<string>();
     const items: StampItemVM[] = [];
     for (const id of s.ids) {
@@ -330,7 +335,7 @@ export function stampSections(p: {
       const it = p.item(id);
       if (it) items.push(it);
     }
-    if (items.length) out.push({ title: s.title, items });
+    if (items.length) out.push(s.mark ? { title: s.title, items, mark: s.mark } : { title: s.title, items });
   }
   return out;
 }
