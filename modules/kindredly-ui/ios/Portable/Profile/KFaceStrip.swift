@@ -9,8 +9,8 @@ import CoreImage
 /*
  THE FACE STRIP (Edit profile, under the avatar): the portraits on offer as 54pt circles in one
  row that scrolls sideways, edge to edge, 10 apart; the header (PICK A FACE, mono 600 10 at .14em
- in mute) with a small Random key at its right (a sticker ~28 tall, with a 44pt target that
- moves nothing: KRoomyButtonStyle). The face worn wears the selected look
+ in mute) with a small Random key at its right (a flat lav capsule ~30 tall, with a 44pt target
+ that moves nothing: KRoomyButtonStyle). The face worn wears the selected look
  (KSelectableTile: a 2pt ind ring and a 3pt lav halo outside it); none does while a photo is
  worn. Opening, the strip brings the face worn into view.
 
@@ -72,18 +72,12 @@ public struct KFaceStrip: View {
             .kText(.chip)
             .foregroundStyle(theme.ink)
             .lineLimit(1)
-            .padding(.vertical, 6)
-            .padding(.horizontal, 12)
+            // the padding, and the 2 the outline took
+            .padding(.vertical, 6 + 2)
+            .padding(.horizontal, 12 + 2)
         }
-        .buttonStyle(KRoomyButtonStyle(inner: KStickerButtonStyle(
-          shape: RoundedRectangle(cornerRadius: 14, style: .circular),
-          fill: theme.sf,
-          stroke: theme.ln,
-          lineWidth: 2,
-          shadow: theme.ln,
-          shadowOffset: 2
-        )))
-        .padding(.trailing, 2) // the shadow's room
+        // flat (owner's rule B, 2026-10-26): a lav capsule, no ink outline, no hard shadow
+        .buttonStyle(KRoomyButtonStyle(inner: KStickerButtonStyle(shape: Capsule(), fill: theme.lav)))
       }
       ScrollViewReader { proxy in
         ScrollView(.horizontal) {
@@ -733,8 +727,7 @@ public struct KStampEditScreen: View {
             .foregroundStyle(ink)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .background(KBrand.waxGold)
-            .overlay(Rectangle().strokeBorder(ink, lineWidth: 1.5))
+            .background(KBrand.waxGold) // flat, no ink edge (rule B, 2026-10-26)
             .rotationEffect(.degrees(-12))
             .offset(x: 4, y: -16)
             .accessibilityHidden(true)
@@ -747,8 +740,7 @@ public struct KStampEditScreen: View {
             .foregroundStyle(ink)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .background(Capsule().fill(KBrand.lime))
-            .overlay(Capsule().strokeBorder(ink, lineWidth: 1.5))
+            .background(Capsule().fill(KBrand.lime)) // flat, no ink edge (rule B, 2026-10-26)
             .rotationEffect(.degrees(-6))
             .offset(y: -22)
             .transition(reduceMotion ? .opacity : .scale(scale: 0.94).combined(with: .opacity).combined(with: .offset(y: 16)))
@@ -799,21 +791,17 @@ public struct KStampEditScreen: View {
           .foregroundStyle(ink)
           .padding(.horizontal, 10)
           .frame(height: 26)
+          // KAurasClose's look: flat lime, no outline (rule B, 2026-10-26)
           .background(Capsule().fill(KBrand.lime))
-          .overlay(Capsule().strokeBorder(ink, lineWidth: 1.5))
           .accessibilityHidden(true)
       }
     }
     .padding(.horizontal, 14)
     .padding(.vertical, 12)
     .background(RoundedRectangle(cornerRadius: 20, style: .circular).fill(theme.sf))
-    // the hard shadow BEHIND the card (a later .background is further back)
-    .background(
-      RoundedRectangle(cornerRadius: 20, style: .circular)
-        .fill(theme.ln)
-        .offset(x: 4, y: 4)
-    )
-    .overlay(RoundedRectangle(cornerRadius: 20, style: .circular).strokeBorder(theme.ln, lineWidth: 2.5))
+    // the letter preview is an object (owner's rule B, 2026-10-26): no ink edge, the object depth
+    // (4, in the room the old hard shadow had)
+    .kObjectDepth(RoundedRectangle(cornerRadius: 20, style: .circular), theme: theme, offset: 4)
     .offset(x: shake * 1.2)
   }
 
@@ -904,7 +892,8 @@ public struct KStampEditScreen: View {
                 Circle().fill(Color.white).frame(width: 32, height: 32)
               }
               Circle().fill(KStampFrame.color(c.rgb)).frame(width: 28, height: 28)
-              Circle().strokeBorder(ink, lineWidth: 2).frame(width: 28, height: 28)
+              // a hairline, not an ink ring (rule B, 2026-10-26): a pale colour still holds its edge
+              Circle().strokeBorder(theme.line, lineWidth: 1).frame(width: 28, height: 28)
               if on {
                 Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundStyle(ink)
               }
@@ -951,8 +940,7 @@ public struct KStampEditScreen: View {
                       // a fixed 22 × 16 sticker: its word keeps its size at every Dynamic Type setting
                       .dynamicTypeSize(.large)
                       .frame(width: 22, height: 16)
-                      .background(RoundedRectangle(cornerRadius: 3, style: .circular).fill(KBrand.waxGold))
-                      .overlay(RoundedRectangle(cornerRadius: 3, style: .circular).strokeBorder(ink, lineWidth: 1.5))
+                      .background(RoundedRectangle(cornerRadius: 3, style: .circular).fill(KBrand.waxGold)) // flat (rule B)
                       .rotationEffect(.degrees(6))
                       .offset(x: 6, y: -6)
                   }

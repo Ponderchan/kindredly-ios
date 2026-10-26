@@ -215,3 +215,34 @@ public extension View {
     }
   }
 }
+
+/*
+ OBJECT DEPTH (owner's rule B, 2026-10-26). Controls are flat. A thing in the story (the Writing
+ Aura card, an envelope, a letter preview, the First Class ticket) keeps its depth, but with no
+ ink edge: only a hard shadow in a deep tint of the page purple, #C9C4F2 at 6/6 in the light
+ themes and #3A3580 in Midnight. A small object takes a smaller offset (6 × its scale). Put it
+ after the face's own background. objectDepth in src/components/10a/StickerBox.tsx is the React
+ Native twin; change them together.
+ */
+public enum KObjectDepth {
+  public static let offset: CGFloat = 6
+  public static let light = Color(hex: "#C9C4F2")
+  public static let dark = Color(hex: "#3A3580")
+
+  public static func color(for theme: KTheme) -> Color {
+    theme.isDark ? dark : light
+  }
+}
+
+public extension View {
+  /// Rule B's depth for an object: the shape again in the page purple's deep tint, moved right
+  /// and down with no blur, behind the view. Like box-shadow it takes no room.
+  func kObjectDepth<S: Shape>(_ shape: S, theme: KTheme, offset: CGFloat = KObjectDepth.offset) -> some View {
+    background {
+      shape.fill(KObjectDepth.color(for: theme))
+        .offset(x: offset, y: offset)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+  }
+}

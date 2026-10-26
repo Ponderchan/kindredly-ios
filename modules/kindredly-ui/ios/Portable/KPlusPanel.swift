@@ -13,15 +13,14 @@ import SwiftUI
    who this one is for. Both are further down this file (KPublishSheet, KPublishPop), and the
    stage that puts any of them on screen is KTabStage at the end.
 
- THE 10a CARDS (H:128-135). The sheet is drawn like an InkCard, not like a float: sf, a 2.5 ln
- outline, corners of 28 and a hard 6/6 ln shadow, padding 16 inside the outline (border-box),
- its pieces 10 apart (H:129). The prompts call for a soft popover here (P:84); the mock wins
- (tokens-10a.md §11 item 4).
+ THE 10a CARDS (H:128-135). The sheet is a flat panel (owner's rule B, 2026-10-26; the mock's
+ 2.5 ln outline and hard 6/6 ln shadow are gone): sf, corners of 28, a 1pt line hairline in
+ Midnight only, padding 16 and the 2.5 the outline took, its pieces 10 apart (H:129).
  - a header row: the title as the secondary title, System 500 17 centred, as written (NEW in the
    mock, H:130, there in mono capitals; titles are System, owner 2026-10-20), and on the right, if
    one is given, a link in ind, System 600 14 (the mock's RECENT ›; a link is a button);
  - the choices as KChoiceCards, two to a row, 10 apart (H:131-133, Kit/KChoiceCard.swift):
-   corners of 18, a 2pt ln outline, a hard 3/3 ln shadow, the glyph 28 across, the title and the
+   corners of 18, flat, the glyph 28 across, the title and the
    subtitle in System, both cards in a row one height.
 
  The two fills are the mock's: the letter card lav2 (the only place the mock uses lav2) and the
@@ -127,17 +126,17 @@ public struct KPlusPanel: View {
         }
       }
     }
-    // padding 16 inside the 2.5 outline (border-box)
+    // padding 16, and the 2.5 the mock's outline took
     .padding(16 + InkCardMetrics.borderWidth)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background {
+      // a flat panel (owner's rule B, 2026-10-26): no ink outline, no hard shadow; in Midnight a
+      // 1pt line hairline keeps it off the dim
       KStickerBackground(
         shape: RoundedRectangle(cornerRadius: 28, style: .circular),
         fill: theme.sf,
-        stroke: theme.ln,
-        lineWidth: InkCardMetrics.borderWidth,
-        shadow: theme.ln,
-        shadowOffset: 6
+        stroke: theme.isDark ? theme.line : nil,
+        lineWidth: 1
       )
     }
     .accessibilityElement(children: .contain)

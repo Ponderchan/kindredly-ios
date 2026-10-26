@@ -43,8 +43,8 @@ type Tab = "portrait" | "dims" | "habits";
 /* THE ROOM'S COLOURS COME FROM THE THEME (10a). P is useP(), so the page
    keeps the accent's palest wash under the edgeless white cards (lav2 in
    Classic); everything else is the 10a tokens by role. The old fixed inks
-   read as: the room's #1E1B35 is ink, and so is the Done key's navy (a
-   solid button is ink); its faded inks are sub for a sentence (.55 and
+   read as: the room's #1E1B35 is ink (the Done key is the ind capsule,
+   owner's rule B, 2026-10-26: controls are flat); its faded inks are sub for a sentence (.55 and
    up) and mute for a small label or caption (.5 and under); the chevron,
    the dots not in view and the empty tick box are faint; hairlines and
    the sheets' grabbers are line; cards and sheets are sf; the lens track
@@ -367,7 +367,7 @@ export default function AuraScreen() {
                 await load();
               }}
               accessibilityRole="button"
-              style={({ pressed }) => ({ marginTop: 18, backgroundColor: tk.ink, borderRadius: 12, paddingVertical: 15, alignItems: "center", opacity: pressed ? 0.85 : 1 })}
+              style={({ pressed }) => ({ marginTop: 18, backgroundColor: tk.ind, borderRadius: 999, paddingVertical: 15, alignItems: "center", opacity: pressed ? 0.85 : 1 })}
             >
               <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: tk.bg }}>{tr("wa.done")}</Text>
             </Pressable>

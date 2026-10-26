@@ -13,6 +13,7 @@ import { AuraArtFit, AuraScene } from "./AuraScene";
 import { ShareIcon } from "./Icons";
 import { daylight } from "./CourierCard";
 import { InkPanel } from "./10a/InkPanel";
+import { StickerBox, objectDepth } from "./10a/StickerBox";
 import { chipsFor, phaseHeadline, stickerLook, stickerName, titleDesc, titleName } from "../lib/sticker-copy";
 import type { ResolvedSticker } from "../lib/writing-engine/stickers";
 import { auraSlotPalette, buildAuraCard, type AuraCardVM, type AuraFacts } from "../screens/me/me-model";
@@ -172,7 +173,8 @@ export function AuraArt({ aura, seed, width, height, radius = 12 }: { aura: Aura
 }
 
 /* ── THE CARD, 10a (H:78; owner: every number a count, no bar) ──────────────
-   The InkPanel "me" (sf, 2.5 ln, corners 24, a 5/5 ln shadow, padding 16),
+   The InkPanel "me" as an object (owner's rule B, 2026-10-26: sf, no
+   outline, corners 24, the object depth's purple 6/6, padding 16 + 2.5),
    12 between its pieces: the ink label YOUR WRITING AURA; the art slot, 110
    tall on soft2 with corners of 14 — the title's own scene fitted by height
    (never cover-cropped), or the desk drawn at the rung's fidelity on the
@@ -182,7 +184,8 @@ export function AuraArt({ aura, seed, width, height, radius = 12 }: { aura: Aura
    the aura room's other tabs and the share card); the well's count glyphs
    in ind and faint (five ticks, or three slots and the strongest label's
    five slips) and the caption in mono 500 10; then the call to action
-   (ink, system 600 14, corners 14) and, once named, a 48-wide share key.
+   (an ind capsule, system 600 14) and, once named, a 48-wide share key
+   (an ind mark on a lav capsule): controls are flat.
 
    Everything it says is the Me model's (screens/me/me-model buildAuraCard,
    node-tested), which the SwiftUI card (KAuraCard) draws too, so the two
@@ -309,7 +312,7 @@ export function AuraCard({
   const artW = auraArtWidth(width);
 
   return (
-    <InkPanel variant="me" style={{ width }} contentStyle={{ gap: 12 }}>
+    <InkPanel variant="me" object style={{ width }} contentStyle={{ gap: 12 }}>
       <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={[vm.label, vm.title, vm.from, ...vm.chips.map((c) => c.name), vm.caption].join(". ")} style={({ pressed }) => ({ gap: 12, opacity: pressed ? 0.85 : 1 })}>
         <View style={{ alignSelf: "flex-start", backgroundColor: tk.ink, borderRadius: 6, paddingHorizontal: 9, paddingVertical: 5 }}>
           <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.4, color: tk.bg }}>{vm.label}</Text>
@@ -338,12 +341,12 @@ export function AuraCard({
       </Pressable>
 
       <View style={{ flexDirection: "row", gap: 8 }}>
-        <Pressable onPress={onCta} accessibilityRole="button" style={({ pressed }) => ({ flex: 1, backgroundColor: tk.ink, borderRadius: 14, paddingVertical: 12, alignItems: "center", opacity: pressed ? 0.85 : 1 })}>
+        <Pressable onPress={onCta} accessibilityRole="button" style={({ pressed }) => ({ flex: 1, backgroundColor: tk.ind, borderRadius: 999, paddingVertical: 12, alignItems: "center", opacity: pressed ? 0.85 : 1 })}>
           <Text style={{ fontSize: 14, fontWeight: "600", color: tk.bg }}>{vm.cta}</Text>
         </Pressable>
         {vm.share && (
-          <Pressable onPress={onShare} hitSlop={6} accessibilityRole="button" accessibilityLabel={vm.shareLabel} style={({ pressed }) => ({ width: 48, backgroundColor: tk.sf, borderWidth: 2, borderColor: tk.ln, borderRadius: 14, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
-            <ShareIcon size={20} color={tk.ink} />
+          <Pressable onPress={onShare} hitSlop={6} accessibilityRole="button" accessibilityLabel={vm.shareLabel} style={({ pressed }) => ({ width: 48, backgroundColor: tk.lav, borderRadius: 999, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
+            <ShareIcon size={20} color={tk.ind} />
           </Pressable>
         )}
       </View>
@@ -363,7 +366,9 @@ export function AuraTicket({ aura, seed, avatarId, who }: { aura: Aura; seed: st
   const desc = st?.title?.noun ? titleDesc(st.title) : held[0] ? held[0].line : "";
   const letters = st?.windowPieces ?? aura.pieces;
   return (
-    <View style={[{ backgroundColor: W14.card, borderRadius: 18, borderWidth: 1.5, borderColor: P.pen, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 18 }, cardShadow, { shadowOpacity: 0.14, shadowRadius: 44, shadowOffset: { width: 0, height: 20 } }]}>
+    /* an object (owner's rule B, 2026-10-26): no edge, the object depth on
+       the picture's own lavender mat, so its light tint in every theme */
+    <StickerBox fill={W14.card} radius={18} {...objectDepth({ dark: false })} faceStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 18 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
         <Text style={{ ...PFM.monoSemi, fontSize: 10.5, letterSpacing: 2.4, color: P.pen }}>KINDREDLY</Text>
         <Text style={{ ...PFM.mono, fontSize: 10, letterSpacing: 1.4, color: "rgba(30,27,53,0.4)" }}>{t("ap.title")}</Text>
@@ -387,6 +392,6 @@ export function AuraTicket({ aura, seed, avatarId, who }: { aura: Aura; seed: st
             as a PNG, where the theme's (light, in Midnight) face would vanish */}
         <MosaicId seed={seed} cell={4} gap={1} develop={1} color={W14.ink} />
       </View>
-    </View>
+    </StickerBox>
   );
 }

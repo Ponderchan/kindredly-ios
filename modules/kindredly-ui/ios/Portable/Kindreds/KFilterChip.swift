@@ -17,7 +17,7 @@ import SwiftUI
  - Changes state over .25s (H: transition all .25s).
  - VoiceOver: one button with the label TS gives ("Kindreds, 3") and the selected trait.
 
- Not KSegmentChips: that is the Me sticker chip with its hard shadow.
+ Not KSegmentChips: that is the Me section chip.
  */
 public struct KFilterChip: View {
   public enum Glyph: String, Sendable {

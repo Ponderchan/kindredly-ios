@@ -4,9 +4,9 @@ import SwiftUI
 
 /*
  THE 10a REPLY STRIP (H:124): the writing bar of rooms, pen-pal chats and the Today reply dock.
- sf, a 2.5 ln outline, corners of 26 and a hard 4/4 ln shadow; at least 54 tall and growing with
- the field up to its line limit (the corners stay 26); padding 0 8 0 20 inside the outline
- (border-box). In it, the KField (system 17, ink, mute placeholder, ind caret) and at its right
+ sf with a 1pt line hairline, corners of 26, no hard shadow (owner's rule B, 2026-10-26: controls
+ are flat; the 2.5 the mock's outline took stays as padding); at least 54 tall and growing with
+ the field up to its line limit (the corners stay 26); padding 0 8 0 20 inside that 2.5. In it, the KField (system 17, ink, mute placeholder, ind caret) and at its right
  end the send key (KSendKey: the faint SEND pill while it can't send, the ink plane pill when it
  can, per owner question 3).
 
@@ -25,8 +25,7 @@ import SwiftUI
  - The send key keeps to the bottom line too, centred on the resting height.
  - onSend is the key: read the text from the field's controller. Return in a returnSends field
    goes to the field's own onSubmit, with the text; wire both to the same send.
- - The strip sizes to its content and takes the width it is offered. Its shadow hangs 4 outside
-   to the right and below (whoever places it leaves that room, as the mock's 12 inset does).
+ - The strip sizes to its content and takes the width it is offered.
  - The hint under it (H:125, mono 500 10 .14em in sub, 14 from the left) is the screen's.
  */
 public struct KReplyStrip<Leading: View, Trailing: View>: View {
@@ -106,10 +105,8 @@ public struct KReplyStrip<Leading: View, Trailing: View>: View {
       KStickerBackground(
         shape: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .circular),
         fill: theme.sf,
-        stroke: theme.ln,
-        lineWidth: Self.borderWidth,
-        shadow: theme.ln,
-        shadowOffset: Self.shadowOffset
+        stroke: theme.line,
+        lineWidth: 1
       )
     }
   }

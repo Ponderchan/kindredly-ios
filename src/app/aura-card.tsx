@@ -27,12 +27,14 @@ import "../data/strings-a11y-sheets";
    The card is a fixed object: the white ticket and the 6pt of lavender
    captured around it are the picture, so they are the same in every theme
    and so is the PNG. The page around it is chrome. The light themes keep
-   the sheet as drawn (the lavender page, the navy Share key, the white
+   the sheet as drawn (the lavender page, the Share key, the white
    Save key); in Midnight a lavender page would be a daylight slab in a
    dark app — with the status bar's light text over it — so there the
-   chrome takes the theme: the page, an ink Share key, an sf Save key in
-   an ln edge, mute captions (5.86:1 on bg). The header and the Save
-   label are tk.ink in every theme: in the light ones that is W14.ink.
+   chrome takes the theme: the page, a lav Save key, mute captions
+   (5.86:1 on bg). The header and the Save label are tk.ink in every
+   theme: in the light ones that is W14.ink. The keys are flat (owner's
+   rule B, 2026-10-26): Share is the ind capsule, Save a soft capsule
+   with no edge (white on the lavender page, lav in Midnight).
    (The stack slides it in on the same ground: app/_layout, P.penWash in
    the light themes and tk.bg in Midnight.) */
 
@@ -40,8 +42,8 @@ export default function AuraShareCard() {
   useLang();
   const { t: tk, dark } = useTheme();
   const ui = dark
-    ? { page: tk.bg, shareKey: tk.ink, shareInk: tk.bg, saveKey: tk.sf, saveEdge: tk.ln, note: tk.mute }
-    : { page: P.penWash, shareKey: W14.navy, shareInk: "#FFFFFF", saveKey: "#FFFFFF", saveEdge: "#DCD9F0", note: W14.grey };
+    ? { page: tk.bg, saveKey: tk.lav, note: tk.mute }
+    : { page: P.penWash, saveKey: "#FFFFFF", note: W14.grey };
   const router = useRouter();
   const wren = useWrenName();
   const { user, profile, handle } = useAuth();
@@ -118,13 +120,13 @@ export default function AuraShareCard() {
             </View>
 
             <View style={{ marginTop: "auto", paddingTop: 22, gap: 10 }}>
-              <Pressable onPress={share} disabled={!!busy} style={({ pressed }) => ({ backgroundColor: ui.shareKey, borderRadius: 12, paddingVertical: 17, alignItems: "center", opacity: pressed || busy ? 0.85 : 1 })}>
+              <Pressable onPress={share} disabled={!!busy} style={({ pressed }) => ({ backgroundColor: tk.ind, borderRadius: 999, paddingVertical: 17, alignItems: "center", opacity: pressed || busy ? 0.85 : 1 })}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: ui.shareInk }}>{busy === "share" ? t("ac.working") : t("ac.shareCard")}</Text>
-                  {busy !== "share" && <ShareIcon size={18} color={ui.shareInk} />}
+                  <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: tk.bg }}>{busy === "share" ? t("ac.working") : t("ac.shareCard")}</Text>
+                  {busy !== "share" && <ShareIcon size={18} color={tk.bg} />}
                 </View>
               </Pressable>
-              <Pressable onPress={save} disabled={!!busy} style={({ pressed }) => ({ borderWidth: 1.5, borderColor: ui.saveEdge, borderRadius: 12, paddingVertical: 15, alignItems: "center", backgroundColor: ui.saveKey, opacity: pressed || busy ? 0.85 : 1 })}>
+              <Pressable onPress={save} disabled={!!busy} style={({ pressed }) => ({ borderRadius: 999, paddingVertical: 15, alignItems: "center", backgroundColor: ui.saveKey, opacity: pressed || busy ? 0.85 : 1 })}>
                 <Text style={{ fontFamily: PF.letter, fontWeight: "600", fontSize: 14, color: tk.ink }}>{busy === "save" ? t("ac.working") : t("ac.saveImage")}</Text>
               </Pressable>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 10 }}>

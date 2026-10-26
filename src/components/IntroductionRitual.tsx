@@ -23,6 +23,7 @@ import type { FrostSpec } from "../lib/frost";
 import { penDrawPlan, penTypedUpright, penViewBox, type PenDrawStep, type PenSig } from "../lib/pen-signature";
 import type { SignedPair, SignedSide } from "../lib/signed-sides";
 import { PenSignature } from "./PenSignature";
+import { StickerBox, objectDepth } from "./10a/StickerBox";
 
 /* THE RITUAL — a sticker book, not a ceremony.
    ────────────────────────────────────────────────────────────────────────
@@ -40,8 +41,9 @@ import { PenSignature } from "./PenSignature";
       real sticker label with a ×2 corner, slapped under the two of you.
 
    WHAT FOLLOWS THE THEME. The road is drawn in the page's own inks: the
-   ground line, the windows' frames and the envelopes' edges in the outline
-   colour (ln), the envelopes' faces on the card face (sf), the names and
+   ground line and the windows' frames in the outline colour (ln), the
+   envelopes on the sheet with no edge and the object depth's small purple
+   shadow (owner's rule B, 2026-10-26), the names and
    counts in ink. The stickers keep their own colours in every theme — the
    white cut edge, the kindred green, the green since-chip, the ink ×2
    corner, the white ring round each face — because a sticker is an object
@@ -280,7 +282,7 @@ function Flight({ road, stamp, still = false }: { road: ThreadMessage[]; stamp?:
       <Window x={x1} y={y} label={t("in.them").toUpperCase()} count={theirs} still={still} />
       {!still &&
         road.map((m, i) => (
-          <Crossing key={i} from={m.mine ? x0 : x1} to={m.mine ? x1 : x0} y={y} at={T_ROAD + i * T_STEP} date={m.date} stamp={stamp} mine={m.mine} />
+          <Crossing key={i} from={m.mine ? x0 : x1} to={m.mine ? x1 : x0} y={y} at={T_ROAD + i * T_STEP} date={m.date} stamp={stamp} />
         ))}
       <Animated.Text
         entering={still ? undefined : FadeIn.duration(400).delay(T_ROAD + road.length * T_STEP + T_FLY + 100)}
@@ -335,7 +337,7 @@ function Window({ x, y, label, count, roof, still }: { x: number; y: number; lab
    half its width, sit under the date as it stamps on, and stop reading as
    an envelope with a stamp on it. So it wears the dot, in the corner where
    the 9pt square was. */
-function Crossing({ from, to, y, at, date, stamp, mine }: { from: number; to: number; y: number; at: number; date?: string | null; stamp?: string | null; mine: boolean }) {
+function Crossing({ from, to, y, at, date, stamp }: { from: number; to: number; y: number; at: number; date?: string | null; stamp?: string | null }) {
   const P = useP();
   const tk = useTheme().t;
   const v = useSharedValue(0);
@@ -377,13 +379,14 @@ function Crossing({ from, to, y, at, date, stamp, mine }: { from: number; to: nu
       <View style={{ position: "absolute", top: -22, transform: [{ scaleX: dir }] }}>
         <WrenBird size={26} pose="fly" mood="delight" skin="sticker" />
       </View>
-      <View style={{ width: 34, height: 22, borderRadius: 3, backgroundColor: P.sheet, borderWidth: 1.2, borderColor: mine ? P.ink40 : tk.ln, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+      {/* the envelope is an object (owner's rule B, 2026-10-26): no edge, a small object depth */}
+      <StickerBox fill={P.sheet} radius={3} {...objectDepth(tk, 2)} faceStyle={{ width: 34, height: 22, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
         <View style={{ position: "absolute", left: 0, right: 0, top: 0, height: 1, backgroundColor: P.ink12 }} />
         {stamp ? <Stamp id={stamp} width={STAMP_DOT_PT} style={{ position: "absolute", right: 3, top: 3 }} /> : null}
         <Animated.View style={[{ paddingHorizontal: 3, paddingVertical: 1, borderWidth: 1, borderColor: P.pen, borderRadius: 2, backgroundColor: P.sheet }, stampStyle]}>
           <Text style={{ ...PFM.monoSemi, fontSize: 6.5, letterSpacing: 0.4, color: P.pen }}>{date ? dShort(date).toUpperCase() : "—"}</Text>
         </Animated.View>
-      </View>
+      </StickerBox>
     </Animated.View>
   );
 }

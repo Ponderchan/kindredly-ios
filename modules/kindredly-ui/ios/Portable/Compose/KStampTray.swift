@@ -323,9 +323,9 @@ struct KStampTray: View {
       .padding(.bottom, 6)
       .frame(maxWidth: 300, alignment: .leading)
       .background(theme.sf)
-      .overlay(Rectangle().strokeBorder(theme.ink, lineWidth: 2))
-      // the kit's hard shadow (ln on Midnight)
-      .background(Rectangle().fill(theme.isDark ? theme.ln : theme.ink).offset(x: 3, y: 3))
+      // a flat panel (owner's rule B, 2026-10-26): no ink edge, no hard shadow; a line hairline in
+      // Midnight
+      .overlay(Rectangle().strokeBorder(theme.isDark ? theme.line : .clear, lineWidth: 1))
       .padding(.horizontal, 24)
       .accessibilityElement(children: .contain)
       .accessibilityAddTraits(.isModal)

@@ -272,7 +272,8 @@ function StampsCardRN({ stamps, tk, cardW, onEmpty }: { stamps: StampsVM; tk: Th
       {stamps.empty ? (
         <View style={{ gap: 12, alignItems: "flex-start" }}>
           <Text style={{ fontSize: 13, color: tk.sub }}>{stamps.emptyText}</Text>
-          <Pressable onPress={onEmpty} accessibilityRole="button" style={({ pressed }) => ({ backgroundColor: tk.sf, borderWidth: 2, borderColor: tk.ln, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, opacity: pressed ? 0.7 : 1 })}>
+          <Pressable onPress={onEmpty} accessibilityRole="button" style={({ pressed }) => ({ backgroundColor: tk.lav, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 12, opacity: pressed ? 0.7 : 1 })}>
+            {/* a flat lav capsule, as KStampsCard's (owner's rule B, 2026-10-26) */}
             <Text style={{ fontSize: 13, fontWeight: "600", color: tk.ink }}>{stamps.emptyCta}</Text>
           </Pressable>
         </View>

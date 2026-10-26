@@ -4,7 +4,8 @@ import SwiftUI
 
 /*
  THE AURA CARD (10a, H:78; owner: every number is a count, no progress bar). An InkCard .me,
- 12 between its pieces:
+ 12 between its pieces. It is an object (owner's rule B, 2026-10-26): no outline, the object
+ depth's purple shadow; its two keys are flat.
  - the ink label YOUR WRITING AURA: mono 600 10 at .14em in the page colour on ink, padding
    5 9, corners 6, at the start;
  - the art slot, 110 tall, corners 14, on soft2: the app hands the picture in (a React Native
@@ -16,8 +17,8 @@ import SwiftUI
  - the well: the count glyphs in ind and faint (five ticks while letters lead to the first
    label; then three slots for the labels a name needs, and the strongest label's five slips)
    and the caption, mono 500 10 at .06em, mute;
- - the call to action (ink, the page colour's system 600 14, padding 12, corners 14, full
-   width) and, once named, a 48-wide share key (sf, 2 ln, corners 14).
+ - the call to action (an ind capsule, the page colour's system 600 14, padding 12, full
+   width) and, once named, a 48-wide share key (an ind mark on a lav capsule).
  The top of the card (everything above the buttons) is one button that opens the aura room,
  one VoiceOver element reading the label, the title, where it came from, the labels and the
  count.
@@ -54,7 +55,7 @@ public struct KAuraCard<Art: View>: View {
   }
 
   public var body: some View {
-    InkCard(theme: theme, variant: .me, spacing: 12, soft: true) {
+    InkCard(theme: theme, variant: .me, spacing: 12, object: true) {
       SwiftUI.Button {
         actions.onAuraOpen()
       } label: {
@@ -109,7 +110,7 @@ public struct KAuraCard<Art: View>: View {
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
             .padding(12)
-            .background(RoundedRectangle(cornerRadius: 14, style: .circular).fill(theme.ink))
+            .background(Capsule().fill(theme.ind))
             .contentShape(Rectangle())
         }
         .buttonStyle(KFadePressStyle())
@@ -119,13 +120,10 @@ public struct KAuraCard<Art: View>: View {
           } label: {
             Image(systemName: "square.and.arrow.up")
               .font(.system(size: 17, weight: .semibold))
-              .foregroundStyle(theme.ink)
+              .foregroundStyle(theme.ind)
               .frame(width: 48)
               .frame(maxHeight: .infinity)
-              .background {
-                RoundedRectangle(cornerRadius: 14, style: .circular).fill(theme.sf)
-                RoundedRectangle(cornerRadius: 14, style: .circular).strokeBorder(theme.ln, lineWidth: 2)
-              }
+              .background(Capsule().fill(theme.lav))
               .contentShape(Rectangle())
           }
           .buttonStyle(KFadePressStyle())

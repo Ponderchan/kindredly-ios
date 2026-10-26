@@ -606,7 +606,7 @@ struct KSongCard: View {
         }
         .padding(12)
         .background(Self.shape.fill(item.mine ? theme.lav2 : theme.sf))
-        .overlay(Self.shape.strokeBorder(item.mine ? theme.lav : theme.ln, lineWidth: 1.5))
+        .overlay(Self.shape.strokeBorder(item.mine ? theme.lav : theme.line, lineWidth: 1.5)) // no ink edge (rule B, 10-26)
         .contentShape(Self.shape)
       }
       .buttonStyle(KChatPlainPress())

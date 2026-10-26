@@ -133,7 +133,7 @@ struct KBreathing: ViewModifier {
   }
 }
 
-/// The lime "new" sticker (rotate 8°, 1.5 ln outline).
+/// The lime "new" sticker (rotate 8°), flat: no outline (owner's rule B, 2026-10-26).
 struct KNewSticker: View {
   let theme: KTheme
   let text: String
@@ -142,12 +142,9 @@ struct KNewSticker: View {
     Text(text)
       .kText(.mono(9, .semibold, tracking: 0.08))
       .foregroundStyle(KStampFrame.color(0x1E1B35))
-      .padding(.horizontal, 6)
-      .padding(.vertical, 2)
-      .background {
-        RoundedRectangle(cornerRadius: 6, style: .circular).fill(KStampFrame.color(0xD8F04A))
-        RoundedRectangle(cornerRadius: 6, style: .circular).strokeBorder(theme.ln, lineWidth: 1.5)
-      }
+      .padding(.horizontal, 6 + 1.5)
+      .padding(.vertical, 2 + 1.5)
+      .background(RoundedRectangle(cornerRadius: 6, style: .circular).fill(KStampFrame.color(0xD8F04A)))
       .rotationEffect(.degrees(8))
       .dynamicTypeSize(...DynamicTypeSize.large)
       .accessibilityHidden(true)
@@ -203,9 +200,8 @@ struct KStampsFullCard: View {
           .lineLimit(2)
           .multilineTextAlignment(.center)
           .frame(maxWidth: .infinity, minHeight: 46)
-          .background {
-            KStickerBackground(shape: RoundedRectangle(cornerRadius: 14, style: .circular), fill: KStampFrame.color(0xD8A63F), stroke: theme.ln, lineWidth: 2, shadow: theme.ln, shadowOffset: 3)
-          }
+          // the gold stays; flat, a capsule with no ink edge and no hard shadow (rule B, 10-26)
+          .background(Capsule().fill(KStampFrame.color(0xD8A63F)))
           .contentShape(Rectangle())
       }
       .buttonStyle(KFadePressStyle())
@@ -328,9 +324,8 @@ public struct KStampsCard: View {
           .minimumScaleFactor(0.8)
           .padding(.horizontal, 12)
           .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
-          .background {
-            KStickerBackground(shape: RoundedRectangle(cornerRadius: 12, style: .circular), fill: KStampFrame.color(0xD8F04A), stroke: theme.ln, lineWidth: 1.5, shadow: nil, shadowOffset: 0)
-          }
+          // flat lime, no ink edge (rule B, 2026-10-26)
+          .background(RoundedRectangle(cornerRadius: 12, style: .circular).fill(KStampFrame.color(0xD8F04A)))
           .contentShape(Rectangle())
         }
         .buttonStyle(KFadePressStyle())
@@ -492,10 +487,8 @@ struct KYoursEmpty: View {
           .lineLimit(1)
           .padding(.vertical, 10)
           .padding(.horizontal, 14)
-          .background {
-            RoundedRectangle(cornerRadius: 14, style: .circular).fill(theme.sf)
-            RoundedRectangle(cornerRadius: 14, style: .circular).strokeBorder(theme.ln, lineWidth: 2)
-          }
+          // a flat lav capsule, no ink edge (rule B, 2026-10-26)
+          .background(Capsule().fill(theme.lav))
           .contentShape(Rectangle())
       }
       .buttonStyle(KFadePressStyle())
@@ -826,7 +819,9 @@ struct KFlowCapsules: View {
             .frame(maxWidth: .infinity, minHeight: 44)
             .background {
               Capsule().fill(bgFill(a.style))
-              Capsule().strokeBorder(stroke(a.style), lineWidth: 2)
+              if let edge = stroke(a.style) {
+                Capsule().strokeBorder(edge, lineWidth: 2)
+              }
             }
             .contentShape(Capsule())
         }
@@ -835,6 +830,8 @@ struct KFlowCapsules: View {
     }
   }
 
+  /* owner's rule B (2026-10-26): flat. The main action is the ind capsule, a plain one a lav
+     capsule; neither has an edge. The danger one keeps its cream edge (not ink) on sf. */
   private func fg(_ s: KAlbumAction.Style) -> Color {
     switch s {
     case .ink: return theme.bg
@@ -844,14 +841,14 @@ struct KFlowCapsules: View {
   }
 
   private func bgFill(_ s: KAlbumAction.Style) -> Color {
-    s == .ink ? theme.ink : theme.sf
+    switch s {
+    case .ink: return theme.ind
+    case .plain: return theme.lav
+    case .danger: return theme.sf
+    }
   }
 
-  private func stroke(_ s: KAlbumAction.Style) -> Color {
-    switch s {
-    case .ink: return theme.ink
-    case .plain: return theme.ln
-    case .danger: return Color(red: 0xEA / 255, green: 0xD9 / 255, blue: 0xA8 / 255)
-    }
+  private func stroke(_ s: KAlbumAction.Style) -> Color? {
+    s == .danger ? Color(red: 0xEA / 255, green: 0xD9 / 255, blue: 0xA8 / 255) : nil
   }
 }

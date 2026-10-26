@@ -9,7 +9,8 @@ import SwiftUI
  - PRIMARY: solid ind, white mark (bg in Midnight). Only the round + in the tab bar is primary
    (H:119); the write-back ↑ is solid ink in the mock (H:115), so it is a secondary.
  - SECONDARY: solid ink, text in bg, corners of 14 ("See your labels", UPLOAD; H:78, 81).
- - TERTIARY: sf with a 2pt ln outline and ink text, a hard 2/2 shadow if asked (STAMP CAM; H:81).
+ - TERTIARY: a flat lav fill and ink text (STAMP CAM; H:81). The mock's 2pt ln outline and hard
+   shadow are gone (owner's rule B, 2026-10-26: controls are flat).
  - DISABLED: faint text on a soft2 pill, mono 600 11 at .12em (the SEND pill; H:124). The
    prompts' version, mute text with no fill (P:56), is the one the mock replaced.
 
@@ -202,25 +203,22 @@ public struct KSecondaryButton: View {
   }
 }
 
-/// TERTIARY (H:81, P:55): sf fill, a 2pt ln outline, ink title, corners of 14, padding 12 (11 for
-/// the mono kind) inside the outline, as wide as it is offered. shadow adds the prompts' optional
-/// hard 2/2 shadow in ln, which the mock's STAMP CAM doesn't have; pressed, a shadowed one goes
-/// down onto its shadow and a plain one dips 1pt.
+/// TERTIARY (H:81, P:55): a flat lav fill (owner's rule B, 2026-10-26), ink title, corners of 14,
+/// padding 12 (11 for the mono kind) and the 2 the mock's outline took, as wide as it is offered;
+/// pressed, it dips 1pt.
 public struct KTertiaryButton: View {
   private let theme: KTheme
   private let title: String
   private let systemImage: String?
   private let mono: Bool
-  private let shadow: Bool
   private let action: () -> Void
   @Environment(\.kButtonsFillHeight) private var fillsHeight
 
-  public init(theme: KTheme, title: String, systemImage: String? = nil, mono: Bool = false, shadow: Bool = false, action: @escaping () -> Void) {
+  public init(theme: KTheme, title: String, systemImage: String? = nil, mono: Bool = false, action: @escaping () -> Void) {
     self.theme = theme
     self.title = title
     self.systemImage = systemImage
     self.mono = mono
-    self.shadow = shadow
     self.action = action
   }
 
@@ -228,18 +226,11 @@ public struct KTertiaryButton: View {
     Button(action: action) {
       KButtonLabel(title: title, systemImage: systemImage, mono: mono)
         .foregroundStyle(theme.ink)
-        // the padding, and the 2pt outline outside it
+        // the padding, and the 2 the mock's outline took
         .padding((mono ? 11 : 12) + 2)
         .frame(maxWidth: .infinity, maxHeight: fillsHeight ? .infinity : nil)
     }
-    .buttonStyle(KStickerButtonStyle(
-      shape: RoundedRectangle(cornerRadius: 14, style: .circular),
-      fill: theme.sf,
-      stroke: theme.ln,
-      lineWidth: 2,
-      shadow: shadow ? theme.ln : nil,
-      shadowOffset: shadow ? 2 : 0
-    ))
+    .buttonStyle(KStickerButtonStyle(shape: RoundedRectangle(cornerRadius: 14, style: .circular), fill: theme.lav))
   }
 }
 
@@ -378,7 +369,8 @@ public struct KSendKey: View {
 
 /*
  A ROUND TOOL beside a reply strip or on a composer toolbar (H:136, chat spec): a 40 circle with
- a 1.5 ln outline and nothing inside it but its mark, in a 44 target.
+ no ring (owner's rule B, 2026-10-26: controls are flat; the lav disc only while the +'s tray is
+ open, as Wren's desk's +) and nothing inside it but its mark, in a 44 target.
  - plus(open:): the + 18 across at stroke 2 in ink; open (its tray is showing) it turns 45° into
    an × in ind, on the + sheet's curve (KMotion.plusTurn; a plain ease with Reduce Motion);
  - image: a picture 24 across, fitted (Wren's bird snapshot); nil keeps the circle empty while
@@ -424,7 +416,7 @@ public struct KRoundTool: View {
     SwiftUI.Button(action: action) {
       mark
         .frame(width: Self.diameter, height: Self.diameter)
-        .overlay(Circle().strokeBorder(theme.ln, lineWidth: 1.5))
+        .background(Circle().fill(glyph == .plus(open: true) ? theme.lav : Color.clear))
         .overlay(alignment: .topTrailing) {
           if dot {
             Circle()

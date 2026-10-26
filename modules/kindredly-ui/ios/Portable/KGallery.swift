@@ -233,7 +233,7 @@ public struct KGallery: View {
         KTertiaryButton(theme: theme, title: "Stamp cam", systemImage: "camera", mono: true) {}
       }
       .kEqualHeightButtons()
-      KTertiaryButton(theme: theme, title: "Write a letter", shadow: true) {}
+      KTertiaryButton(theme: theme, title: "Write a letter") {}
       HStack {
         Text("DISABLED")
           .kText(.monoCaption)

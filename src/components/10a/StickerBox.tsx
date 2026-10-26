@@ -69,3 +69,16 @@ export function StickerBox({
     </View>
   );
 }
+
+/* OBJECT DEPTH (owner's rule B, 2026-10-26). Controls are flat. A thing in
+   the story (the Writing Aura card, an envelope, a letter preview, the First
+   Class ticket) keeps its depth, but with no ink edge: only a hard shadow in
+   a deep tint of the page purple, #C9C4F2 at 6/6 in the light themes and
+   #3A3580 in Midnight. A small object takes a smaller offset (6 × its scale).
+   Spread it into a StickerBox: <StickerBox fill radius {...objectDepth(tk)}>.
+   KObjectDepth in KSticker.swift is the SwiftUI twin; change them together. */
+export const OBJECT_DEPTH = { light: "#C9C4F2", dark: "#3A3580", offset: 6 } as const;
+
+export function objectDepth(tk: { dark: boolean }, offset: number = OBJECT_DEPTH.offset): { stroke: null; shadow: string; offset: number } {
+  return { stroke: null, shadow: tk.dark ? OBJECT_DEPTH.dark : OBJECT_DEPTH.light, offset };
+}

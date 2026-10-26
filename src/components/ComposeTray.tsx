@@ -172,7 +172,6 @@ export function RoundKey({
   accessibilityLabel?: string;
 }) {
   const P = useP();
-  const { t: tk } = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -183,8 +182,7 @@ export function RoundKey({
         width: 46,
         height: 46,
         borderRadius: 23,
-        borderWidth: 1.5,
-        borderColor: tk.ln,
+        // no ring (owner's rule B, 2026-10-26; KComposeIconKey: the glyph alone)
         backgroundColor: on ? P.ink : "transparent",
         alignItems: "center",
         justifyContent: "center",
@@ -398,8 +396,8 @@ export function StampTray({
       {fullCard && custom?.full && (
         <Pressable accessibilityElementsHidden onPress={() => setFullCard(false)} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: tk.soft + "B8", alignItems: "center", justifyContent: "center", paddingHorizontal: 24 }}>
           <View accessibilityViewIsModal style={{ width: "100%", maxWidth: 300 }}>
-            <View style={{ position: "absolute", left: 3, top: 3, right: -3, bottom: -3, backgroundColor: tk.dark ? tk.ln : tk.ink }} />
-            <View style={{ backgroundColor: tk.sf, borderWidth: 2, borderColor: tk.ink, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 6 }}>
+            {/* a flat panel (owner's rule B, 2026-10-26): no ink edge, no hard shadow; a line hairline in Midnight */}
+            <View style={{ backgroundColor: tk.sf, borderWidth: tk.dark ? 1 : 0, borderColor: tk.line, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 6 }}>
               <Text accessibilityRole="header" style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.3, color: tk.ink }}>{fullTitle}</Text>
               <Pressable accessibilityRole="button" onPress={() => { setFullCard(false); onFullCta?.(); }} style={{ minHeight: 44, justifyContent: "center", marginTop: 6 }}>
                 <Text style={{ fontSize: 15, fontWeight: "600", color: tk.ind }}>{t("cs2.me.fullCta")}</Text>

@@ -8,6 +8,7 @@ import { readBest, saveRun } from "../lib/free-flight";
 import { replanLocal } from "../lib/local-push";
 import { P, PF, PFM } from "../theme/post";
 import { t } from "../lib/i18n";
+import { StickerBox, objectDepth } from "./10a/StickerBox";
 
 /* FREE FLIGHT — her day off, played right on her cover (owner, 2026-09-24:
    "信使除了早中晚夜送信这些行为外 还有自娱自乐模式 … 键盘打26个字母 躲避
@@ -432,7 +433,7 @@ export function FreeFlight({
         <WrenBird size={BIRD} stage={stage} mood={mood} accessory={accessory} pose={stage === "wren" ? "fly" : "perch"} letter={false} />
       </Animated.View>
       {phase !== "over" && !!want && (
-        <Animated.View pointerEvents="none" style={[{ position: "absolute", left: width * BIRD_X + BIRD / 2 + 8, top: 0, height: 32, minWidth: 32, paddingHorizontal: 8, borderRadius: 16, backgroundColor: "#FFFFFF", borderWidth: 2.4, borderColor: P.ink, alignItems: "center", justifyContent: "center" }, tagStyle]}>
+        <Animated.View pointerEvents="none" style={[{ position: "absolute", left: width * BIRD_X + BIRD / 2 + 8, top: 0, height: 32, minWidth: 32, paddingHorizontal: 10.4, borderRadius: 16, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }, tagStyle]}>
           <Text style={{ ...PFM.monoSemi, fontSize: 17, color: P.ink }}>
             {want.toUpperCase()}
             {/* the next two, fainter — read ahead, keep the rhythm */}
@@ -441,14 +442,15 @@ export function FreeFlight({
         </Animated.View>
       )}
 
-      {/* the top right: the gates, and the way out */}
+      {/* the top right: the gates, and the way out — flat white on the sky,
+          no ink edge (owner's rule B, 2026-10-26) */}
       <View style={{ position: "absolute", right: 12, top: 8, flexDirection: "row", alignItems: "center", gap: 8 }}>
         {phase !== "ready" && (
-          <View style={{ backgroundColor: "#FFFFFF", borderRadius: 999, borderWidth: 2, borderColor: P.ink, paddingHorizontal: 10, height: 30, justifyContent: "center" }}>
+          <View style={{ backgroundColor: "#FFFFFF", borderRadius: 999, paddingHorizontal: 12, height: 30, justifyContent: "center" }}>
             <Text style={{ ...PFM.monoSemi, fontSize: 12.5, color: P.ink }}>{gates}</Text>
           </View>
         )}
-        <Pressable onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel={t("ff.done")} style={({ pressed }) => ({ width: 30, height: 30, borderRadius: 15, backgroundColor: "#FFFFFF", borderWidth: 2, borderColor: P.ink, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
+        <Pressable onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel={t("ff.done")} style={({ pressed }) => ({ width: 30, height: 30, borderRadius: 15, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
           <Text style={{ fontFamily: PF.letter, fontSize: 17, lineHeight: 19, color: P.ink }}>×</Text>
         </Pressable>
       </View>
@@ -473,7 +475,7 @@ export function FreeFlight({
       {/* every five gates: faster */}
       {faster && phase === "flying" && (
         <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: height * 0.34, alignItems: "center" }}>
-          <View style={{ backgroundColor: "#C3E84F", borderWidth: 2.4, borderColor: P.ink, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4, transform: [{ rotate: "-4deg" }] }}>
+          <View style={{ backgroundColor: "#C3E84F", borderRadius: 8, paddingHorizontal: 14.4, paddingVertical: 6.4, transform: [{ rotate: "-4deg" }] }}>
             <Text style={{ ...PFM.monoSemi, fontSize: 14, letterSpacing: 2, color: P.ink }}>{t("ff.faster")}</Text>
           </View>
         </View>
@@ -491,9 +493,10 @@ export function FreeFlight({
       )}
 
       {phase === "over" && (
-        <View style={{ position: "absolute", left: 16, right: 16, top: top + 10, backgroundColor: "#FFFFFF", borderRadius: 18, borderWidth: 2.4, borderColor: P.ink, padding: 14, shadowColor: P.ink, shadowOffset: { width: 5, height: 5 }, shadowOpacity: 1, shadowRadius: 0 }}>
+        /* the result card is an object (owner's rule B, 2026-10-26): no ink edge, the object depth */
+        <StickerBox fill="#FFFFFF" radius={18} {...objectDepth({ dark: night })} style={{ position: "absolute", left: 16, right: 16, top: top + 10 }} faceStyle={{ padding: 16.4 }}>
           {newBest && (
-            <View style={{ position: "absolute", right: 12, top: -12, backgroundColor: "#C3E84F", borderWidth: 2, borderColor: P.ink, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, transform: [{ rotate: "6deg" }] }}>
+            <View style={{ position: "absolute", right: 12, top: -12, backgroundColor: "#C3E84F", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4, transform: [{ rotate: "6deg" }] }}>
               <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.4, color: P.ink }}>{t("ff.newBest")}</Text>
             </View>
           )}
@@ -510,7 +513,7 @@ export function FreeFlight({
                 reset();
                 input.current?.focus();
               }}
-              style={({ pressed }) => ({ flex: 1, height: 40, borderRadius: 20, backgroundColor: P.ink, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.8 : 1 })}
+              style={({ pressed }) => ({ flex: 1, height: 40, borderRadius: 20, backgroundColor: P.pen, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.8 : 1 })}
             >
               <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 14.5, color: "#FFFFFF" }}>{t("ff.again")}</Text>
             </Pressable>
@@ -519,7 +522,7 @@ export function FreeFlight({
               {t("ff.anyKey")}
             </Text>
           </View>
-        </View>
+        </StickerBox>
       )}
 
       {/* the keyboard's ear: off screen, always listening, never autocorrecting */}

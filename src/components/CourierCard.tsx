@@ -422,7 +422,7 @@ export function CourierCard({
         </View>
         {/* on her day off: a sticker beside the chip */}
         {playing && (
-          <View style={{ position: "absolute", left: 12, top: 46, backgroundColor: "#C3E84F", borderWidth: 2, borderColor: "#1E1B35", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2, transform: [{ rotate: "-4deg" }] }}>
+          <View style={{ position: "absolute", left: 12, top: 46, backgroundColor: "#C3E84F", borderRadius: 6, paddingHorizontal: 9, paddingVertical: 4, transform: [{ rotate: "-4deg" }] }}>
             <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.4, color: "#1E1B35" }}>{t("ff.dayoff.tag")}</Text>
           </View>
         )}
@@ -454,7 +454,8 @@ export function CourierCard({
             )}
           </View>
           {playing ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#C3E84F", borderRadius: framed ? 16 : 999, borderWidth: 2, borderColor: "#1E1B35", paddingHorizontal: 14, paddingVertical: 7 }}>
+            /* flat, as every control (owner's rule B, 2026-10-26): the lime, no ink edge */
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#C3E84F", borderRadius: framed ? 16 : 999, paddingHorizontal: 16, paddingVertical: 9 }}>
               <Text maxFontSizeMultiplier={fontMax} style={{ fontSize: 9, color: "#1E1B35" }}>▶</Text>
               <Text maxFontSizeMultiplier={fontMax} style={framed ? { fontSize: 13, fontWeight: "600", color: "#1E1B35" } : { fontFamily: PF.letter, fontWeight: "700", fontSize: 13, color: "#1E1B35" }}>{t("ff.play")}</Text>
             </View>

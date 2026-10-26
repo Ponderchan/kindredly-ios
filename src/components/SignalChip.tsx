@@ -1,11 +1,11 @@
 import { Text, View } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { BRAND } from "../theme/themes";
-import { useTheme } from "../lib/theme";
 
 /* THE ACTUAL REASON, AS A CAPSULE — the owner's A5, with A4's rings as the
    fallback, in 10a dress (H:35; KAurasClose's React Native twin): the lime
-   #D8F04A, a 2pt ln outline, corners 20, padding 6 12, no shadow; the mark
+   #D8F04A, flat (owner's rule B, 2026-10-26: no outline, the 2 it took
+   kept as padding), corners 20, padding 6 12, no shadow; the mark
    in its 20 × 14 slot and the words in system 600 13, 6 apart. The lime is
    the one colour on the card that is neither ink nor the stamp's, so it
    reads as "signal" before it is read at all. Text and mark stay #1E1B35
@@ -22,7 +22,6 @@ import { useTheme } from "../lib/theme";
 export type SignalGlyph = "rings" | "clock" | "stickers";
 
 export function SignalChip({ label, glyph }: { label: string; glyph: SignalGlyph }) {
-  const { t: tk } = useTheme();
   return (
     <View
       accessible
@@ -31,12 +30,10 @@ export function SignalChip({ label, glyph }: { label: string; glyph: SignalGlyph
         flexDirection: "row",
         alignItems: "center",
         gap: 6,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
+        paddingHorizontal: 14,
+        paddingVertical: 8,
         borderRadius: 20,
         backgroundColor: BRAND.lime,
-        borderWidth: 2,
-        borderColor: tk.ln,
         flexShrink: 1,
       }}
     >

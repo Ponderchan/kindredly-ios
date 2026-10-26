@@ -8,15 +8,16 @@ import SwiftUI
  and NEW NOTE, the room's trace tray (a note, a question, a moment, a song), Wren's desk (a
  picture, a bug, an idea) and compose's More tray.
 
- Corners of 18, a 2pt ln outline, a hard 3/3 ln shadow (pressed, the card goes down onto it), and
- inside, centred and 6 apart: the glyph 28 across in ink at 2pt, the title in System 600 15 as
+ Corners of 18, flat (owner's rule B, 2026-10-26: no outline and no hard shadow; pressed, it dips
+ 1pt; the 2 the outline took stays as padding), and inside, centred and 6 apart: the glyph 28 across in ink at 2pt, the title in System 600 15 as
  written 4 lower, and the subtitle in System 13 in sub (the card is a button, its words UI: owner,
  2026-10-20; they had been mono capitals and the serif's italic). The mock's card is
  116 tall inside its outline, 120 overall; that is the least it is, so a longer translation or
  a larger Dynamic Type size makes it taller. Put cards side by side in KChoiceGrid, which gives
  both cards in a row one height, as the mock's grid does.
 
- Three faces: sf (plain, the trays), lav2 (lavender, the letter card) and #F6E7C6 (warm, the
+ Three faces: soft2 (plain, the trays: a fill that holds on the tray's sf with no outline), lav2
+ (lavender, the letter card) and #F6E7C6 (warm, the
  note card: the happy mood's fill, the same in every theme). The mock writes ink on that pale
  fill even in Midnight, where ink is pale too and the words vanish (a mock bug); in a dark theme
  the warm card's words are Classic's ink and sub instead.
@@ -30,7 +31,7 @@ import SwiftUI
 public struct KChoiceCard: View {
   /// the three faces a choice card comes in
   public enum Tone: String, Sendable {
-    /// sf, the trays
+    /// soft2, the trays
     case plain
     /// lav2, the + sheet's letter card (H:132)
     case lavender
@@ -68,7 +69,7 @@ public struct KChoiceCard: View {
   public var body: some View {
     let fill: Color
     switch tone {
-    case .plain: fill = theme.sf
+    case .plain: fill = theme.soft2
     case .lavender: fill = theme.lav2
     case .warm: fill = KMood.happy.fill
     }
@@ -109,15 +110,7 @@ public struct KChoiceCard: View {
         }
       }
     }
-    .buttonStyle(KStickerButtonStyle(
-      shape: RoundedRectangle(cornerRadius: 18, style: .circular),
-      fill: fill,
-      stroke: theme.ln,
-      lineWidth: 2,
-      shadow: theme.ln,
-      shadowOffset: 3
-    ))
-    // flattened first, so the hard shadow doesn't show through the dimmed face
+    .buttonStyle(KStickerButtonStyle(shape: RoundedRectangle(cornerRadius: 18, style: .circular), fill: fill))
     .compositingGroup()
     .opacity(locked ? 0.45 : 1)
     .disabled(locked)

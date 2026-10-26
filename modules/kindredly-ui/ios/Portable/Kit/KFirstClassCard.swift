@@ -188,8 +188,8 @@ public struct KFirstClassCard: View {
    check), or for the Lifetime seat the cofounder card (cream, the badge only once the reader
    holds a number).
  - Restore purchases, Terms · Privacy, and the renewal line (App Store 3.1.2).
- - THE BUTTON, pinned at the bottom over a white fade: 54 tall at least, ink with a 4/4 gold hard
-   shadow, and the mono line under it. The content's bottom padding is the panel's measured
+ - THE BUTTON, pinned at the bottom over a white fade: 54 tall at least, a flat ink capsule (owner's
+   rule B, 2026-10-26: controls have no hard shadow), and the mono line under it. The content's bottom padding is the panel's measured
    height, so the last row always clears it.
  Which fare is chosen is this view's (reported with onSelect); buying is TS's (onBuy with the
  fare's id), and `busy` holds the button with a spinner meanwhile.
@@ -826,10 +826,8 @@ public struct KPaywallScreen: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, minHeight: 54)
-        .background {
-          KStickerBackground(shape: RoundedRectangle(cornerRadius: 16, style: .circular), fill: KPW.ink, stroke: nil, lineWidth: 0, shadow: KBrand.waxGold, shadowOffset: 4)
-        }
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .circular))
+        .background(Capsule().fill(KPW.ink))
+        .contentShape(Capsule())
       }
       .buttonStyle(KFadePressStyle())
       .disabled(busy || (!content.premium && selected == nil))
@@ -846,7 +844,6 @@ public struct KPaywallScreen: View {
     .padding(.top, 12)
     .padding(.horizontal, 16)
     .padding(.bottom, max(bottomInset - 4, 16))
-    .padding(.trailing, 4) // the hard shadow's 4 stays inside the panel
     .background(
       LinearGradient(stops: [.init(color: KPW.white.opacity(0), location: 0), .init(color: KPW.white, location: 0.3)], startPoint: .top, endPoint: .bottom)
         .ignoresSafeArea(edges: .bottom)

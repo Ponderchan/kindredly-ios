@@ -4,12 +4,13 @@ import SwiftUI
 
 /*
  THE LANGUAGE PAIR — the owner's B1, back on the Today card (2026-10-16): "translate" said as
- two languages and an arrow. ES is what they wrote, EN is yours, and the LIT side (the ink
+ two languages and an arrow. ES is what they wrote, EN is yours, and the LIT side (the ind
  segment with the page colour on it) is the one you are reading now; one tap turns it round.
  The smallest possible control, and the least like a machine-translation button: it names the
- two people's languages, not a service. The SwiftUI twin of components/LangPair.tsx, on the 10a
- sticker material: a 2pt ln outline on a true capsule, the two codes in mono 600 11 at .08em
- padded 6 11 inside the outline, the arrow in system 700 13 in ink between them (7 each side).
+ two people's languages, not a service. The SwiftUI twin of components/LangPair.tsx, flat (owner's
+ rule B, 2026-10-26): a lav capsule with no outline, the lit side an ind segment with the page
+ colour on it, the two codes in mono 600 11 at .08em padded 6 11 (and the 2 the outline took),
+ the arrow in system 700 13 in ink between them (7 each side).
  Busy, the arrow is an ellipsis and the whole thing is drawn at .6 and takes no tap; pressed,
  it dims the same way. The lit side's move is a .25s crossfade, the same beat as the letter's
  text swapping under it (KCardText), and no motion under Reduce Motion.
@@ -103,13 +104,12 @@ public struct KLangPair: View {
     }
     .lineLimit(1)
     .fixedSize()
-    // the lit fill runs under the outline, flush against it, as the twin's background does
+    .background(theme.lav)
     .clipShape(Capsule(style: .circular))
-    .overlay(Capsule(style: .circular).strokeBorder(theme.ln, lineWidth: 2))
     .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: on)
   }
 
-  /// One side: the code, padded 6 11 inside the 2pt outline (so 13 at the outer edge), the ink
+  /// One side: the code, padded 6 11 and the 2 the outline took (so 13 at the outer edge), the ind
   /// fill with the page colour on it when it is the side you are reading.
   private func side(_ code: String, lit: Bool, outerEdge: HorizontalEdge) -> some View {
     Text(code)
@@ -118,6 +118,6 @@ public struct KLangPair: View {
       .padding(.leading, outerEdge == .leading ? 11 + 2 : 11)
       .padding(.trailing, outerEdge == .trailing ? 11 + 2 : 11)
       .padding(.vertical, 6 + 2)
-      .background(theme.ink.opacity(lit ? 1 : 0))
+      .background(theme.ind.opacity(lit ? 1 : 0))
   }
 }

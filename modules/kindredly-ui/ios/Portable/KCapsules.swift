@@ -3,10 +3,11 @@
 import SwiftUI
 
 /*
- THE 10a STICKER CAPSULES (tokens-10a.md §9): small rounded labels with a 2pt ln outline,
- corners of 20 (more than half their height, so they read as capsules) and padding 6 12 inside
- the outline. Some carry a hard shadow, some don't, exactly as the mock draws them. Every word
- on them is passed in already translated.
+ THE 10a STICKER CAPSULES (tokens-10a.md §9): small rounded labels, corners of 20 (more than
+ half their height, so they read as capsules) and padding 6 12 (plus the 2 the mock's outline
+ took). Owner's rule B (2026-10-26): controls and chips are flat, so only the topic tag, which
+ belongs to the letter, keeps the mock's ln outline and hard shadow. Every word on them is
+ passed in already translated.
  */
 
 /*
@@ -175,23 +176,17 @@ public struct KAurasClose: View {
         .fixedSize()
     }
     .foregroundStyle(Self.inkOnLime)
+    // the padding, and the 2 the outline took: flat lime, no outline (owner's rule B, 2026-10-26)
     .padding(.vertical, 6 + 2)
     .padding(.horizontal, 12 + 2)
-    .background {
-      KStickerBackground(
-        shape: RoundedRectangle(cornerRadius: 20, style: .circular),
-        fill: KBrand.lime,
-        stroke: theme.ln,
-        lineWidth: 2
-      )
-    }
+    .background(RoundedRectangle(cornerRadius: 20, style: .circular).fill(KBrand.lime))
     .accessibilityElement(children: .combine)
   }
 }
 
 /*
- THE TRANSLATE CAPSULE, as the mock draws it (H:42): sf, a 2pt ln outline, corners of 20,
- padding 6 12, and no shadow. Inside, 8 apart: the language pair in mono 600 10 at .1em in ind
+ THE TRANSLATE CAPSULE (H:42), flat (owner's rule B, 2026-10-26): a lav fill, no outline,
+ corners of 20, padding 6 12 (and the 2 the mock's outline took), and no shadow. Inside, 8 apart: the language pair in mono 600 10 at .1em in ind
  ("ES→EN"), then the words in system 600 13 in ink ("read in yours"). The prompts' version,
  a lav fill with "EN ← ES" turning to "ORIGINAL" (P:127), is the one the mock replaced; the
  caller still decides what code and words to show in each state.
@@ -250,9 +245,7 @@ public struct KTranslateCapsule: View {
     }
     .buttonStyle(KStickerButtonStyle(
       shape: RoundedRectangle(cornerRadius: 20, style: .circular),
-      fill: theme.sf,
-      stroke: theme.ln,
-      lineWidth: 2
+      fill: theme.lav
     ))
   }
 }
@@ -261,13 +254,11 @@ public struct KTranslateCapsule: View {
  THE ME CHIPS (H:73, 465, 467): the row of section chips at the top of Me. System 600 13,
  padding 8 12 inside a 2pt outline, corners of 20, 8 apart.
 
- - off: sf, ink text, ln outline, a hard 2/2 shadow in ln;
- - on: ink fill, sf text (the mock's; the prompts say bg, P:248), ln outline, a hard 3/3 shadow
-   in ind, and the chip lifted up and left by 1pt. CSS lifts the shadow with it, so the shadow
-   ends up where the off chip's was and only the chip rises off it;
+ Flat (owner's rule B, 2026-10-26): no outline, no hard shadow, no lift.
+ - off: a lav fill, ink text;
+ - on: an ind fill, the text in bg;
  - the First Class chip, if the row has one (firstClassIndex), is gold in every theme: off is
-   cream with gold text, a gold outline and a 2/2 gold shadow; on is wax gold with #1E1B35
-   text, a gold outline and a 3/3 shadow in ln.
+   cream with gold text; on is wax gold with #1E1B35 text.
 
  A change of chip animates as the mock's transition does (.25s, cubic-bezier(.3,1.2,.5,1)).
 
@@ -310,18 +301,12 @@ public struct KSegmentChips: View {
     let gold = i == firstClassIndex
     let fill: Color
     let text: Color
-    let border: Color
-    let shadow: Color
     if gold {
       fill = on ? KBrand.waxGold : KBrand.cream
       text = on ? KTheme.classic.ink : KBrand.goldText
-      border = KBrand.waxGold
-      shadow = on ? theme.ln : KBrand.waxGold
     } else {
-      fill = on ? theme.ink : theme.sf
-      text = on ? theme.sf : theme.ink
-      border = theme.ln
-      shadow = on ? theme.ind : theme.ln
+      fill = on ? theme.ind : theme.lav
+      text = on ? theme.bg : theme.ink
     }
     return Button {
       withAnimation(KMotion.chip) { selection = i }
@@ -335,15 +320,7 @@ public struct KSegmentChips: View {
         .padding(.horizontal, tight ? 8 + 2 : 12 + 2)
         .frame(maxWidth: stretch ? .infinity : nil)
     }
-    .buttonStyle(KStickerButtonStyle(
-      shape: RoundedRectangle(cornerRadius: 20, style: .circular),
-      fill: fill,
-      stroke: border,
-      lineWidth: 2,
-      shadow: shadow,
-      shadowOffset: on ? 3 : 2,
-      lift: on ? 1 : 0
-    ))
+    .buttonStyle(KStickerButtonStyle(shape: RoundedRectangle(cornerRadius: 20, style: .circular), fill: fill))
     .accessibilityAddTraits(on ? .isSelected : [])
   }
 }

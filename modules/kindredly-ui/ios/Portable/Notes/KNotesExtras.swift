@@ -10,9 +10,9 @@ import SwiftUI
    and the line in the Letter font's italic 15 in sub (upright in a face without one). It fades
    in over .42s; a tap fades it out over .2s and reports it (no fades under Reduce Motion). Whether
    it shows is TS's (useWrenOnce, once per account, only once there are notes to show it over).
- - The evening question (owner decision 4): the note card's material (sf, a 1.5 ln outline,
-   corners 22), her bird at 26, the question in the Letter font's italic, NO THANKS in system 600
-   13 sub, YES as an ink pill with its words in the page colour (buttons are System), the foot in system 12 at 1.4, mute; dimmed to
+ - The evening question (owner decision 4): a flat panel (owner's rule B, 2026-10-26: lav2, no
+   outline, corners 22), her bird at 26, the question in the Letter font's italic, NO THANKS in system 600
+   13 sub, YES as the ind capsule with its words in the page colour (buttons are System), the foot in system 12 at 1.4, mute; dimmed to
    .6 and not tappable while an answer saves. Every Alert, permission ask and save is TS's.
  - Its off row, after a yes: her mini bird at 18 (the simplified mark WrenBird draws at 20 and
    below), "Wren's small question, every evening at 9." in system 13 sub, TURN OFF in system 600 12 ind
@@ -121,8 +121,8 @@ struct KEveningAskCard: View {
         .padding(.top, 2)
     }
     .padding(16)
-    .background { shape.fill(theme.sf) }
-    .overlay { shape.strokeBorder(theme.ln, lineWidth: 1.5) }
+    // a flat panel (owner's rule B, 2026-10-26): a lav2 fill, no outline
+    .background { shape.fill(theme.lav2) }
     .opacity(busy ? 0.6 : 1)
     .disabled(busy)
     .padding(.top, 4)
@@ -147,7 +147,7 @@ struct KEveningAskCard: View {
     .buttonStyle(KFadePressStyle())
   }
 
-  /// Yes, at 9: the ink pill, one line beside the no, wrapping when stacked.
+  /// Yes, at 9: the ind capsule, one line beside the no, wrapping when stacked.
   private func yesButton(oneLine: Bool) -> some View {
     SwiftUI.Button(action: onYes) {
       Text(strings.eveningYes)
@@ -158,7 +158,7 @@ struct KEveningAskCard: View {
         .fixedSize(horizontal: false, vertical: !oneLine)
         .padding(.horizontal, 16)
         .padding(.vertical, 9)
-        .background(RoundedRectangle(cornerRadius: 18, style: .circular).fill(theme.ink))
+        .background(Capsule().fill(theme.ind))
         .frame(minHeight: 44)
         .contentShape(Rectangle())
     }

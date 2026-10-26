@@ -474,7 +474,7 @@ export function PaywallBody({
             accessibilityRole="button"
             accessibilityLabel={ctaLabel}
             accessibilityState={{ busy, disabled: busy }}
-            style={({ pressed }) => ({ backgroundColor: lifetime ? "#FFFFFF" : GOLD, borderRadius: 14, paddingVertical: 18, paddingHorizontal: 16, alignItems: "center", opacity: busy ? 0.5 : pressed ? 0.88 : 1 })}
+            style={({ pressed }) => ({ backgroundColor: lifetime ? "#FFFFFF" : GOLD, borderRadius: 999, paddingVertical: 18, paddingHorizontal: 16, alignItems: "center", opacity: busy ? 0.5 : pressed ? 0.88 : 1 })}
           >
             <Text maxFontSizeMultiplier={1.6} style={{ textAlign: "center", fontFamily: PF.letter, fontWeight: "700", fontSize: 15, color: lifetime ? GOLD_INK : W14.ink }}>{busy ? "…" : `${ctaLabel} →`}</Text>
           </Pressable>

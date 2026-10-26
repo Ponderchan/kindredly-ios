@@ -5,8 +5,9 @@ import { StickerBox } from "./StickerBox";
 
 /* THE TRANSLATE CAPSULE (10a, H:42; KTranslateCapsule's React Native twin).
    ────────────────────────────────────────────────────────────────────────
-   A letter in someone else's language offers itself in yours: an sf
-   capsule with a 2pt ln outline, corners 20, padding 6 12, no shadow.
+   A letter in someone else's language offers itself in yours: a flat lav
+   capsule (owner's rule B, 2026-10-26: no outline, the 2 it took kept as
+   padding), corners 20, padding 6 12, no shadow.
    Inside, 8 apart, the language code in mono 600 10 at .1em in ind
    ("ES→EN"; translateCode() in ./kit turns it round once translated) and
    the words in system 600 13 in ink — read.invite / mm.original /
@@ -47,12 +48,11 @@ export function TranslateCapsule({
     >
       {({ pressed }) => (
         <StickerBox
-          fill={tk.sf}
-          stroke={tk.ln}
-          lineWidth={2}
+          fill={tk.lav}
+          stroke={null}
           radius={20}
           pressed={pressed}
-          faceStyle={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 6, paddingHorizontal: 12 }}
+          faceStyle={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8, paddingHorizontal: 14 }}
         >
           <Text numberOfLines={1} style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1, color: tk.ind }}>
             {code}

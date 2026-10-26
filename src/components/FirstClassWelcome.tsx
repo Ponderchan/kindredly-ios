@@ -12,6 +12,7 @@ import { clearCofounderCache, COFOUNDER_SEATS } from "../lib/cofounder-seats";
 import { iapActiveTrial } from "../lib/iap";
 import { useFares } from "../lib/fares";
 import { pad3, trialFromIntro, type Trial } from "../screens/paywall/paywall-model";
+import { StickerBox, objectDepth } from "./10a/StickerBox";
 import "../data/strings-fc2";
 
 /* THE RECEIPT — A3 "three stickers" (owner, 2026-10-19; FC2 §4; the prototype
@@ -36,7 +37,9 @@ import "../data/strings-fc2";
      sentence, updated live when it lands.
    The prices are the store's strings, never re-priced. Sticker words are
    always the fixed ink: the stickers are printed things, the same in every
-   theme. In Midnight the scrim is black and the card takes a 1.5 ln frame. */
+   theme. Owner's rule B (2026-10-26): the stickers are objects, so no ink
+   edge, only the object depth; Start writing is the flat ind capsule. In
+   Midnight the scrim is black and the card takes a 1pt line hairline. */
 
 export type ReceiptPlan = "monthly" | "annual" | "lifetime";
 
@@ -156,14 +159,19 @@ function receiptWords(plan: ReceiptPlan, price: string, offeredTrial: boolean, t
 
 /* ── the sticker ──────────────────────────────────────────────────────── */
 
-/** a thick sticker: 2.5 ink edge and a hard 3 3 0 ink shadow (an offset sibling: RN shadows
-    aren't hard on iOS), turned, placed in the field */
+/** a thick sticker, an object: no edge, a small object depth (3), turned, placed in the field */
 function Sticker({ place, rotate, fill, radius, padV, padH, children }: { place: ViewStyle; rotate: number; fill: string; radius: number; padV: number; padH: number; children: React.ReactNode }) {
+  const { t: T } = useTheme();
   return (
-    <View style={[{ position: "absolute", transform: [{ rotate: `${rotate}deg` }] }, place]}>
-      <View style={{ position: "absolute", left: 3, top: 3, right: -3, bottom: -3, borderRadius: radius, backgroundColor: INK }} />
-      <View style={{ backgroundColor: fill, borderWidth: 2.5, borderColor: INK, borderRadius: radius, paddingVertical: padV, paddingHorizontal: padH }}>{children}</View>
-    </View>
+    <StickerBox
+      fill={fill}
+      radius={radius}
+      {...objectDepth(T, 3)}
+      style={[{ position: "absolute", transform: [{ rotate: `${rotate}deg` }] }, place]}
+      faceStyle={{ paddingVertical: padV + 2.5, paddingHorizontal: padH + 2.5 }}
+    >
+      {children}
+    </StickerBox>
   );
 }
 
@@ -259,7 +267,7 @@ export function FirstClassReceipt({
             paddingBottom: 22,
             gap: 18,
           },
-          dark && { borderWidth: 1.5, borderColor: T.ln },
+          dark && { borderWidth: 1, borderColor: T.line },
           cardStyle,
         ]}
       >
@@ -295,16 +303,13 @@ export function FirstClassReceipt({
         {/* ④ Start writing: always last, always on screen. It means what it says (owner,
             2026-10-19): the receipt and the fare close, then the composer opens. The scrim
             only closes. */}
-        <View style={{ marginRight: 4, marginBottom: 4 }}>
-          <View style={{ position: "absolute", left: 4, top: 4, right: -4, bottom: -4, borderRadius: 16, backgroundColor: LIME }} />
-          <Pressable
-            onPress={startWriting}
-            accessibilityRole="button"
-            style={({ pressed }) => ({ minHeight: 52, paddingVertical: 14, paddingHorizontal: 18, borderRadius: 16, backgroundColor: T.ink, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.9 : 1 })}
-          >
-            <Text style={{ fontSize: 16, fontWeight: "600", color: T.bg, textAlign: "center" }}>{t("fc2.rc.go")}</Text>
-          </Pressable>
-        </View>
+        <Pressable
+          onPress={startWriting}
+          accessibilityRole="button"
+          style={({ pressed }) => ({ minHeight: 52, paddingVertical: 14, paddingHorizontal: 18, borderRadius: 999, backgroundColor: T.ind, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.9 : 1 })}
+        >
+          <Text style={{ fontSize: 16, fontWeight: "600", color: T.bg, textAlign: "center" }}>{t("fc2.rc.go")}</Text>
+        </Pressable>
       </Animated.View>
     </View>
   );

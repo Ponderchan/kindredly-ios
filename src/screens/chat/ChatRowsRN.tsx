@@ -251,7 +251,7 @@ function SongCard({ item, env }: { item: KChatItem; env: RowEnv }) {
               padding: 12,
               borderRadius: 16,
               borderWidth: 1.5,
-              borderColor: item.mine ? tk.lav : tk.ln,
+              borderColor: item.mine ? tk.lav : tk.line,
               backgroundColor: item.mine ? tk.lav2 : tk.sf,
             }}
           >
@@ -285,13 +285,11 @@ function FoldCard({ item, env }: { item: KChatItem; env: RowEnv }) {
   return (
     <StickerBox
       fill={open ? tk.sf : tk.soft}
-      stroke={open ? tk.ln : tk.line}
-      lineWidth={open ? 2 : 1.5}
+      stroke={tk.line}
+      lineWidth={open ? 1 : 1.5}
       radius={16}
-      shadow={open ? tk.ln : null}
-      offset={open ? 3 : 0}
       style={{ marginRight: open ? 3 : 0, marginBottom: open ? 9 : 6 }}
-      faceStyle={{ padding: 14 }}
+      faceStyle={{ padding: open ? 15 : 14 }}
     >
       <Text ref={env.a11yRef(item.key)} accessibilityRole="header" style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: MONO.label * 0.14, color: tk.mute }}>
         {fold.kindLabel}

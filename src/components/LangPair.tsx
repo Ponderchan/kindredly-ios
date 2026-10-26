@@ -13,13 +13,15 @@ import { useTheme } from "../lib/theme";
    10a (step 5) briefly swapped it for the mock's outline capsule (H:42);
    the owner wanted this one back (2026-10-16), so the Today card's foot
    draws it again — here in the RN fallback, and as its SwiftUI twin
-   Portable/Kit/KLangPair.swift. Painted from the theme (an ink outline,
-   the lit side ink with the page colour on it), its mono at 11. */
+   Portable/Kit/KLangPair.swift. Painted from the theme, flat (owner's
+   rule B, 2026-10-26): a lav capsule with no outline, the lit side ind
+   with the page colour on it, its mono at 11. */
 
 export function LangPair({ from, to, on, busy, onPress }: { from: string; to: string; on: boolean; busy: boolean; onPress: () => void }) {
   const { t: tk } = useTheme();
-  const Side = ({ tag, lit }: { tag: string; lit: boolean }) => (
-    <View style={{ paddingHorizontal: 11, paddingVertical: 6, backgroundColor: lit ? tk.ink : "transparent" }}>
+  // padded 6 11 and the 2 the outline took (13 at the outer edge), as KLangPair
+  const Side = ({ tag, lit, outer }: { tag: string; lit: boolean; outer: "left" | "right" }) => (
+    <View style={{ paddingLeft: outer === "left" ? 13 : 11, paddingRight: outer === "right" ? 13 : 11, paddingVertical: 8, backgroundColor: lit ? tk.ind : "transparent" }}>
       <Text style={{ ...PFM.monoSemi, fontSize: MONO.title, letterSpacing: 0.9, color: lit ? tk.bg : tk.ink }}>{tag}</Text>
     </View>
   );
@@ -33,16 +35,15 @@ export function LangPair({ from, to, on, busy, onPress }: { from: string; to: st
       style={({ pressed }) => ({
         flexDirection: "row",
         alignItems: "center",
-        borderWidth: 2,
-        borderColor: tk.ln,
+        backgroundColor: tk.lav,
         borderRadius: 999,
         overflow: "hidden",
         opacity: pressed || busy ? 0.6 : 1,
       })}
     >
-      <Side tag={from} lit={!on} />
+      <Side tag={from} lit={!on} outer="left" />
       <Text style={{ paddingHorizontal: 7, fontSize: 13, fontWeight: "700", color: tk.ink }}>{busy ? "…" : "→"}</Text>
-      <Side tag={to} lit={on} />
+      <Side tag={to} lit={on} outer="right" />
     </Pressable>
   );
 }

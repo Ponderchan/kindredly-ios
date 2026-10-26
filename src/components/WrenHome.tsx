@@ -353,9 +353,11 @@ export function WrenHome({
               ))}
             </View>
             {canPlay && (
-              /* the game's door: a sticker in the signal colour, the pillars and
-                 her on it, PLAY — it has to read as a game at a glance */
-              <Pressable onPress={openPlay} accessibilityRole="button" accessibilityLabel={tr("ff.title")} accessibilityHint={tr("ff.hint")} hitSlop={6} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 6, height: 34, paddingLeft: 6, paddingRight: 12, borderRadius: 17, backgroundColor: "#C3E84F", borderWidth: 2, borderColor: COVER_INK, shadowColor: COVER_INK, shadowOffset: { width: pressed ? 1 : 3, height: pressed ? 1 : 3 }, shadowOpacity: 1, shadowRadius: 0, transform: [{ translateY: pressed ? 2 : 0 }] })}>
+              /* the game's door: a capsule in the signal colour, the pillars and
+                 her on it, PLAY — it has to read as a game at a glance. Flat
+                 (owner's rule B, 2026-10-26): the lime fill stays, no ink edge
+                 and no hard shadow */
+              <Pressable onPress={openPlay} accessibilityRole="button" accessibilityLabel={tr("ff.title")} accessibilityHint={tr("ff.hint")} hitSlop={6} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 6, height: 34, paddingLeft: 6, paddingRight: 12, borderRadius: 17, backgroundColor: "#C3E84F", opacity: pressed ? 0.8 : 1 })}>
                 <PillarsGlyph size={24} />
                 <Text style={{ fontSize: 14, fontWeight: "700", color: COVER_INK }}>{tr("ff.play")}</Text>
                 <Text style={{ fontSize: 9, color: COVER_INK }}>▶</Text>
@@ -503,17 +505,16 @@ export function WrenHome({
 const COVER_H = 300;
 
 
-/* a counted fact as a sticker label: the card face (white in Classic), the
-   band's ink as the edge and the mark, the number in bold. On Midnight the
-   band colours are 1.3–2.2:1 on the card face, so the edge is ln (11.5:1)
-   and the mark sub (8.7:1) */
+/* a counted fact as a chip: flat (owner's rule B, 2026-10-26), a soft lav
+   capsule with no edge, the band's ink as the mark, the number in bold. On
+   Midnight the band colours are too faint on the lav fill, so the mark is
+   sub */
 function FactPill({ icon, text, tone }: { icon: "letter" | "kindred" | "date" | "next"; text: string; tone: string }) {
   const P = useP();
   const T = useTheme().t;
-  const edge = T.dark ? T.ln : tone;
   const mark = T.dark ? T.sub : tone;
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: T.sf, borderRadius: 999, borderWidth: 1.5, borderColor: edge, paddingLeft: 10, paddingRight: 13, paddingVertical: 6 }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: T.lav, borderRadius: 999, paddingLeft: 11.5, paddingRight: 14.5, paddingVertical: 7.5 }}>
       {/* a kindred wears the kindred face (round 3a), as everywhere else */}
       {icon === "kindred" ? <StateGlyph kind="kindreds" size={16} /> : (
       <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={mark} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">

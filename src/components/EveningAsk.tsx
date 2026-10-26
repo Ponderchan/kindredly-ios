@@ -22,10 +22,10 @@ import type { EveningShow } from "../screens/notes/notes-model";
    SwiftUI screen. The off row also shows on an empty Notes: it is the
    evening line's only off switch.
 
-   The card is the 10a note card's material (the theme's card face, a 1.5
-   ln outline, corners 22, no shadow), the question — Wren speaking — in
-   the reader's Letter font's italic, NO THANKS a System button, YES an ink
-   pill with its words in the page colour.
+   The card is a flat panel (owner's rule B, 2026-10-26: a lav2 fill,
+   corners 22, no outline, no shadow), the question — Wren speaking — in
+   the reader's Letter font's italic, NO THANKS a System button, YES the ind
+   capsule with its words in the page colour.
    Disabled at .6 while an answer saves. */
 
 export type EveningAskStrings = { ask: string; yes: string; no: string; foot: string; onLine: string; turnOff: string };
@@ -72,7 +72,7 @@ export function EveningAsk({
     <Animated.View
       entering={FadeIn.duration(420)}
       exiting={FadeOut.duration(200)}
-      style={{ backgroundColor: tk.sf, borderWidth: 1.5, borderColor: tk.ln, borderRadius: 22, padding: 16, marginTop: 4, marginBottom: 14, opacity: busy ? 0.6 : 1 }}
+      style={{ backgroundColor: tk.lav2, borderRadius: 22, padding: 16, marginTop: 4, marginBottom: 14, opacity: busy ? 0.6 : 1 }}
     >
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
         <WrenBird size={26} mood="content" />
@@ -82,7 +82,7 @@ export function EveningAsk({
         <Pressable accessibilityRole="button" onPress={onNo} disabled={busy} hitSlop={6} style={({ pressed }) => ({ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 18, opacity: pressed ? 0.6 : 1 })}>
           <Text style={{ fontSize: 13, fontWeight: "600", color: tk.sub }}>{strings.no}</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={onYes} disabled={busy} style={({ pressed }) => ({ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 18, backgroundColor: tk.ink, opacity: pressed ? 0.75 : 1 })}>
+        <Pressable accessibilityRole="button" onPress={onYes} disabled={busy} style={({ pressed }) => ({ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 999, backgroundColor: tk.ind, opacity: pressed ? 0.75 : 1 })}>
           <Text style={{ fontSize: 13, fontWeight: "600", color: tk.bg }}>{strings.yes}</Text>
         </Pressable>
       </View>

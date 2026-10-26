@@ -188,15 +188,15 @@ function SignDoor({ dock, onDock, hint }: { dock: KChatDock; onDock: (action: KC
     <View style={{ alignItems: "center", marginBottom: 10 }}>
       <Pressable onPress={() => onDock("sign")} accessibilityRole="button" accessibilityHint={hint} hitSlop={8}>
         {({ pressed }) => (
+          /* flat, as KDock's (owner's rule B, 2026-10-26): soft with no ink ring, or the gold
+             edge on cream; no hard shadow. The 2 a ring takes stays as padding */
           <StickerBox
-            fill={gold ? BRAND.cream : tk.sf}
-            stroke={gold ? BRAND.waxGold : tk.ln}
+            fill={gold ? BRAND.cream : tk.soft}
+            stroke={gold ? BRAND.waxGold : null}
             lineWidth={2}
             radius={20}
-            shadow={gold ? BRAND.waxGold : null}
-            offset={gold ? 2 : 0}
             pressed={pressed}
-            faceStyle={{ paddingHorizontal: 14, paddingVertical: 8 }}
+            faceStyle={{ paddingHorizontal: gold ? 14 : 16, paddingVertical: gold ? 8 : 10 }}
           >
             <Text style={{ fontSize: 13, fontWeight: "600", color: gold ? BRAND.goldText : tk.ink, textAlign: "center" }}>{dock.signLabel}</Text>
           </StickerBox>
