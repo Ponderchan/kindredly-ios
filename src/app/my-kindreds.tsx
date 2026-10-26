@@ -13,6 +13,8 @@ import { SecondaryHeader } from "../components/10a/SecondaryHeader";
 import { t, useLang } from "../lib/i18n";
 import { localeTag } from "../lib/format";
 import { fetchThreads, readThreadsCache, type ThreadSummary } from "../lib/db";
+import { NativeSurface } from "../components/NativeSurface";
+import { MyKindredsNative } from "../screens/my-kindreds/MyKindredsNative";
 
 /* YOUR KINDREDS — the owner's numbered sheet. Every correspondence is a
    numbered card, KINDRED No.01, No.02…, in the order they started. Named
@@ -71,7 +73,22 @@ function ChatButton({ live, alert, onPress, tk }: { live: boolean; alert: boolea
   );
 }
 
+/* 2026-10-27: My kindreds is redrawn in Swift (owner: only the kindreds, as
+   signed cards — screens/my-kindreds/MyKindredsNative, KMyKindredsView),
+   with the React Native sheet below, pen pals and all, as the remote
+   switch's fallback ("mykindreds" in app_surfaces, NativeSurface in mount
+   mode). */
 export default function MyKindreds() {
+  const { t: tk } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <NativeSurface surface="mykindreds" view="KMyKindredsView" mode="mount" native={() => <MyKindredsNative />} fallback={() => <MyKindredsRN />} />
+    </View>
+  );
+}
+
+/* the React Native page, unchanged */
+function MyKindredsRN() {
   useLang();
   const router = useRouter();
   const { t: tk } = useTheme();

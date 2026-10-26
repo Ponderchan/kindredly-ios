@@ -12,6 +12,9 @@ import { loadShelf, markSeen, type Minted } from "../../lib/keepsakes";
 import { WrenBird } from "../../components/WrenBird";
 import { readThreadsCache } from "../../lib/db";
 import { speakAs, useWrenName } from "../../lib/wren-name";
+import { NativeSurface } from "../../components/NativeSurface";
+import { KeepsakeNative } from "../../screens/keepsakes/KeepsakeNative";
+import { HAS_WHY } from "../../screens/keepsakes/keepsake-why";
 
 /* ONE KEEPSAKE, AND THE PROOF UNDER IT.
    ────────────────────────────────────────────────────────────────────────
@@ -27,7 +30,22 @@ import { speakAs, useWrenName } from "../../lib/wren-name";
    kind, centred in mono); the day in the reader's own language (it was
    always American English); a line she carried is someone's letter being
    read, so it is set in the reader's Letter font; mono labels at 10 and 11. */
+/* 2026-10-27 ("make Me all Swift"): one keepsake is drawn in Swift
+   (screens/keepsakes/KeepsakeNative, KKeepsakeView), with the React Native
+   page below as the remote switch's fallback ("keepsake" in app_surfaces,
+   NativeSurface in mount mode). */
 export default function KeepsakeDetail() {
+  const { t: tk } = useTheme();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <NativeSurface surface="keepsake" view="KKeepsakeView" mode="mount" native={() => <KeepsakeNative id={String(id)} />} fallback={() => <KeepsakeDetailRN />} />
+    </View>
+  );
+}
+
+/* the React Native page, unchanged */
+function KeepsakeDetailRN() {
   const P = useP();
   const { t: tk } = useTheme();
   useLang();
@@ -131,6 +149,4 @@ export default function KeepsakeDetail() {
   );
 }
 
-/* her sentence per keepsake — what SHE did, never what you achieved */
-/* earn-lines live in the catalog as ks.why.<id>; this set marks which ids have their own */
-const HAS_WHY = new Set<string>(["first-flight", "night-flight", "early-bird-flight", "same-hour-twice", "favorite-hour", "favorite-day", "late-return", "first-reply", "first-morning-reply", "first-midnight-reply", "word-came-back", "first-thread", "first-turn-back", "five-letters-deep", "you-signed-first", "they-signed-first", "name-seal", "first-kindred", "three-kindreds", "five-kindreds", "longest-thread", "word-spotted", "first-voice-letter", "first-sealed-page", "first-photo-kept", "first-drifted-line", "10-letters-carried", "50-letters-carried", "100-letters-carried", "first-anniversary"]);
+/* her sentence per keepsake: HAS_WHY, now shared with the Swift page (screens/keepsakes/keepsake-why) */

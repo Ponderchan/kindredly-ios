@@ -8,6 +8,8 @@ import { WrenBird } from "../../../components/WrenBird";
 import { SecondaryHeader } from "../../../components/10a";
 import { useTabBarSpace } from "../../../components/NativeTabBar";
 import { speakAs, useWrenName } from "../../../lib/wren-name";
+import { NativeSurface } from "../../../components/NativeSurface";
+import { HelpNative } from "../../../screens/settings/HelpNative";
 
 /* HOW KINDREDLY WORKS — the answers, in the product's own voice.
    ────────────────────────────────────────────────────────────────────────
@@ -25,7 +27,21 @@ import { speakAs, useWrenName } from "../../../lib/wren-name";
 const QA = (wren: string): { q: string; a: string }[] =>
   [1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => ({ q: t(`hp.q${i}`), a: t(`hp.a${i}`, { wren }) }));
 
+/* 2026-10-27 ("make Me all Swift"): How Kindredly works is drawn in Swift
+   (screens/settings/HelpNative, KHelpView), with the React Native page
+   below as the remote switch's fallback ("help" in app_surfaces,
+   NativeSurface in mount mode). */
 export default function Help() {
+  const { t: tk } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <NativeSurface surface="help" view="KHelpView" mode="mount" native={() => <HelpNative />} fallback={() => <HelpRN />} />
+    </View>
+  );
+}
+
+/* the React Native page, unchanged */
+function HelpRN() {
   useLang();
   const { t: tk } = useTheme();
   const safe = useSafeAreaInsets();

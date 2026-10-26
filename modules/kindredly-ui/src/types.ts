@@ -189,6 +189,14 @@ export const KSCREEN_VIEWS = [
   "KMakeFaceView",
   // the onboarding (binary 1.2.6, off by default)
   "KOnboardingView",
+  // the last Me pages (owner, 2026-10-27: "make Me all Swift")
+  "KKeepsakesView",
+  "KKeepsakeView",
+  "KMyKindredsView",
+  "KEditFieldView",
+  "KBlockedView",
+  "KHelpView",
+  "KWriteToUsView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

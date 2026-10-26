@@ -219,6 +219,47 @@ public class KindredlyUIModule: Module {
       }
     }
 
+    // The last Me pages (owner, 2026-10-27: "make Me all Swift"), each behind its own switch with
+    // its React Native page as the fallback. Keepsakes, one keepsake and My kindreds: adapters in
+    // Adapters/KMePagesView.swift, screens in Portable/Me/KKeepsakesScreen.swift and
+    // KMyKindredsScreen.swift. One field, Blocked, Help and Write to us: Adapters/
+    // KSettingsPagesView.swift, screens in Portable/Settings. New files: a pod install before the build.
+    ExpoUIView(KKeepsakesView.self) {
+      AsyncFunction("command") { (view: KKeepsakesView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+    ExpoUIView(KKeepsakeView.self) {
+      AsyncFunction("command") { (view: KKeepsakeView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+    ExpoUIView(KMyKindredsView.self) {
+      AsyncFunction("command") { (view: KMyKindredsView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+    ExpoUIView(KEditFieldView.self) {
+      AsyncFunction("command") { (view: KEditFieldView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+    ExpoUIView(KBlockedView.self) {
+      AsyncFunction("command") { (view: KBlockedView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+    ExpoUIView(KHelpView.self) {
+      AsyncFunction("command") { (view: KHelpView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+    ExpoUIView(KWriteToUsView.self) {
+      AsyncFunction("command") { (view: KWriteToUsView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+
     // The app's language, for typography only (KType.tallScript): Japanese and Korean set the
     // letter serifs with CJK leading. src/textScript.ts; the root layout calls it on every change.
     Function("setTextScript") { (lang: String) in
