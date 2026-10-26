@@ -38,6 +38,7 @@ import { WrenBird, type WrenAccessory, type WrenMood, type WrenPose, type WrenSk
 import type { HatchlingForm } from "../lib/hatchling-form";
 import type { PoolLetter } from "../lib/db";
 import { t } from "../lib/i18n";
+import { objectDepth } from "./10a/StickerBox";
 
 const W = 390, H = 844, TOTAL = 3.05;
 /* the loop: your city → three stops → home, four cubic segments on the chart */
@@ -124,6 +125,12 @@ export function FirstFlight({
   /* the run's colours, where it passes them, laid over the theme's names so the drawing below reads one set */
   const P = colors ? { ...themeP, penWash: colors.ground, ink: colors.ink, ink60: colors.sub, ink40: colors.faint, pen: colors.accent, post: colors.accent } : themeP;
   const tk = colors ? { ...themeT, ln: colors.ink, sf: colors.card } : themeT;
+  /* rule B (owner, 2026-10-26): the letter and the envelopes are objects in the hand — no ink edge,
+     a hard offset shadow in the deep purple; the flap is a soft purple line, not ink */
+  const depth = objectDepth(tk);
+  // a faint hairline, not ink, so overlapping envelopes stay apart
+  const paper = { backgroundColor: tk.sf, borderRadius: 3, borderWidth: 1, borderColor: tk.dark ? "rgba(255,255,255,0.12)" : "rgba(30,27,53,0.10)", boxShadow: `${depth.offset}px ${depth.offset}px 0px ${depth.shadow}` } as const;
+  const flap = depth.shadow;
   const { width, height } = useWindowDimensions();
   const k = Math.min(width / W, height / H);
   const clock = useSharedValue(still ? TOTAL : 0);
@@ -263,7 +270,7 @@ export function FirstFlight({
         {!still && (
         <>
         {/* 1 · the letter, folding */}
-        <Animated.View style={[{ position: "absolute", left: 52, top: 300, width: 286, backgroundColor: tk.sf, borderWidth: 1.5, borderColor: tk.ln, paddingHorizontal: 18, paddingVertical: 14, transform: [{ rotate: "-2deg" }] }, cardStyle]} pointerEvents="none">
+        <Animated.View style={[{ position: "absolute", left: 52, top: 300, width: 286, ...paper, paddingHorizontal: 18, paddingVertical: 14, transform: [{ rotate: "-2deg" }] }, cardStyle]} pointerEvents="none">
           <Text numberOfLines={letterFitLines(letterKey, 3)} style={{ ...italic, fontSize: 15, lineHeight: 22, color: P.ink }}>{opener}</Text>
           <Text style={{ ...PFM.monoSemi, fontSize: 8.5, letterSpacing: 1.4, color: P.ink40, marginTop: 8 }}>{t("ob.carriedBy", { name: her.toUpperCase() })}</Text>
         </Animated.View>
@@ -272,8 +279,8 @@ export function FirstFlight({
             {envelope}
           </Animated.View>
         ) : (
-          <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: 120, height: 80, backgroundColor: tk.sf, borderWidth: 1.5, borderColor: tk.ln }, envStyle]} pointerEvents="none">
-            <Svg width={117} height={77} viewBox="0 0 117 77"><Path d="M0 0 L58.5 42 L117 0" fill="none" stroke={tk.ln} strokeWidth={1.5} /></Svg>
+          <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: 120, height: 80, ...paper }, envStyle]} pointerEvents="none">
+            <Svg width={120} height={80} viewBox="0 0 120 80"><Path d="M2 2 L60 44 L118 2" fill="none" stroke={flap} strokeWidth={1.8} strokeLinejoin="round" /></Svg>
             <View style={{ position: "absolute", right: 9, top: 7, width: 20, height: 18, backgroundColor: P.pen }} />
           </Animated.View>
         )}
@@ -281,8 +288,8 @@ export function FirstFlight({
         {/* 3 · what she brings back */}
         <Animated.View style={[{ position: "absolute", left: 70, top: 440, width: 250, height: 120 }, trayStyle]} pointerEvents="none">
           {[-14, -2, 10].map((r, i) => (
-            <View key={i} style={{ position: "absolute", left: i * 50, top: i === 1 ? 10 : 0, width: 150, height: 99, backgroundColor: tk.sf, borderWidth: 1.5, borderColor: tk.ln, transform: [{ rotate: `${r}deg` }] }}>
-              <Svg width={147} height={96} viewBox="0 0 147 96"><Path d="M0 0 L73.5 52 L147 0" fill="none" stroke={tk.ln} strokeWidth={1.5} /></Svg>
+            <View key={i} style={{ position: "absolute", left: i * 50, top: i === 1 ? 10 : 0, width: 150, height: 99, ...paper, transform: [{ rotate: `${r}deg` }] }}>
+              <Svg width={150} height={99} viewBox="0 0 150 99"><Path d="M2 2 L75 54 L148 2" fill="none" stroke={flap} strokeWidth={1.8} strokeLinejoin="round" /></Svg>
               <View style={{ position: "absolute", right: 11, top: 8, width: 22, height: 20, backgroundColor: P.pen }} />
             </View>
           ))}
