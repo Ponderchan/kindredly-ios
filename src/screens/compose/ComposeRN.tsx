@@ -4,10 +4,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { ZoomIn } from "react-native-reanimated";
 import { GlyphInput } from "../../components/GlyphInput";
 import { Stamp, StampSlot } from "../../components/Stamp";
-import { MoreTray } from "../../components/ComposeTray";
+import { MoreTray, StampTray } from "../../components/ComposeTray";
 import { WrenBird } from "../../components/WrenBird";
 import { Recorder } from "../../components/Recorder";
-import { StampStrip, TravelBar } from "./TravelBar";
+import { TravelBar } from "./TravelBar";
 import { AudioCard } from "../../components/AudioCard";
 import { useBreathe } from "../../components/anim";
 import { t } from "../../lib/i18n";
@@ -226,7 +226,21 @@ export function ComposeRN({ state }: { state: ComposeState }) {
           {/* LET IT TRAVEL L6 (owner, 2026-10-26): + · the stamp slot or the #topic · the CTA,
               12 above a tray (the keyboard: KeyboardAvoidingView), 30 above the home indicator */}
           <TravelBar state={state} bottom={state.tray || kbUp ? 12 : 30} />
-          {state.tray === "stamps" && <StampStrip state={state} />}
+          {/* the full tray, as the live app has it (owner, 2026-10-27): sections in rows, scrolling
+              down; the one-row L6 strip (TravelBar StampStrip) made you swipe sideways the whole time */}
+          {state.tray === "stamps" && (
+            <StampTray
+              selected={state.sel}
+              sections={state.sections}
+              onPick={state.act.pickStamp}
+              custom={state.custom}
+              tab={state.trayTab}
+              fullTitle={state.customFullTitle}
+              onTab={state.act.pickTrayTab}
+              onMake={state.act.makeStamp}
+              onFullCta={state.act.fullCta}
+            />
+          )}
           {state.tray === "more" && (
             <MoreTray askOn={state.more.askOn} askDisabled={state.more.askDisabled} voiceOn={state.more.voiceOn} premium={!state.more.voiceLocked} onAsk={act.toggleAsk} onVoice={act.toggleVoice} />
           )}

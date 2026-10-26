@@ -583,8 +583,8 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   private var trayFrameHeight: CGFloat {
     switch content.tray {
     case .paper: return Self.paperTrayHeight
-    case .stamps: return Self.stampStripHeight
-    case .more, .none: return Self.trayHeight
+    // the stamps are the full tray again (owner, 2026-10-27: the live one, sections in rows of six)
+    case .stamps, .more, .none: return Self.trayHeight
     }
   }
 
@@ -910,17 +910,18 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   @ViewBuilder private var tray: some View {
     switch content.tray {
     case .stamps:
-      // Let it travel L6: the one-row strip (KStampStrip); KStampTray stays in the kit
-      KStampStrip(
+      // the full tray, as the live app has it (owner, 2026-10-27: "isn't it like this?" over the
+      // one-row L6 strip): the official / my own tabs, then FOR THIS LETTER, RECENTLY USED and the
+      // categories, each a labelled block in rows of six, scrolling down. KStampStrip stays in the kit.
+      KStampTray(
         theme: theme,
         sections: content.sections,
         selectedId: content.stamp?.id ?? "",
         bottomInset: bottomInset,
-        strings: content.strings,
         onPick: actions.onPickStamp,
-        onDone: { actions.onTray(.stamps) },
         custom: content.customTray,
         tab: content.trayTab,
+        strings: content.strings,
         onTab: actions.onTrayTab,
         onMake: actions.onMakeStamp,
         onFullCta: actions.onFullCta
