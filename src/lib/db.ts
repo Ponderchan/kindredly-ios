@@ -1532,16 +1532,23 @@ export interface BlockRow {
 export async function fetchBlocks(): Promise<BlockRow[] | null> {
   if (!supabaseReady) return null;
   const me = await uid();
-  if (!me) return null;
+  if (!me) {
+    console.warn("[blocks] no signed-in account to read blocks for");
+    return null;
+  }
   try {
     const { data, error } = await supabase!
       .from("blocks")
       .select("blocked, created_at")
       .eq("blocker", me)
       .order("created_at", { ascending: false });
-    if (error || !data) return null;
+    if (error || !data) {
+      console.warn("[blocks] the list wasn't read:", error?.message ?? "no data");
+      return null;
+    }
     return data as BlockRow[];
-  } catch {
+  } catch (e) {
+    console.warn("[blocks] the list wasn't read:", e);
     return null;
   }
 }

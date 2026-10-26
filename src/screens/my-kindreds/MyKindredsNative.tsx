@@ -13,6 +13,8 @@ import { faceRecord, useFaceSources, type FaceInput } from "../../lib/faces";
 import { useMemberStamps } from "../../lib/member-marks";
 import { useBirdImageRef } from "../../lib/bird-images";
 import { buildMyKindredsView } from "./my-kindreds-model";
+import { storeMode } from "../../lib/dev-store";
+import { demoThreads, withDemoRoomSeen } from "../../data/demo";
 import "../../data/strings-my-kindreds"; // mk.empty
 import "../../data/strings-a11y-chat"; // kd.unreadA11y
 import "../../data/strings-step5-kitrn"; // a11y.back
@@ -84,16 +86,19 @@ export function MyKindredsNative() {
     }, []),
   );
 
+  /* dev only, as the Kindreds tab does: store mode (/dev-store) shows the demo rows, so the page
+     can be looked at and screenshotted without an account that has kindreds */
+  const demo = __DEV__ && storeMode;
   const view = useMemo(
     () =>
       buildMyKindredsView(
-        { threads, failed, ledger },
+        demo ? { threads: demoThreads({ store: true }), failed: false, ledger: withDemoRoomSeen(ledger) } : { threads, failed, ledger },
         // the chip's day as the ceremony stamps it; the time as the Kindreds tab's rows show it
         { t, chipDay: (ms) => dShort(ms).toUpperCase(), when: (ms) => listWhen(ms) },
       ),
     // lang: every word is t()'s, every date the locale's
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [threads, failed, ledger, lang],
+    [threads, failed, ledger, lang, demo],
   );
 
   const faceInputs = useMemo(() => {
