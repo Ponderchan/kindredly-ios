@@ -76,7 +76,8 @@ export function GrowthMoment({ preview = null, onClose }: { preview?: Moment | n
   };
   return (
     <Modal transparent animationType="none" visible onRequestClose={close} statusBarTranslucent>
-      <Scene moment={moment} onClose={close} />
+      {/* keyed by the moment, so a different one always plays from its start */}
+      <Scene key={`${moment.from}-${moment.to}`} moment={moment} onClose={close} />
     </Modal>
   );
 }
