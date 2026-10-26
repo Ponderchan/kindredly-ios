@@ -36,7 +36,7 @@ public struct KFontOption: Identifiable, Equatable, Sendable {
     self.sample = sample
   }
 
-  /// the face drawn for this key (anything unknown is Newsreader)
+  /// the face drawn for this key (anything unknown is System)
   public var face: KLetterFace { KLetterFace(key: key) }
 }
 

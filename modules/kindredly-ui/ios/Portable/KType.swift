@@ -518,9 +518,9 @@ public enum KLetterFace: String, CaseIterable, Sendable {
   public static let garamondReady = true
 
   /// The face for a key the JS side sends ("newsreader", "system", "garamond", "sfmono"). Anything else
-  /// is Newsreader.
+  /// is System, the default since 2026-10-26 (owner; it was Newsreader).
   public init(key: String) {
-    self = KLetterFace(rawValue: key) ?? .newsreader
+    self = KLetterFace(rawValue: key) ?? .system
   }
 
   /// The faces a picker offers, in order: Garamond only once it is ready.
@@ -579,7 +579,7 @@ public enum KLetterFace: String, CaseIterable, Sendable {
 }
 
 private struct KLetterFaceKey: EnvironmentKey {
-  static let defaultValue: KLetterFace = .newsreader
+  static let defaultValue: KLetterFace = .system
 }
 
 public extension EnvironmentValues {

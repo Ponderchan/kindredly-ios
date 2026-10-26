@@ -173,7 +173,7 @@ class KScreenProps: UIBaseViewProps {
   /// a key of src/theme/themes.json: classic, midnight, lavender or paper
   @Field var theme: String = "classic"
   /// the owner's Letter font: newsreader, system, garamond or sfmono (read letterFontKey)
-  @Field var letterFont: String = "newsreader"
+  @Field var letterFont: String = "system"
   @Field var insets: KInsetsRecord = KInsetsRecord()
   /// bumped by TS whenever a heavy array prop changes; keys `cached(_:_:)`. 0 (what the TS
   /// wrappers send when a screen passes none) means untracked: nothing is cached.
@@ -198,14 +198,14 @@ class KScreenProps: UIBaseViewProps {
   }
 
   /// The Letter font to draw letters in: "newsreader", "system", "garamond" or "sfmono". Anything else is
-  /// "newsreader", and so is "garamond" while EB Garamond isn't in this binary, so a phone that
-  /// stored it never gets a silent system-font fallback.
+  /// "system", the default since 2026-10-26; "garamond" while EB Garamond isn't in this binary is
+  /// "newsreader", the serif closest to what that phone chose.
   var letterFontKey: String {
     switch letterFont {
     case "system": return "system"
     case "sfmono": return "sfmono"
     case "garamond": return Self.garamondEmbedded ? "garamond" : "newsreader"
-    default: return "newsreader"
+    default: return "system"
     }
   }
 

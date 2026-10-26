@@ -163,9 +163,12 @@ export const MONO = {
 export const GARAMOND_READY: boolean = true;
 
 export type LetterFontKey = "newsreader" | "system" | "garamond" | "sfmono";
-/** every value the setting can hold, in the order Settings lists them */
-export const LETTER_FONT_KEYS: readonly LetterFontKey[] = ["newsreader", "system", "garamond", "sfmono"];
-export const DEFAULT_LETTER_FONT: LetterFontKey = "newsreader";
+/** every value the setting can hold, in the order Settings lists them: System first (owner,
+    2026-10-26: "default system, before Newsreader") */
+export const LETTER_FONT_KEYS: readonly LetterFontKey[] = ["system", "newsreader", "garamond", "sfmono"];
+/** the face for everyone who never chose one (owner, 2026-10-26; it was Newsreader). Only a choice
+    made in Settings is stored, so this reaches every phone that never picked a face. */
+export const DEFAULT_LETTER_FONT: LetterFontKey = "system";
 /** the choices Settings may offer on this build: no Garamond until GARAMOND_READY */
 export const LETTER_FONT_CHOICES: readonly LetterFontKey[] = LETTER_FONT_KEYS.filter((k) => k !== "garamond" || GARAMOND_READY);
 
@@ -185,7 +188,8 @@ const LETTER_FACES: Readonly<Record<LetterFontKey, { regular: string; italic: st
     value (or Garamond before GARAMOND_READY) is the default. */
 export function letterFontKey(raw: unknown): LetterFontKey {
   if (raw === "newsreader" || raw === "system" || raw === "sfmono") return raw;
-  // "newyork" (until 2026-10-20) is not offered any more: it reads as the default, a serif like it
+  // "newyork" (until 2026-10-20) is not offered any more: whoever chose it chose a serif, so Newsreader
+  if (raw === "newyork") return "newsreader";
   if (raw === "garamond" && GARAMOND_READY) return raw;
   return DEFAULT_LETTER_FONT;
 }

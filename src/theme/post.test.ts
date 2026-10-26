@@ -25,16 +25,16 @@ let fails = 0;
 const ok = (name: string, cond: boolean) => { console.log((cond ? "ok  " : "FAIL") + " " + name); if (!cond) fails++; };
 
 /* ── the letter font ── */
-ok("the default is Newsreader", DEFAULT_LETTER_FONT === "newsreader");
-ok("four values in all", LETTER_FONT_KEYS.join() === "newsreader,system,garamond,sfmono");
+ok("the default is System (owner, 2026-10-26)", DEFAULT_LETTER_FONT === "system");
+ok("four values in all", LETTER_FONT_KEYS.join() === "system,newsreader,garamond,sfmono");
 ok("Garamond is embedded on this build", GARAMOND_READY === true);
-ok("Settings offers all four", LETTER_FONT_CHOICES.join() === "newsreader,system,garamond,sfmono");
+ok("Settings offers all four", LETTER_FONT_CHOICES.join() === "system,newsreader,garamond,sfmono");
 ok("a stored SF Mono stays SF Mono", letterFontKey("sfmono") === "sfmono");
 ok("SF Mono is the system monospaced design (ui-monospace), its italic upright", (() => { const u = letterFamily("sfmono"); const i = letterFamily("sfmono", true); return u.fontFamily === "ui-monospace" && u.fontStyle === "normal" && i.fontFamily === "ui-monospace" && i.fontStyle === "normal"; })());
 ok("a stored System stays System", letterFontKey("system") === "system");
-ok("a stored New York (retired 2026-10-20) reads as the default", letterFontKey("newyork") === "newsreader");
+ok("a stored New York (retired 2026-10-20) reads as Newsreader, the serif it was closest to", letterFontKey("newyork") === "newsreader");
 ok("a stored Garamond stays Garamond", letterFontKey("garamond") === "garamond");
-ok("junk reads as the default", ["", null, undefined, 3, "NewYork", "times"].every((v) => letterFontKey(v) === "newsreader"));
+ok("junk reads as the default", ["", null, undefined, 3, "NewYork", "times"].every((v) => letterFontKey(v) === "system"));
 ok("Newsreader upright", (() => { const f = letterFamily("newsreader"); return f.fontFamily === "Newsreader-Regular" && f.fontStyle === "normal"; })());
 ok("Newsreader italic is said twice", (() => { const f = letterFamily("newsreader", true); return f.fontFamily === "Newsreader-Italic" && f.fontStyle === "italic"; })());
 ok("System is SF Pro (the System family)", (() => { const f = letterFamily("system"); return f.fontFamily === "System" && f.fontStyle === "normal"; })());
