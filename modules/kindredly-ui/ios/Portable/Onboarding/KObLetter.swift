@@ -241,14 +241,25 @@ struct KObLetterScreen: View {
     let words = letter.left > 0 ? ctx.w("left") : ctx.w("ready")
     let go = letter.left == 0
     return HStack(spacing: 10) {
-      ZStack(alignment: .leading) {
-        Capsule().fill(Color(.sRGB, red: 30 / 255, green: 27 / 255, blue: 53 / 255, opacity: 0.14))
-        Capsule().fill(go ? KOb.go : KOb.ink).frame(width: max(0, width * CGFloat(letter.fill)))
+      // the bar gives way to the words on a narrow phone (an SE stacked "20 more to travel" one
+      // letter to a line, 2026-10-27): up to `width`, as little as 28
+      GeometryReader { g in
+        ZStack(alignment: .leading) {
+          Capsule().fill(Color(.sRGB, red: 30 / 255, green: 27 / 255, blue: 53 / 255, opacity: 0.14))
+          Capsule().fill(go ? KOb.go : KOb.ink).frame(width: max(0, g.size.width * CGFloat(letter.fill)))
+        }
+        .frame(height: 4)
+        .frame(maxHeight: .infinity, alignment: .center)
       }
-      .frame(width: max(0, width), height: 4)
+      .frame(minWidth: 28, maxWidth: max(28, width))
+      .frame(height: 4)
       Text(words)
         .kText(.mono(11.5, .semibold, tracking: 0.4 / 11.5))
         .foregroundStyle(go ? KOb.go : KOb.inkSoft)
+        // one line; it shrinks a little rather than push the key past the gutter
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+        .layoutPriority(1)
     }
     .animation(.easeOut(duration: 0.2), value: letter.fill)
     .accessibilityElement(children: .ignore)
