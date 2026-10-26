@@ -26,7 +26,7 @@ strings(
   },
   /* ── id · Bahasa Indonesia ── */
   {
-    "mk.empty": "Kerabat adalah penpal yang benar-benar sudah kamu kenal: lima surat dari tiap sisi, lalu kalian berdua menandatangani nama. Kerabatmu akan berkumpul di sini.",
+    "mk.empty": "Kerabat adalah penpal yang benar-benar sudah kamu kenal: lima surat dari tiap sisi, lalu kalian berdua bertukar nama. Kerabatmu akan berkumpul di sini.",
   },
   /* ── fr · Français ── */
   {
@@ -34,7 +34,7 @@ strings(
   },
   /* ── de · Deutsch ── */
   {
-    "mk.empty": "Seelenverwandte sind Brieffreunde, die du wirklich kennengelernt hast: fünf Briefe auf jeder Seite, dann unterschreibt ihr beide. Deine sammeln sich hier.",
+    "mk.empty": "Seelenverwandte sind Brieffreunde, die du wirklich kennengelernt hast: fünf Briefe in jede Richtung, dann unterschreibt ihr beide. Deine sammeln sich hier.",
   },
   /* ── it · Italiano ── */
   {
@@ -46,6 +46,6 @@ strings(
   },
   /* ── ko · 한국어 ── */
   {
-    "mk.empty": "인연은 편지를 주고받으며 진짜로 알게 된 펜팔이에요. 서로 다섯 통씩 쓰고 둘 다 이름을 서명하면 인연이 돼요. 내 인연은 여기에 모여요.",
+    "mk.empty": "인연은 편지를 주고받으며 진짜로 알게 된 펜팔이에요. 서로 다섯 통씩 쓰고 둘 다 서명하면 인연이 돼요. 내 인연은 여기에 모여요.",
   },
 );

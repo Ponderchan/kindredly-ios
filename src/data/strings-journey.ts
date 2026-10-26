@@ -17,13 +17,13 @@ strings(
   /* ── es · Español ── */
   { "wren.journey.yours": "{n} de {m} tuyas" },
   /* ── pt · Português (Brasil) ── */
-  { "wren.journey.yours": "{n} de {m} suas" },
+  { "wren.journey.yours": "você: {n} de {m}" },
   /* ── id · Bahasa Indonesia ── */
-  { "wren.journey.yours": "{n} dari {m} darimu" },
+  { "wren.journey.yours": "suratmu {n} dari {m}" },
   /* ── fr · Français ── */
   { "wren.journey.yours": "{n} sur {m} de toi" },
   /* ── de · Deutsch ── */
-  { "wren.journey.yours": "{n} von {m} von dir" },
+  { "wren.journey.yours": "{n}/{m} von dir" },
   /* ── it · Italiano ── */
   { "wren.journey.yours": "{n} su {m} tue" },
   /* ── ja · 日本語 ── */

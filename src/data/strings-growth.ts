@@ -13,9 +13,9 @@ strings(
   /* ── en · English ── */
   { "grow.line.fledge": "Look — my wings hold now.", "grow.line.wren": "All grown up. You two did that.", "grow.ok": "Yay" },
   /* ── es · Español ── */
-  { "grow.line.fledge": "Mira: mis alas ya aguantan.", "grow.line.wren": "Ya crecí del todo. Fue cosa de ustedes dos.", "grow.ok": "¡Bien!" },
+  { "grow.line.fledge": "Mira: mis alas ya aguantan mi peso.", "grow.line.wren": "Ya crecí del todo. Fue cosa de ustedes dos.", "grow.ok": "¡Bien!" },
   /* ── pt · Português (Brasil) ── */
-  { "grow.line.fledge": "Olha só: minhas asas já aguentam.", "grow.line.wren": "Cresci de vez. Foi coisa de vocês dois.", "grow.ok": "Eba!" },
+  { "grow.line.fledge": "Olha só: minhas asas já aguentam meu peso.", "grow.line.wren": "Cresci de vez. Foi graças a vocês dois.", "grow.ok": "Eba!" },
   /* ── id · Bahasa Indonesia ── */
   { "grow.line.fledge": "Lihat, sayapku sudah kuat sekarang.", "grow.line.wren": "Aku sudah dewasa. Itu berkat kalian berdua.", "grow.ok": "Asyik!" },
   /* ── fr · Français ── */
