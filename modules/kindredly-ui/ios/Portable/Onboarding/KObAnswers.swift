@@ -350,7 +350,9 @@ struct KObWheel: View {
       .scrollTargetLayout()
     }
     .contentMargins(.vertical, pad, for: .scrollContent)
-    .scrollTargetBehavior(.viewAligned)
+    // snaps to a whole row however hard it is flicked (viewAligned on a LazyVStack could come to
+    // rest between two rows, with the band and the value disagreeing: seen 2026-10-27)
+    .scrollTargetBehavior(KObRowSnap(row: Self.row, pad: pad))
     .scrollPosition($position)
     .scrollIndicators(.hidden)
     .frame(height: Self.row * CGFloat(rows))
@@ -366,7 +368,7 @@ struct KObWheel: View {
     }
     .onScrollGeometryChange(for: Int.self) { g in
       // the row under the band: the band is the column's middle
-      Int(floor(g.visibleRect.midY / Self.row))
+      Int(((g.contentOffset.y + g.contentInsets.top) / Self.row).rounded())
     } action: { _, i in
       let c = max(0, min(items.count - 1, i))
       if c != live {
@@ -375,7 +377,10 @@ struct KObWheel: View {
       }
     }
     .onScrollPhaseChange { _, phase in
-      if phase == .idle, placed, live != value { onChange(live) }
+      guard phase == .idle, placed else { return }
+      // whatever happened, rest exactly on the row the value says
+      withAnimation(.easeOut(duration: 0.15)) { position.scrollTo(id: live, anchor: .center) }
+      if live != value { onChange(live) }
     }
     .onAppear {
       position.scrollTo(id: value, anchor: .center)
@@ -693,5 +698,20 @@ struct KObFaceScreen: View {
     }
     .buttonStyle(KObPressStyle())
     .accessibilityLabel(ctx.w("random"))
+  }
+}
+
+/// The wheel's snap: wherever a flick would end, it ends on a whole row (the offset a multiple of
+/// the row, which with the column's margins puts a row on the band).
+struct KObRowSnap: ScrollTargetBehavior {
+  let row: CGFloat
+
+  /// the column's top margin (the first row rests on the band at offset -pad)
+  let pad: CGFloat
+
+  func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
+    // the target's origin is the content offset; row n is on the band at n × row − pad
+    let n = ((target.rect.origin.y + pad) / row).rounded()
+    target.rect.origin.y = n * row - pad
   }
 }
