@@ -47,10 +47,12 @@ const TICK = "#2E7D4F";
 /* THE ROLL'S FIRST ROW (owner, 2026-10-26, after an old design of theirs: "1+2+3"): Camera,
    Text note, Voice note, each the size of a picture beside it, continuous corners of 16, a 40
    line icon over the name in system 17 semibold, all in white on a full colour — keys, so flat
-   (rule B). Text is the pen blue, voice the low mood's deep blue, both fixed in every theme;
-   the camera card is the newest picture blurred under a dim, as a viewfinder would be. (Before:
-   pale cards with a 26 icon and 15 type; before that, flat tiles with mono capitals.) */
+   (rule B), in colours fixed in every theme: the camera is the composer's Photo green (the calm
+   mood's ink), text the pen blue, voice the low mood's deep blue. (The camera card first wore the
+   newest picture blurred, owner 2026-10-26: "too ugly beside the solid ones". Before: pale cards
+   with a 26 icon and 15 type; before that, flat tiles with mono capitals.) */
 const KEYS = {
+  camera: "#2E7D4F",
   text: "#3A34D6",
   voice: "#3B6E9B",
 } as const;
@@ -267,16 +269,10 @@ export default function JournalPick() {
   const cell = (width - 4) / 3;
   const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
-  const Tile = ({ label, fill, under, onPress, icon }: { label: string; fill: string; under?: string; onPress: () => void; icon: string }) => (
+  const Tile = ({ label, fill, onPress, icon }: { label: string; fill: string; onPress: () => void; icon: string }) => (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={{ width: cell, height: cell }}>
       {({ pressed }) => (
-        <View style={{ flex: 1, borderRadius: 16, borderCurve: "continuous", overflow: "hidden", backgroundColor: fill, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 8, opacity: pressed ? 0.75 : 1 }}>
-          {under ? (
-            <>
-              <Image source={{ uri: under }} blurRadius={24} contentFit="cover" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} />
-              <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: "rgba(30,27,53,0.32)" }} />
-            </>
-          ) : null}
+        <View style={{ flex: 1, borderRadius: 16, borderCurve: "continuous", backgroundColor: fill, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 8, opacity: pressed ? 0.75 : 1 }}>
           <Svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
             <Path d={icon} />
           </Svg>
@@ -340,7 +336,7 @@ export default function JournalPick() {
      continues from the second picture underneath */
   const header = adding ? null : (
     <View style={{ flexDirection: "row", gap: 2, marginBottom: 2 }}>
-      {CAMERA_CARD ? <Tile label={t("jp.camera")} fill="#2A2744" under={frames[0]?.uri} onPress={() => void shoot()} icon={ICON.camera} /> : null}
+      {CAMERA_CARD ? <Tile label={t("jp.camera")} fill={KEYS.camera} onPress={() => void shoot()} icon={ICON.camera} /> : null}
       <Tile label={t("jp.write")} fill={KEYS.text} onPress={() => router.replace("/journal-entry")} icon={ICON.text} />
       <Tile label={t("jp.say")} fill={KEYS.voice} onPress={() => router.replace("/journal-entry?start=voice")} icon={ICON.voice} />
       {CAMERA_CARD ? null : frames[0] ? frame(frames[0]) : <View style={{ width: cell, height: cell, backgroundColor: tk.soft2 }} />}
