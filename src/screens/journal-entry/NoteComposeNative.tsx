@@ -16,6 +16,8 @@ import { WrenBird } from "../../components/WrenBird";
 import { Recorder } from "../../components/Recorder";
 import { AudioCard } from "../../components/AudioCard";
 import { FrameViewer, type SelfComposeState } from "../../components/SelfCompose";
+import { CourierSendOff } from "../../components/CourierSendOff";
+import { P } from "../../theme/post";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
 import { localeTag } from "../../lib/format";
@@ -59,7 +61,7 @@ export function NoteComposeNative({
 }: {
   text: string;
   setText: (t: string) => void;
-  /** after the seal moment: back to Notes */
+  /** after the send-off: back to Notes */
   onDone: () => void;
   /** the ✕ (the route's leave guard asks first) */
   onClose: () => void;
@@ -71,7 +73,7 @@ export function NoteComposeNative({
   const letterFont = useLetterFont();
   const insets = useScreenInsets();
   const { width } = useWindowDimensions();
-  const state = useNoteComposeState({ text, setText, onDone, onState, viewRef });
+  const state = useNoteComposeState({ text, setText, onState, viewRef });
 
   // the words TS holds, for a view that (re)attaches
   const latest = useRef(text);
@@ -119,7 +121,6 @@ export function NoteComposeNative({
     sealLabel: t("sc.seal"),
     sealingLabel: t("sc.sealing"),
     sealHint: t("nc.moodFirst"),
-    sealedLine: `“${t("nc.sealed")}”`,
     coverHint: t("sc.coverHint"),
     removeVideo: t("sc.a11y.removeVideo"),
   });
@@ -161,6 +162,17 @@ export function NoteComposeNative({
   );
 
   const seal = sealAction({ hasSomething: state.hasSomething, busy: state.busy, sealed: state.sealed, mood: state.mood });
+
+  /* SEALED: the live app's send-off, as the React Native page plays it (components/SelfCompose):
+     the seal presses in, the desk opens a slot, the page sinks into it, then back to Notes. The
+     design's veil ("Sealed. Just for you.") was dropped for it (owner, 2026-10-26). */
+  if (state.sealed) {
+    return (
+      <View style={{ flex: 1, backgroundColor: P.paper }}>
+        <CourierSendOff keep onDone={onDone} />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1 }}>

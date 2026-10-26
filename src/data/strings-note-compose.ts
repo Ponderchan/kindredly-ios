@@ -7,8 +7,6 @@ import { strings } from "../lib/i18n";
    lines (content WREN_OPENERS.journal), the sparks (js.*), Seal it here (sc.seal), the mood names
    (mood.group.* and moods.ts moodName), the photo and film labels (sc.a11y.*).
 
-   - nc.sealed: the seal moment, in Wren's voice (the Letter font, italic, in quotes the page adds);
-     a statement about the page, never about the reader, so no language genders anyone;
    - nc.photo / nc.video / nc.audio: the ＋ panel's three cards, a word each, as a phone names
      them in that language;
    - nc.plus: VoiceOver on the ＋;
@@ -25,7 +23,6 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en · English ── */
   {
-    "nc.sealed": "Sealed. Just for you.",
     "nc.photo": "Photo",
     "nc.video": "Video",
     "nc.audio": "Audio",
@@ -36,7 +33,6 @@ strings(
   },
   /* ── es · Español ── */
   {
-    "nc.sealed": "Sellado. Solo para ti.",
     "nc.photo": "Foto",
     "nc.video": "Vídeo",
     "nc.audio": "Nota de voz",
@@ -47,7 +43,6 @@ strings(
   },
   /* ── pt · Português (Brasil) ── */
   {
-    "nc.sealed": "Lacrado. Só pra você.",
     "nc.photo": "Foto",
     "nc.video": "Vídeo",
     "nc.audio": "Áudio",
@@ -58,7 +53,6 @@ strings(
   },
   /* ── id · Bahasa Indonesia ── */
   {
-    "nc.sealed": "Tersegel. Cuma buat kamu.",
     "nc.photo": "Foto",
     "nc.video": "Video",
     "nc.audio": "Suara",
@@ -69,7 +63,6 @@ strings(
   },
   /* ── fr · Français ── */
   {
-    "nc.sealed": "Scellé. Rien que pour toi.",
     "nc.photo": "Photo",
     "nc.video": "Vidéo",
     "nc.audio": "Vocal",
@@ -80,7 +73,6 @@ strings(
   },
   /* ── de · Deutsch ── */
   {
-    "nc.sealed": "Versiegelt. Nur für dich.",
     "nc.photo": "Foto",
     "nc.video": "Video",
     "nc.audio": "Sprachnotiz",
@@ -91,7 +83,6 @@ strings(
   },
   /* ── it · Italiano ── */
   {
-    "nc.sealed": "Sigillato. Solo per te.",
     "nc.photo": "Foto",
     "nc.video": "Video",
     "nc.audio": "Vocale",
@@ -102,7 +93,6 @@ strings(
   },
   /* ── ja · 日本語 ── */
   {
-    "nc.sealed": "封をしたよ。あなただけのもの。",
     "nc.photo": "写真",
     "nc.video": "動画",
     "nc.audio": "音声",
@@ -113,7 +103,6 @@ strings(
   },
   /* ── ko · 한국어 ── */
   {
-    "nc.sealed": "봉인했어. 너만 보는 거야.",
     "nc.photo": "사진",
     "nc.video": "동영상",
     "nc.audio": "음성",

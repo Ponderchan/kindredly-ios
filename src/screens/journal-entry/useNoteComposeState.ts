@@ -10,7 +10,7 @@ import type { Lang } from "../../data/stamps";
 import { isNamedMood, type MoodId } from "../../data/moods";
 import { addEntry, loadJournal, persistMedia, persistMediaMany } from "../../lib/journal";
 import { journalSpark } from "../../lib/journal-sparks";
-import { takeMood, takePicked, takeSpark } from "../../lib/journal-handoff";
+import { leaveSealed, takeMood, takePicked, takeSpark } from "../../lib/journal-handoff";
 import { todaysMorningLine } from "../../lib/local-push";
 import { storeMode, storePhotos } from "../../lib/dev-store";
 import type { SelfComposeState } from "../../components/SelfCompose";
@@ -43,20 +43,14 @@ import type { MoodGroup } from "../../data/moods";
 
 export type Photo = { uri: string; ratio: number };
 
-/** how long the seal moment stays before the page goes back to Notes: the veil's .25s fade and
-    the design's 600ms */
-export const SEALED_HOLD_MS = 850;
-
 export function useNoteComposeState({
   text,
   setText,
-  onDone,
   onState,
   viewRef,
 }: {
   text: string;
   setText: (t: string) => void;
-  onDone: () => void;
   onState?: (s: SelfComposeState) => void;
   viewRef: RefObject<KScreenHandle | null>;
 }) {
@@ -102,14 +96,7 @@ export function useNoteComposeState({
     tellState.current?.({ hasSomething, busy, sealed });
   }, [hasSomething, busy, sealed]);
 
-  // the seal moment, then back to Notes
-  const done = useRef(onDone);
-  done.current = onDone;
-  useEffect(() => {
-    if (!sealed) return;
-    const id = setTimeout(() => done.current(), SEALED_HOLD_MS);
-    return () => clearTimeout(id);
-  }, [sealed]);
+  // sealed: the page shows the send-off, which goes back to Notes itself (NoteComposeNative)
 
   const clearMedia = () => {
     setMediaUri(null);
@@ -202,6 +189,8 @@ export function useNoteComposeState({
     pageId.current ??= `j-${Date.now()}`;
     try {
       await addEntry({ ...page, id: pageId.current });
+      // Notes pops this card in when the page hands it back
+      leaveSealed(pageId.current);
       return true;
     } catch (e) {
       console.warn("[note-compose] the journal didn't save the page:", e);

@@ -48,9 +48,11 @@ import SwiftUI
          Mono 9 at .14em, sub; the chosen face ringed 2 in the panel's own face colour and 2 in
          the group's deep colour around it. A group tap chooses it and keeps the panel open; a
          face tap chooses it and closes the panel (TS).
- - THE SEAL MOMENT: the page fades under a veil of the page colour at 94%, and in its middle a
-   64 ink circle with a 28 padlock in the page colour over "“Sealed. Just for you.”" in the
-   Letter font, italic, 20, sub, 14 apart. TS holds it ~600ms and goes back to Notes.
+ - THE SEAL MOMENT is not drawn here: once the page is sealed TS takes this view away and plays
+   the live app's send-off in its place (components/CourierSendOff, keep: the seal presses in,
+   the desk opens a slot and the page sinks into it), then goes back to Notes. The design's veil
+   ("Sealed. Just for you.") was built and dropped the same day (owner, 2026-10-26: keep the
+   live version's animation).
 
  THE KEYBOARD is KComposePage's (the page sits in a Host that keeps the keyboard's safe area, so
  the stack is shortened by it and the bar rides its top; whether it is up is the difference of two
@@ -185,8 +187,6 @@ public struct KNoteComposeStrings: Equatable, Sendable {
   public var sealingLabel = ""
   /// VoiceOver's hint on the seal key while the page has no mood yet
   public var sealHint = ""
-  /// "“Sealed. Just for you.”"
-  public var sealedLine = ""
   /// under two photos or more: the first is the cover
   public var coverHint = ""
   /// VoiceOver: the film's ✕
@@ -222,7 +222,7 @@ public struct KNoteComposeContent: Equatable, Sendable {
   public var hasSomething = false
   /// the page is being sealed
   public var busy = false
-  /// sealed: the veil
+  /// sealed: TS is about to take the page away for the send-off; nothing more can be touched
   public var sealed = false
   /// no mood yet: the seal key's VoiceOver hint says so
   public var needsMood = false
@@ -373,14 +373,6 @@ public struct KNoteComposePage<Wren: View, Recorder: View>: View {
       }
       .ignoresSafeArea(.keyboard)
     }
-    .overlay {
-      if content.sealed {
-        KNoteSealedVeil(theme: theme, line: content.strings.sealedLine)
-          .ignoresSafeArea()
-          .transition(.opacity)
-      }
-    }
-    .animation(.easeOut(duration: 0.25), value: content.sealed)
     .onChange(of: content.panel) { _, panel in
       // a panel takes the keyboard's place: let go first
       if panel != .none { driver.blurAll() }
@@ -621,6 +613,9 @@ struct KNoteComposeBar: View {
           .kText(.mono(12, .medium, tracking: 0.06))
           .lineLimit(1)
           .minimumScaleFactor(0.7)
+          // the words swap at once: crossfaded under the capsule's colour change, "Seal it here"
+          // and "Sealing…" stood on top of each other for a moment (seen on a recording, 2026-10-26)
+          .contentTransition(.identity)
         KNotePadlock(filled: false, color: ink)
           .frame(width: 15, height: 15)
       }
@@ -882,8 +877,8 @@ private struct KNoteEmptyFace: View {
   }
 }
 
-/// The padlock: filled (the head's, the design's solid glyph) or drawn in line (the seal key's,
-/// the veil's), on the 24 grid.
+/// The padlock: filled (the head's, the design's solid glyph) or drawn in line (the seal key's),
+/// on the 24 grid.
 struct KNotePadlock: View {
   let filled: Bool
   let color: Color
@@ -964,41 +959,6 @@ private struct KNoteRemoveDisc: View {
     .buttonStyle(KFadePressStyle())
     .padding(-8)
     .accessibilityLabel(label)
-  }
-}
-
-/// THE SEAL MOMENT: the page under 94% of its own colour, the ink circle and its padlock, Wren's
-/// "Sealed. Just for you." VoiceOver hears the line as it appears.
-private struct KNoteSealedVeil: View {
-  let theme: KTheme
-  let line: String
-
-  var body: some View {
-    ZStack {
-      theme.bg.opacity(0.94)
-      VStack(spacing: 14) {
-        Circle()
-          .fill(theme.ink)
-          .frame(width: 64, height: 64)
-          .overlay {
-            KNotePadlock(filled: false, color: theme.bg)
-              .frame(width: 28, height: 28)
-          }
-        Text(line)
-          .kText(.content(20, italic: true))
-          .foregroundStyle(theme.sub)
-          .multilineTextAlignment(.center)
-          .padding(.horizontal, 32)
-      }
-      .dynamicTypeSize(...DynamicTypeSize.accessibility2)
-    }
-    .contentShape(Rectangle())
-    .accessibilityElement(children: .ignore)
-    .accessibilityLabel(line)
-    .accessibilityAddTraits(.isModal)
-    .onAppear {
-      AccessibilityNotification.Announcement(line).post()
-    }
   }
 }
 

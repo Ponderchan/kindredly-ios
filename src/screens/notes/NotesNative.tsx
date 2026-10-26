@@ -13,6 +13,7 @@ import { playbackCommandArgs } from "../../lib/voice-playback";
 import { localeTag } from "../../lib/format";
 import { assetFileUri } from "../../lib/images";
 import { hashStr } from "../../lib/mosaic";
+import { takeSealed } from "../../lib/journal-handoff";
 import { P } from "../../theme/post";
 import { EMPTY_STICKER, EMPTY_TAPE } from "./notes-glyphs";
 import type { MonthVM, NoteVM } from "./notes-model";
@@ -214,6 +215,22 @@ export function NotesNative({ model }: { model: NotesModel }) {
       [],
     ),
   );
+
+  /* ── the page just sealed pops in at the top (the composer hands its id back) ── */
+  const [sealedId, setSealedId] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      const id = takeSealed();
+      if (id) setSealedId(id);
+    }, []),
+  );
+  useEffect(() => {
+    if (!sealedId || !model.notes.some((n) => n.id === sealedId)) return;
+    // no scroll first: the list waits where it was left (at the top, as a rule), and "top" is the
+    // first note, which would tuck Wren's line and the evening row under the header
+    commands.send("popIn", { key: sealedId });
+    setSealedId(null);
+  }, [sealedId, model.notes, commands]);
 
   /* ── the window ── */
   const win = useRenderWindow(model.notes.length, { initial: 60, step: 60, anchor: "start" });

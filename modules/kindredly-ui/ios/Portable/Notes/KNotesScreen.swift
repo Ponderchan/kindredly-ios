@@ -208,6 +208,8 @@ public final class KNotesDriver: ObservableObject {
   @Published public private(set) var month: KNotesMonth?
   @Published public private(set) var playback: KNotesPlayback?
   @Published private(set) var scrollRequest: ScrollRequest?
+  /// the page just sealed, popping in (TS's 'popIn' command); nil once it has
+  @Published private(set) var fresh: KNoteFresh?
 
   private var serial = 0
 
@@ -227,6 +229,59 @@ public final class KNotesDriver: ObservableObject {
   public func scroll(to target: ScrollTarget, animated: Bool = true) {
     serial += 1
     scrollRequest = ScrollRequest(target: target, animated: animated, serial: serial)
+  }
+
+  /// The page just sealed pops into its place at the top of TODAY (TS's 'popIn' command, sent when
+  /// the composer hands Notes back). Forgotten a moment after the pop, so a card the lazy list
+  /// rebuilds while scrolling never pops again.
+  public func popIn(_ id: String) {
+    serial += 1
+    let mark = KNoteFresh(id: id, serial: serial)
+    fresh = mark
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+      if self?.fresh == mark { self?.fresh = nil }
+    }
+  }
+}
+
+/// One pop: the note and which request it was.
+struct KNoteFresh: Equatable {
+  let id: String
+  let serial: Int
+}
+
+/// THE NEW CARD POPS IN (owner's Note Composer Bar, Prompt 4: "the new card pops in at the top of
+/// TODAY"). Hidden at once, then, once the composer has slid away (.3s: the pop played under the
+/// sliding page and nobody saw it, checked on a recording 2026-10-26), from 0.9 and clear to its
+/// size on a soft spring (.45s), from its top edge; under Reduce Motion only the fade. `serial` 0 =
+/// no pop. Runs whether the card was already drawn when the request came or is drawn just after it.
+struct KNotePopIn: ViewModifier {
+  /// the composer's slide down, which the pop waits out
+  static let afterSheet = 0.3
+  let serial: Int
+  let reduceMotion: Bool
+  @State private var scale: CGFloat = 1
+  @State private var opacity: Double = 1
+
+  func body(content: Content) -> some View {
+    content
+      .scaleEffect(scale, anchor: .top)
+      .opacity(opacity)
+      .onChange(of: serial, initial: true) { _, s in
+        guard s > 0 else { return }
+        var still = Transaction()
+        still.disablesAnimations = true
+        withTransaction(still) {
+          scale = reduceMotion ? 1 : 0.9
+          opacity = 0
+        }
+        DispatchQueue.main.async {
+          withAnimation((reduceMotion ? Animation.easeOut(duration: 0.3) : .spring(response: 0.45, dampingFraction: 0.68)).delay(Self.afterSheet)) {
+            scale = 1
+            opacity = 1
+          }
+        }
+      }
   }
 }
 
@@ -276,6 +331,8 @@ public struct KNotesScreen: View {
   @State private var chrome = KScrollModel(offsetCap: 44)
   @State private var scrollState = KNotesScrollState()
   @State private var box = KNotesBox()
+  /// the page just sealed (driver.fresh), while it pops in
+  @State private var fresh: KNoteFresh?
 
   /// - Parameters:
   ///   - topInset: the status bar's height (the Host ignores safe areas)
@@ -433,6 +490,7 @@ public struct KNotesScreen: View {
       } action: { _, y in
         scrollState.scrolled(to: y)
       }
+      .onReceive(driver.$fresh) { fresh = $0 }
       .onReceive(driver.$scrollRequest) { request in
         guard let request, request.serial > box.scrollSerial else { return }
         box.scrollSerial = request.serial
@@ -664,6 +722,7 @@ public struct KNotesScreen: View {
       chipDay()
     }
     .onDisappear { box.frames[note.id] = nil }
+    .modifier(KNotePopIn(serial: fresh?.id == note.id ? fresh!.serial : 0, reduceMotion: reduceMotion))
   }
 
   /// the line the chip sits on, in the list's own coordinates (the chip is 8 under the status bar)

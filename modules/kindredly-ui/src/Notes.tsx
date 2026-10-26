@@ -140,6 +140,8 @@ export type KNotesMonthRecord = {
 export type KNotesCommands = KStandardCommands & {
   month: KNotesMonthRecord;
   playback: KStandardCommands["playback"] & { failed: boolean };
+  /** the page just sealed pops into its place (send it once the note is in `notes`) */
+  popIn: { key: string };
 };
 
 export type KNotesViewProps = CommonViewModifierProps &

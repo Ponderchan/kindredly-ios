@@ -51,7 +51,6 @@ struct KNoteComposeStringsRecord: Record {
   @Field var sealLabel: String = ""
   @Field var sealingLabel: String = ""
   @Field var sealHint: String = ""
-  @Field var sealedLine: String = ""
   @Field var coverHint: String = ""
   @Field var removeVideo: String = ""
 
@@ -67,7 +66,6 @@ struct KNoteComposeStringsRecord: Record {
     s.sealLabel = sealLabel
     s.sealingLabel = sealingLabel
     s.sealHint = sealHint
-    s.sealedLine = sealedLine
     s.coverHint = coverHint
     s.removeVideo = removeVideo
     return s

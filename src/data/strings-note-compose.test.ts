@@ -30,7 +30,7 @@ const ok = (name: string, cond: boolean, extra = "") => {
 ok("nine blocks", blocks?.length === 9);
 const en = blocks[0];
 const keys = Object.keys(en);
-ok("eight keys", keys.length === 8);
+ok("seven keys (nc.sealed went with the veil, 2026-10-26)", keys.length === 7);
 ok("only nc.* keys", keys.every((k) => k.startsWith("nc.")));
 blocks.forEach((b, i) => {
   const lang = LANGS[i];
@@ -44,7 +44,6 @@ blocks.forEach((b, i) => {
     ok(`${lang}: nothing left in English`, same.length === 0, same.join(" "));
   }
 });
-ok("the owner's English", en["nc.sealed"] === "Sealed. Just for you.");
 
 if (fails) {
   console.log(`\n${fails} failed`);

@@ -63,3 +63,19 @@ export function takeMood(): string | null {
   mood = null;
   return m && Date.now() - m.at < SPARK_TTL_MS ? m.id : null;
 }
+
+/* THE PAGE JUST SEALED, HANDED BACK TO NOTES (owner's Note Composer Bar, 2026-10-26: "the new card
+   pops in at the top of TODAY"). The composer leaves the page's id as it goes back; Notes takes it
+   when it comes into focus and pops that card in once it is in the list. Same one-shot; a short
+   TTL, because the pop belongs to the moment of coming back. */
+const SEALED_TTL_MS = 30 * 1000;
+let sealed: { id: string; at: number } | null = null;
+
+export function leaveSealed(id: string): void {
+  sealed = { id, at: Date.now() };
+}
+export function takeSealed(): string | null {
+  const s = sealed;
+  sealed = null;
+  return s && Date.now() - s.at < SEALED_TTL_MS ? s.id : null;
+}

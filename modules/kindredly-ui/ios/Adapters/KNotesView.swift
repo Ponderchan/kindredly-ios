@@ -46,6 +46,8 @@ import ExpoUI
  - playback { key, playing, positionS, durationS, at, failed } — the one player's transitions
    (key "" = nothing loaded)
  - scrollTo { key: "top" | <a note id>, animated }
+ - popIn { key: <a note id> } — the page just sealed pops into its place (send it once the note is
+   in `notes`)
 
  Events, with what nativeEvent carries:
  - onNotesOpen { id }              a note
@@ -278,6 +280,8 @@ final class KNotesViewProps: KScreenProps {
       driver.setMonth(Self.month(args))
     case KCommandName.playback:
       driver.setPlayback(Self.playback(args))
+    case "popIn":
+      if let id = args.kString("key"), !id.isEmpty { driver.popIn(id) }
     case KCommandName.scrollTo:
       let animated = args.kBool("animated") ?? true
       switch args.kString("key") {

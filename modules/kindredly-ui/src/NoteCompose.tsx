@@ -41,8 +41,6 @@ export type KNoteComposeStrings = {
   sealingLabel: string;
   /** VoiceOver's hint on the seal key while no mood is chosen */
   sealHint: string;
-  /** the seal moment's line, in quotes */
-  sealedLine: string;
   coverHint: string;
   /** VoiceOver: the film's ✕ */
   removeVideo: string;
