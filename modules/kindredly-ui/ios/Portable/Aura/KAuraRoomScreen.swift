@@ -715,9 +715,14 @@ public struct KAuraRoomScreen<Art: View>: View {
           .foregroundStyle(theme.sub)
           .fixedSize(horizontal: false, vertical: true)
         if !u.privateLabel.isEmpty {
-          Text("🔒 \(u.privateLabel)")
-            .kText(.mono(9, .regular, tracking: 0.13))
-            .foregroundStyle(theme.mute)
+          // the app's line padlock, not the colour emoji (2026-10-26: every lock in the app is drawn)
+          HStack(spacing: 4) {
+            KNotePadlock(filled: false, color: theme.mute)
+              .frame(width: 10, height: 10)
+            Text(u.privateLabel)
+              .kText(.mono(9, .regular, tracking: 0.13))
+              .foregroundStyle(theme.mute)
+          }
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -729,8 +734,8 @@ public struct KAuraRoomScreen<Art: View>: View {
   private var scopeDoor: some View {
     SwiftUI.Button(action: openScope) {
       HStack(spacing: 10) {
-        Text("🔒")
-          .kText(.mono(13, .regular))
+        KNotePadlock(filled: false, color: theme.sub)
+          .frame(width: 16, height: 16)
           .accessibilityHidden(true)
         Text(content.scopeRow)
           .kText(.system(14))

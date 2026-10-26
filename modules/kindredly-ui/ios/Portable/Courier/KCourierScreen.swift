@@ -575,7 +575,10 @@ struct KCourierCoverView: View {
         KCourierPerch(hero: content.hero, tapHint: content.strings.tapHint, width: w, height: h, drag: $drag)
         furniture(width: w)
       }
-      .frame(width: w, height: h)
+      // pinned to the top left: a layer bigger than the cover (the sky's parallax bleed) made the
+      // stack larger than w × h, and a centred frame pushed its top and left edges out to be
+      // clipped (the title cut under the status bar, the bubble off the left edge; 2026-10-26)
+      .frame(width: w, height: h, alignment: .topLeading)
       .clipped()
     }
     .frame(height: KCourierScreen.coverHeight)

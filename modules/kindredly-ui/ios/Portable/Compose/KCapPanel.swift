@@ -3,9 +3,9 @@
 import SwiftUI
 
 /*
- THE DAILY CAP: the free writer's letters for today are spent. Drawn as the App Store page drew
- it (owner, 2026-10-18; compose.tsx): a plain box on the page, a 1pt ink edge with square
- corners, padding 16; the line ("That's your 5 letters for today.") in system 600 15 in ink, why
+ THE DAILY CAP: the free writer's letters for today are spent. A soft panel on the page (rule B,
+ owner 2026-10-26: no ink edges on what isn't an object; it was a 1pt ink box with square
+ corners, as the App Store page drew it): lav2, continuous corners of 16, padding 16; the line ("That's your 5 letters for today.") in system 600 15 in ink, why
  replies stay free in system 13 in sub, 5 under it, and the link to First Class in SF Mono 500
  11.5 at 1 in ind, 10 under that (paywall?src=daily_cap). Every colour is the theme's, so it
  follows the four themes.
@@ -42,12 +42,9 @@ struct KCapPanel: View {
       .accessibilityAddTraits(.isLink)
       .padding(.top, 10)
     }
-    // padding 16 inside the 1pt edge, which React Native adds to the box
-    .padding(16 + 1)
+    .padding(16)
     .frame(maxWidth: .infinity, alignment: .leading)
-    .overlay {
-      Rectangle().strokeBorder(theme.ink, lineWidth: 1)
-    }
+    .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(theme.lav2))
     .accessibilityElement(children: .contain)
   }
 }
