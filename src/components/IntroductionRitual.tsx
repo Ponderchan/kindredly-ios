@@ -107,6 +107,35 @@ export const T_SIGNED_DONE_STILL = 1600;
 /** When the ritual a sheet is showing is done: today's, or the signed one, moving or still. */
 export const ritualDoneAt = (signed: boolean, still: boolean): number => (!signed ? T_RITUAL_DONE : still ? T_SIGNED_DONE_STILL : T_SIGNED_DONE);
 
+/* THE SIGNED RITUAL'S CLOCK, for the SwiftUI ritual (modules/kindredly-ui KIntroRitual, behind the
+   "ceremony" switch: components/IntroductionRitualNative). Swift draws every beat on these very
+   numbers, so the two renderers keep one clock; they are the constants above, unchanged. `lift`
+   and `liftMs` are the Swift ritual's alone: the two sealed envelopes over the windows lift
+   together (the kindreds reel's "both open together", guide-reel/kindreds OPEN_LIFT) just before
+   the frost goes; the React Native ritual has no envelopes over its windows. All in ms from the
+   moment the ceremony opened. */
+export const SIGNED_BEATS = {
+  road: T_ROAD,
+  step: T_STEP,
+  fly: T_FLY,
+  windows: S_WINDOWS,
+  lift: S_WIPE - 130,
+  liftMs: 340,
+  wipe: S_WIPE,
+  wipeMs: 600, // WIPE_MS (declared further down)
+  strikeTheirs: S_STRIKE_THEIRS,
+  strikeMine: S_STRIKE_MINE,
+  signTheirs: S_SIGN_THEIRS,
+  signTheirsMs: S_SIGN_THEIRS_MS,
+  signMine: S_SIGN_MINE,
+  signMineMs: S_SIGN_MINE_MS,
+  bump: S_BUMP,
+  chip: S_CHIP,
+  notice: S_NOTICE,
+  done: T_SIGNED_DONE,
+  doneStill: T_SIGNED_DONE_STILL,
+} as const;
+
 const ease = { out: Easing.out(Easing.cubic), back: Easing.out(Easing.back(2)), sine: Easing.inOut(Easing.sin) };
 
 export function IntroductionRitual({
@@ -544,8 +573,8 @@ function Bumper({ side, seed, face, at }: { side: -1 | 1; seed: string; face: st
 const COL_W = 136;
 const COL_GAP = 8;
 const FACE = 64;
-const SLOT_W = 132;
-const SLOT_H = 42;
+export const SLOT_W = 132;
+export const SLOT_H = 42;
 /* how far each face travels to the collision: they meet overlapping by 10pt */
 const BUMP_IN = (COL_W + COL_GAP - FACE) / 2 + 5;
 /* the wipe's own clock, from S_WIPE (ms) */
@@ -782,7 +811,7 @@ function StruckName({ text, at, still }: { text: string; at: number; still: bool
 
 /* a mono line's width in ems (plus `spacingEm` a character): 0.6 per character, 1.0 per wide one */
 const WIDE = /[ᄀ-ᇿ⺀-꓏가-힯豈-﫿＀-｠]/;
-function monoEms(text: string, spacingEm: number): number {
+export function monoEms(text: string, spacingEm: number): number {
   let n = 0;
   for (const ch of text) n += (WIDE.test(ch) ? 1 : 0.6) + spacingEm;
   return Math.max(1, n);
@@ -795,8 +824,9 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 const SIG_PT = 2;
 
 /* the plan squeezed into `ms` however many strokes there are (32 at most): the gaps and the floor
-   per stroke shrink before the whole would overrun the next beat */
-function fitPlan(sig: PenSig, ms: number): PenDrawStep[] | null {
+   per stroke shrink before the whole would overrun the next beat (the Swift ritual draws the same
+   plan: components/IntroductionRitualNative) */
+export function fitPlan(sig: PenSig, ms: number): PenDrawStep[] | null {
   const n = sig.s.length;
   const gapMs = n > 1 ? Math.min(60, (ms * 0.25) / (n - 1)) : 0;
   const minStrokeMs = Math.min(80, ((ms - gapMs * (n - 1)) / n) * 0.6);

@@ -99,6 +99,16 @@ import {
                   React Native ReaderScreen draws the same model
                   (screens/chat/useReaderModel)
 
+   The name-trading ceremony (owner, 2026-10-26; ships in 1.0.7), keeping
+   its React Native ritual the same way:
+
+     ceremony     the signed ritual inside the introduction sheet, when both
+                  sides have signed (components/IntroductionRitualNative,
+                  KIntroRitualView): the windows, the two sealed envelopes,
+                  the struck courier names, the signatures drawn in and
+                  KINDREDS · date. The sheet around it, and the mosaic
+                  ritual (no signatures), stay React Native.
+
    A kindred's page and Wren's desk stay React Native and have no key. */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
@@ -114,10 +124,11 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   paywall: true,
   myletters: true,
   reader: true,
+  ceremony: true,
 };
 
-/** the nine step-5 surface keys, Me 4a's two and the reader (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader";
+/** the nine step-5 surface keys, Me 4a's two, the reader and the ceremony (the `surface` prop of NativeSurface) */
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "ceremony";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */

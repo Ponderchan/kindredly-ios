@@ -4,7 +4,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MONO, PFM } from "../theme/post";
 import { useLetterFamily, useP, useTheme } from "../lib/theme";
 import { AvatarImage } from "./AvatarImage";
-import { IntroductionRitual, ritualDoneAt } from "./IntroductionRitual";
+import { ritualDoneAt } from "./IntroductionRitual";
+import { CeremonyRitual } from "./IntroductionRitualNative";
 import Animated, { FadeIn, useReducedMotion } from "react-native-reanimated";
 import { useSignatureHold } from "./SignatureHold";
 import type { SignedPair } from "../lib/signed-sides";
@@ -60,7 +61,13 @@ import "../data/strings-a11y-chat"; // in.a11yOff
    ceremony for Kindreds (`report.onBlocked`). Under Reduce Motion the end
    state cross-fades in, done by 1600, and the "noticed" line waits for
    whichever ritual is showing (ritualDoneAt). `signed` absent: today's
-   ritual and words, exactly. */
+   ritual and words, exactly.
+
+   SWIFT (owner, 2026-10-26; 1.0.7): with `signed`, the ritual itself is
+   drawn by SwiftUI behind the "ceremony" switch (CeremonyRitual in
+   IntroductionRitualNative), on the same clock; this sheet, its words, its
+   button and the Report / Block card stay React Native either way, and
+   VoiceOver also hears the sentence announced once the ritual is done. */
 export function Introduction({
   open,
   wren,
@@ -195,7 +202,8 @@ export function Introduction({
                 }
               : null)}
           >
-            <IntroductionRitual
+            {/* Swift where it can be (the "ceremony" switch, both sides signed), else React Native's */}
+            <CeremonyRitual
               road={road}
               otherSeed={otherSeed}
               otherFace={otherFace}
@@ -210,6 +218,7 @@ export function Introduction({
               still={still}
               holdable={holdable}
               onHoldTheirs={hold.open}
+              announce={ritualA11y}
             />
           </View>
 

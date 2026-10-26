@@ -44,6 +44,7 @@ New
 
 Changed
 - The guides in Wren's room show today's product: courier names and frosted windows instead of mosaics and numbers, signing to trade names, Stamp Press, tomorrow's bag, the two notification switches. Their words are rewritten in all nine languages, and Wren understands questions about pen names, signing and pressing your own stamps in each. [OTA]
+- The kindred ceremony (when both of you have signed) is drawn natively: the two signed cards, both sealed envelopes lifting at once, the frosted windows clearing onto the faces, the courier names struck through, the signatures drawing in with the pen names, and KINDREDS · date. Reduce Motion fades to the end state; VoiceOver says the outcome when it's done. [binary] [switch: ceremony]
 
 ---
 

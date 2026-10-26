@@ -156,6 +156,12 @@ public class KindredlyUIModule: Module {
       }
     }
 
+    // The name-trading ceremony's signed ritual (owner, 2026-10-26; 1.0.7): one piece of the React
+    // Native introduction sheet, behind the "ceremony" switch (src/components/
+    // IntroductionRitualNative.tsx). Adapters/KIntroRitualView.swift, Portable/Chat/KIntroRitual.swift.
+    // No commands: it only draws, and reports a held signature as an event.
+    ExpoUIView(KIntroRitualView.self)
+
     // The app's language, for typography only (KType.tallScript): Japanese and Korean set the
     // letter serifs with CJK leading. src/textScript.ts; the root layout calls it on every change.
     Function("setTextScript") { (lang: String) in

@@ -59,7 +59,9 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   ok("the two Me 4a keys are there and on", ME4A.every((k) => entries[k] === true));
   // the one-letter reader (2026-10-20)
   ok("the reader's key is there and on", entries.reader === true);
-  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + 2);
+  // the name-trading ceremony's signed ritual (owner, 2026-10-26; 1.0.7)
+  ok("the ceremony's key is there and on", entries.ceremony === true);
+  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + 3);
 }
 
 /* ── the crash breadcrumb ── */
