@@ -6,6 +6,10 @@ import { strings } from "../lib/i18n";
    Every word of the flow (src/app/make-face.tsx), its door in Edit profile (mf.tag.once /
    mf.tag.first) and the tags onboarding's ＋ cell wears (mf.tag.makeFree / mf.tag.first /
    mf.tag.yours). The camera-denied line is the Notes roll's (jp.cameraDenied).
+   mf.ep.avatarNote (2026-10-27) is Edit profile's note under your face while the ＋ cell shows: its
+   old last line ("a photo is never sent to anyone") stops being true once Wren paints from a photo,
+   so it tells the two photos apart — the one set as your face stays on the phone; the one Wren
+   paints from is used only for that and kept nowhere (functions/api/face.js never stores it).
 
    Voices, as the English: Wren's own lines are lowercase and playful, in the language's own
    quotation marks (mf.*.line, mf.gen.*, mf.intro.photo / free / used / member, the sub-lines under
@@ -30,6 +34,7 @@ strings(
     "mf.intro.line": "“i'll draw you. hold still.”",
     "mf.intro.sub": "A photo or a few words — Wren paints a face in the same style as the others. Only a kindred will ever see it.",
     "mf.intro.photo": "your photo is only used to paint. not saved.",
+    "mf.ep.avatarNote": "Strangers never see your face. A kindred sees the one you had when you both signed. A photo you set as your face stays on this phone. A photo you give Wren to paint your face from is used only for that and never saved anywhere.",
     "mf.intro.free": "one free face. after that, first class.",
     "mf.intro.used": "your free one is used · first class for more",
     "mf.intro.member": "first class · as many faces as you like",
@@ -124,6 +129,7 @@ strings(
     "mf.intro.line": "“te dibujo. no te muevas.”",
     "mf.intro.sub": "Una foto o unas palabras: Wren pinta una cara con el mismo estilo que las demás. Solo un afín la verá.",
     "mf.intro.photo": "tu foto solo sirve para pintar. no se guarda.",
+    "mf.ep.avatarNote": "Los desconocidos nunca ven tu cara. Un afín ve la que tenías cuando los dos firmaron. La foto que pones como cara nunca sale de este teléfono. La foto que le das a Wren para que pinte tu cara solo sirve para eso y no se guarda en ningún sitio.",
     "mf.intro.free": "una cara gratis. después, primera clase.",
     "mf.intro.used": "ya usaste la gratis · más con primera clase",
     "mf.intro.member": "primera clase · todas las caras que quieras",
@@ -218,6 +224,7 @@ strings(
     "mf.intro.line": "“vou te desenhar. não se mexe.”",
     "mf.intro.sub": "Uma foto ou umas palavras: Wren pinta um rosto no mesmo estilo dos outros. Só uma alma afim vai ver.",
     "mf.intro.photo": "sua foto só serve para pintar. não fica salva.",
+    "mf.ep.avatarNote": "Os desconhecidos nunca veem seu rosto. Uma alma afim vê o rosto que você tinha quando vocês dois assinaram. A foto que você coloca como seu rosto nunca sai deste celular. A foto que você manda para Wren pintar seu rosto só serve para isso e não fica salva em lugar nenhum.",
     "mf.intro.free": "um rosto grátis. depois, primeira classe.",
     "mf.intro.used": "o rosto grátis já foi · mais com a primeira classe",
     "mf.intro.member": "primeira classe · quantos rostos você quiser",
@@ -312,6 +319,7 @@ strings(
     "mf.intro.line": "“aku gambar kamu, ya. diam sebentar.”",
     "mf.intro.sub": "Satu foto atau beberapa kata: Wren melukis wajah dengan gaya yang sama seperti yang lain. Hanya kerabat yang akan melihatnya.",
     "mf.intro.photo": "fotomu cuma dipakai untuk melukis. tidak disimpan.",
+    "mf.ep.avatarNote": "Orang asing tak pernah melihat wajahmu. Kerabat melihat wajah yang kamu pakai saat kalian bertukar nama. Foto yang kamu pasang sebagai wajahmu tak pernah keluar dari ponsel ini. Foto yang kamu berikan ke Wren untuk melukis wajahmu hanya dipakai untuk itu dan tak pernah disimpan.",
     "mf.intro.free": "satu wajah gratis. setelah itu, kelas utama.",
     "mf.intro.used": "jatah gratismu sudah terpakai · lebih banyak dengan kelas utama",
     "mf.intro.member": "kelas utama · wajah sebanyak yang kamu mau",
@@ -406,6 +414,7 @@ strings(
     "mf.intro.line": "« je te dessine. ne bouge plus. »",
     "mf.intro.sub": "Une photo ou quelques mots : Wren peint un visage dans le même style que les autres. Seul un semblable le verra.",
     "mf.intro.photo": "ta photo sert juste à peindre. elle n'est pas gardée.",
+    "mf.ep.avatarNote": "Les inconnus ne voient jamais ton visage. Un semblable voit celui que tu avais quand vous avez échangé vos noms. La photo que tu choisis comme visage ne quitte jamais ce téléphone. Celle que tu donnes à Wren pour qu'elle peigne ton visage sert juste à ça et n'est gardée nulle part.",
     "mf.intro.free": "un visage offert. ensuite, première classe.",
     "mf.intro.used": "ton visage offert est fait · d'autres en première classe",
     "mf.intro.member": "première classe · autant de visages que tu veux",
@@ -500,6 +509,7 @@ strings(
     "mf.intro.line": "„ich zeichne dich. halt still.“",
     "mf.intro.sub": "Ein Foto oder ein paar Worte – Wren malt ein Gesicht im selben Stil wie die anderen. Nur Seelenverwandte bekommen es zu sehen.",
     "mf.intro.photo": "dein Foto wird nur zum Malen benutzt. nicht gespeichert.",
+    "mf.ep.avatarNote": "Fremde sehen dein Gesicht nie. Seelenverwandte sehen es so, wie es war, als ihr beide unterschrieben habt. Nimmst du ein Foto als Gesicht, bleibt es auf diesem Handy. Lässt du Wren dein Gesicht nach einem Foto malen, wird das Foto nur dafür benutzt und nie gespeichert.",
     "mf.intro.free": "ein Gesicht gratis. danach Erste Klasse.",
     "mf.intro.used": "dein Gratis-Gesicht ist gemalt · mehr mit Erster Klasse",
     "mf.intro.member": "Erste Klasse · so viele Gesichter, wie du willst",
@@ -594,6 +604,7 @@ strings(
     "mf.intro.line": "«ti disegno. non muoverti.»",
     "mf.intro.sub": "Una foto o qualche parola: Wren dipinge un volto nello stesso stile degli altri. Lo vedranno solo le anime affini.",
     "mf.intro.photo": "la tua foto serve solo per dipingere. non viene salvata.",
+    "mf.ep.avatarNote": "Gli sconosciuti non vedono mai il tuo volto. Un'anima affine vede quello che avevi quando avete firmato tutti e due. La foto che scegli come volto non lascia mai questo telefono. Quella che dai a Wren perché dipinga il tuo volto serve solo a questo, e non viene salvata da nessuna parte.",
     "mf.intro.free": "un volto gratis. poi, prima classe.",
     "mf.intro.used": "il volto gratis è fatto · altri con la prima classe",
     "mf.intro.member": "prima classe · tutti i volti che vuoi",
@@ -688,6 +699,7 @@ strings(
     "mf.intro.line": "「描くよ。じっとしててね。」",
     "mf.intro.sub": "写真か、ちょっとしたことばから。Wrenがほかの顔と同じタッチで描きます。この顔を見られるのは心友だけ。",
     "mf.intro.photo": "写真は描くためだけ。保存はしないよ。",
+    "mf.ep.avatarNote": "見知らぬ人に、あなたの顔は見えません。心友に見えるのは、ふたりが名前を添えたときの顔です。顔に設定した写真は、このスマホから出ません。Wrenに顔を描いてもらう写真は、描くためだけに使われ、どこにも保存されません。",
     "mf.intro.free": "無料で描けるのは1回。そのあとはファーストクラスで。",
     "mf.intro.used": "無料の1回は使ったよ · もっと描くならファーストクラス",
     "mf.intro.member": "ファーストクラス · 何枚でも描けるよ",
@@ -782,6 +794,7 @@ strings(
     "mf.intro.line": "“그려 줄게. 가만히 있어.”",
     "mf.intro.sub": "사진 한 장이나 몇 마디면 돼요. Wren이 다른 얼굴들과 같은 그림체로 그려요. 이 얼굴은 인연만 볼 수 있어요.",
     "mf.intro.photo": "사진은 그리는 데만 쓰고 저장하지 않아.",
+    "mf.ep.avatarNote": "낯선 사람은 당신의 얼굴을 볼 수 없어요. 인연은 서로 이름을 동봉한 그때의 얼굴을 봐요. 얼굴로 설정한 사진은 이 휴대폰 밖으로 나가지 않아요. Wren이 얼굴을 그릴 때 보는 사진은 그리는 데만 쓰이고, 어디에도 저장되지 않아요.",
     "mf.intro.free": "무료로 한 번. 그다음은 퍼스트 클래스.",
     "mf.intro.used": "무료 한 번은 썼어 · 더 그리려면 퍼스트 클래스",
     "mf.intro.member": "퍼스트 클래스 · 얼마든지 그릴 수 있어",

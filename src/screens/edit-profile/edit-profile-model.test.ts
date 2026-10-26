@@ -168,6 +168,10 @@ const facts = (over: Partial<EditFacts> = {}): EditFacts => ({
   ok("the mark is offered to she and he only", markOffered("she") && markOffered("he") && !markOffered("they"));
   ok("showMark: only a real true (\"true\", 1, unset are off)", showsMark(true) && !showsMark("true") && !showsMark(1) && !showsMark(undefined) && !showsMark(false));
   ok("showSign: anything but false (unset is on)", showsSign(undefined) && showsSign(true) && showsSign(null) && !showsSign(false));
+  const made = { used: false, made: [] };
+  ok("the ＋ cell on: its own note, which tells the two photos apart (switch off or on)",
+    buildEditView(facts({ make: made }), fmt).avatarHint === "mf.ep.avatarNote" &&
+      buildEditView(facts({ make: made, letters: { identity: true, showMark: true, showSign: true, sign: "leo" } }), fmt).avatarHint === "mf.ep.avatarNote");
   ok("lettersView is the page's group", JSON.stringify(lettersView("she", { showMark: true, showSign: false, sign: "leo" }, t)) === JSON.stringify({ header: "ep.id.section", mark: { label: "ep.id.mark.she", note: "ep.id.markNote", on: true }, sign: { label: "ep.id.sign", note: "ep.id.signNote{sign:zd.leo}", on: false } }));
 }
 

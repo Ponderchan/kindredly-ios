@@ -36,7 +36,7 @@ const ok = (name: string, cond: boolean, extra = "") => {
 ok("nine blocks", blocks?.length === 9);
 const en = blocks[0];
 const keys = Object.keys(en);
-ok("ninety-one keys", keys.length === 91, String(keys.length));
+ok("ninety-two keys", keys.length === 92, String(keys.length));
 ok("only mf.* keys", keys.every((k) => k.startsWith("mf.")));
 ok("four generating lines", ["mf.gen.1", "mf.gen.2", "mf.gen.3", "mf.gen.4"].every((k) => k in en));
 ok("thirteen chips in three groups", keys.filter((k) => k.startsWith("mf.chip.")).length === 13 && keys.filter((k) => k.startsWith("mf.chips.")).length === 3);

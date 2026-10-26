@@ -326,8 +326,10 @@ export function buildEditView(f: EditFacts, fmt: EditFormat): EditView {
     cameraLabel: t("ep.cameraA11y"),
     photoLabel: t("ep.choosePhoto"),
     randomLabel: t("ep.random"),
-    // switch on: the true-again words (strangers see a window, never your face; a kindred the one you had at signing)
-    avatarHint: t(on ? "id.ep.avatarNote" : "ep.avatarNote"),
+    // switch on: the true-again words (strangers see a window, never your face; a kindred the one you had at signing).
+    // With the ＋ cell (make your own face) a photo can travel to be painted, so "a photo never leaves
+    // this phone" stops being true: its own line tells the two photos apart (2026-10-27)
+    avatarHint: t(f.make ? "mf.ep.avatarNote" : on ? "id.ep.avatarNote" : "ep.avatarNote"),
     facesHeader: t("ep.faces"),
     faces: [
       // the faces Wren made, first (switch on); named like the rest, after the portraits' count
