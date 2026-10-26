@@ -99,6 +99,13 @@ import {
                   React Native ReaderScreen draws the same model
                   (screens/chat/useReaderModel)
 
+   The Notes composer (owner, 2026-10-26: ships in 1.0.7, drawn to the Note
+   Composer Bar design), keeping its React Native page (components/
+   SelfCompose) the same way:
+
+     journalentry the Notes composer, "write a page" (journal-entry) —
+                  KNoteComposeView; screens/journal-entry holds its state
+
    A kindred's page and Wren's desk stay React Native and have no key. */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
@@ -114,10 +121,11 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   paywall: true,
   myletters: true,
   reader: true,
+  journalentry: true,
 };
 
-/** the nine step-5 surface keys, Me 4a's two and the reader (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader";
+/** the nine step-5 surface keys, Me 4a's two, the reader and the Notes composer (the `surface` prop of NativeSurface) */
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */

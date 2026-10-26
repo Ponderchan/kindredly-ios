@@ -85,6 +85,23 @@ export {
   type KReaderViewProps,
 } from "./src/Reader";
 
+// the Notes composer (1.0.7, owner 2026-10-26: the Note Composer Bar), in Swift
+export {
+  KNoteComposeView,
+  nativeNoteGroups,
+  type KNoteComposeCommands,
+  type KNoteComposeStrings,
+  type KNoteComposeViewProps,
+  type KNoteMediaCard,
+  type KNoteMediaKind,
+  type KNoteMood,
+  type KNoteMoodFace,
+  type KNoteMoodGroup,
+  type KNoteMoodGroupKey,
+  type KNotePanel,
+  type KNoteThumb,
+} from "./src/NoteCompose";
+
 // step 5, batch 0b: the spike lab (dev only: src/app/dev/step5-lab.tsx)
 export {
   KLabView,

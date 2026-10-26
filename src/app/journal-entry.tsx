@@ -13,6 +13,9 @@ import { SelfCompose, type SelfComposeState } from "../components/SelfCompose";
 import { localeTag } from "../lib/format";
 import "../data/strings-step5-notes";
 import { CloseGlyph } from "../components/10a/BackChevron";
+import type { KScreenHandle } from "../../modules/kindredly-ui";
+import { NativeSurface } from "../components/NativeSurface";
+import { NoteComposeNative } from "../screens/journal-entry/NoteComposeNative";
 
 /* The sealed room's desk — its own page again.
 
@@ -26,7 +29,15 @@ import { CloseGlyph } from "../components/10a/BackChevron";
    served instead by letting a finished entry drift LATER, from its own page in
    Sealed. Choosing up front stops being a verdict once you can change it
    afterwards, and a thought that sits for two days before you release it is
-   more this product than one you toggled while typing. */
+   more this product than one you toggled while typing.
+
+   TWO RENDERERS (1.0.7, owner 2026-10-26). NativeSurface picks once, at mount ("journalentry" in
+   app_surfaces, the binary having KNoteComposeView, no JS error, no crash strikes):
+   - NoteComposeNative: SwiftUI, drawn to the Note Composer Bar design (the ＋ panel, the mood
+     capsule and panel, SEAL IT HERE, the seal moment), its state in screens/journal-entry;
+   - the React Native page below (this header and components/SelfCompose), as it shipped: the
+     remote switch's fallback.
+   Both hold their words in `text` here and report what the page holds to the same guard. */
 export default function JournalEntryRoute() {
   useLang();
   const P = useP();
@@ -54,10 +65,12 @@ export default function JournalEntryRoute() {
   const [page, setPage] = useState<SelfComposeState>({ hasSomething: false, busy: false, sealed: false });
   const guarded = page.hasSomething && !page.busy && !page.sealed;
   const [leaving, setLeaving] = useState(false);
+  // the Swift page's view: told to let go of the keyboard before the leave sheet rises
+  const viewRef = useRef<KScreenHandle>(null);
   const caught = useRef<Parameters<Parameters<typeof usePreventRemove>[1]>[0]["data"]["action"] | null>(null);
   usePreventRemove(guarded, ({ data }) => {
     caught.current = data.action;
-    openLeaveSheet(() => setLeaving(true));
+    openLeaveSheet(() => setLeaving(true), viewRef);
   });
   const discard = () => {
     setLeaving(false);
@@ -67,7 +80,9 @@ export default function JournalEntryRoute() {
     else goBack();
   };
 
-  return (
+  const native = () => <NoteComposeNative text={text} setText={setText} onDone={goBack} onClose={goBack} onState={setPage} viewRef={viewRef} />;
+
+  const fallback = () => (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
       {/* One line, not two. The date was a headline of its own below the
           header, which gave the page two beginnings — and a date is a label,
@@ -93,6 +108,12 @@ export default function JournalEntryRoute() {
         </View>
       </View>
       <SelfCompose text={text} setText={setText} onDone={goBack} onState={setPage} />
+    </SafeAreaView>
+  );
+
+  return (
+    <View style={{ flex: 1, backgroundColor: P.paper }}>
+      <NativeSurface surface="journalentry" view="KNoteComposeView" mode="mount" native={native} fallback={fallback} />
 
       <LeaveSheet
         open={leaving}
@@ -104,6 +125,6 @@ export default function JournalEntryRoute() {
           setLeaving(false);
         }}
       />
-    </SafeAreaView>
+    </View>
   );
 }

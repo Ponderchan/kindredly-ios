@@ -178,6 +178,8 @@ export const KSCREEN_VIEWS = [
   "KMyLettersView",
   // the one-letter reader (2026-10-20)
   "KReaderView",
+  // the Notes composer (1.0.7, 2026-10-26)
+  "KNoteComposeView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

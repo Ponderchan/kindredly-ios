@@ -45,6 +45,11 @@ struct KComposeEditor: View {
   /// the words' colour and the caret's on a paper (nil: the theme's ink and ind)
   private let ink: Color?
   private let caret: Color?
+  /// THE IDLE CARET (Notes composer, owner 2026-10-26): while the empty editor doesn't hold the
+  /// keyboard, a 2 × 26 caret in this colour blinks before the placeholder (1.1s, on for the first
+  /// half; steady under Reduce Motion), and the placeholder sits 3 further in, so the page says
+  /// "write here" without raising the keyboard. nil (the letter composer): no caret, as before.
+  private let idleCaret: Color?
   private let onChange: (String) -> Void
   private let onFocus: (Bool) -> Void
 
@@ -64,6 +69,7 @@ struct KComposeEditor: View {
     writing: KTextStyle? = nil,
     ink: Color? = nil,
     caret: Color? = nil,
+    idleCaret: Color? = nil,
     onChange: @escaping (String) -> Void,
     onFocus: @escaping (Bool) -> Void
   ) {
@@ -75,6 +81,7 @@ struct KComposeEditor: View {
     self.writing = writing
     self.ink = ink
     self.caret = caret
+    self.idleCaret = idleCaret
     self.onChange = onChange
     self.onFocus = onFocus
     self._text = State(initialValue: controller.text)
@@ -93,13 +100,21 @@ struct KComposeEditor: View {
       .focused($focused)
       .overlay(alignment: .topLeading) {
         if text.isEmpty {
-          Text(placeholder)
-            .modifier(KComposeWritingFace(writing: writing))
-            .foregroundStyle(placeholderColor)
-            .padding(.top, Self.topInset)
-            .padding(.horizontal, Self.linePadding)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
+          ZStack(alignment: .topLeading) {
+            if let idleCaret, !focused {
+              KIdleCaret(color: idleCaret)
+                .padding(.top, Self.topInset + 1)
+                .padding(.leading, Self.linePadding)
+            }
+            Text(placeholder)
+              .modifier(KComposeWritingFace(writing: writing))
+              .foregroundStyle(placeholderColor)
+              .padding(.top, Self.topInset)
+              .padding(.leading, Self.linePadding + (idleCaret == nil ? 0 : KIdleCaret.room))
+              .padding(.trailing, Self.linePadding)
+          }
+          .allowsHitTesting(false)
+          .accessibilityHidden(true)
         }
       }
       .accessibilityLabel(accessibilityLabel)
@@ -175,5 +190,29 @@ private struct KComposeWritingFace: ViewModifier {
 
   func body(content: Content) -> some View {
     content.kText(writing ?? KComposeType.writing)
+  }
+}
+
+/// The empty editor's caret while it doesn't hold the keyboard (KComposeEditor idleCaret): 2 × 26,
+/// on for the first half of every 1.1s, steady under Reduce Motion.
+struct KIdleCaret: View {
+  /// the caret and the 1 after it: how far the placeholder moves in
+  static let room: CGFloat = 3
+
+  let color: Color
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  var body: some View {
+    let bar = RoundedRectangle(cornerRadius: 1, style: .circular)
+      .fill(color)
+      .frame(width: 2, height: 26)
+    if reduceMotion {
+      bar
+    } else {
+      TimelineView(.periodic(from: .now, by: 0.55)) { context in
+        let on = Int((context.date.timeIntervalSinceReferenceDate / 0.55).rounded(.down)) % 2 == 0
+        bar.opacity(on ? 1 : 0)
+      }
+    }
   }
 }

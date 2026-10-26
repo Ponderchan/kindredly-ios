@@ -605,7 +605,7 @@ function MoodKeyFace({ mood }: { mood: MoodId }) {
    back to the page. The picture sits on near-black with white controls in
    every theme, the way a photo viewer does, so nothing here follows the
    theme. */
-function FrameViewer({ photos, index, onClose, onCover, onRemove }: { photos: Photo[]; index: number | null; onClose: () => void; onCover: (i: number) => void; onRemove: (i: number) => void }) {
+export function FrameViewer({ photos, index, onClose, onCover, onRemove }: { photos: Photo[]; index: number | null; onClose: () => void; onCover: (i: number) => void; onRemove: (i: number) => void }) {
   const insets = useSafeAreaInsets();
   const [page, setPage] = useState(index ?? 0);
   useEffect(() => {
