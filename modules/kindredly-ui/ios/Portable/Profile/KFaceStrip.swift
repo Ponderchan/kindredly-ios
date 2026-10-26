@@ -20,7 +20,7 @@ import CoreImage
  25" (the library's own names are English design notes, never shown) with the selected trait.
 
  MAKE YOUR OWN FACE (owner, 2026-10-26; only while TS sends `make`, the "makeface" switch): the
- row starts with a 46 ＋ cell — a lav2 disc, a 2pt dashed ind ring, a 20 ind ＋ — with a small
+ row starts with a 54 ＋ cell (the faces' size) — a lav2 disc, a 2pt dashed ind ring, a 20 ind ＋ — with a small
  mono tag under it (7.5 at .1em): FREE · ONCE on the pale lav (#EEEDFB, ind words) while the free
  face is unused, 1ST CLASS on gold (#D8A63F, ink words) after. Its circle sits on the faces'
  middle line (4 down in the row, which is laid out from the top), the tag hangs under it. A face
@@ -134,9 +134,10 @@ public struct KFaceStrip: View {
     }
   }
 
-  /// The ＋ cell: a 46 disc on the faces' middle line, its tag under it.
+  /// The ＋ cell: a disc the faces' own size (54; the design's 46 left the row uneven beside
+  /// them, owner 2026-10-27), its tag under it.
   private func makeCell(_ make: KEditMakeFace) -> some View {
-    let side: CGFloat = 46
+    let side: CGFloat = Self.faceSize
     return SwiftUI.Button(action: onMake) {
       VStack(spacing: 6) {
         Circle()
@@ -145,7 +146,7 @@ public struct KFaceStrip: View {
           .overlay {
             KPlusGlyph()
               .stroke(theme.ind, style: StrokeStyle(lineWidth: 2.2 * 20 / 24, lineCap: .round))
-              .frame(width: 20, height: 20)
+              .frame(width: 22, height: 22)
           }
           .frame(width: side, height: side)
         Text(make.tag)
@@ -157,8 +158,6 @@ public struct KFaceStrip: View {
           .padding(.vertical, 2)
           .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(make.firstClass ? KBrand.waxGold : (theme.isDark ? theme.lav2 : Color(hex: "#EEEDFB"))))
       }
-      // the circle's middle on the 54 faces' middle
-      .padding(.top, (Self.faceSize - side) / 2)
       .contentShape(Rectangle())
     }
     .buttonStyle(KFloatPressStyle())
