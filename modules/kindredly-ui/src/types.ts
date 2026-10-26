@@ -183,6 +183,8 @@ export const KSCREEN_VIEWS = [
   // the Writing Aura room and its share card (2026-10-26)
   "KAuraRoomView",
   "KAuraShareView",
+  // Wren's Journey, the courier page (2026-10-26)
+  "KCourierView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

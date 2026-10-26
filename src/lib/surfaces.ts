@@ -123,6 +123,13 @@ import {
      auracard     the share card (aura-card) — KAuraShareView; Swift draws
                   the card and makes its picture
 
+   Wren's Journey (owner, 2026-10-26; binary 1.2.6, App Store 1.0.7), keeping
+   its React Native page the same way:
+
+     courier      her page (courier) — KCourierView; Free Flight stays React
+                  Native: Play hands the page to the React Native one for the
+                  game, and it comes back when she lands (screens/courier)
+
    A kindred's page and Wren's desk stay React Native and have no key. */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
@@ -142,10 +149,11 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   ceremony: true,
   aura: true,
   auracard: true,
+  courier: true,
 };
 
-/** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony and the aura pages (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard";
+/** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages and the courier page (the `surface` prop of NativeSurface) */
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */

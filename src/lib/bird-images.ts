@@ -53,7 +53,51 @@ export type BirdPose =
   | "lookWitch"
   | "lookGhost"
   | "lookWorn"
-  | "fcHero";
+  | "fcHero"
+  // the courier page in Swift (screens/courier): her perch and her wardrobe rack
+  | HeroPose
+  | RackPose;
+
+/* THE COURIER PAGE (/courier in Swift, 2026-10-26). Her perch draws her at the
+   React Native perch's 186 in every face she can make there (her whereabouts'
+   face, and the faces a tap, a pick-up, a drop and a doze give her), in her own
+   look, at her own stage — and bare where React Native draws her bare (a
+   fledgling wears nothing on the perch: WrenHome's wearsHere). The wardrobe
+   rack's tiles are her at the rack's 46: the looks row pins each coat and wears
+   what she has on, the dress row pins each piece and wears her coat. None is
+   base: captured only while the page asks. */
+
+/** Every face the courier page's perch can show (all of WrenBird's moods). */
+const MOOD_SET: Record<WrenMood, true> = { content: true, happy: true, listen: true, sleepy: true, curious: true, delight: true, think: true, wink: true, worry: true };
+export const HERO_MOODS = Object.keys(MOOD_SET) as WrenMood[];
+/** every coat, and every piece, as the rack can pin them (a new one fails to compile until it is here) */
+const SKIN_SET: Record<WrenSkin, true> = { sticker: true, plush: true, ink: true, moss: true, peach: true };
+const ACCESSORY_SET: Record<WrenAccessory, true> = { none: true, beanie: true, scarf: true, phones: true, flower: true, party: true, shades: true, witch: true, ghost: true };
+const RACK_SKINS = Object.keys(SKIN_SET) as WrenSkin[];
+const RACK_ACCESSORIES = Object.keys(ACCESSORY_SET) as WrenAccessory[];
+
+export type HeroPose = `hero-${WrenMood}` | `hero-${WrenMood}-bare`;
+export type RackPose = `rack-skin-${WrenSkin}` | `rack-acc-${WrenAccessory}`;
+
+/** The perch's picture for a face: in her look, or bare (accessory pinned to none). */
+export const heroPose = (mood: WrenMood, bare: boolean): HeroPose => (bare ? `hero-${mood}-bare` : `hero-${mood}`);
+/** A looks tile: this coat, wearing what she has on. */
+export const rackSkinPose = (skin: WrenSkin): RackPose => `rack-skin-${skin}`;
+/** A dress tile: this piece, on her coat. */
+export const rackAccessoryPose = (accessory: WrenAccessory): RackPose => `rack-acc-${accessory}`;
+
+/** the perch's size and the rack's (WrenHome HeroWren 186, WardrobeRack 46) */
+const HERO_SIZE = 186;
+const RACK_SIZE = 46;
+
+const COURIER_POSES = Object.fromEntries([
+  ...HERO_MOODS.flatMap((mood) => [
+    [heroPose(mood, false), { size: HERO_SIZE, mood }],
+    [heroPose(mood, true), { size: HERO_SIZE, mood, accessory: "none" }],
+  ]),
+  ...RACK_SKINS.map((skin) => [rackSkinPose(skin), { size: RACK_SIZE, mood: "happy", skin }]),
+  ...RACK_ACCESSORIES.map((accessory) => [rackAccessoryPose(accessory), { size: RACK_SIZE, mood: "happy", accessory }]),
+]) as Record<HeroPose | RackPose, BirdPoseSpec>;
 
 /** What a pose draws. Anything pinned overrides the user's look; the rest is hers. */
 export type BirdPoseSpec = {
@@ -109,6 +153,8 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
   lookWorn: { size: 48, mood: "content", stage: "wren" },
   // the Swift paywall's hero: the grown bird flying, at 4a's 120, in her look
   fcHero: { size: 120, mood: "content", fly: true, stage: "wren" },
+  // the courier page's perch and rack (see COURIER_POSES above)
+  ...COURIER_POSES,
 };
 
 /** The user's look, as BirdSnapshots reads it from the Wren contexts. */
@@ -275,6 +321,43 @@ export function useBirdImageRef(pose: BirdPose, opts: { wilt?: boolean } = {}): 
   const uri = ref?.uri ?? null;
   const key = ref?.key ?? null;
   return useMemo(() => (uri && key ? { uri, key } : null), [uri, key]);
+}
+
+/**
+ * useBirdImageRef for a list of poses that changes with the screen (the courier page's faces
+ * and its open wardrobe row): one entry per pose, null until captured, each kept captured while
+ * listed. All share `wilt`. The answer is a new object only when a picture changes.
+ */
+export function useBirdImageRefs<P extends BirdPose>(poses: readonly P[], opts: { wilt?: boolean } = {}): Partial<Record<P, ImageRefRecord>> {
+  const wilt = !!opts.wilt;
+  const list = Array.from(new Set(poses));
+  const key = list.join(",");
+  useSyncExternalStore(subscribeBirdImages, birdImagesVersion, birdImagesVersion);
+  useEffect(() => {
+    const variants = key ? key.split(",").map((p) => birdVariant(p as BirdPose, wilt)) : [];
+    const releases = variants.map(want);
+    variants.forEach(checkPurged);
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") variants.forEach(checkPurged);
+    });
+    return () => {
+      sub.remove();
+      releases.forEach((r) => r());
+    };
+  }, [key, wilt]);
+  // the store is read fresh on every render; the memo keys on what was read
+  const refs = list.map((p) => birdImageRef(p, wilt));
+  const sig = refs.map((r) => (r ? r.key + "|" + r.uri : "")).join(",");
+  return useMemo(() => {
+    const out: Partial<Record<P, ImageRefRecord>> = {};
+    list.forEach((p, i) => {
+      const r = refs[i];
+      if (r) out[p] = r;
+    });
+    return out;
+    // sig and key say everything the lists hold
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, sig]);
 }
 
 /**

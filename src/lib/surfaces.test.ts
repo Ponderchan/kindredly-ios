@@ -66,7 +66,9 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   // the Writing Aura room and its share card (2026-10-26)
   const AURA = ["aura", "auracard"];
   ok("the aura's two keys are there and on", AURA.every((k) => entries[k] === true));
-  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + 4);
+  // Wren's Journey in Swift (2026-10-26)
+  ok("the courier page's key is there and on", entries.courier === true);
+  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + 5);
 }
 
 /* ── the crash breadcrumb ── */
