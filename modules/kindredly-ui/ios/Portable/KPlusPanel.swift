@@ -208,18 +208,15 @@ public extension KMotion {
  The + is where a reader writes, and it opens by who they are (src/lib/publish-stage.ts decides,
  the holder passes the style):
 
- SHEET, for a new reader (signed up seven days ago or less, or Wren still a chick):
- - the dim is the composer's (.3; Midnight black .45), and the bar slides down 160 out of the
-   way on the publish turn's curve (KTabBar hidden);
- - the sheet is pinned to the bottom, full width: sf, top corners of 28, a soft shadow above
-   (0 -10 30 -12 rgba(30,27,53,.35); Midnight black .5 and a 1pt line edge, as KFloat's), padding
-   0 20. It grows from 0 to 350 (or to its content and the home-indicator inset, if that is
-   taller) over .45s on cubic-bezier(.3,1,.3,1), its content held at the top and clipped, so it
-   reads as the sheet being pulled up rather than sliding in;
- - inside, top to bottom: a 40 × 6 handle in line, 10 down; 16 below it Wren 44 (the user's own,
+ SHEET, on every tab but Today:
+ - an iOS sheet (owner, 2026-10-26: the hand-drawn one "ran around"; "native, rising from the
+   bottom"): the system's rise, dim, grabber, corners and drag down, on sf, exactly as tall as
+   its content (a measured height detent). A choice closes it, and the composer is pushed once
+   it is down (KTabStage);
+ - inside, top to bottom: under the system grabber, 26 down, Wren 44 (the user's own,
    from the caller's snapshot) and 12 beside her the ask in the Letter font's italic 17/1.3;
    18 below, the two rows as one grouped list; 14 below, the footnote in mono 9 at .14em,
-   faint, centred;
+   faint, centred; 12 at the foot;
  - the list (owner's mock, 2026-10-20, replacing the black-framed sticker rows): one container
    in soft (soft2 in Midnight, where soft is sf), continuous corners of 20, no outline and no
    shadow; two rows at least 76 tall, padding 0 16, their pieces 14 apart, an inset hairline in
@@ -228,7 +225,7 @@ public extension KMotion {
    pale green with the ruled card in its green; the title in System 600 17 with the subtitle 2
    below in System 14 sub; on the letter row, if the caller gives one, the letters left in mono
    500 10 at .12em, mute; then the › chevron in faint. Pressed, the row's ground turns line;
- - it closes on a tap on the dim, VoiceOver's escape, or a drag down on the sheet past 80; each
+ - it closes on a tap on the dim, VoiceOver's escape, or a drag down, as any iOS sheet; each
    is onDismiss. Its text grows with Dynamic Type up to xxLarge.
 
  POP, for a returning reader:
@@ -246,8 +243,8 @@ public extension KMotion {
  - VoiceOver reads the two as buttons with the caller's spoken names (the sheet's titles); the
    labels are hidden from it. The labels' Dynamic Type stops at large.
 
- Reduce Motion: the sheet and the buttons only fade (no growth, no flight, no overshoot), and
- the bar fades instead of sliding. Opening either moves VoiceOver to the letter choice.
+ Reduce Motion: the buttons only fade (no flight, no overshoot), the bar fades instead of
+ sliding, and the sheet does what iOS does for it. Opening either moves VoiceOver to the letter choice.
 
  Every word arrives translated; the bird arrives as the caller's snapshot. Nothing here holds a
  word or a picture of its own.
@@ -323,8 +320,6 @@ public extension KDim {
 }
 
 public extension KMotion {
-  /// The new reader's sheet growing from nothing: height .45s cubic-bezier(.3,1,.3,1).
-  static let publishSheetGrow = Animation.timingCurve(0.3, 1, 0.3, 1, duration: 0.45)
   /// The returning reader's buttons flying out and back: .4s cubic-bezier(.3,1.3,.4,1).
   static let publishPopFly = Animation.timingCurve(0.3, 1.3, 0.4, 1, duration: 0.4)
   /// Their opacity: .2s, CSS's default ease.
@@ -335,12 +330,6 @@ public extension KMotion {
 
 /// The publish entry's numbers.
 enum KPublishMetrics {
-  /// the sheet's least height (it grows past it for large text)
-  static let sheetMinHeight: CGFloat = 350
-  /// the sheet's top corners
-  static let sheetCorner: CGFloat = 28
-  /// a drag down past this closes the sheet
-  static let dismissDrag: CGFloat = 80
   /// a row's least height, and the grouped list's continuous corners
   static let rowHeight: CGFloat = 76
   static let rowCorner: CGFloat = 20
@@ -387,36 +376,31 @@ enum KPublishMetrics {
       : Color(.sRGB, red: 30 / 255, green: 27 / 255, blue: 53 / 255, opacity: 0.22)
     return [KSoftShadow(y: 4, blur: 14, spread: -4, color: color)]
   }
-
-  /// The sheet's soft shadow: 0 -10 30 -12 rgba(30,27,53,.35); black at .5 in Midnight, where
-  /// the navy would light the page rather than shade it (see KSoftShadow.floatDark).
-  static func sheetShadow(for theme: KTheme) -> [KSoftShadow] {
-    let color = theme.isDark
-      ? Color.black.opacity(0.5)
-      : Color(.sRGB, red: 30 / 255, green: 27 / 255, blue: 53 / 255, opacity: 0.35)
-    return [KSoftShadow(y: -10, blur: 30, spread: -12, color: color)]
-  }
 }
 
 /// The new reader's sheet, its content only: the handle, Wren's question and the two rows.
-/// KPublishSheetLayer gives it its face, its growth and its drag.
+/// KPublishNativeSheet puts it in an iOS sheet.
 struct KPublishSheet: View {
   let theme: KTheme
   let model: KPublishSheetModel
   let onAction: (String) -> Void
   var letterFocus: AccessibilityFocusState<Bool>.Binding
+  /// its own 40 × 6 handle; the system sheet (KPublishNativeSheet) draws its own grabber instead
+  var drawsHandle = true
   @Environment(\.displayScale) private var displayScale
 
   var body: some View {
     VStack(spacing: 0) {
       // the handle: 40 × 6 in line, 10 from the top
-      Capsule()
-        .fill(theme.line)
-        .frame(width: 40, height: 6)
-        .padding(.top, 10)
-        .accessibilityHidden(true)
+      if drawsHandle {
+        Capsule()
+          .fill(theme.line)
+          .frame(width: 40, height: 6)
+          .padding(.top, 10)
+          .accessibilityHidden(true)
+      }
 
-      // Wren and her question, 16 below
+      // Wren and her question, 16 below (26 below the system grabber's own room)
       HStack(spacing: 12) {
         KImage(model.bird, size: CGSize(width: 44, height: 44), contentMode: .fit, placeholder: .clear)
           .accessibilityHidden(true)
@@ -426,7 +410,7 @@ struct KPublishSheet: View {
           .fixedSize(horizontal: false, vertical: true)
           .frame(maxWidth: .infinity, alignment: .leading)
       }
-      .padding(.top, 16)
+      .padding(.top, drawsHandle ? 16 : 26)
 
       // the two rows, 18 below, as one grouped list
       rows
@@ -548,90 +532,35 @@ private struct KPublishRowStyle: ButtonStyle {
   }
 }
 
-/// The new reader's sheet on screen: pinned to the bottom, growing from nothing, closed by a
-/// drag down past 80. It lays itself out from the bottom edge it is given.
-struct KPublishSheetLayer: View {
+/// THE NEW READER'S SHEET AS AN iOS SHEET (owner, 2026-10-26: "it runs around — make it native,
+/// rising from the bottom"). The content is KPublishSheet's, under the system grabber; the system
+/// draws the rise, the dim, the drag down and the corners, and the sheet is exactly as tall as
+/// what it holds (a height detent, measured). Whatever the Host around the bar is doing, a
+/// presented sheet is the window's, so it can't come from anywhere but the bottom.
+struct KPublishNativeSheet: View {
   let theme: KTheme
   let model: KPublishSheetModel
-  let open: Bool
-  let safeAreaBottom: CGFloat
   let onAction: (String) -> Void
-  let onDismiss: () -> Void
 
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  /// the content's own height, measured; the sheet is at least 350 and grows past it for it
-  @State private var contentHeight: CGFloat = 0
-  /// how far the finger has pulled the sheet down
-  @State private var drag: CGFloat = 0
-  /// a drag past the line has asked to close, and the holder hasn't closed yet
-  @State private var leaving = false
+  /// the content's own height, measured; a guess until then so the first frame isn't empty
+  @State private var height: CGFloat = 300
   @AccessibilityFocusState private var letterFocused: Bool
 
   var body: some View {
-    let shape = UnevenRoundedRectangle(
-      topLeadingRadius: KPublishMetrics.sheetCorner,
-      bottomLeadingRadius: 0,
-      bottomTrailingRadius: 0,
-      topTrailingRadius: KPublishMetrics.sheetCorner,
-      style: .circular
-    )
-    let full = max(KPublishMetrics.sheetMinHeight, contentHeight + safeAreaBottom + 12)
-    // slides up whole from below the screen, as an iOS sheet does (owner, b32: it used to grow
-    // its frame with the content held at the top, which read as coming down); with Reduce Motion
-    // it doesn't move: it is there and fades
-    let grows = !reduceMotion
-    let below = open || !grows ? 0 : full + 40
-
-    KPublishSheet(theme: theme, model: model, onAction: onAction, letterFocus: $letterFocused)
+    KPublishSheet(theme: theme, model: model, onAction: onAction, letterFocus: $letterFocused, drawsHandle: false)
       .dynamicTypeSize(...DynamicTypeSize.xxLarge)
       .fixedSize(horizontal: false, vertical: true)
-      .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
-      .frame(maxWidth: .infinity, alignment: .top)
-      .frame(height: full, alignment: .top)
-      .clipShape(shape)
-      .background(shape.fill(theme.sf))
-      .overlay {
-        // Midnight's edge, as KFloat's: sf is barely off the page there
-        if theme.isDark {
-          shape.strokeBorder(theme.line, lineWidth: 1).allowsHitTesting(false)
-        }
-      }
-      .kSoftShadows(KPublishMetrics.sheetShadow(for: theme), in: shape)
-      .offset(y: below + drag)
-      .animation(grows ? KMotion.publishSheetGrow : nil, value: below)
-      .opacity(grows || open ? 1 : 0)
-      .animation(reduceMotion ? KMotion.publishReduced : nil, value: open)
-      .gesture(
-        DragGesture(minimumDistance: 6)
-          .onChanged { v in
-            guard open, !leaving else { return }
-            drag = max(0, v.translation.height)
-          }
-          .onEnded { v in
-            guard open, !leaving else { return }
-            if v.translation.height > KPublishMetrics.dismissDrag {
-              // stays where the finger left it until the holder closes, then goes down from there
-              leaving = true
-              onDismiss()
-            } else {
-              withAnimation(KMotion.publishSheetGrow) { drag = 0 }
-            }
-          }
-      )
-      .allowsHitTesting(open)
-      .accessibilityElement(children: .contain)
-      .accessibilityHidden(!open)
-      .onChange(of: open) { _, isOpen in
-        leaving = false
-        if isOpen {
-          drag = 0
-          // VoiceOver to the first choice once the sheet is up (the bar it came from has gone)
-          Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(450))
-            letterFocused = true
-          }
-        } else {
-          withAnimation(grows ? KMotion.publishSheetGrow : KMotion.publishReduced) { drag = 0 }
+      .padding(.bottom, 12)
+      .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
+      .frame(maxHeight: .infinity, alignment: .top)
+      .presentationDetents([.height(height)])
+      .presentationDragIndicator(.visible)
+      .presentationBackground(theme.sf)
+      .onAppear {
+        // VoiceOver to the first choice once the sheet is up
+        Task { @MainActor in
+          try? await Task.sleep(for: .milliseconds(450))
+          letterFocused = true
         }
       }
   }
@@ -751,11 +680,11 @@ struct KPublishPop: View {
    With Reduce Motion on it only fades;
  - pop: the returning reader's two buttons, under the bar so they come out from behind the +;
  - the bar (KTabBarMetrics.bottomGap above the bottom edge), over the dim so the × stays live
-   and undimmed. With the sheet open it slides down out of sight; and while the holder says
+   and undimmed (the new reader's sheet, an iOS sheet, covers it). While the holder says
    barHidden (Today's reply, the chat composers' A1, owner 2026-10-18: the reader writing back
    to a letter has the keyboard and the reply bar where the tab bar was) it does the same, 160
    down out of sight and reach over .35s, and comes back up when the reply ends;
- - sheet: the new reader's sheet, pinned to the bottom edge over everything.
+ - sheet: the new reader's sheet, presented as an iOS sheet over the window (no dim of ours).
 
  The sheets, the buttons and the dim are always there, only transparent and untouchable while
  closed. That keeps them out of VoiceOver while closed, and it means the whole stage only needs
@@ -791,6 +720,8 @@ public struct KTabStage: View {
   private let onPanelAction: (String) -> Void
   private let onDismiss: () -> Void
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  /// the new reader's sheet: the choice tapped, held until the sheet has gone down
+  @State private var chosen: String?
 
   /// - Parameters:
   ///   - items, selectedIndex, plusLabel, closeLabel, onSelect, onPlus: the bar's (KTabBar)
@@ -849,6 +780,8 @@ public struct KTabStage: View {
   public var body: some View {
     let gap = KTabBarMetrics.bottomGap(safeAreaBottom: safeAreaBottom)
     let open = isPanelOpen
+    // the new reader's sheet is the system's, with the system's dim: this stage draws none for it
+    let dims = open && style != .sheet
     // with Reduce Motion the 10a sheet only fades: no rise, no overshoot
     let rises = !reduceMotion
     // ── the dim. It is also the stage's frame: a colour takes exactly the space it is offered,
@@ -857,16 +790,16 @@ public struct KTabStage: View {
     // and a sheet, closed and invisible, reaches far above it. (A root view bigger than its
     // hosting view can be centred in it instead of pinned, and the bar would drop.)
     KDim.publish(style, for: theme)
-      .opacity(open ? 1 : 0)
-      .animation(KMotion.dimFade, value: open)
+      .opacity(dims ? 1 : 0)
+      .animation(KMotion.dimFade, value: dims)
       .contentShape(Rectangle())
       .onTapGesture(perform: onDismiss)
-      .allowsHitTesting(open)
+      .allowsHitTesting(dims)
       .accessibilityElement()
       .accessibilityLabel(closeLabel)
       .accessibilityAddTraits(.isButton)
       .accessibilityAction { onDismiss() }
-      .accessibilityHidden(!open)
+      .accessibilityHidden(!dims)
       // ── the 10a sheet (H:129), at its own height whatever room it is offered ──
       .overlay(alignment: .bottom) {
         if style == .cards {
@@ -902,28 +835,37 @@ public struct KTabStage: View {
           closeLabel: closeLabel,
           // the publish entry turns its + on the design's own curve; the 10a sheet keeps its own
           plusTurn: style == .cards ? KMotion.plusTurn : KMotion.plusTurnPublish,
-          // the new reader's sheet takes the bar's place; Today's reply has the screen's foot
-          hidden: (style == .sheet && open) || barHidden,
+          // Today's reply has the screen's foot (the new reader's sheet covers the bar itself)
+          hidden: barHidden,
           onSelect: onSelect,
           onPlus: onPlus
         )
         .padding(.horizontal, KTabBarMetrics.sideInset)
         .padding(.bottom, gap)
       }
-      // ── the new reader's sheet, over everything ──
-      .overlay(alignment: .bottom) {
-        if style == .sheet {
-          KPublishSheetLayer(
-            theme: theme,
-            model: sheet,
-            open: open,
-            safeAreaBottom: safeAreaBottom,
-            onAction: onPanelAction,
-            onDismiss: onDismiss
-          )
+      .ignoresSafeArea()
+      // ── the new reader's sheet: an iOS sheet, rising from the bottom of the window. A choice
+      // closes it first and is handed over once it is down, so the composer slides in on a clear
+      // screen instead of the sheet going down over it (owner, 2026-10-26). A drag down or a tap
+      // on the system's dim closes it as the dim here does. ──
+      .sheet(
+        isPresented: Binding(
+          get: { style == .sheet && open },
+          set: { shown in
+            if !shown && open { onDismiss() }
+          }
+        ),
+        onDismiss: {
+          guard let key = chosen else { return }
+          chosen = nil
+          onPanelAction(key)
+        }
+      ) {
+        KPublishNativeSheet(theme: theme, model: sheet) { key in
+          chosen = key
+          onDismiss()
         }
       }
-      .ignoresSafeArea()
       // a container of its own, so VoiceOver's escape reaches it from any element inside
       .accessibilityElement(children: .contain)
       .accessibilityAction(.escape) {

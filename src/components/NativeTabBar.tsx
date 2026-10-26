@@ -160,15 +160,15 @@ export function useTabBarSpace(): number {
   return useContext(TabBarSpace) ?? tabBarHeight(insets.bottom);
 }
 
-/* how long the Host stays full-screen after the + closes: the new reader's
-   sheet shrinks over .45s (KMotion.publishSheetGrow) and the bar comes back
-   up over .35s, the returning reader's buttons fly back over .4s plus
-   NOTE's 50ms, and the dim fades over .3s — so .45s and a little over.
-   Kept no longer than that because the screen under the Host can't take
-   taps until the Host shrinks. */
+/* how long the Host stays full-screen after the + closes: Today's two
+   buttons fly back over .4s plus NOTE's 50ms and the dim fades over .3s —
+   so .45s and a little over. Kept no longer than that because the screen
+   under the Host can't take taps until the Host shrinks. (The sheet on the
+   other tabs is an iOS sheet, presented over the window: the Host stays the
+   bar's strip for it.) */
 const PANEL_OUT_MS = 480;
 
-/* PostFan's wait between pushing the composer and closing the sheet under it */
+/* PostFan's wait between pushing the composer and closing Today's buttons under it */
 const CLOSE_AFTER_PUSH_MS = 420;
 
 /** Whether this binary can draw the Swift bar: the KindredlyUI module AND
@@ -215,18 +215,6 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
     return () => clearTimeout(id);
   }, [closedAt]);
   const full = open || closedAt > 0;
-  /* THE PANEL OPENS ONLY ONCE THE HOST IS FULL SCREEN (owner, b32: "the two discs and the sheet
-     come down from the top — not logical, not native"). Opening in the same frame the Host grew
-     from the strip, SwiftUI animated from the strip's layout, whose top is the top of the new
-     frame: the discs and the sheet came from the top of the screen. Now the Host grows first
-     (laid out closed, at the bar), and the panel opens on the next layout, from the + itself. */
-  const [grown, setGrown] = useState(false);
-  if (!full && grown) setGrown(false);
-  const strip = nativeTabBarSpace(insets.bottom);
-  const onLayout = (e: LayoutChangeEvent) => {
-    if (full && !grown && e.nativeEvent.layout.height > strip + 1) requestAnimationFrame(() => setGrown(true));
-  };
-
   /* what the + opens: the two buttons on Today, the sheet on the other tabs —
      HELD for the life of an opening, so a tab tapped while it is open (which
      closes it) can't swap the closing sheet for the buttons under the finger.
@@ -236,6 +224,24 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
   const stageNow: PanelStyle = current === "letters" ? "pop" : "sheet";
   const [panelStyle, setPanelStyle] = useState(stageNow);
   if (!full && panelStyle !== stageNow) setPanelStyle(stageNow);
+  /* the Host fills the screen only for Today's buttons, which are drawn in it. The sheet on the
+     other tabs is an iOS sheet (owner, 2026-10-26: the drawn one "ran around" as the Host grew):
+     the system presents it over the window from the bottom, so the Host stays the bar's strip
+     and the sheet opens with the press. */
+  const native = panelStyle === "sheet";
+  const fills = full && !native;
+  /* THE PANEL OPENS ONLY ONCE THE HOST IS FULL SCREEN (owner, b32: "the two discs and the sheet
+     come down from the top — not logical, not native"). Opening in the same frame the Host grew
+     from the strip, SwiftUI animated from the strip's layout, whose top is the top of the new
+     frame: the discs and the sheet came from the top of the screen. Now the Host grows first
+     (laid out closed, at the bar), and the panel opens on the next layout, from the + itself. */
+  const [grown, setGrown] = useState(false);
+  if (!fills && grown) setGrown(false);
+  const strip = nativeTabBarSpace(insets.bottom);
+  const onLayout = (e: LayoutChangeEvent) => {
+    if (fills && !grown && e.nativeEvent.layout.height > strip + 1) requestAnimationFrame(() => setGrown(true));
+  };
+
   const wren = useWrenName();
   const bird = useBirdImageRef("content");
   // the free plan's count, asked as the + opens (both styles show it)
@@ -262,12 +268,15 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
     go(tab.name);
   };
 
-  // push first, close after the slide — the composer slides over what the + opened
+  /* Today's buttons: push first, close after the slide — the composer slides over what the +
+     opened. The sheet: it is already down (Swift closes it first and hands the choice over once it
+     has gone), so the composer slides in on a clear screen. */
   const onPanelAction = (key: string) => {
     const to = ROUTES[key];
     if (!to) return;
     router.push(to);
-    setTimeout(onClose, CLOSE_AFTER_PUSH_MS);
+    if (native) onClose();
+    else setTimeout(onClose, CLOSE_AFTER_PUSH_MS);
   };
 
   // lang is in the deps so a change of language re-reads t()
@@ -302,14 +311,14 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
     <View
       onLayout={onLayout}
       pointerEvents={hidden ? "none" : "box-none"}
-      style={full ? { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 } : { position: "absolute", left: 0, right: 0, bottom: 0, height: strip }}
+      style={fills ? { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 } : { position: "absolute", left: 0, right: 0, bottom: 0, height: strip }}
     >
       <Host style={{ flex: 1 }} pointerEvents="box-none" ignoreSafeArea="all" colorScheme={dark ? "dark" : "light"}>
         <KTabBar
           theme={theme}
           tabs={tabs}
           activeIndex={TABS.findIndex((tab) => tab.name === current)}
-          panelOpen={open && grown}
+          panelOpen={native ? open : open && grown}
           safeAreaBottom={insets.bottom}
           plusLabel={t("pc.post")}
           closeLabel={t("wren.trackClose")}

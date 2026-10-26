@@ -71,11 +71,16 @@ export default function JournalPick() {
   const more_ = useRef(true);
   const loading = useRef(false);
   const albumRef = useRef<string | null>(null);
+  /* which read of the roll is current: a fresh start (the first yes, another album) bumps it, and
+     an older read that answers late is dropped instead of adding its frames twice */
+  const readRef = useRef(0);
+  const seenAny = useRef(false);
 
   const page = useCallback(async () => {
     if (loading.current || !more_.current) return;
     loading.current = true;
     const forAlbum = albumRef.current;
+    const read = readRef.current;
     try {
       const r = await MediaLibrary.getAssetsAsync({
         first: PAGE,
@@ -84,16 +89,29 @@ export default function JournalPick() {
         mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
         sortBy: [[MediaLibrary.SortBy.creationTime, false]],
       });
-      if (albumRef.current !== forAlbum) return; // the album changed under us
+      if (albumRef.current !== forAlbum || readRef.current !== read) return; // the album changed under us, or the roll started over
+      if (r.assets.length) seenAny.current = true;
       cursor.current = r.endCursor;
       more_.current = r.hasNextPage;
       setFrames((f) => [...f, ...r.assets.map((a) => ({ id: a.id, uri: a.uri, w: a.width, h: a.height, video: a.mediaType === "video", duration: a.duration || 0 }))]);
-    } catch {
+    } catch (e) {
+      // said, not swallowed: an empty roll that should have photos is otherwise a mystery
+      console.warn("[journal-pick] the roll didn't load:", e);
       more_.current = false;
     } finally {
-      loading.current = false;
+      if (readRef.current === read) loading.current = false;
     }
   }, []);
+
+  /** the roll from its first page again */
+  const restart = useCallback(() => {
+    readRef.current += 1;
+    cursor.current = undefined;
+    more_.current = true;
+    loading.current = false;
+    setFrames([]);
+    void page();
+  }, [page]);
 
   const openAlbum = (a: Album, first: boolean) => {
     setAlbumsOpen(false);
@@ -101,17 +119,16 @@ export default function JournalPick() {
     const id = first ? null : a.id;
     setAlbum({ ...a, id, title: first ? t("jp.recent") : a.title });
     albumRef.current = id;
-    cursor.current = undefined;
-    more_.current = true;
-    loading.current = false;
-    setFrames([]);
     setPicked([]);
-    void page();
+    restart();
   };
 
   useEffect(() => {
     let alive = true;
+    let again: ReturnType<typeof setTimeout> | undefined;
     (async () => {
+      // whether this is the first time the phone is asked (iOS shows its question only then)
+      const before = await MediaLibrary.getPermissionsAsync(false).catch(() => null);
       const r = await MediaLibrary.requestPermissionsAsync(false);
       if (!alive) return;
       if (!r.granted) {
@@ -120,11 +137,21 @@ export default function JournalPick() {
       }
       setPerm(r.accessPrivileges === "limited" ? "limited" : "granted");
       void page();
+      /* THE FIRST YES (2026-10-26, iOS 26 simulator): the read made the moment the reader allows
+         access never answered, and the page said "No photos yet." over a roll of six until the
+         app was opened again. So after a first yes the roll is read once more when it has
+         settled, unless the first read already brought something. */
+      if (before?.status === "undetermined") {
+        again = setTimeout(() => {
+          if (alive && !seenAny.current) restart();
+        }, 700);
+      }
     })();
     return () => {
       alive = false;
+      if (again) clearTimeout(again);
     };
-  }, [page]);
+  }, [page, restart]);
 
   /* THE PHONE'S ALBUMS (owner, 2026-09-20, after the reference video): a
      full-width list slides down from the title over the roll — every
