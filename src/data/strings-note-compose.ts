@@ -4,7 +4,7 @@ import { strings } from "../lib/i18n";
    ────────────────────────────────────────────────────────────────────────
    Design: Desktop/export/note-composer-bar/CLAUDE-CODE-PROMPTS-NOTE-COMPOSER.md. Everything else
    the page says is reused from the strings it already had: JUST FOR ME (je.justForMe), Wren's
-   lines (content WREN_OPENERS.journal), the sparks (js.*), Seal It Here (sc.seal), the mood names
+   lines (content WREN_OPENERS.journal), the sparks (js.*), Seal it here (sc.seal), the mood names
    (mood.group.* and moods.ts moodName), the photo and film labels (sc.a11y.*).
 
    - nc.sealed: the seal moment, in Wren's voice (the Letter font, italic, in quotes the page adds);

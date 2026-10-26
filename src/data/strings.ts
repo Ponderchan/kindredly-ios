@@ -1432,7 +1432,7 @@ strings(
     "je.leaveTitle": "Leave this page?",
     "je.leaveBody": "You've written something. Nothing is saved until you seal it.",
     "sc.ph": "a line to go with it… (optional)",
-    "sc.seal": "Seal It Here",
+    "sc.seal": "Seal it here",
     "sc.sealing": "Sealing…",
     "sc.leadPhoto": "I'd lead with this one — it holds the eye.",
     "sc.failPhotos": "Couldn't save the photos. Try again.",
