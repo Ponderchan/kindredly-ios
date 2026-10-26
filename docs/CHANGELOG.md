@@ -43,6 +43,7 @@ New
 - Seasons have one remote switch each: the app_surfaces key `halloween` is on with no row (so it works offline); a false row turns the Halloween stamps and looks off. [switch: halloween]
 
 Changed
+- The letter composer's bottom bar is new ("Let it travel"): + · paper · a dashed stamp slot · one capsule on the right that fills with lav as you write toward 20 (with "n/20" beside it), then says "Pick a stamp" (the slot hops; Wren says "Now pick a stamp for it."), then turns ink with a paper plane to send. A chosen stamp shows as its #topic capsule in the bar and as the stamp itself in the top-right corner; with a long topic the send capsule becomes just the plane. Stamps are picked from a one-row strip ("PICK A STAMP") where the keyboard was: Halloween stamps first in their season, then the ones suggested by what you wrote, recent ones, then the rest. Nine languages. [binary]
 - The guides in Wren's room show today's product: courier names and frosted windows instead of mosaics and numbers, signing to trade names, Stamp Press, tomorrow's bag, the two notification switches. Their words are rewritten in all nine languages, and Wren understands questions about pen names, signing and pressing your own stamps in each. [OTA]
 
 ---

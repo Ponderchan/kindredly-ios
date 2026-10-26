@@ -1665,7 +1665,8 @@ strings(
     /* ── compose ── */
     "cp.voiceLine.prompt": "One line to go with it — it's what travels on the outside.",
     "cp.voiceLine.ph": "a line to go with it…",
-    "cp.travel": "Let It Travel",
+    // sentence case since Let it travel L6 (owner, 2026-10-26): the CTA capsule's words
+    "cp.travel": "Let it travel",
     "cp.sending": "Sending…",
     "cp.cap": "That's your {n} letters for today.",
     "cp.gate.title": "{wren} held this back",

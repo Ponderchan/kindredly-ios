@@ -9,12 +9,12 @@ import SwiftUI
  From the top, on the theme's page colour, 22 in from the sides unless said:
  - the top row, 20 in and 8 under the status bar: the ✕ in SF Mono 17 in its 42 box (the
    guarded way out: there is no edge swipe), TO A STRANGER as a secondary title (System 500 17), centred in
-   what is left, and the stamp corner tilted 8° in its 50pt of room (a tap opens the stamps).
-   Stamps v2 (owner, 2026-10-18): what sits in it is the stamp itself at the ladder's
-   composeCorner, 40×48, your own stamp so flat (no letter tilt, no postmark); before one is
-   chosen, the stamps v3 frame drawn dashed in mute with no fill (KStampSlot, 2026-10-19), where the
-   44 dashed square used to be, so choosing a stamp fills the outline it was promised. The
-   toolbar's stamp key shows the same stamp once chosen (KComposeToolbar, D11);
+   what is left, and the stamp corner tilted 4° in its 50pt of room (a tap opens the stamps).
+   What sits in it is the stamp itself at 30×36 (Let it travel L6, owner 2026-10-26; it was the
+   ladder's composeCorner, 40×48 at 8°), your own stamp so flat (no letter tilt, no postmark);
+   before one is chosen, the stamps v3 frame drawn dashed in mute with no fill (KStampSlot,
+   2026-10-19), so choosing a stamp fills the outline it was promised. The bar shows the chosen
+   stamp's #topic, never the stamp (KComposeTravelBar);
  - Wren's row, 14 down: Wren bare in a 46 frame (a React Native island drawing her at 38: her
    skin, her mood, her breathing are hers to draw) and, 10 from her, her line in the writer's
    Letter font, italic where it has one, 14 on 20, sub;
@@ -31,12 +31,14 @@ import SwiftUI
    at 1 in ind. It is drawn only while the keyboard and the trays are away: it never takes the
    editor's height on a small phone (on an SE with the keyboard up it would leave the editor one
    line), and NONE LEFT TODAY stays on the small line above the toolbar while the writer types;
- - the small line above the toolbar, 24 in: the count near the ceiling and, for a free writer,
+ - the small line above the toolbar, 26 in: the count near the ceiling and, for a free writer,
    "N LEFT TODAY", in SF Mono 11, right-aligned (owner question 6's default);
- - the toolbar, 18 in, 10 above it and 24 below (10 over a tray): the round keys, +, the paper
-   and the stamp (the chosen stamp itself once there is one, D11), and the wide key that fills toward the floor with
-   the count beside its label (KComposeToolbar);
- - a tray, where the keyboard was (the stamps, the + tray, or the paper strip).
+ - the bar, Let it travel L6 (owner, 2026-10-26; KComposeTravelBar): 44 tall, 26 in, 10 under
+   the small line, 12 above the keyboard or a strip and the home indicator + 30 otherwise: + ·
+   paper · the stamp slot (or the chosen stamp's #topic) · the CTA capsule ("n/20" beside it,
+   lav rising inside it; Pick a stamp; Let it travel with its paper plane);
+ - a tray, where the keyboard was: the stamp strip (KStampStrip, 168), the paper strip (168) or
+   the + tray (296).
 
  THE PAPER (letter papers, owner 2026-10-20; contract .claude/papers/CONTRACT.md §5). The writer
  picks one in the paper strip (KPaperTray, KMoreTray.swift). Plain is the page exactly as above.
@@ -59,8 +61,8 @@ import SwiftUI
  it, rides the keyboard's top (spike: a dock goes UNDER the content in a VStack, never in
  .safeAreaInset, which iOS 18 counts twice). Whether the keyboard is up is measured as the height
  of a reader that ignores the keyboard less the height of one that respects it (spike pattern 5:
- the safe-area reading said 0 with the keyboard up). Up, the toolbar sits 24 above it; down, 24
- above the home indicator (bottomInset, which the Host ignores), as the App Store page's sat.
+ the safe-area reading said 0 with the keyboard up). Up, the bar sits 12 above it; down, 30
+ above the home indicator (bottomInset, which the Host ignores) (Let it travel L6).
 
  A TRAY TAKES THE KEYBOARD'S PLACE. Opening one blurs first (the tap does it at once; a tray
  that arrives from TS while a field is focused does it too), and the tray is drawn only once the
@@ -383,6 +385,10 @@ public struct KComposeStrings: Equatable, Sendable {
   public var paperDone = ""
   /// the gold badge on a First Class swatch (1ST)
   public var badgeFirst = ""
+  /// the stamp strip's head, PICK A STAMP, as sent (already in capitals; Let it travel L6)
+  public var stampStripHead = ""
+  /// the stamp strip's DONE (the paper strip's word)
+  public var stampStripDone = ""
 
   public init() {}
 }
@@ -489,6 +495,8 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   public static var trayHeight: CGFloat { 296 }
   /// the paper strip's height above the home indicator (Prompt 4)
   public static var paperTrayHeight: CGFloat { 168 }
+  /// the stamp strip's height above the home indicator (Let it travel L6, Prompt 4)
+  public static var stampStripHeight: CGFloat { 168 }
 
   private let theme: KTheme
   private let content: KComposeContent
@@ -565,11 +573,19 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   /// the cap panel, only while the keyboard and the trays are away (see the top of the file)
   private var showCap: Bool { content.capPanel && !keyboardUp && !showTray }
 
-  /// compose.tsx: paddingBottom 24 (10 over a tray), inside the safe area
+  /// Let it travel L6 (Prompt 1): 12 above the keyboard or a strip, the home indicator + 30 otherwise
   private var toolbarBottom: CGFloat {
-    if keyboardUp { return 24 }
-    if showTray { return 10 }
-    return bottomInset + 24
+    if keyboardUp || showTray { return 12 }
+    return bottomInset + 30
+  }
+
+  /// the tray's height above the home indicator: the + tray's 296, the paper and stamp strips' 168
+  private var trayFrameHeight: CGFloat {
+    switch content.tray {
+    case .paper: return Self.paperTrayHeight
+    case .stamps: return Self.stampStripHeight
+    case .more, .none: return Self.trayHeight
+    }
   }
 
   public var body: some View {
@@ -608,17 +624,17 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
       }
 
       KComposeNoteLine(theme: theme, driver: driver, quota: content.quota)
-        .padding(.horizontal, 24)
+        .padding(.horizontal, KComposeTravelBar.side)
 
-      KComposeToolbar(theme: theme, content: content, driver: driver, actions: actions)
-        .padding(.horizontal, 18)
+      // Let it travel L6: the bar sets its own 26 sides
+      KComposeTravelBar(theme: theme, content: content, driver: driver, actions: actions)
         .padding(.top, 10)
         .padding(.bottom, toolbarBottom)
-        .animation(.easeOut(duration: 0.25), value: keyboardUp)
+        .animation(.easeOut(duration: 0.3), value: keyboardUp)
 
       if showTray {
         tray
-          .frame(height: (content.tray == .paper ? Self.paperTrayHeight : Self.trayHeight) + bottomInset)
+          .frame(height: trayFrameHeight + bottomInset)
           .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
       }
     }
@@ -689,7 +705,7 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
         stampCorner
           .frame(width: Self.cornerBox, height: Self.cornerBox)
           .contentShape(Rectangle())
-          .rotationEffect(.degrees(KStampLadder.composeCorner.degrees))
+          .rotationEffect(.degrees(Self.cornerDegrees))
       }
       .buttonStyle(KAsIsButtonStyle())
       .accessibilityLabel(content.stamp?.accessibilityLabel ?? content.strings.stampLabel)
@@ -700,10 +716,15 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   /// the corner's tap target, as it was: the old 44 tile and its 3pt of room (ComposeRN CORNER_BOX)
   static var cornerBox: CGFloat { 50 }
 
-  /// the corner where the stamp goes, at the ladder's composeCorner (40×48): the v3 frame dashed
-  /// in mute while empty (stamps v3 §7: no fill); the stamp once chosen
+  /// the corner's stamp (Let it travel L6, Prompt 1): 30 × 36, the tray tile's size, at 4° (the
+  /// ladder's composeCorner, 40 × 48 at 8°, is what the App Store page drew; the ladder keeps it)
+  static var cornerWidth: CGFloat { KStampLadder.trayTile.w }
+  static var cornerDegrees: Double { 4 }
+
+  /// the corner where the stamp goes (30 × 36): the v3 frame dashed in mute while empty (stamps
+  /// v3 §7: no fill); the stamp once chosen
   @ViewBuilder private var stampCorner: some View {
-    let width = KStampLadder.composeCorner.w
+    let width = Self.cornerWidth
     if let stamp = content.stamp {
       KStamp(id: stamp.id, width: width, dark: theme.isDark, fallbackHex: stamp.hex.isEmpty ? nil : stamp.hex)
     } else {
@@ -889,15 +910,17 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   @ViewBuilder private var tray: some View {
     switch content.tray {
     case .stamps:
-      KStampTray(
+      // Let it travel L6: the one-row strip (KStampStrip); KStampTray stays in the kit
+      KStampStrip(
         theme: theme,
         sections: content.sections,
         selectedId: content.stamp?.id ?? "",
         bottomInset: bottomInset,
+        strings: content.strings,
         onPick: actions.onPickStamp,
+        onDone: { actions.onTray(.stamps) },
         custom: content.customTray,
         tab: content.trayTab,
-        strings: content.strings,
         onTab: actions.onTrayTab,
         onMake: actions.onMakeStamp,
         onFullCta: actions.onFullCta

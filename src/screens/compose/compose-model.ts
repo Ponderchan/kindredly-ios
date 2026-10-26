@@ -18,9 +18,11 @@ import { PAPERS, paperOf, type PaperGate } from "../../data/papers";
      line with no digits; he wanted the composer as it was). A letter over
      the ceiling is filling too, with no wash and no count (the count near
      the ceiling says by how much);
-   - needStamp: the words are ready and no stamp is chosen: PICK A MOOD
-     STAMP in ind, a chevron nudging toward the stamp key; the key opens
-     the stamps;
+   - needStamp: the words are ready and no stamp is chosen: "Pick a stamp"
+     in ind (cp.l6.pickStamp: Let it travel L6, owner 2026-10-26, the short
+     label its capsule holds; it was PICK A MOOD STAMP), the empty stamp
+     slot hopping on lav (`nudge`); the key opens the stamps, and Wren says
+     "Now pick a stamp for it." (wrenLineFor's stampLine);
    - ready: LET IT TRAVEL in ind (SEND where it doesn't fit);
    - sending: SENDING… in mute, not pressable.
    And while the chosen paper can't go yet (letter papers, 2026-10-20;
@@ -85,7 +87,8 @@ export type KeyVM = {
   progress: number;
   /** the count beside the label while the wash shows ("7/20"), "" otherwise */
   count: string;
-  /** the chevron leaning toward the stamp key */
+  /** the empty stamp slot hops on its lav square (Let it travel L6; the old key's chevron
+      leaning toward the stamp key): needStamp while the stamps are shut */
   nudge: boolean;
   /** VoiceOver's value on the key (a11y pass cm-8: the wash and "7/20" are hidden from it, so a
       dimmed key said nothing about why): how many are still to go while filling below the floor
@@ -149,7 +152,7 @@ export function keyFor(
     return { stage: "paperLocked", label: fmt.t("pp.key.locked"), narrowLabel: fmt.t("pp.key.locked.narrow"), tone: "mute", enabled: false, progress: -1, count: "", nudge: false, countA11y: "", hintA11y: "" };
   }
   const stage: KeyStage = p.busy ? "sending" : p.wordsReady && !p.hasStamp ? "needStamp" : p.wordsReady ? "ready" : "filling";
-  const label = stage === "sending" ? fmt.t("cp.sending") : stage === "needStamp" ? fmt.t("cp.needStamp") : fmt.t("cp.travel");
+  const label = stage === "sending" ? fmt.t("cp.sending") : stage === "needStamp" ? fmt.t("cp.l6.pickStamp") : fmt.t("cp.travel");
   const narrowLabel = stage === "filling" || stage === "ready" ? fmt.t("ld.send") : "";
   const filling = stage === "filling" && p.mode === "write" && p.weight < OPENING_MIN;
   return {
@@ -240,21 +243,38 @@ export function countBrand(tone: CountTone, dark: boolean): "mute" | "brassSeal"
 }
 
 /** Wren's one line: her language hello (once per language, an empty page,
-    a non-English interface), else while speaking the prompt for the missing
-    line or her read of the mood, else the ladder toward the floor. Every
-    candidate comes in already in the reader's language; the result is in
-    the language's own quotation marks (cp.quote). */
+    a non-English interface), else, once the words are enough and no stamp
+    is chosen (the key's needStamp; Let it travel L6, owner 2026-10-26),
+    "Now pick a stamp for it." (`stampLine`), else while speaking the prompt
+    for the missing line or her read of the mood, else the ladder toward the
+    floor. Every candidate comes in already in the reader's language; the
+    result is in the language's own quotation marks (cp.quote). */
 export function wrenLineFor(
-  p: { langHello: boolean; mode: ComposeMode; hasRecording: boolean; weight: number; hello: string; voicePrompt: string; moodLine: string; ladderLine: string },
+  p: {
+    langHello: boolean;
+    mode: ComposeMode;
+    hasRecording: boolean;
+    weight: number;
+    hello: string;
+    voicePrompt: string;
+    moodLine: string;
+    ladderLine: string;
+    /** the key says "Pick a stamp" (keyFor's needStamp) */
+    needStamp?: boolean;
+    /** what she says then; absent or "" keeps the line she would say otherwise */
+    stampLine?: string;
+  },
   fmt: ComposeFormat,
 ): string {
   const line = p.langHello
     ? p.hello
-    : p.mode === "speak"
-      ? p.hasRecording && p.weight < REPLY_MIN
-        ? p.voicePrompt
-        : p.moodLine
-      : p.ladderLine;
+    : p.needStamp && p.stampLine
+      ? p.stampLine
+      : p.mode === "speak"
+        ? p.hasRecording && p.weight < REPLY_MIN
+          ? p.voicePrompt
+          : p.moodLine
+        : p.ladderLine;
   return fmt.t("cp.quote", { s: line });
 }
 
@@ -338,6 +358,81 @@ export function stampSections(p: {
     if (items.length) out.push(s.mark ? { title: s.title, items, mark: s.mark } : { title: s.title, items });
   }
   return out;
+}
+
+/* THE STAMP STRIP (Let it travel L6, owner 2026-10-26): the tray's sections laid in ONE
+   horizontal row, in the same order — the season's stamps first with their small marker over
+   them, then FOR THIS LETTER, RECENTLY USED and the categories. A stamp shows once, where it
+   first comes (a suggestion that is also recent, and is also in its category, stays at the
+   suggestion's place); a group left with nothing is dropped. The SwiftUI strip (KStampStrip)
+   does the same with the sections it is sent. */
+export type StripGroupVM = { key: string; mark: string; items: StampItemVM[] };
+export function stripGroups(sections: readonly StampSectionVM[]): StripGroupVM[] {
+  const seen = new Set<string>();
+  const out: StripGroupVM[] = [];
+  sections.forEach((s, i) => {
+    const items = s.items.filter((it) => !seen.has(it.id) && (seen.add(it.id), true));
+    if (items.length) out.push({ key: `${i}:${s.title}`, mark: s.mark ?? "", items });
+  });
+  return out;
+}
+
+/* THE BAR'S MEASURES (Let it travel L6): 44 tall, 26 in from the sides; + (22) · paper (26) ·
+   the stamp slot (30) or the #topic capsule · the CTA capsule. 18 between them, 12 once a stamp
+   is chosen. The CTA capsule: 36 tall, 1.8 edge, padding 14, its label in mono 12 at .06em, 8
+   from the paper plane (16); plane only, a 36 circle with the plane at 18. The #topic capsule:
+   36 tall, 1.8 edge, padding 14, mono 12 at .02em. */
+export const TRAVEL_BAR = {
+  side: 26,
+  height: 44,
+  plus: 22,
+  paper: 26,
+  slot: 30,
+  gap: 18,
+  gapStamped: 12,
+  capsule: 36,
+  edge: 1.8,
+  pad: 14,
+  plane: 16,
+  planeAlone: 18,
+  planeGap: 8,
+  /** the n/20 count's distance from the capsule */
+  countGap: 10,
+  labelSize: 12,
+  labelTracking: 0.06,
+  topicSize: 12,
+  topicTracking: 0.02,
+  /** the owner's rule: a topic longer than this always takes the plane alone */
+  topicMaxChars: 14,
+} as const;
+
+/** A mono line's width in pt: every Latin glyph 0.6 em (SF Mono), a CJK / Hangul / full-width
+    glyph a whole em, plus the letter spacing (em) after each glyph. */
+export function monoLineWidth(text: string, size: number, trackingEm: number): number {
+  let ems = 0;
+  let glyphs = 0;
+  for (const ch of text) {
+    ems += wideGlyph(ch.codePointAt(0) ?? 0) ? 1 : 0.6;
+    glyphs++;
+  }
+  return ems * size + glyphs * trackingEm * size;
+}
+
+/* THE LONG-TOPIC RULE (owner, Prompt 3): the #topic capsule and the CTA share the row, never
+   wrap, and neither is cut. With a stamp chosen the CTA says "Let it travel" beside its plane
+   only while the topic is at most 14 characters AND both fit the bar at their natural widths
+   (the owner allowed the measured rule; at SF Mono 12 a 393 phone leaves the topic ~98pt beside
+   the full CTA, so a topic past ~9 characters takes the plane there, while a Pro Max keeps the
+   words up to 14). Otherwise the CTA is the plane alone. The SwiftUI bar measures the real text
+   (ViewThatFits); React Native uses this arithmetic. `barWidth`: the row between its 26 sides;
+   `paper`: the bar has the paper key (React Native's fallback has no paper strip). */
+export function travelShowsLabel(p: { barWidth: number; topic: string; label: string; paper?: boolean }): boolean {
+  const B = TRAVEL_BAR;
+  if ([...p.topic].length > B.topicMaxChars) return false;
+  const cta = monoLineWidth(p.label, B.labelSize, B.labelTracking) + B.planeGap + B.plane + 2 * B.pad + 2 * B.edge;
+  const topic = monoLineWidth(p.topic, B.topicSize, B.topicTracking) + 2 * B.pad + 2 * B.edge;
+  const keys = p.paper === false ? B.plus + 2 * B.gapStamped : B.plus + B.paper + 3 * B.gapStamped;
+  return keys + topic + cta <= p.barWidth;
 }
 
 /* A TRAY NAME'S COLOUR (the bright palette, owner 2026-10-19). The name under a stamp in the tray

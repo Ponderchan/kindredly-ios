@@ -39,6 +39,7 @@ import { usePressedStamp } from "../../lib/stamp-press";
 import { stampPressAvailable } from "../stamp-press/StampPressNative";
 import "../../data/strings-stamps2"; // cs2.tray.* (the tray's tabs), cs2.use.*, cs2.me.full*
 import "../../data/strings-a11y-stamps"; // VoiceOver on the wide key (a11y pass, batch 6)
+import "../../data/strings-travel"; // cp.l6.* (Let it travel L6: Pick a stamp, Wren's line for it)
 import {
   askCell,
   autosaveDraft,
@@ -300,6 +301,8 @@ export type ComposeState = {
   paperHead: PaperHeadVM;
   /** the stamp tray's sections ([] unless it is open) */
   sections: StampSectionVM[];
+  /** the stamp strip's head, PICK A STAMP (Let it travel L6) */
+  stripHead: string;
   spark: string;
   busy: boolean;
   /** the publish truly landed: the courier finishes */
@@ -544,6 +547,8 @@ export function useComposeState(opts: {
   /* Her language line — said only to writers whose interface isn't English,
      once PER LANGUAGE, on an empty written page. */
   const langHello = useWrenOnce(`lang-send:${getLang()}`) && getLang() !== "en" && mode === "write" && !text.trim();
+  const writer = { firstClass: env.premium, hasKindred: hasKindred === true };
+  const key = keyFor({ mode, weight, wordsReady, hasStamp: !!sel, busy, tray, paperGate: paperGate(paper, writer) }, fmt);
   const wrenLine = wrenLineFor(
     {
       langHello,
@@ -554,12 +559,15 @@ export function useComposeState(opts: {
       voicePrompt: t("cp.voiceLine.prompt"),
       moodLine: wrenMoodLine(wrenMood),
       ladderLine: ladder.line,
+      // the key says "Pick a stamp": so does she (Let it travel L6)
+      needStamp: key.stage === "needStamp",
+      stampLine: t("cp.l6.wrenPick"),
     },
     fmt,
   );
-  const writer = { firstClass: env.premium, hasKindred: hasKindred === true };
-  const key = keyFor({ mode, weight, wordsReady, hasStamp: !!sel, busy, tray, paperGate: paperGate(paper, writer) }, fmt);
   const lang = getLang();
+  /** the stamp strip's head, PICK A STAMP: the CTA's own words in the language's capitals */
+  const stripHead = t("cp.l6.pickStamp").toLocaleUpperCase(lang);
   const papers = useMemo(() => buildPaperItems({ hasKindred: hasKindred === true, lang }, fmt), [hasKindred, lang]);
   const paperHeadNow = buildPaperHead({ paper, hasKindred: hasKindred === true, lang }, fmt);
   const count = countFor({ mode, weight }, fmt);
@@ -897,6 +905,7 @@ export function useComposeState(opts: {
     papers,
     paperHead: paperHeadNow,
     sections,
+    stripHead,
     spark,
     busy,
     done,

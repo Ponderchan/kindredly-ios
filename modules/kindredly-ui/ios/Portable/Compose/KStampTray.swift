@@ -3,6 +3,9 @@
 import SwiftUI
 
 /*
+ (Since Let it travel L6, owner 2026-10-26, the compose page opens the one-row KStampStrip
+ instead; this tray stays in the kit, unchanged, and the strip borrows its seasonal marker colours.)
+
  THE STAMP TRAY (ComposeTray.tsx StampTray, drawn the 10a way): where the keyboard was, 296
  above the home indicator, on soft with a 1pt line along its top. It scrolls: FOR THIS LETTER
  (stamps read off the letter itself), RECENTLY USED, then the six categories of six — and, in a
