@@ -130,6 +130,14 @@ import {
                   Native: Play hands the page to the React Native one for the
                   game, and it comes back when she lands (screens/courier)
 
+   Make your own face (owner, 2026-10-26; ships DARK in binary 1.2.6 = App
+   Store 1.0.7): a new feature, not a port, so it has no React Native page —
+   off, its doors simply don't show (lib/make-face makeFaceOn):
+
+     makeface     the flow (make-face) — KMakeFaceView, and its doors: Edit
+                  profile's ＋ cell and onboarding's. OFF until a row turns it
+                  on (it needs web 0047 run and /api/face deployed first)
+
    A kindred's page and Wren's desk stay React Native and have no key. */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
@@ -150,6 +158,7 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   aura: true,
   auracard: true,
   courier: true,
+  makeface: false,
 };
 
 /** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages and the courier page (the `surface` prop of NativeSurface) */

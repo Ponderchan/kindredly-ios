@@ -141,6 +141,22 @@ export {
   type KCourierViewProps,
 } from "./src/Courier";
 
+// Make your own face (owner, 2026-10-26; binary 1.2.6, behind the "makeface" switch), in Swift
+export {
+  KMakeFaceView,
+  makeFaceWrenSize,
+  nativeFaceChips,
+  prepareFacePhoto,
+  type KMakeFaceChip,
+  type KMakeFaceChipGroup,
+  type KMakeFaceCommands,
+  type KMakeFaceEntry,
+  type KMakeFaceMethod,
+  type KMakeFaceScreen,
+  type KMakeFaceStrings,
+  type KMakeFaceViewProps,
+} from "./src/MakeFace";
+
 // step 5, batch 0b: the spike lab (dev only: src/app/dev/step5-lab.tsx)
 export {
   KLabView,

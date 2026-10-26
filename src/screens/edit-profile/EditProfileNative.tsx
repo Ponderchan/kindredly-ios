@@ -1,10 +1,11 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { KIsland, useKCommands, useRev, type KScreenHandle } from "../../../modules/kindredly-ui";
 import {
   KEditProfileView,
   type KEditProfileCommands,
   type KEditProfileFace,
   type KEditProfileLetters,
+  type KEditProfileMake,
   type KEditProfileNote,
   type KEditProfileRows,
   type KEditProfileStrings,
@@ -14,6 +15,7 @@ import { AvatarImage } from "../../components/AvatarImage";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
 import { useAssetImageRefs } from "../../lib/images";
+import { madeFaceFileUri, madeFaceRefNow, madeFacesVersion, prepareMadeFace, subscribeMadeFaces } from "../../lib/made-faces";
 import type { EditView } from "./edit-profile-model";
 import type { EditProfileModel } from "./useEditProfileModel";
 
@@ -31,7 +33,10 @@ import type { EditProfileModel } from "./useEditProfileModel";
    doesn't re-send it, one rev over all of them. With the identity switch
    on the view also carries ON YOUR LETTERS (`letters`: the ♀/♂ switch and
    the star sign's), sent as its own record, and the two switches' taps go
-   to the model, which saves them to the account at once. */
+   to the model, which saves them to the account at once. With the
+   "makeface" switch on, the strip starts with Make your own face's ＋ cell
+   (`make`, onMake) and the faces Wren made, their pictures the files
+   lib/made-faces downloaded (keyed made:<id>). */
 
 /** The same value back while its content is the same (JSON), so a rebuilt but unchanged record
     keeps its identity and isn't re-sent to Swift. */
@@ -76,10 +81,25 @@ export function EditProfileNative({ model }: { model: EditProfileModel }) {
   const poolKey = pool.map((f) => f.id).join("|");
   const mods = useMemo(() => Object.fromEntries(pool.map((f) => [f.id, f.src])) as Record<string, number>, [poolKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const refs = useAssetImageRefs(mods);
+  // the faces Wren made: their downloaded files (fetched again if iOS or a new phone lost them)
+  useSyncExternalStore(subscribeMadeFaces, madeFacesVersion, madeFacesVersion);
+  const made = model.made ?? [];
+  const madeRefs: Record<string, { uri: string; key: string }> = {};
+  for (const f of made) {
+    const file = madeFaceFileUri(f);
+    const ref = file ? { uri: file, key: "made:" + f.avatarId } : madeFaceRefNow(f.avatarId);
+    if (ref) madeRefs[f.avatarId] = ref;
+  }
+  const missing = made.filter((f) => !madeRefs[f.avatarId]).map((f) => f.avatarId).join("|");
+  useEffect(() => {
+    if (missing) missing.split("|").forEach((id) => prepareMadeFace(id));
+  }, [missing]);
+  const imageOf = (id: string) => refs[id] ?? madeRefs[id] ?? null;
 
   const strings = useSameContent(useMemo(() => nativeStrings(view), [view]));
   const rows = useSameContent(useMemo(() => nativeRows(view), [view]));
-  const faces = useSameContent<KEditProfileFace[]>(useMemo(() => view.faces.map((f) => ({ id: f.id, image: refs[f.id] ?? null, a11y: f.a11y })), [view.faces, refs]));
+  // kept by content: the same pictures send nothing
+  const faces = useSameContent<KEditProfileFace[]>(view.faces.map((f) => ({ id: f.id, image: imageOf(f.id), a11y: f.a11y })));
   const note = useSameContent<KEditProfileNote | null>(
     useMemo(
       () => (view.note ? { title: view.note.title, body: view.note.body, see: view.note.see, keep: view.note.keep, faces: view.note.faceIds.map((id) => refs[id] ?? null) } : null),
@@ -90,8 +110,9 @@ export function EditProfileNative({ model }: { model: EditProfileModel }) {
   const pronounSelected = view.pronoun.selected;
   const selectedFace = view.selectedFace;
   const letters = useSameContent<KEditProfileLetters | null>(view.letters);
+  const make = useSameContent<KEditProfileMake | null>(view.make);
   // over every record AND the small values: Swift converts the whole page once per rev
-  const rev = useRev(strings, rows, faces, note, pronounOptions, pronounSelected, selectedFace, letters);
+  const rev = useRev(strings, rows, faces, note, pronounOptions, pronounSelected, selectedFace, letters, make);
 
   return (
     <SurfaceHost>
@@ -109,6 +130,8 @@ export function EditProfileNative({ model }: { model: EditProfileModel }) {
         pronounSelected={pronounSelected}
         note={note}
         letters={letters}
+        make={make}
+        onMake={act.make}
         onBack={act.back}
         onPhoto={act.photo}
         onRandom={act.random}

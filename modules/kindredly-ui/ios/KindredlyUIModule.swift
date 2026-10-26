@@ -129,6 +129,23 @@ public class KindredlyUIModule: Module {
       }
     }
 
+    // Make your own face (owner, 2026-10-26; binary 1.2.6, behind the "makeface" switch): adapter in
+    // Adapters/KMakeFaceView.swift, the page in Portable/MakeFace/KMakeFacePage.swift; the route is
+    // src/app/make-face.tsx. New files: a pod install before the build.
+    ExpoUIView(KMakeFaceView.self) {
+      AsyncFunction("command") { (view: KMakeFaceView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+    // the photo made small and bare before it is sent (Portable/MakeFace/KFacePhoto.swift): the
+    // picker's file in, a square ≤768 JPEG with no metadata in tmp/make-face out (file://), or ""
+    // when it can't be read. JS: modules/kindredly-ui/src/MakeFace.tsx prepareFacePhoto.
+    AsyncFunction("prepareFacePhoto") { (uri: String) -> String in
+      let url: URL? = uri.hasPrefix("file://") ? URL(string: uri) : URL(fileURLWithPath: uri)
+      guard let url, let out = try? KFacePhoto.prepare(sourceURL: url) else { return "" }
+      return out.absoluteString
+    }
+
     // dev only on the JS side (src/app/dev/step5-lab.tsx): the batch 0b spike lab, a screen view
     // like the eight above (KScreenProps, the command bus, a KField)
     ExpoUIView(KLabView.self) {

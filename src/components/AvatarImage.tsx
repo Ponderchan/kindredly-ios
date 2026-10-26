@@ -1,3 +1,4 @@
+import { useEffect, useSyncExternalStore } from "react";
 import { View } from "react-native";
 import { Image } from "expo-image";
 import { SvgXml } from "react-native-svg";
@@ -5,10 +6,15 @@ import { getAvatar } from "../data/avatar-lib";
 import { getFace } from "../data/aura-avatar-lib";
 import { StrangerAvatar } from "./StrangerAvatar";
 import { useTheme } from "../lib/theme";
+import { isMadeFaceId } from "../lib/make-face-core";
+import { madeFaceRefNow, madeFacesVersion, prepareMadeFace, subscribeMadeFaces } from "../lib/made-faces";
 
 /* Your face on Kindredly — a photo you chose, one of the fifty portraits,
-   or (for accounts that chose one before 2026-09-16) one of the thirty
-   hand-drawn faces, which stay renderable. Falls back to the glyph.
+   a face Wren drew for you ("made-<uuid>": Make your own face, 2026-10-26;
+   yours from the phone, a kindred's through lib/made-faces, the glyph
+   while it is unknown or not yours to see), or (for accounts that chose
+   one before 2026-09-16) one of the thirty hand-drawn faces, which stay
+   renderable. Falls back to the glyph.
 
    While a photo or a portrait loads, its disc is a pale placeholder; on
    Midnight that is soft2 instead, so a loading row doesn't flash a light
@@ -44,6 +50,7 @@ export function AvatarImage({
       />
     );
   }
+  if (isMadeFaceId(id)) return <MadeFaceImage id={id} seed={seed} size={size} round={round} radius={radius} clip={radiusOverride != null} />;
   const face = getFace(id);
   if (face) {
     /* the 2026-10-15 portraits are full-bleed colour made for the circle;
@@ -69,6 +76,32 @@ export function AvatarImage({
   return (
     <View style={{ width: size, height: size, borderRadius: radius, overflow: "hidden", backgroundColor: "#FFFFFF" }}>
       <SvgXml xml={a.xml} width={size} height={size} />
+    </View>
+  );
+}
+
+/* A made face: its picture once lib/made-faces has it (your own file, or a kindred's signed link,
+   cached by its storage path), the glyph until then and for a face this reader may not see. */
+function MadeFaceImage({ id, seed, size, round, radius, clip }: { id: string; seed: string; size: number; round: boolean; radius: number; clip: boolean }) {
+  const { t: tk, dark } = useTheme();
+  useSyncExternalStore(subscribeMadeFaces, madeFacesVersion, madeFacesVersion);
+  useEffect(() => {
+    prepareMadeFace(id);
+  }, [id]);
+  const ref = madeFaceRefNow(id);
+  if (ref) {
+    return (
+      <Image
+        source={{ uri: ref.uri, cacheKey: ref.key }}
+        style={{ width: size, height: size, borderRadius: radius, backgroundColor: dark ? tk.soft2 : "#EFEDFA" }}
+        contentFit="cover"
+      />
+    );
+  }
+  if (!clip) return <StrangerAvatar seed={seed} size={size} round={round} />;
+  return (
+    <View style={{ width: size, height: size, borderRadius: radius, overflow: "hidden" }}>
+      <StrangerAvatar seed={seed} size={size} round={false} />
     </View>
   );
 }

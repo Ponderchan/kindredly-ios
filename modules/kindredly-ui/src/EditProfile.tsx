@@ -68,6 +68,10 @@ export type KEditProfileNote = {
   faces: (KImageRefProps | null)[];
 };
 
+/** Make your own face's ＋ cell at the head of the strip (the "makeface" switch on): its tag
+    (FREE · ONCE / 1ST CLASS), the gold look once the free face is spent, VoiceOver's name. */
+export type KEditProfileMake = { tag: string; firstClass: boolean; a11y: string };
+
 /** The Edit profile view's commands: scrollTo the top or the face strip. */
 export type KEditProfileCommands = {
   scrollTo: { key: "top" | "faces"; animated?: boolean };
@@ -86,6 +90,10 @@ export type KEditProfileViewProps = CommonViewModifierProps &
     note: KEditProfileNote | null;
     /** ON YOUR LETTERS, the identity switch's two switches; null (the switch off) draws no group */
     letters?: KEditProfileLetters | null;
+    /** Make your own face's ＋ cell; null (the switch off) draws none */
+    make?: KEditProfileMake | null;
+    /** the ＋ cell */
+    onMake?: () => void;
     onBack?: () => void;
     onPhoto?: () => void;
     onRandom?: () => void;
@@ -107,6 +115,7 @@ type Ev<T> = (e: { nativeEvent: T }) => void;
 type None = Ev<Record<string, never>>;
 type NativeImage = { uri: string; key: string; kind: "image" | "videoPoster" };
 type NativeNote = { present: boolean; title: string; body: string; see: string; keep: string; faces: NativeImage[] };
+type NativeMake = { present: boolean; tag: string; firstClass: boolean; a11y: string };
 type NativeLetters = {
   present: boolean;
   header: string;
@@ -127,6 +136,8 @@ type NativeKEditProfileViewProps = Omit<
   | "faces"
   | "note"
   | "letters"
+  | "make"
+  | "onMake"
   | "onShowMark"
   | "onShowSign"
   | "onBack"
@@ -144,7 +155,9 @@ type NativeKEditProfileViewProps = Omit<
     faces: { id: string; image: NativeImage; a11y: string }[];
     note: NativeNote;
     letters: NativeLetters;
+    make: NativeMake;
     onEditBack?: None;
+    onEditMake?: None;
     onEditPhoto?: None;
     onEditRandom?: None;
     onEditFace?: Ev<{ id: string }>;
@@ -161,6 +174,9 @@ const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
 const NO_IMAGE: NativeImage = { uri: "", key: "", kind: "image" };
 const image = (r: KImageRefProps | null | undefined): NativeImage => (r ? { uri: r.uri, key: r.key, kind: r.kind ?? "image" } : NO_IMAGE);
 const NO_NOTE: NativeNote = { present: false, title: "", body: "", see: "", keep: "", faces: [] };
+
+const NO_MAKE: NativeMake = { present: false, tag: "", firstClass: false, a11y: "" };
+const nativeMake = (m: KEditProfileMake | null | undefined): NativeMake => (m ? { present: true, tag: m.tag, firstClass: !!m.firstClass, a11y: m.a11y } : NO_MAKE);
 
 const NO_LETTERS: NativeLetters = { present: false, header: "", markShown: false, markLabel: "", markNote: "", markOn: false, signLabel: "", signNote: "", signOn: true };
 
@@ -191,13 +207,14 @@ const NativeKEditProfileView = requireNativeView<NativeKEditProfileViewProps>("K
 /** The bare SwiftUI screen. Only inside an @expo/ui <Host>; its ref takes commands. Pass the
     records memoised with a rev from useRev over all of them, and the avatar island as a child. */
 export const KEditProfileView = forwardRef<KScreenHandle, KEditProfileViewProps>(function KEditProfileView(
-  { modifiers, letterFont, insets, rev, faces, note, letters, onBack, onPhoto, onRandom, onFace, onPen, onPronoun, onShowMark, onShowSign, onCourierName, onNoteSee, onNoteKeep, ...rest },
+  { modifiers, letterFont, insets, rev, faces, note, letters, make, onMake, onBack, onPhoto, onRandom, onFace, onPen, onPronoun, onShowMark, onShowSign, onCourierName, onNoteSee, onNoteKeep, ...rest },
   ref,
 ) {
   // the converted records follow their source's identity
   const sentFaces = useMemo(() => faces.map((f) => ({ id: f.id, image: image(f.image), a11y: f.a11y })), [faces]);
   const sentNote = useMemo(() => nativeEditNote(note), [note]);
   const sentLetters = useMemo(() => nativeEditLetters(letters), [letters]);
+  const sentMake = useMemo(() => nativeMake(make), [make]);
   return (
     <NativeKEditProfileView
       ref={ref}
@@ -212,6 +229,8 @@ export const KEditProfileView = forwardRef<KScreenHandle, KEditProfileViewProps>
       faces={sentFaces}
       note={sentNote}
       letters={sentLetters}
+      make={sentMake}
+      onEditMake={onMake ? () => onMake() : undefined}
       onEditBack={onBack ? () => onBack() : undefined}
       onEditPhoto={onPhoto ? () => onPhoto() : undefined}
       onEditRandom={onRandom ? () => onRandom() : undefined}

@@ -366,9 +366,15 @@ export const PEN_FACE = /^[fm]-[a-z0-9]+(-[a-z0-9]+)*$/;
 /** The longest face id the server takes. */
 export const PEN_FACE_MAX = 48;
 
-/** The id when it is a library face sign_thread will take, else null (a photo path, an empty string, a typo): null sends no face, the glyph. */
+/** A made face's id ("made-<uuid>", Make your own face, 2026-10-26): web 0047 widens
+    private.pen_face to take it too. Written out (lib/make-face-core isMadeFaceId is the same
+    pattern) so this file keeps importing nothing. A made id only exists once 0047 has run: the
+    server that draws it needs 0047's tables. */
+export const MADE_PEN_FACE = /^made-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/** The id when it is a face sign_thread will take (a library face, or a made face), else null (a photo path, an empty string, a typo): null sends no face, the glyph. */
 export const penFaceOrNull = (id: unknown): string | null =>
-  typeof id === "string" && id.length <= PEN_FACE_MAX && PEN_FACE.test(id) ? id : null;
+  typeof id === "string" && ((id.length <= PEN_FACE_MAX && PEN_FACE.test(id)) || MADE_PEN_FACE.test(id)) ? id : null;
 
 /* ── typed ───────────────────────────────────────────────────────────── */
 
