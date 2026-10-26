@@ -44,18 +44,20 @@ import "../data/strings-note-compose"; // jp.camera, jp.cameraDenied
 /* the pick is a confirmation, so it wears the app's confirm green — the
    kindreds' landed tick — not the pen blue (owner, 2026-09-20) */
 const TICK = "#2E7D4F";
-/* THE ROLL'S FIRST ROW (owner, 2026-10-26, after an old design of theirs: "1+2+3"): Camera,
-   Text note, Voice note, each the size of a picture beside it, continuous corners of 16, a 40
-   line icon over the name in system 17 semibold, all in white on a full colour — keys, so flat
-   (rule B), in colours fixed in every theme: the camera is the composer's Photo green (the calm
-   mood's ink), text the pen blue, voice the low mood's deep blue. (The camera card first wore the
-   newest picture blurred, owner 2026-10-26: "too ugly beside the solid ones". Before: pale cards
-   with a 26 icon and 15 type; before that, flat tiles with mono capitals.) */
+/* THE ROLL'S FIRST ROW (owner, 2026-10-26, from three directions: "the stickers"): Camera, Text
+   note, Voice note, each exactly a picture's cell (square, no corners, the roll's 2 gap: the
+   rounded cards' corners broke the grid), on a bright ground fixed in every theme: the brand's
+   acid, a lilac and a sky. In the middle a white sticker (56, continuous corners of 18) holding
+   the line icon 30 in ink, each turned a little its own way, standing on a hard shadow of the
+   ground darkened (the object's depth of rule B, no edge); the name 10 below in system 13 bold,
+   ink. (Before, the same day: full-colour cards with white type; pale cards; and at first flat
+   tiles with mono capitals.) */
 const KEYS = {
-  camera: "#2E7D4F",
-  text: "#3A34D6",
-  voice: "#3B6E9B",
+  camera: { ground: "#C3E84F", turn: "-6deg" },
+  text: { ground: "#B9A8FF", turn: "4deg" },
+  voice: { ground: "#8FD3FF", turn: "-3deg" },
 } as const;
+const STICKER_INK = "#1E1B35";
 const ICON = {
   camera: "M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
   text: "M4 20l4-1 11-11-3-3L5 16z M13 8l3 3",
@@ -269,17 +271,31 @@ export default function JournalPick() {
   const cell = (width - 4) / 3;
   const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
-  const Tile = ({ label, fill, onPress, icon }: { label: string; fill: string; onPress: () => void; icon: string }) => (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={{ width: cell, height: cell }}>
+  const Tile = ({ label, look, onPress, icon }: { label: string; look: { ground: string; turn: string }; onPress: () => void; icon: string }) => (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={{ width: cell, height: cell, backgroundColor: look.ground, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 6 }}>
       {({ pressed }) => (
-        <View style={{ flex: 1, borderRadius: 16, borderCurve: "continuous", backgroundColor: fill, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 8, opacity: pressed ? 0.75 : 1 }}>
-          <Svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
-            <Path d={icon} />
-          </Svg>
-          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontSize: 17, fontWeight: "600", color: "#FFFFFF" }}>
+        <>
+          <View
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 18,
+              borderCurve: "continuous",
+              backgroundColor: "#FFFFFF",
+              alignItems: "center",
+              justifyContent: "center",
+              transform: [{ rotate: look.turn }, { scale: pressed ? 0.94 : 1 }],
+              boxShadow: "3px 3px 0px rgba(30,27,53,0.18)",
+            }}
+          >
+            <Svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke={STICKER_INK} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+              <Path d={icon} />
+            </Svg>
+          </View>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ fontSize: 13, fontWeight: "700", color: STICKER_INK }}>
             {label}
           </Text>
-        </View>
+        </>
       )}
     </Pressable>
   );
@@ -336,9 +352,9 @@ export default function JournalPick() {
      continues from the second picture underneath */
   const header = adding ? null : (
     <View style={{ flexDirection: "row", gap: 2, marginBottom: 2 }}>
-      {CAMERA_CARD ? <Tile label={t("jp.camera")} fill={KEYS.camera} onPress={() => void shoot()} icon={ICON.camera} /> : null}
-      <Tile label={t("jp.write")} fill={KEYS.text} onPress={() => router.replace("/journal-entry")} icon={ICON.text} />
-      <Tile label={t("jp.say")} fill={KEYS.voice} onPress={() => router.replace("/journal-entry?start=voice")} icon={ICON.voice} />
+      {CAMERA_CARD ? <Tile label={t("jp.camera")} look={KEYS.camera} onPress={() => void shoot()} icon={ICON.camera} /> : null}
+      <Tile label={t("jp.write")} look={KEYS.text} onPress={() => router.replace("/journal-entry")} icon={ICON.text} />
+      <Tile label={t("jp.say")} look={KEYS.voice} onPress={() => router.replace("/journal-entry?start=voice")} icon={ICON.voice} />
       {CAMERA_CARD ? null : frames[0] ? frame(frames[0]) : <View style={{ width: cell, height: cell, backgroundColor: tk.soft2 }} />}
     </View>
   );
