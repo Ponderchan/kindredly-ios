@@ -116,6 +116,13 @@ import {
                   KINDREDS · date. The sheet around it, and the mosaic
                   ritual (no signatures), stay React Native.
 
+   The Writing Aura room and its share card (owner decision 2026-10-26,
+   1.0.7), keeping their React Native pages the same way:
+
+     aura         the Writing Aura room (aura) — KAuraRoomView
+     auracard     the share card (aura-card) — KAuraShareView; Swift draws
+                  the card and makes its picture
+
    A kindred's page and Wren's desk stay React Native and have no key. */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
@@ -133,10 +140,12 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   reader: true,
   journalentry: true,
   ceremony: true,
+  aura: true,
+  auracard: true,
 };
 
-/** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer and the ceremony (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony";
+/** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony and the aura pages (the `surface` prop of NativeSurface) */
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */

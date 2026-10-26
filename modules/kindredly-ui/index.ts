@@ -101,6 +101,27 @@ export {
   type KNotePanel,
   type KNoteThumb,
 } from "./src/NoteCompose";
+// the Writing Aura room and its share card (owner decision 2026-10-26, 1.0.7), in Swift
+export {
+  KAuraRoomView,
+  KAuraShareView,
+  nativeDim,
+  type KAuraArtKind,
+  type KAuraDim,
+  type KAuraLens,
+  type KAuraPause,
+  type KAuraReading,
+  type KAuraRoomData,
+  type KAuraRoomStrings,
+  type KAuraRoomViewProps,
+  type KAuraShareStrings,
+  type KAuraShareViewProps,
+  type KAuraSticker,
+  type KAuraTicket,
+  type KAuraUsageGroup,
+  type KAuraUsageItem,
+  type KAuraWord,
+} from "./src/Aura";
 
 // step 5, batch 0b: the spike lab (dev only: src/app/dev/step5-lab.tsx)
 export {

@@ -170,6 +170,20 @@ public class KindredlyUIModule: Module {
     // IntroductionRitualNative.tsx). Adapters/KIntroRitualView.swift, Portable/Chat/KIntroRitual.swift.
     // No commands: it only draws, and reports a held signature as an event.
     ExpoUIView(KIntroRitualView.self)
+    // The Writing Aura room and its share card (owner decision 2026-10-26, 1.0.7): adapters in
+    // Adapters/KAuraView.swift, the screens in Portable/Aura/; src/app/aura.tsx and
+    // src/app/aura-card.tsx behind the "aura" and "auracard" switches. New .swift files: a pod
+    // install (or prebuild) before the next native build.
+    ExpoUIView(KAuraRoomView.self) {
+      AsyncFunction("command") { (view: KAuraRoomView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+    ExpoUIView(KAuraShareView.self) {
+      AsyncFunction("command") { (view: KAuraShareView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
 
     // The app's language, for typography only (KType.tallScript): Japanese and Korean set the
     // letter serifs with CJK leading. src/textScript.ts; the root layout calls it on every change.

@@ -180,6 +180,9 @@ export const KSCREEN_VIEWS = [
   "KReaderView",
   // the Notes composer (1.0.7, 2026-10-26)
   "KNoteComposeView",
+  // the Writing Aura room and its share card (2026-10-26)
+  "KAuraRoomView",
+  "KAuraShareView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

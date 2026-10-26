@@ -20,6 +20,8 @@ import type { TraitObservation } from "../lib/writing-engine/stickers";
 import { dShort } from "../lib/format";
 import { SecondaryHeader } from "../components/10a/SecondaryHeader";
 import "../data/strings-a11y-sheets";
+import { NativeSurface } from "../components/NativeSurface";
+import { AuraNative } from "../screens/aura/AuraNative";
 
 /* WRITING AURA — the room (owner's sheet, three tabs).
    ────────────────────────────────────────────────────────────────────────
@@ -79,7 +81,20 @@ const sheetEdge = (tk: ThemeTokens) => (tk.dark ? { borderTopWidth: 1, borderTop
 /** the aura green as text on a card: 8.41:1 on Midnight's sf (my-letters, my-kindreds) */
 const greenOn = (tk: ThemeTokens) => (tk.dark ? "#7CC58F" : BRAND.greenText);
 
+/* 2026-10-26 (owner: ships in 1.0.7): the room is drawn in Swift (screens/aura/AuraNative,
+   KAuraRoomView), with the React Native room below as the remote switch's fallback ("aura" in
+   app_surfaces, NativeSurface in mount mode), its behaviour untouched. */
 export default function AuraScreen() {
+  const { t: tk } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <NativeSurface surface="aura" view="KAuraRoomView" mode="mount" native={() => <AuraNative />} fallback={() => <AuraRN />} />
+    </View>
+  );
+}
+
+/* the React Native room, unchanged */
+export function AuraRN() {
   useLang();
   const P = useP();
   const { t: tk, dark } = useTheme();
