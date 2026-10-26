@@ -12,6 +12,8 @@ import { useWrenName } from "../../lib/wren-name";
 import { useIdentityOn } from "../../lib/identity";
 import { zodiacFromDob } from "../../lib/zodiac";
 import { FACES, getFace, type AuraAvatarDef } from "../../data/aura-avatar-lib";
+import { makeFaceHref, setMadeFaceWorn, useMadeFaceStore, useMakeFaceOn } from "../../lib/make-face";
+import { isMadeFaceId, madeFaceState, type MadeFaceRecord } from "../../lib/make-face-core";
 import {
   NEW_FACES_FLAG,
   buildEditView,
@@ -28,6 +30,7 @@ import {
 } from "./edit-profile-model";
 import "../../data/strings-step5-settings";
 import "../../data/strings-identity";
+import "../../data/strings-make-face";
 
 /* EDIT PROFILE'S LOGIC, for both renderers (10a step 5). The page is its
    own now (owner), pushed in the Me tab's stack, and each field saves on
@@ -64,7 +67,12 @@ import "../../data/strings-identity";
      account syncs one after another), so no save can revert another
      (auth.tsx's old closure did) and none waits on another's network trip.
      A failed sync is said once per visit: the change stays on the phone, and
-     the next save carries it up. */
+     the next save carries it up.
+   - Make your own face (the "makeface" switch, lib/make-face): the strip's ＋
+     cell opens /make-face?from=me, which decides its own first screen (the
+     free face, the First Class card, or a guest's sign-in) and saves the face
+     it makes; the faces Wren made sit first in the strip and are picked like
+     a portrait (lib/made-faces keeps which one is worn). */
 
 const FIELD_ROUTE = { pen: "/me/edit-field?f=pen", courier: "/me/edit-field?f=courier" } as const;
 
@@ -81,6 +89,8 @@ export type EditActions = {
   courierName: () => void;
   noteSee: () => void;
   noteKeep: () => void;
+  /** the strip's ＋ cell: Make your own face (switch on) */
+  make?: () => void;
 };
 
 export type EditProfileModel = {
@@ -89,6 +99,8 @@ export type EditProfileModel = {
   pool: AuraAvatarDef[];
   /** what the avatar island draws (AvatarImage) */
   avatar: { id: string | null; photo: string | null; seed: string };
+  /** the faces Wren made (switch on), for their pictures in the strip */
+  made?: MadeFaceRecord[];
   act: EditActions;
 };
 
@@ -146,6 +158,9 @@ export function useEditProfileModel(): EditProfileModel {
       getAvatarPhoto().then((p) => alive && n === photoReads.current && setPhoto(p));
       readYourPronoun().then((p) => alive && setDevicePronoun(p));
       getFlags().then((f) => alive && setOffered(!!f[NEW_FACES_FLAG]));
+      // back from another page (Make your own face saved a face there): the account's face again,
+      // unless a pick here is still waiting to be sent
+      if (!queue.current?.waiting) setPicked(undefined);
       return () => {
         alive = false;
         // leaving the page (back, the edge swipe, a push): what waits goes now, so Me and the
@@ -170,6 +185,15 @@ export function useEditProfileModel(): EditProfileModel {
   const avatarId = picked === undefined ? accountAvatar : picked || null;
   const pronoun = pronounPicked ?? resolvePronoun(profile?.pronoun, devicePronoun);
   const pool = useMemo(() => facePool(pronoun, FACES), [pronoun]);
+  // Make your own face: the ＋ cell and the faces made, only while its switch is on
+  const makeOn = useMakeFaceOn();
+  const madeStore = useMadeFaceStore();
+  const madeIds = madeStore.faces.map((f) => f.avatarId).join("|");
+  const madeUsed = madeFaceState(madeStore) !== "free";
+  const make = useMemo(
+    () => (makeOn ? { used: madeUsed, made: madeIds ? madeIds.split("|") : [] } : undefined),
+    [makeOn, madeUsed, madeIds],
+  );
   const noteShows = showNewFacesNote({ photo: !!photo, avatarId, isLegacy: (id) => !!getFace(id)?.legacy, offered });
 
   const fmt = useMemo<EditFormat>(() => ({ t, birthday: birthdayFormat }), []);
@@ -182,12 +206,12 @@ export function useEditProfileModel(): EditProfileModel {
   const view = useMemo(
     () =>
       buildEditView(
-        { handle, dob, pronoun, wren, avatarId, photo: !!photo, pool, newFacesNote: noteShows, letters: { identity, showMark, showSign, sign } },
+        { handle, dob, pronoun, wren, avatarId, photo: !!photo, pool, newFacesNote: noteShows, letters: { identity, showMark, showSign, sign }, make },
         fmt,
       ),
     // lang: every word follows the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [handle, dob, pronoun, wren, avatarId, photo, pool, noteShows, fmt, lang, identity, showMark, showSign, sign],
+    [handle, dob, pronoun, wren, avatarId, photo, pool, noteShows, fmt, lang, identity, showMark, showSign, sign, make],
   );
 
   const putNoteAway = useCallback(() => {
@@ -197,8 +221,11 @@ export function useEditProfileModel(): EditProfileModel {
 
   const pickFace = useCallback(
     (id: string) => {
-      if (!getFace(id)) return;
+      const made = isMadeFaceId(id);
+      if (!getFace(id) && !made) return;
       setPicked(id);
+      // which made face is worn (none, for a portrait): the ＋ cell and onboarding's read it
+      void setMadeFaceWorn(made ? id : null);
       if (photo) {
         setPhoto(null);
         photoReads.current++; // a read still out must not bring the photo back
@@ -237,6 +264,7 @@ export function useEditProfileModel(): EditProfileModel {
           photoReads.current++;
           setPhoto(kept.uri);
           setPicked("");
+          void setMadeFaceWorn(null);
           // a photo never leaves the phone, so the account's face goes (a kindred signing now gets none)
           q.later({ avatarId: null });
           putNoteAway();
@@ -272,6 +300,10 @@ export function useEditProfileModel(): EditProfileModel {
       },
       noteSee: putNoteAway,
       noteKeep: putNoteAway,
+      make: () => {
+        void q.flush();
+        router.push(makeFaceHref("me") as never);
+      },
     }),
     [q, router, pool, avatarId, pickFace, pronoun, putNoteAway],
   );
@@ -281,6 +313,7 @@ export function useEditProfileModel(): EditProfileModel {
     pool,
     // Me's rule (useMeModel), so a reader with no session and no face sees one mosaic on both
     avatar: { id: avatarId, photo, seed: user?.id || "you" },
+    made: makeOn ? madeStore.faces : [],
     act,
   };
 }

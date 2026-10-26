@@ -125,6 +125,7 @@ const OWNED_KEYS = [
   "kindredly_wren_lines", // her lines: rotation, the aura lines told, the last written day (lib/local-push)
   "kindredly_push_prefs", // this phone's copy of user_metadata.push
   "kindredly_wren_work", // what the Me tab last saw of her work, for the day-off push (lib/free-flight)
+  "kindredly_made_faces", // the faces Wren drew for you (lib/made-faces): a guest's goes with them to the account
 ];
 
 const MIGRATED = "kindredly_ns_claimed"; // bare, device-level marker

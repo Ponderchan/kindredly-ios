@@ -59,7 +59,13 @@ function KnockRouting() {
        (they may have traded names since) or no copy at all asks the server,
        and if the server can't answer, the copy's answer stands. */
     const open = async (res: Notifications.NotificationResponse) => {
-      const data = res.notification.request.content.data as { thread?: string; wren?: number; line?: string; pool?: unknown; index?: unknown } | undefined;
+      const data = res.notification.request.content.data as { thread?: string; wren?: number; line?: string; pool?: unknown; index?: unknown; face?: number; from?: string } | undefined;
+      /* Make your own face: "wren finished your face" (screens/make-face, set when the app went
+         away mid-drawing) opens the flow on the result */
+      if (data?.face) {
+        router.push(`/make-face?from=${data.from === "onboarding" ? "onboarding" : "me"}&resume=1` as never);
+        return;
+      }
       /* her own lines, scheduled on the phone (lib/local-push): a question
          opens a fresh Notes page with that question as its placeholder (the
          voice line opens the page recording, the photo line the roll), the
@@ -308,6 +314,9 @@ function ThemedStack() {
         <Stack.Screen name="stamp-press" options={{ presentation: "fullScreenModal", gestureEnabled: false }} />
         {/* THE ALBUM (custom stamps): a page pushed from Me › Stamps, on the page colour */}
         <Stack.Screen name="album" />
+        {/* MAKE YOUR OWN FACE: transparent — the SwiftUI page draws its own dim and floating card
+            over the screen it was opened from (Edit profile, onboarding's face grid) */}
+        <Stack.Screen name="make-face" options={{ presentation: "transparentModal", animation: "fade", gestureEnabled: false, contentStyle: { backgroundColor: "transparent" } }} />
         {/* the reader fills the screen — the letter opens where you are,
             it doesn't slide in from the side or pop up as a card */}
         <Stack.Screen name="thread/[id]" options={{ animation: "fade", animationDuration: 260 }} />

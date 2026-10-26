@@ -2,5 +2,5 @@
   "NSMicrophoneUsageDescription": "Kindredly utilise le micro pour que tu puisses enregistrer une lettre vocale ou une page de journal à voix haute.",
   "NSPhotoLibraryUsageDescription": "Kindredly ouvre ta photothèque pour que tu puisses ajouter une photo ou une vidéo à une page privée du journal.",
   "NSPhotoLibraryAddUsageDescription": "Kindredly enregistre ta carte d'aura dans tes photos quand tu le demandes.",
-  "NSCameraUsageDescription": "Kindredly utilise l’appareil photo pour photographier un moment pour une page privée de ton journal, ou pour en faire un timbre. Rien n’est enregistré tant que tu ne décides pas de le garder."
+  "NSCameraUsageDescription": "Kindredly utilise l’appareil photo pour photographier un moment pour une page privée de ton journal, pour en faire un timbre, ou pour que Wren peigne ton visage. Rien n’est enregistré tant que tu ne décides pas de le garder."
 }

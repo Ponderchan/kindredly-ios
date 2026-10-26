@@ -15,6 +15,12 @@
    saves. A face or a photo applies at once; the account hears about it
    once the picks stop (createSaveQueue below), and a pronoun at once.
 
+   MAKE YOUR OWN FACE (owner, 2026-10-26; only with the "makeface" switch
+   on): the strip starts with a ＋ cell tagged FREE · ONCE until the free
+   face is made, 1ST CLASS after (mf.tag.*); the faces Wren made come next,
+   newest first, chosen and worn exactly like a portrait (their ids are
+   "made-<uuid>"). Switch off, the page is exactly what it was.
+
    WITH THE IDENTITY SWITCH ON (identity Phase 1: identity-plan §4 and its
    zodiac addendum) the page gains ON YOUR LETTERS between YOU and its
    footer: "Show ♀ / ♂ on your letters" (only for she and he: they and
@@ -149,7 +155,14 @@ export type EditFacts = {
   pool: readonly { id: string }[];
   /** the legacy note shows */
   newFacesNote: boolean;
+  /** Make your own face: absent while its switch is off */
+  make?: MakeFacts;
 };
+
+/** What the ＋ cell knows: the free face is spent, and the faces made (avatar ids, newest first). */
+export type MakeFacts = { used: boolean; made: readonly string[] };
+/** at most this many made faces ride in the strip */
+export const MADE_IN_STRIP = 3;
 
 export type EditFormat = {
   t: TFn;
@@ -186,6 +199,8 @@ export type EditView = {
   faces: { id: string; a11y: string }[];
   /** the face picked in the strip; "" while a photo is worn or none is */
   selectedFace: string;
+  /** Make your own face's ＋ cell; null while its switch is off */
+  make: { tag: string; firstClass: boolean; a11y: string } | null;
   note: NewFacesNoteVM | null;
   youHeader: string;
   pen: EditRowVM;
@@ -314,8 +329,13 @@ export function buildEditView(f: EditFacts, fmt: EditFormat): EditView {
     // switch on: the true-again words (strangers see a window, never your face; a kindred the one you had at signing)
     avatarHint: t(on ? "id.ep.avatarNote" : "ep.avatarNote"),
     facesHeader: t("ep.faces"),
-    faces: f.pool.map((face, i) => ({ id: face.id, a11y: t("ep.faceA11y", { n: i + 1, total }) })),
+    faces: [
+      // the faces Wren made, first (switch on); named like the rest, after the portraits' count
+      ...(f.make?.made ?? []).slice(0, MADE_IN_STRIP).map((id) => ({ id, a11y: t("mf.result.a11y") })),
+      ...f.pool.map((face, i) => ({ id: face.id, a11y: t("ep.faceA11y", { n: i + 1, total }) })),
+    ],
     selectedFace: f.photo || !f.avatarId ? "" : f.avatarId,
+    make: f.make ? { tag: t(f.make.used ? "mf.tag.first" : "mf.tag.once"), firstClass: f.make.used, a11y: t("mf.entry.a11y") } : null,
     note: f.newFacesNote
       ? {
           title: t("ep.newFaces.title"),

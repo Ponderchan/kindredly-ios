@@ -120,6 +120,8 @@ public struct KEditProfileContent: Equatable, Sendable {
   public var faces: [KEditFace] = []
   /// the face worn; "" while a photo is worn, or none is
   public var selectedFace = ""
+  /// Make your own face's ＋ cell at the head of the strip; nil while its switch is off
+  public var make: KEditMakeFace?
   public var note: KEditNewFacesNote?
   /// YOU
   public var youHeader = ""
@@ -148,6 +150,8 @@ public final class KEditProfileActions {
   public var onRandom: () -> Void = {}
   /// a face in the strip: its id
   public var onFace: (String) -> Void = { _ in }
+  /// the strip's ＋ cell: Make your own face
+  public var onMake: () -> Void = {}
   /// the Pen name row
   public var onPen: () -> Void = {}
   /// a pronoun from the menu: she | he | they
@@ -267,8 +271,10 @@ public struct KEditProfileScreen<Avatar: View>: View {
               randomLabel: content.randomLabel,
               faces: content.faces,
               selected: content.selectedFace,
+              make: content.make,
               onPick: { actions.onFace($0) },
-              onRandom: { actions.onRandom() }
+              onRandom: { actions.onRandom() },
+              onMake: { actions.onMake() }
             )
             .id(Self.facesID)
             .padding(.top, 4)

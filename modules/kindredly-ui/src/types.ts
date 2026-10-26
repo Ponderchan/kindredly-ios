@@ -185,6 +185,8 @@ export const KSCREEN_VIEWS = [
   "KAuraShareView",
   // Wren's Journey, the courier page (2026-10-26)
   "KCourierView",
+  // Make your own face (2026-10-26; behind the "makeface" switch)
+  "KMakeFaceView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

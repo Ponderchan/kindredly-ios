@@ -7,8 +7,11 @@
 
      image        a photo; a portrait (expo-asset file, the six legacy
                   portraits drawn 5% larger so their ink rim falls outside
-                  the clip); a legacy SVG face or the glyph, captured to a
-                  tmp PNG by components/FaceSnapshots
+                  the clip); a face Wren drew ("made-<uuid>", Make your own
+                  face: your own downloaded file, or a kindred's signed link
+                  from lib/made-faces; the glyph when it isn't yours to see);
+                  a legacy SVG face or the glyph, captured to a tmp PNG by
+                  components/FaceSnapshots
      mosaic       a pen pal: the FACE v1 25-bit mask (lib/mosaic)
      frost        a pen pal once the identity switch is on: their frosted
                   window (lib/frost FROST v1; the spec rides in `frost`,
@@ -35,6 +38,8 @@ import { AppState } from "react-native";
 import { getFace } from "../data/aura-avatar-lib";
 import { getAvatar } from "../data/avatar-lib";
 import { assetImageRef, fileExists, resolvedAssetRef, snapshotCacheKey } from "./images";
+import { isMadeFaceId } from "./make-face-core";
+import { madeFaceHidden, madeFaceRefNow, prepareMadeFace, subscribeMadeFaces } from "./made-faces";
 import { developFor, mosaicMask } from "./mosaic";
 import type { FrostSpec } from "./frost";
 
@@ -92,6 +97,7 @@ export type FaceSnapKey = `svg:${string}` | `glyph:${string}`;
 export type FacePlan =
   | { kind: "photo"; uri: string }
   | { kind: "portrait"; id: string; mod: number; overscan: number }
+  | { kind: "made"; id: string; glyph: FaceSnapKey }
   | { kind: "snapshot"; snap: FaceSnapKey }
   | { kind: "mosaic"; mask: number }
   | { kind: "frost"; spec: FrostSpec; key: string }
@@ -124,6 +130,7 @@ export function facePlan(f: FaceInput): FacePlan {
     return { kind: "mosaic", mask: memoMask(f.seed, f.develop ?? 1) };
   }
   if (f.photoUri) return { kind: "photo", uri: f.photoUri };
+  if (isMadeFaceId(f.avatarId)) return { kind: "made", id: f.avatarId, glyph: `glyph:${f.seed ?? "anon"}` };
   const portrait = getFace(f.avatarId);
   if (portrait) return { kind: "portrait", id: portrait.id, mod: portrait.src, overscan: portrait.legacy ? LEGACY_OVERSCAN : 0 };
   if (f.avatarId && getAvatar(f.avatarId)) return { kind: "snapshot", snap: `svg:${f.avatarId}` };
@@ -156,6 +163,9 @@ function bump() {
   version++;
   listeners.forEach((l) => l());
 }
+
+/* a made face's picture (or its answer) landing redraws the faces that wait for it */
+subscribeMadeFaces(bump);
 
 /** Subscribe to face changes (a capture or a portrait landing). */
 export function subscribeFaces(l: () => void): () => void {
@@ -206,6 +216,10 @@ export function prepareFace(f: FaceInput): void {
     });
   } else if (p.kind === "snapshot") {
     requestSnapshot(p.snap);
+  } else if (p.kind === "made") {
+    prepareMadeFace(p.id);
+    // the glyph too, ready for the answer "not yours to see" (asked for once, before it is known)
+    requestSnapshot(p.glyph);
   }
 }
 
@@ -223,6 +237,13 @@ export function faceSource(f: FaceInput): FaceSource {
       const uri = snaps.get(p.snap);
       return uri ? { kind: "image", uri, key: snapshotCacheKey(p.snap), overscan: 0 } : { kind: "placeholder" };
     }
+    case "made": {
+      const ref = madeFaceRefNow(p.id);
+      if (ref) return { kind: "image", uri: ref.uri, key: ref.key, overscan: 0 };
+      // not this reader's to see: the glyph, as for no face (requested by prepareFace)
+      const glyph = madeFaceHidden(p.id) ? snaps.get(p.glyph) : undefined;
+      return glyph ? { kind: "image", uri: glyph, key: snapshotCacheKey(p.glyph), overscan: 0 } : { kind: "placeholder" };
+    }
     case "mosaic":
       return { kind: "mosaic", mask: p.mask };
     case "frost":
@@ -237,6 +258,8 @@ const planSig = (p: FacePlan): string =>
     ? "p:" + p.uri
     : p.kind === "portrait"
       ? "a:" + p.id
+      : p.kind === "made"
+        ? "d:" + p.id
       : p.kind === "snapshot"
         ? "s:" + p.snap
         : p.kind === "mosaic"

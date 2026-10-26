@@ -68,7 +68,9 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   ok("the aura's two keys are there and on", AURA.every((k) => entries[k] === true));
   // Wren's Journey in Swift (2026-10-26)
   ok("the courier page's key is there and on", entries.courier === true);
-  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + 5);
+  // Make your own face (2026-10-26): there, and OFF until a row turns it on (0047 and /api/face first)
+  ok("the make-face key is there and off", "makeface" in entries && entries.makeface === false);
+  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + 6);
 }
 
 /* ── the crash breadcrumb ── */

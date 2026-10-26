@@ -54,6 +54,7 @@ export type PaywallSource =
   | "me_row"
   | "settings_row"
   | "paper" // the compose key on a First Class paper (letter papers, 2026-10-20)
+  | "make_face" // Make your own face: the First Class card after the free face (2026-10-26)
   | "unknown";
 
 export function track(name: EventName, props: Record<string, string | number | boolean> = {}): void {

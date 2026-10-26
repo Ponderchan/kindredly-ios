@@ -26,6 +26,8 @@ import ExpoUI
  - letters: ON YOUR LETTERS, the identity switch's two switches { present, header, markShown,
    markLabel, markNote, markOn, signLabel, signNote, signOn }; present false (the switch off)
    draws no group, and markShown false (they / unset) no mark row
+ - make: Make your own face's ＋ cell { present, tag, firstClass, a11y }; present false (the
+   "makeface" switch off) draws none. A made face is one of `faces` ("made-<uuid>")
  The records are converted once per rev (useRev in TS).
 
  Children: one <KIsland name="avatar"> (112 × 112): AvatarImage, which draws every kind of face
@@ -38,6 +40,7 @@ import ExpoUI
  - onEditPhoto {}               the camera menu: Choose a photo
  - onEditRandom {}              the camera menu or the strip's key: Random face
  - onEditFace { id }            a face in the strip
+ - onEditMake {}                the strip's ＋ cell (Make your own face)
  - onEditPen {}                 the Pen name row
  - onEditPronoun { id }         a pronoun from the menu (she | he | they)
  - onEditShowMark { on }        ON YOUR LETTERS: the ♀/♂ switch asks for this value (TS saves it)
@@ -133,6 +136,18 @@ struct KEditLettersRecord: Record {
   }
 }
 
+/// Make your own face's ＋ cell; present false draws none.
+struct KEditMakeRecord: Record {
+  @Field var present: Bool = false
+  @Field var tag: String = ""
+  @Field var firstClass: Bool = false
+  @Field var a11y: String = ""
+
+  var make: KEditMakeFace? {
+    present ? KEditMakeFace(tag: tag, firstClass: firstClass, a11yLabel: a11y) : nil
+  }
+}
+
 final class KEditProfileViewProps: KScreenProps {
   @Field var strings: KEditProfileStringsRecord = KEditProfileStringsRecord()
   @Field var faces: [KEditFaceRecord] = []
@@ -142,11 +157,13 @@ final class KEditProfileViewProps: KScreenProps {
   @Field var pronounSelected: String = ""
   @Field var note: KEditNoteRecord = KEditNoteRecord()
   @Field var letters: KEditLettersRecord = KEditLettersRecord()
+  @Field var make: KEditMakeRecord = KEditMakeRecord()
 
   var onEditBack = EventDispatcher()
   var onEditPhoto = EventDispatcher()
   var onEditRandom = EventDispatcher()
   var onEditFace = EventDispatcher()
+  var onEditMake = EventDispatcher()
   var onEditPen = EventDispatcher()
   var onEditPronoun = EventDispatcher()
   var onEditShowMark = EventDispatcher()
@@ -165,6 +182,7 @@ final class KEditProfileViewProps: KScreenProps {
     a.onPhoto = { [weak self] in self?.onEditPhoto() }
     a.onRandom = { [weak self] in self?.onEditRandom() }
     a.onFace = { [weak self] id in self?.onEditFace(["id": id]) }
+    a.onMake = { [weak self] in self?.onEditMake() }
     a.onPen = { [weak self] in self?.onEditPen() }
     a.onPronoun = { [weak self] id in self?.onEditPronoun(["id": id]) }
     a.onShowMark = { [weak self] on in self?.onEditShowMark(["on": on]) }
@@ -193,6 +211,7 @@ final class KEditProfileViewProps: KScreenProps {
         return KEditFace(id: f.id, image: f.image.ref, a11yLabel: f.a11y)
       }
       c.selectedFace = selectedFace
+      c.make = make.make
       c.note = note.note
       c.youHeader = strings.youHeader
       c.pen = rows.pen.row

@@ -18,7 +18,30 @@ import CoreImage
  size (downsampled once, cached by KImageStore), on soft2 while they load. A LazyHStack: fifty
  pictures, no React Native island among them. Each face is a button VoiceOver names "Face 3 of
  25" (the library's own names are English design notes, never shown) with the selected trait.
+
+ MAKE YOUR OWN FACE (owner, 2026-10-26; only while TS sends `make`, the "makeface" switch): the
+ row starts with a 46 ＋ cell — a lav2 disc, a 2pt dashed ind ring, a 20 ind ＋ — with a small
+ mono tag under it (7.5 at .1em): FREE · ONCE on the pale lav (#EEEDFB, ind words) while the free
+ face is unused, 1ST CLASS on gold (#D8A63F, ink words) after. Its circle sits on the faces'
+ middle line (4 down in the row, which is laid out from the top), the tag hangs under it. A face
+ Wren made is one of the faces after it (TS puts it first), worn and ringed like any other.
  */
+
+/// The ＋ cell that opens Make your own face.
+public struct KEditMakeFace: Equatable, Sendable {
+  /// FREE · ONCE / 1ST CLASS, as TS words it
+  public var tag: String
+  /// the free face is spent: the gold tag
+  public var firstClass: Bool
+  /// VoiceOver: "Make your own face"
+  public var a11yLabel: String
+
+  public init(tag: String, firstClass: Bool, a11yLabel: String) {
+    self.tag = tag
+    self.firstClass = firstClass
+    self.a11yLabel = a11yLabel
+  }
+}
 
 /// One face on offer.
 public struct KEditFace: Identifiable, Equatable, Sendable {
@@ -45,21 +68,27 @@ public struct KFaceStrip: View {
   private let randomLabel: String
   private let faces: [KEditFace]
   private let selected: String
+  private let make: KEditMakeFace?
   private let onPick: (String) -> Void
   private let onRandom: () -> Void
+  private let onMake: () -> Void
 
   /// - Parameters:
   ///   - selected: the face worn; "" for none
   ///   - onPick: a face was tapped (its id)
   ///   - onRandom: the Random key
-  public init(theme: KTheme, header: String, randomLabel: String, faces: [KEditFace], selected: String, onPick: @escaping (String) -> Void, onRandom: @escaping () -> Void) {
+  ///   - make: the ＋ cell (Make your own face), or nil for none
+  ///   - onMake: the ＋ cell
+  public init(theme: KTheme, header: String, randomLabel: String, faces: [KEditFace], selected: String, make: KEditMakeFace? = nil, onPick: @escaping (String) -> Void, onRandom: @escaping () -> Void, onMake: @escaping () -> Void = {}) {
     self.theme = theme
     self.header = header
     self.randomLabel = randomLabel
     self.faces = faces
     self.selected = selected
+    self.make = make
     self.onPick = onPick
     self.onRandom = onRandom
+    self.onMake = onMake
   }
 
   public var body: some View {
@@ -81,7 +110,10 @@ public struct KFaceStrip: View {
       }
       ScrollViewReader { proxy in
         ScrollView(.horizontal) {
-          LazyHStack(spacing: 10) {
+          LazyHStack(alignment: .top, spacing: 10) {
+            if let make {
+              makeCell(make)
+            }
             ForEach(faces) { face in
               faceButton(face)
                 .id(face.id)
@@ -100,6 +132,40 @@ public struct KFaceStrip: View {
       }
       .padding(.horizontal, -16)
     }
+  }
+
+  /// The ＋ cell: a 46 disc on the faces' middle line, its tag under it.
+  private func makeCell(_ make: KEditMakeFace) -> some View {
+    let side: CGFloat = 46
+    return SwiftUI.Button(action: onMake) {
+      VStack(spacing: 6) {
+        Circle()
+          .fill(theme.lav2)
+          .overlay(Circle().strokeBorder(theme.ind, style: StrokeStyle(lineWidth: 2, dash: [4, 3])))
+          .overlay {
+            KPlusGlyph()
+              .stroke(theme.ind, style: StrokeStyle(lineWidth: 2.2 * 20 / 24, lineCap: .round))
+              .frame(width: 20, height: 20)
+          }
+          .frame(width: side, height: side)
+        Text(make.tag)
+          .kText(.mono(7.5, .medium, tracking: 0.1))
+          .foregroundStyle(make.firstClass ? KBrand.inkOnBrand : theme.ind)
+          .lineLimit(1)
+          .fixedSize()
+          .padding(.horizontal, 6)
+          .padding(.vertical, 2)
+          .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(make.firstClass ? KBrand.waxGold : (theme.isDark ? theme.lav2 : Color(hex: "#EEEDFB"))))
+      }
+      // the circle's middle on the 54 faces' middle
+      .padding(.top, (Self.faceSize - side) / 2)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(KFloatPressStyle())
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(make.a11yLabel)
+    .accessibilityValue(make.tag)
+    .accessibilityAddTraits(.isButton)
   }
 
   private func faceButton(_ face: KEditFace) -> some View {
