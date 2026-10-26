@@ -513,10 +513,9 @@ export function SelfCompose({
               width: 52,
               height: 52,
               borderRadius: 26,
-              borderWidth: 1.5,
-              // the chosen face sits on its group's 10a colour, ringed in the group's ink
-              borderColor: mood ? moodColors(moodGroup(mood)).ink : moodOpen ? P.pen : tk.ln,
-              backgroundColor: mood ? moodColors(moodGroup(mood)).fill : "transparent",
+              // no ring (owner, 2026-10-26: "不要黑圈"): the chosen face sits on its group's 10a colour;
+              // none chosen yet, a soft disc (the pen's wash while the picker is open)
+              backgroundColor: mood ? moodColors(moodGroup(mood)).fill : moodOpen ? P.penWash : tk.soft2,
               alignItems: "center",
               justifyContent: "center",
               opacity: pressed ? 0.7 : 1,

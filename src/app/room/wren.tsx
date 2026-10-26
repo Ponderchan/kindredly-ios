@@ -11,7 +11,8 @@ import { OfficialBird } from "../../components/WrenDesk";
 import { GuideCard, GuideChips } from "../../components/GuideCard";
 import { NewsCard, newsIdOf } from "../../components/news-reel";
 import { SignUpSheet, openSignUpSheet } from "../../components/SignUpSheet";
-import { TraceTray, traceTrayHeight, type TraceAction } from "../../components/LeaveATrace";
+import { PlayTray } from "../../components/LeaveATrace";
+import type { KChatTrace } from "../../../modules/kindredly-ui/src/Conversation";
 import { PlusGlyph } from "../../components/ComposeTray";
 import { dShort } from "../../lib/format";
 import { alertFail } from "../../lib/fail";
@@ -312,10 +313,12 @@ export default function WrenDeskScreen() {
     await post(t("wo.photo.fallback"), "photo", path);
   };
 
-  const HANDS: TraceAction[] = [
-    { id: "photo", title: t("wo.photo.t"), sub: "" },
-    { id: "bug", title: t("wo.bug.t"), sub: "" },
-    { id: "idea", title: t("wo.idea.t"), sub: "" },
+  /* what you hand the makers, on the kindred room's coloured cards (owner, 2026-10-26: the black
+     sticker cards out): a picture on low's blue, a bug on tired's lilac, an idea on happy's yellow */
+  const HANDS: KChatTrace[] = [
+    { key: "photo", glyph: "photo", title: t("wo.photo.t"), subtitle: "", tint: "low" },
+    { key: "bug", glyph: "bug", title: t("wo.bug.t"), subtitle: "", tint: "tired" },
+    { key: "idea", glyph: "idea", title: t("wo.idea.t"), subtitle: "", tint: "happy" },
   ];
   const onHand = (kind: string) => {
     // a bug, an idea or a note hands the keyboard to the field: the tray stays until it is up; a
@@ -493,7 +496,8 @@ export default function WrenDeskScreen() {
             // with the keyboard up the tray rises as it goes down, in the same commit
             onPress={() => trayKit.toggle(Keyboard.dismiss)}
             hitSlop={6}
-            style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: T.ln, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}
+            // no ring (owner, 2026-10-26); open, the lilac disc the kindred room's × sits on
+            style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: tray ? T.lav : "transparent", alignItems: "center", justifyContent: "center", opacity: pressed ? 0.7 : 1 })}
           >
             <PlusGlyph size={24} open={tray} color={tray ? P.pen : P.ink} />
           </Pressable>
@@ -511,7 +515,7 @@ export default function WrenDeskScreen() {
         </View>
         {trayKit.shown && (
           <View onAccessibilityEscape={trayKit.close}>
-            <TraceTray actions={HANDS} onPick={onHand} height={traceTrayHeight(keyboard.lastHeight, insets.bottom)} bottomInset={insets.bottom} />
+            <PlayTray traces={HANDS} title="" onPick={onHand} bottomInset={insets.bottom} />
           </View>
         )}
       </KeyboardAvoidingView>

@@ -662,9 +662,9 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
   private var header: some View {
     HStack(spacing: 0) {
       SwiftUI.Button(action: actions.onClose) {
-        Text(verbatim: "✕")
-          .composeText(.close)
-          .foregroundStyle(theme.ink)
+        // the line ✕ at the back chevron's weight (owner, 2026-10-26: the SF Mono ✕ was too small):
+        // 20 across at 2.2, as ComposeRN and the Notes composer draw it (RN CloseGlyph)
+        KLineIcon(.close, size: 20, lineWidth: 2.2, color: theme.ink)
           .frame(width: 42, height: 42)
           .contentShape(Rectangle())
       }

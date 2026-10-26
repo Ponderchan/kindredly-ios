@@ -51,6 +51,21 @@ export function BackChevronGlyph({ color }: { color: string }) {
   );
 }
 
+/* THE CLOSE ✕ of a full-screen page (the letter and Notes composers; owner, 2026-10-26: the SF
+   Mono "✕" was too small): KLineIcon .close, M5 5l14 14 M19 5L5 19, drawn 20 across at the
+   chevron's stroke 2.2 with round caps, so it weighs what the back chevron and the title weigh;
+   its page keeps its 36–42 box and the 44 reach. Never the "✕" character again. */
+export const CLOSE_GLYPH = { glyph: 20, stroke: 2.2, path: "M5 5l14 14 M19 5L5 19" } as const;
+
+/** The close ✕ alone (20 at 2.2), for a control that draws its own box. */
+export function CloseGlyph({ color }: { color: string }) {
+  return (
+    <Svg width={CLOSE_GLYPH.glyph} height={CLOSE_GLYPH.glyph} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={CLOSE_GLYPH.stroke} strokeLinecap="round" strokeLinejoin="round">
+      <Path d={CLOSE_GLYPH.path} />
+    </Svg>
+  );
+}
+
 /** The back key: the glyph in its 36 box, 12 from the left, centred in a 52 (or 44) bar under the safe area. */
 export function BackChevron({
   onPress,

@@ -12,6 +12,7 @@ import { useP } from "../lib/theme";
 import { SelfCompose, type SelfComposeState } from "../components/SelfCompose";
 import { localeTag } from "../lib/format";
 import "../data/strings-step5-notes";
+import { CloseGlyph } from "../components/10a/BackChevron";
 
 /* The sealed room's desk — its own page again.
 
@@ -74,7 +75,7 @@ export default function JournalEntryRoute() {
           it. */}
       <View style={{ flexDirection: "row", alignItems: "center", paddingLeft: 12, paddingRight: 20, paddingTop: 6, paddingBottom: 10 }}>
         <Pressable onPress={goBack} hitSlop={10} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")} style={{ width: 34, height: 38, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ ...PFM.mono, fontSize: 17, color: P.ink }}>✕</Text>
+          <CloseGlyph color={P.ink} />
         </Pressable>
         {/* the modal's title, as every secondary page's: System 500 17, centred on the page */}
         <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 6, bottom: 10, alignItems: "center", justifyContent: "center" }}>

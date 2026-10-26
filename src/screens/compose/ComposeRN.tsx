@@ -17,6 +17,7 @@ import { BRAND } from "../../theme/themes";
 import { STAMP_LADDER, stampSlotStroke } from "../../lib/stamp-frame";
 import type { ComposeState } from "./useComposeState";
 import { countBrand } from "./compose-model";
+import { CloseGlyph } from "../../components/10a/BackChevron";
 
 /* THE COMPOSE PAGE IN REACT NATIVE — the remote switch's fallback (10a
    step 5). The page as it was before SwiftUI, moved here whole and drawn
@@ -107,7 +108,7 @@ export function ComposeRN({ state }: { state: ComposeState }) {
             accessibilityLabel={t("wren.trackClose")}
             style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}
           >
-            <Text style={{ ...PFM.mono, fontSize: 17, color: tk.ink }}>✕</Text>
+            <CloseGlyph color={tk.ink} />
           </Pressable>
           <View style={{ flex: 1, alignItems: "center" }}>
             <Text accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontWeight: "500", fontSize: 17, color: tk.ink }}>
