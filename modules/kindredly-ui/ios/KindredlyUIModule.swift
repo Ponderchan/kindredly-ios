@@ -111,6 +111,15 @@ public class KindredlyUIModule: Module {
       }
     }
 
+    // Wren's Journey, the courier page (owner, 2026-10-26; binary 1.2.6): adapter in
+    // Adapters/KCourierView.swift, the page in Portable/Courier/KCourierScreen.swift;
+    // src/app/courier.tsx behind the "courier" switch. New files: a pod install before the build.
+    ExpoUIView(KCourierView.self) {
+      AsyncFunction("command") { (view: KCourierView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+
     // dev only on the JS side (src/app/dev/step5-lab.tsx): the batch 0b spike lab, a screen view
     // like the eight above (KScreenProps, the command bus, a KField)
     ExpoUIView(KLabView.self) {

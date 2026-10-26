@@ -178,6 +178,8 @@ export const KSCREEN_VIEWS = [
   "KMyLettersView",
   // the one-letter reader (2026-10-20)
   "KReaderView",
+  // Wren's Journey, the courier page (2026-10-26)
+  "KCourierView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

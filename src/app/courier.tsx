@@ -27,6 +27,8 @@ import { useFares } from "../lib/fares";
 import { trialLabel } from "../screens/paywall/paywall-model";
 import { buildFirstClass4a } from "../screens/me/me-model";
 import { meFormat } from "../screens/me/me-format";
+import { NativeSurface } from "../components/NativeSurface";
+import { CourierNative } from "../screens/courier/CourierNative";
 import "../data/strings-me4a";
 
 /* THE COURIER'S ROOM — her own page (owner's call, 2026-09-16).
@@ -42,7 +44,37 @@ import "../data/strings-me4a";
    the top while it plays) */
 const COVER_H = 300;
 
+/* WREN'S JOURNEY IN SWIFT (owner, 2026-10-26; binary 1.2.6, App Store 1.0.7):
+   the page is drawn by SwiftUI (screens/courier/CourierNative, KCourierView)
+   behind the "courier" switch (app_surfaces, NativeSurface in mount mode),
+   with the React Native page below as its fallback, unchanged.
+
+   FREE FLIGHT STAYS REACT NATIVE. The game is played on the React Native
+   cover (components/FreeFlightGame, inside WrenHome), so Play on the Swift
+   page hands the page to the React Native one with the game already open —
+   the same page ?play=1 opens from her day off on Me — and once she lands
+   (the game closed) the Swift page comes back. */
 export default function CourierRoom() {
+  const P = useP();
+  const params = useLocalSearchParams<{ play?: string }>(); // ?play=1 — from her day off on Me
+  const autoPlay = params.play === "1";
+  return (
+    <View style={{ flex: 1, backgroundColor: P.penWash }}>
+      <NativeSurface surface="courier" view="KCourierView" mode="mount" native={() => <CourierSwift autoPlay={autoPlay} />} fallback={() => <CourierRN />} />
+    </View>
+  );
+}
+
+/* the Swift page, and the React Native one for as long as a game is on */
+function CourierSwift({ autoPlay }: { autoPlay: boolean }) {
+  const [playing, setPlaying] = useState(autoPlay);
+  if (playing) return <CourierRN autoPlay onPlayEnd={() => setPlaying(false)} />;
+  return <CourierNative onPlay={() => setPlaying(true)} />;
+}
+
+/** The React Native page. `autoPlay` opens Free Flight at once (default: the ?play=1 param);
+    `onPlayEnd` is told when the game closes (the Swift page's way back). */
+export function CourierRN({ autoPlay: autoPlayProp, onPlayEnd }: { autoPlay?: boolean; onPlayEnd?: () => void } = {}) {
   useLang();
   /* the page under her cover follows the theme (the cover keeps the hour's
      sky, see WrenHome). Its ground stays the accent's palest wash — useP's
@@ -51,6 +83,7 @@ export default function CourierRoom() {
   const P = useP();
   const router = useRouter();
   const params = useLocalSearchParams<{ play?: string }>(); // ?play=1 — from her day off on Me
+  const autoPlay = autoPlayProp ?? params.play === "1";
   const wren = useWrenName();
   const { user, profile } = useAuth();
   const { premium, cofounderNo } = useEntitlement();
@@ -105,6 +138,7 @@ export default function CourierRoom() {
   const onPlayChange = (d: Daylight | null) => {
     if (d && !playSky) scrollRef.current?.scrollTo({ y: 0, animated: true });
     setPlaySky(d);
+    if (!d) onPlayEnd?.();
   };
   const coverSky = PALETTE[playSky ?? daylight()];
   const equip = (a: WrenAccessory) => dress(a);
@@ -171,7 +205,7 @@ export default function CourierRoom() {
           firstClass={firstClass}
           scrollRef={scrollRef}
           onPlayChange={onPlayChange}
-          autoPlay={params.play === "1"}
+          autoPlay={autoPlay}
         />
       </ScrollView>
     </View>

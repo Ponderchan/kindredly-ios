@@ -85,6 +85,25 @@ export {
   type KReaderViewProps,
 } from "./src/Reader";
 
+// Wren's Journey, the courier page (owner, 2026-10-26), in Swift
+export {
+  KCourierView,
+  type KCourierBand,
+  type KCourierCell,
+  type KCourierCover,
+  type KCourierFace,
+  type KCourierFact,
+  type KCourierFirstClass,
+  type KCourierHero,
+  type KCourierKeepsake,
+  type KCourierLog,
+  type KCourierSlip,
+  type KCourierStop,
+  type KCourierStrings,
+  type KCourierTile,
+  type KCourierViewProps,
+} from "./src/Courier";
+
 // step 5, batch 0b: the spike lab (dev only: src/app/dev/step5-lab.tsx)
 export {
   KLabView,

@@ -43,6 +43,7 @@ New
 - Seasons have one remote switch each: the app_surfaces key `halloween` is on with no row (so it works offline); a false row turns the Halloween stamps and looks off. [switch: halloween]
 
 Changed
+- Wren's Journey (her page, from the courier card on Me) is drawn in SwiftUI: the same sky, perch, status band, tracking slip, journey, keepsakes, wardrobe and First Class card, with flatter controls (soft capsules for her stage facts and Track, Play without the black edge) and the two slips lifted on a soft purple shadow. Play still opens Free Flight as before. Nine languages. [binary] [switch: courier]
 - The guides in Wren's room show today's product: courier names and frosted windows instead of mosaics and numbers, signing to trade names, Stamp Press, tomorrow's bag, the two notification switches. Their words are rewritten in all nine languages, and Wren understands questions about pen names, signing and pressing your own stamps in each. [OTA]
 
 ---
