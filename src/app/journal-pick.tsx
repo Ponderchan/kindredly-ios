@@ -11,6 +11,7 @@ import { PF, PFM } from "../theme/post";
 import { BRAND } from "../theme/themes";
 import { useP, useTheme } from "../lib/theme";
 import { leavePicked, takeKept } from "../lib/journal-handoff";
+import { CloseGlyph } from "../components/10a/BackChevron";
 
 /* TO YOURSELF STARTS AT THE PICTURES (owner, 2026-09-20).
    ────────────────────────────────────────────────────────────────────────
@@ -64,7 +65,7 @@ export default function JournalPick() {
   const [frames, setFrames] = useState<Frame[]>([]);
   const [picked, setPicked] = useState<string[]>([]); // asset ids, in the order chosen
   const [busy, setBusy] = useState(false);
-  const [album, setAlbum] = useState<Album>({ id: null, title: t("jp.recent"), count: 0, cover: null });
+  const [album, setAlbum] = useState<Album>({ id: null, title: t("jp.recentRow"), count: 0, cover: null });
   const [albums, setAlbums] = useState<Album[] | null>(null);
   const [albumsOpen, setAlbumsOpen] = useState(false);
   const cursor = useRef<string | undefined>(undefined);
@@ -117,7 +118,7 @@ export default function JournalPick() {
     setAlbumsOpen(false);
     // the first row is the phone's Recents — the same set as "all", read without an album filter
     const id = first ? null : a.id;
-    setAlbum({ ...a, id, title: first ? t("jp.recent") : a.title });
+    setAlbum({ ...a, id, title: first ? t("jp.recentRow") : a.title });
     albumRef.current = id;
     setPicked([]);
     restart();
@@ -303,8 +304,12 @@ export default function JournalPick() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }} edges={["top", "bottom"]}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingLeft: 12, paddingRight: 14, paddingTop: 6, paddingBottom: 10 }}>
-        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/journal"))} hitSlop={10} style={{ width: 34, height: 38, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ ...PFM.mono, fontSize: 17, color: P.ink }}>✕</Text>
+        {/* the head in the composers' sizes (owner, 2026-10-26: "the ✕, the title and Next the same
+            as the letter page"): their × (CloseGlyph, 20 at 2.2) in a 42 box, the title in the
+            system 17 medium of the letter page's title (KTextStyle.secondaryTitle), Next in the
+            system face of a key */}
+        <Pressable accessibilityRole="button" accessibilityLabel={t("wren.trackClose")} onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/journal"))} hitSlop={6} style={{ width: 42, height: 42, alignItems: "center", justifyContent: "center" }}>
+          <CloseGlyph color={P.ink} />
         </Pressable>
         {/* the title is the album menu — the words and the chevron only. It
             used to fill the whole bar between ✕ and NEXT, so a thumb aimed
@@ -312,8 +317,8 @@ export default function JournalPick() {
             (the owner's recording, 2026-09-20). */}
         <View style={{ flex: 1, alignItems: "center" }}>
           <Pressable onPress={() => (albumsOpen ? setAlbumsOpen(false) : void loadAlbums())} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 6, paddingVertical: 8 }}>
-            <Text numberOfLines={1} style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.6, color: P.ink, maxWidth: 200 }}>{album.title.toUpperCase()}</Text>
-            <Svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" style={{ transform: [{ rotate: albumsOpen ? "180deg" : "0deg" }] }}>
+            <Text numberOfLines={1} style={{ fontSize: 17, fontWeight: "500", color: P.ink, maxWidth: 200 }}>{album.title}</Text>
+            <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={P.ink} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" style={{ transform: [{ rotate: albumsOpen ? "180deg" : "0deg" }] }}>
               <Path d="M6 9l6 6 6-6" />
             </Svg>
           </Pressable>
@@ -321,9 +326,9 @@ export default function JournalPick() {
         <Pressable
           onPress={() => void next()}
           disabled={!picked.length || busy}
-          style={{ minWidth: 34, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: picked.length && !busy ? TICK : "transparent", borderWidth: 1.5, borderColor: picked.length && !busy ? TICK : P.ink12 }}
+          style={{ minWidth: 34, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, backgroundColor: picked.length && !busy ? TICK : "transparent", borderWidth: 1.5, borderColor: picked.length && !busy ? TICK : P.ink12 }}
         >
-          <Text style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.2, color: picked.length && !busy ? "#FFFFFF" : P.ink40 }}>
+          <Text style={{ fontSize: 15, fontWeight: "600", color: picked.length && !busy ? "#FFFFFF" : P.ink40 }}>
             {busy ? "…" : picked.length ? `${t(adding ? "jp.add" : "jp.next")} · ${picked.length}` : t(adding ? "jp.add" : "jp.next")}
           </Text>
         </Pressable>

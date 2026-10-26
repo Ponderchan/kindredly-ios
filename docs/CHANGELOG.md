@@ -51,6 +51,7 @@ Changed
 - The guides in Wren's room show today's product: courier names and frosted windows instead of mosaics and numbers, signing to trade names, Stamp Press, tomorrow's bag, the two notification switches. Their words are rewritten in all nine languages, and Wren understands questions about pen names, signing and pressing your own stamps in each. [OTA]
 - The kindred ceremony (when both of you have signed) is drawn natively: the two signed cards, both sealed envelopes lifting at once, the frosted windows clearing onto the faces, the courier names struck through, the signatures drawing in with the pen names, and KINDREDS · date. Reduce Motion fades to the end state; VoiceOver says the outcome when it's done. [binary] [switch: ceremony]
 - On every tab but Today, the + opens an ordinary iOS sheet ("Who's this one for?"): it rises from the bottom, drags down to close, and goes down before the letter or the note page slides in (it used to wander as it opened and slide down over the new page). [binary]
+- The Notes photo roll's head matches the composers: the same ×, the album title in the system font ("Recents", not RECENT), and Next in the system font.
 
 Fixed
 - Allowing photos for the first time on the Notes photo roll shows the roll at once; it used to say "No photos yet." until the app was opened again.
