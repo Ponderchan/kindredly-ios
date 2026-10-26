@@ -112,3 +112,18 @@ export {
   type KLabStrings,
   type KLabViewProps,
 } from "./src/Lab";
+
+// the name-trading ceremony's signed ritual (owner, 2026-10-26; 1.0.7), in Swift, behind the
+// "ceremony" switch (src/components/IntroductionRitualNative.tsx)
+export {
+  KIntroRitualView,
+  KINTRO_RITUAL_HEIGHT,
+  kIntroRitualHeight,
+  type KIntroRitualBeats,
+  type KIntroRitualCrossing,
+  type KIntroRitualFace,
+  type KIntroRitualNotice,
+  type KIntroRitualSide,
+  type KIntroRitualStroke,
+  type KIntroRitualViewProps,
+} from "./src/IntroRitual";

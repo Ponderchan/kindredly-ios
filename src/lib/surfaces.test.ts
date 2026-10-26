@@ -61,7 +61,9 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   ok("the reader's key is there and on", entries.reader === true);
   // the Notes composer (1.0.7, 2026-10-26)
   ok("the Notes composer's key is there and on", entries.journalentry === true);
-  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + 3);
+  // the name-trading ceremony's signed ritual (owner, 2026-10-26; 1.0.7)
+  ok("the ceremony's key is there and on", entries.ceremony === true);
+  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + 4);
 }
 
 /* ── the crash breadcrumb ── */

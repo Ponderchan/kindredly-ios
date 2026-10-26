@@ -27,11 +27,16 @@ import "../data/strings-identity2"; // id2.rp.signature
    and answers the same, and nothing is sent — so the dev pages can show the
    whole flow without filing a report about a thread that doesn't exist. */
 
+/** What was held: a React Native view, or anything that can say where it is in the window the
+    way one does (the SwiftUI ceremony's signature slot, measured through the view holding its
+    Host: components/IntroductionRitualNative). */
+export type HoldAnchor = Pick<View, "measureInWindow">;
+
 export type SignatureHold = {
   /** someone can be reported: offer the long press and the actions */
   can: boolean;
   /** open the card under `anchor` (the view that was held) */
-  open: (anchor?: View | null) => void;
+  open: (anchor?: HoldAnchor | null) => void;
   /** VoiceOver's two choices, or undefined when there is no one to report */
   actions: AccessibilityActionInfo[] | undefined;
   onAction: (e: AccessibilityActionEvent) => void;
@@ -80,7 +85,7 @@ export function useSignatureHold({
   const [top, setTop] = useState<number | undefined>(undefined);
 
   const open = useCallback(
-    (anchor?: View | null) => {
+    (anchor?: HoldAnchor | null) => {
       if (flow.nobody) return;
       if (!anchor) {
         setTop(undefined);
