@@ -699,7 +699,8 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
           key: t("ob2.face.key"),
           later: t("ob2.face.later"),
           random: t("ep.random"),
-          "make.free": t("mf.tag.makeFree"),
+          // two lines at the dot, so the cell's label never starts a line with "·"
+          "make.free": t("mf.tag.makeFree").replace(/\s*·\s*/, "\n"),
           "make.used": t("mf.tag.first"),
           "make.yours": t("mf.tag.yours"),
           "make.a11y": t("mf.entry.a11y"),

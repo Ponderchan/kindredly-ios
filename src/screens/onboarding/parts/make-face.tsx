@@ -24,7 +24,8 @@ export const MAKE_FACE_D = 62;
 
 /** The cell's mono tag for a state, already in the reader's language. */
 export function makeFaceLabel(state: MadeFaceState): string {
-  return state === "yours" ? t("mf.tag.yours") : state === "used" ? t("mf.tag.first") : t("mf.tag.makeFree");
+  // two lines at the dot, so the cell's label never starts a line with "·"
+  return state === "yours" ? t("mf.tag.yours") : state === "used" ? t("mf.tag.first") : t("mf.tag.makeFree").replace(/\s*·\s*/, "\n");
 }
 
 /** The ＋ in pen blue, 24 across. */
