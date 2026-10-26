@@ -124,7 +124,8 @@ export function Chick({
     >
       <Animated.Text maxFontSizeMultiplier={OB_MAX_FONT} style={[sparkStyle, { position: "absolute", top: 0, left: size * 0.32, fontSize: 18, color: OB.blue }]}>♪</Animated.Text>
       <Animated.View style={body}>
-        <WrenBird size={size} mood={face} stage="hatch" form={form} mark={mark} skin="sticker" accessory="none" outlined />
+        {/* no white sticker edge: Wren is only ever drawn as the official, outline-free art (owner) */}
+        <WrenBird size={size} mood={face} stage="hatch" form={form} mark={mark} skin="sticker" accessory="none" />
       </Animated.View>
       {!!holding && <View pointerEvents="none" style={{ position: "absolute", right: 0, bottom: size * 0.08 }}>{holding}</View>}
       {!!tag && (
