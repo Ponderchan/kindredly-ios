@@ -445,6 +445,29 @@ export function WrenHome({
           })}
         </View>
 
+        {/* ── looks & dress: two cells, the pickers unfold beneath (above the keepsakes: owner,
+             2026-10-26 — what she wears is changed often, what she kept is looked back on) ── */}
+        <View style={{ flexDirection: "row", gap: 10, marginTop: 24 }}>
+          <Cell label={tr("wren.looks")} value={skinName(skin)} count={statsReady ? `${looksOwned}/${SKINS.length}` : ""} swatch="#A9D0F2" on={open === "looks"} onPress={() => setOpen(open === "looks" ? null : "looks")} />
+          <Cell label={tr("wren.dress")} value={dressName} count={`${items.filter((a) => a.free || premium).length}/${items.length}`} swatch="#F2887E" on={open === "dress"} onPress={() => setOpen(open === "dress" ? null : "dress")} />
+        </View>
+        {open && (
+          <View style={{ marginTop: 10 }}>
+            <WardrobeRack
+              tone="post"
+              show={open}
+              headers={false}
+              skin={skin}
+              accessory={accessory}
+              stats={stats}
+              premium={premium}
+              onLook={(id) => tapSkin(id)}
+              onDress={(id, unlocked) => (unlocked ? onEquip(id) : onLocked())}
+              plusHint={tr("wren.a11y.plusHint")}
+            />
+          </View>
+        )}
+
         {/* ── keepsakes: what she kept from journeys that really happened ── */}
         {shelf.length > 0 && (
           <>
@@ -469,28 +492,6 @@ export function WrenHome({
               })}
             </View>
           </>
-        )}
-
-        {/* ── looks & dress: two cells, the pickers unfold beneath ── */}
-        <View style={{ flexDirection: "row", gap: 10, marginTop: 24 }}>
-          <Cell label={tr("wren.looks")} value={skinName(skin)} count={statsReady ? `${looksOwned}/${SKINS.length}` : ""} swatch="#A9D0F2" on={open === "looks"} onPress={() => setOpen(open === "looks" ? null : "looks")} />
-          <Cell label={tr("wren.dress")} value={dressName} count={`${items.filter((a) => a.free || premium).length}/${items.length}`} swatch="#F2887E" on={open === "dress"} onPress={() => setOpen(open === "dress" ? null : "dress")} />
-        </View>
-        {open && (
-          <View style={{ marginTop: 10 }}>
-            <WardrobeRack
-              tone="post"
-              show={open}
-              headers={false}
-              skin={skin}
-              accessory={accessory}
-              stats={stats}
-              premium={premium}
-              onLook={(id) => tapSkin(id)}
-              onDress={(id, unlocked) => (unlocked ? onEquip(id) : onLocked())}
-              plusHint={tr("wren.a11y.plusHint")}
-            />
-          </View>
         )}
 
         {/* ── the door to First Class: the 4a card, the same one Me and Settings

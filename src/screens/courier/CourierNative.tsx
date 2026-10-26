@@ -40,7 +40,7 @@ function useSameContent<T>(value: T): T {
 }
 
 export function CourierNative({ onPlay }: { onPlay: () => void }) {
-  const { key: theme } = useTheme();
+  const { key: theme, dark } = useTheme();
   const letterFont = useLetterFont();
   const insets = useScreenInsets();
   const ref = useRef<KScreenHandle>(null);
@@ -122,7 +122,9 @@ export function CourierNative({ onPlay }: { onPlay: () => void }) {
 
   return (
     <>
-      {focused && underSky && <StatusBar style={m.night ? "light" : "dark"} />}
+      {/* over the sky: the sky's own bar (light at night); past it, the page's (Swift paints the strip
+          lav2 there, 2026-10-26: the clock stayed white on it) */}
+      {focused && <StatusBar style={underSky ? (m.night ? "light" : "dark") : dark ? "light" : "dark"} />}
       <SurfaceHost>
         <KCourierView
           ref={commands.ref}

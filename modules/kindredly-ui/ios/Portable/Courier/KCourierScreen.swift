@@ -313,6 +313,8 @@ public struct KCourierScreen: View {
   @State private var logOpen = false
   @State private var tracking = false
   @State private var rack: KCourierCell.Key?
+  /// the page has scrolled past the cover: the status strip wears the page's colour
+  @State private var pastCover = false
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -346,10 +348,22 @@ public struct KCourierScreen: View {
       }
     }
     .scrollIndicators(.hidden)
+    // the status strip: clear over the cover (the sky runs under the clock), the page's colour
+    // once the page has scrolled past it, so the band and the cards never slide under the clock
+    // (they did, 2026-10-26: "Waiting on your first letter" over 11:57)
+    .overlay(alignment: .top) {
+      theme.lav2
+        .frame(height: topInset)
+        .opacity(pastCover ? 1 : 0)
+        .animation(.easeOut(duration: 0.15), value: pastCover)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
     .background(theme.lav2.ignoresSafeArea())
     .onScrollGeometryChange(for: Bool.self) { g in
       g.contentOffset.y + g.contentInsets.top < Self.coverHeight + topInset / 2
     } action: { _, under in
+      pastCover = !under
       actions.onUnderSky(under)
     }
   }
@@ -484,12 +498,8 @@ public struct KCourierScreen: View {
       KCourierJourney(theme: theme, stops: content.journey)
         .padding(.top, 12)
 
-      // ── keepsakes: what she kept from journeys that really happened ──
-      if !content.keepsakes.isEmpty {
-        keepsakes.padding(.top, 24)
-      }
-
-      // ── looks & dress: two cells, the rack unfolds beneath ──
+      // ── looks & dress: two cells, the rack unfolds beneath (above the keepsakes: owner,
+      // 2026-10-26 — what she wears is changed often, what she kept is looked back on) ──
       HStack(alignment: .top, spacing: 10) {
         ForEach(content.cells) { cell in
           KCourierCellButton(theme: theme, cell: cell, on: rack == cell.key, expanded: content.strings.expanded, collapsed: content.strings.collapsed) {
@@ -505,6 +515,11 @@ public struct KCourierScreen: View {
         KCourierRack(theme: theme, show: open, looks: content.looks, dress: content.dress, actions: actions)
           .padding(.top, 10)
           .transition(.opacity)
+      }
+
+      // ── keepsakes: what she kept from journeys that really happened ──
+      if !content.keepsakes.isEmpty {
+        keepsakes.padding(.top, 24)
       }
 
       // ── the door to First Class: the 4a card Me and Settings show ──
