@@ -171,8 +171,8 @@ struct KChatTray: View {
       .padding(.horizontal, 14 + 2)
       .padding(.vertical, 10)
       .frame(maxWidth: .infinity, minHeight: Self.cardHeight, maxHeight: .infinity, alignment: .leading)
+      // no ink outline (owner, 2026-10-26: "黑边还是有点丑"): the mood's fill alone is the card
       .background(shape.fill(fill))
-      .overlay(shape.strokeBorder(theme.ln, lineWidth: 2))
       .contentShape(shape)
     }
     .buttonStyle(KChatCardPress())

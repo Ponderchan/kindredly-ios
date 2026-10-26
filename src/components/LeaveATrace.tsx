@@ -367,13 +367,13 @@ function PlayCard({ trace, onPick }: { trace: KChatTrace; onPick: (key: string) 
       style={({ pressed }) => ({
         flex: 1,
         minHeight: PLAY_TRAY.card,
-        borderWidth: 2,
-        borderColor: tk.ln,
+        // no ink outline (owner, 2026-10-26: "黑边还是有点丑"): the mood's fill alone is the card,
+        // as KChatTray draws it; the 2 it took stays as padding so nothing inside moves
         borderRadius: 18,
         backgroundColor: playCardFill(tk, trace.tint),
         // padding 0 14 inside the 2 outline; a little top and bottom keeps a long translation off it
-        paddingHorizontal: 14,
-        paddingVertical: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
         flexDirection: "row",
         alignItems: "center",
         gap: 12,
