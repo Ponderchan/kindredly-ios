@@ -14,7 +14,8 @@ import { strings } from "../lib/i18n";
    - nc.plus: VoiceOver on the ＋;
    - nc.oneKind: VoiceOver's value on a card the page can't take (a page holds one kind);
    - nc.moodFirst: VoiceOver's hint on the seal key before a mood is chosen (the key then opens the
-     faces: the calendar is made of them);
+     faces: the calendar is made of them). ja/ko polite (ます / 요) like every other VoiceOver hint
+     and sc.moodHint, whose second half it repeats; only Wren's own lines are casual;
    - nc.editor: VoiceOver's name for the writing field.
 
    One file, nine blocks (en es pt id fr de it ja ko — pt is pt-BR), every block with the same keys:
@@ -52,7 +53,7 @@ strings(
     "nc.audio": "Áudio",
     "nc.plus": "Adicionar foto, vídeo ou áudio",
     "nc.oneKind": "Cada página leva um tipo só",
-    "nc.moodFirst": "Escolha antes um humor: é por ele que você vai reencontrar este dia.",
+    "nc.moodFirst": "Escolha um humor primeiro: é assim que você reencontra este dia.",
     "nc.editor": "Sua página",
   },
   /* ── id · Bahasa Indonesia ── */
@@ -84,7 +85,7 @@ strings(
     "nc.video": "Video",
     "nc.audio": "Sprachnotiz",
     "nc.plus": "Foto, Video oder Sprachnotiz hinzufügen",
-    "nc.oneKind": "Eine Seite, eine Art",
+    "nc.oneKind": "Pro Seite nur eine Art",
     "nc.moodFirst": "Wähl zuerst eine Stimmung – daran findest du diesen Tag wieder.",
     "nc.editor": "Deine Seite",
   },
@@ -107,7 +108,7 @@ strings(
     "nc.audio": "音声",
     "nc.plus": "写真・動画・音声を追加",
     "nc.oneKind": "1ページに1種類まで",
-    "nc.moodFirst": "先に気分を選んでね。この日をまた見つける目印になるよ。",
+    "nc.moodFirst": "先に気分を選んでください。この日をあとで見つける手がかりになります。",
     "nc.editor": "自分のページ",
   },
   /* ── ko · 한국어 ── */
@@ -118,7 +119,7 @@ strings(
     "nc.audio": "음성",
     "nc.plus": "사진, 동영상, 음성 추가",
     "nc.oneKind": "한 페이지에 한 종류만",
-    "nc.moodFirst": "먼저 기분을 골라 줘. 이날을 다시 찾는 표시가 돼.",
+    "nc.moodFirst": "먼저 기분을 골라 주세요. 나중에 이 날을 다시 찾는 단서가 돼요.",
     "nc.editor": "내 페이지",
   },
 );
