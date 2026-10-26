@@ -161,12 +161,22 @@ public struct KCourierStop: Equatable, Sendable, Identifiable {
   /// its day ("SEP 20 · NOW"), what gets her there, or ""
   public let sub: String
   public let state: State
+  /// her form at this stage (the caller's snapshot: hatchling, fledgling, grown)
+  public let bird: KImageRef?
+  /// the next stop only: your letters toward it, of `of` (0 = no count), and that in words
+  public let done: Int
+  public let of: Int
+  public let progress: String
 
-  public init(id: String, name: String, sub: String, state: State) {
+  public init(id: String, name: String, sub: String, state: State, bird: KImageRef? = nil, done: Int = 0, of: Int = 0, progress: String = "") {
     self.id = id
     self.name = name
     self.sub = sub
     self.state = state
+    self.bird = bird
+    self.done = done
+    self.of = of
+    self.progress = progress
   }
 }
 
@@ -1183,64 +1193,138 @@ struct KPillarsGlyph: View {
 
 /// The journey: one line, three stops (done: an ink dot; now: the pen dot ringed in lav; ahead: a
 /// mute ring), and under them each stop's name and its day or what gets her there.
+/// THE JOURNEY: SHE GROWS (owner, 2026-10-26, option A of three; it was three dots on a line).
+/// Her three forms side by side, each at its own size on one ground line, so the row shows her
+/// growing: the stages she has reached in colour (the one she is at bobbing gently), the ones
+/// ahead as soft silhouettes, like a collection not yet filled. Under each, its name and day (or
+/// what gets her there); under the next one, five envelopes for your letters toward it, lit as
+/// you write, and that count in words — yours only, since growing up also needs the other side.
+/// Reduce Motion: no bob. VoiceOver reads each stop as one element.
 struct KCourierJourney: View {
   let theme: KTheme
   let stops: [KCourierStop]
 
-  var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      HStack(spacing: 0) {
-        ForEach(Array(stops.enumerated()), id: \.element.id) { i, stop in
-          dot(stop.state)
-          if i < stops.count - 1 {
-            Rectangle()
-              .fill(stop.state == .done ? theme.ink : theme.lav)
-              .frame(height: 2)
-              .padding(.horizontal, 4)
-              .frame(maxWidth: .infinity)
-          }
-        }
-      }
-      .frame(height: 16)
-      .accessibilityHidden(true)
-      HStack(alignment: .top, spacing: 4) {
-        ForEach(Array(stops.enumerated()), id: \.element.id) { i, stop in
-          let align: HorizontalAlignment = i == 0 ? .leading : i == stops.count - 1 ? .trailing : .center
-          let text: TextAlignment = i == 0 ? .leading : i == stops.count - 1 ? .trailing : .center
-          VStack(alignment: align, spacing: 3) {
-            Text(stop.name)
-              .kText(.system(13, .bold))
-              .foregroundStyle(stop.state == .now ? theme.ind : stop.state == .done ? theme.ink : theme.mute)
-              .multilineTextAlignment(text)
-            if !stop.sub.isEmpty {
-              Text(stop.sub)
-                .kText(.mono(9.5, .medium, tracking: 0.084))
-                .foregroundStyle(theme.mute)
-                .multilineTextAlignment(text)
-                .fixedSize(horizontal: false, vertical: true)
-            }
-          }
-          .frame(maxWidth: .infinity, alignment: Alignment(horizontal: align, vertical: .top))
-          .accessibilityElement(children: .combine)
-          .accessibilityAddTraits(stop.state == .now ? .isSelected : [])
-        }
-      }
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  /// the art row's height: the grown bird's size, so every form stands on the same line
+  static let slot: CGFloat = 92
+  /// each stage's size, as the snapshots are taken (lib/bird-images STAGE_SIZE)
+  static func size(_ id: String) -> CGFloat {
+    switch id {
+    case "hatch": return 60
+    case "fledge": return 72
+    default: return 92
     }
   }
 
-  @ViewBuilder
-  private func dot(_ state: KCourierStop.State) -> some View {
-    switch state {
-    case .now:
-      Circle()
-        .fill(theme.ind)
-        .overlay(Circle().strokeBorder(theme.lav, lineWidth: 3))
-        .frame(width: 16, height: 16)
-    case .done:
-      Circle().fill(theme.ink).frame(width: 12, height: 12)
-    case .later:
-      Circle().strokeBorder(theme.mute, lineWidth: 1.5).frame(width: 12, height: 12)
+  var body: some View {
+    HStack(alignment: .top, spacing: 6) {
+      ForEach(stops) { stop in
+        column(stop)
+          .frame(maxWidth: .infinity)
+      }
     }
+    .background(alignment: .top) {
+      // the ground they stand on
+      Capsule()
+        .fill(theme.lav)
+        .frame(height: 2)
+        .padding(.top, Self.slot)
+        .padding(.horizontal, 2)
+        .accessibilityHidden(true)
+    }
+  }
+
+  private func column(_ stop: KCourierStop) -> some View {
+    VStack(spacing: 6) {
+      art(stop)
+        .frame(height: Self.slot, alignment: .bottom)
+        .padding(.bottom, 1)
+      Text(stop.name)
+        .kText(.system(15, .bold))
+        .foregroundStyle(stop.state == .later ? theme.mute : theme.ink)
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
+      if stop.of > 1 {
+        KCourierPips(theme: theme, done: stop.done, of: stop.of)
+      }
+      if !stop.sub.isEmpty {
+        Text(stop.sub)
+          .kText(.mono(9, .medium, tracking: 0.1))
+          .foregroundStyle(stop.state == .now ? theme.ind : theme.mute)
+          .multilineTextAlignment(.center)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+      if !stop.progress.isEmpty {
+        Text(stop.progress)
+          .kText(.mono(9, .medium, tracking: 0.1))
+          .foregroundStyle(theme.mute)
+          .multilineTextAlignment(.center)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+    }
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel([stop.name, stop.sub, stop.progress].filter { !$0.isEmpty }.joined(separator: ", "))
+    .accessibilityAddTraits(stop.state == .now ? .isSelected : [])
+  }
+
+  @ViewBuilder
+  private func art(_ stop: KCourierStop) -> some View {
+    let s = Self.size(stop.id)
+    let bird = KImage(stop.bird, size: CGSize(width: s, height: s), contentMode: .fit, placeholder: .clear)
+      .frame(width: s, height: s)
+    switch stop.state {
+    case .later:
+      // not yet: her shape only, in the page's soft purple
+      KObjectDepth.color(for: theme)
+        .opacity(0.55)
+        .frame(width: s, height: s)
+        .mask(bird)
+    case .now:
+      if reduceMotion {
+        bird
+      } else {
+        bird.phaseAnimator([0.0, -5.0]) { view, lift in
+          view.offset(y: lift)
+        } animation: { _ in
+          .easeInOut(duration: 1.2)
+        }
+      }
+    case .done:
+      bird
+    }
+  }
+}
+
+/// Your letters toward the next stage: an envelope each, lit (pen blue, the flap in white) for
+/// the ones written, an outline for the rest.
+struct KCourierPips: View {
+  let theme: KTheme
+  let done: Int
+  let of: Int
+
+  var body: some View {
+    HStack(spacing: 3) {
+      ForEach(0..<min(of, 8), id: \.self) { i in
+        let on = i < done
+        let shape = RoundedRectangle(cornerRadius: 2, style: .circular)
+        ZStack {
+          if on {
+            shape.fill(theme.ind)
+          } else {
+            shape.strokeBorder(KObjectDepth.color(for: theme), lineWidth: 1.4)
+          }
+          Path { p in
+            p.move(to: CGPoint(x: 2, y: 2))
+            p.addLine(to: CGPoint(x: 6, y: 5.2))
+            p.addLine(to: CGPoint(x: 10, y: 2))
+          }
+          .stroke(on ? theme.bg : KObjectDepth.color(for: theme), style: StrokeStyle(lineWidth: 1.2, lineCap: .round, lineJoin: .round))
+        }
+        .frame(width: 12, height: 9)
+      }
+    }
+    .accessibilityHidden(true)
   }
 }
 

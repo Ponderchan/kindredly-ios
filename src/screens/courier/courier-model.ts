@@ -54,6 +54,9 @@ export type CourierFacts = {
   wren: string;
   /** stageInfo(stats, floor).stage */
   stage: WrenStage;
+  /** stageInfo(stats, floor).next.progress: your side of the way to the next stage ([letters, of]),
+      null when there is no next stage or nothing to count */
+  next: readonly [number, number] | null;
   /** the counts are in: nothing counted is shown as a number before */
   statsReady: boolean;
   /** stats.day, kindreds, lettersSent */
@@ -169,7 +172,7 @@ export type CourierVM = {
   name: string;
   kindLine: string;
   facts: { icon: CourierFactIcon; text: string }[];
-  journey: { id: WrenStage; name: string; sub: string; state: CourierStopState }[];
+  journey: CourierStop[];
   keepsakes: { id: string; name: string; evidence: string; fresh: boolean; a11y: string }[];
   cells: { key: "looks" | "dress"; label: string; value: string; count: string; swatch: string }[];
   rack: { looks: CourierRackTile[]; dress: CourierRackTile[] };
@@ -222,7 +225,9 @@ export function stageDay(st: WrenStage, dates: Partial<Record<WrenStage, string>
 export function stageFacts(f: Pick<CourierFacts, "stage" | "dates" | "joinedAt" | "carried" | "lettersSent" | "kindreds">, fmt: Pick<CourierFormat, "t" | "day">): CourierVM["facts"] {
   const { t } = fmt;
   const d = stageDay(f.stage, f.dates, f.joinedAt, fmt.day);
-  if (f.stage === "hatch") return [{ icon: "date", text: d ? t("wren.pill.hatched", { date: d }) : t("wren.pill.hatchedNoDate") }, { icon: "next", text: t("wren.pill.toFledge") }];
+  // the day only: "1 letter to fledge" was one fixed sentence for every hatchling (owner, 2026-10-26:
+  // numbers must be true); the journey below counts the real way there
+  if (f.stage === "hatch") return [{ icon: "date", text: d ? t("wren.pill.hatched", { date: d }) : t("wren.pill.hatchedNoDate") }];
   if (f.stage === "fledge") return [{ icon: "date", text: d ? t("wren.pill.flying", { date: d }) : t("wren.pill.flyingNoDate") }, { icon: "next", text: t("wren.pill.toGrow") }];
   if (f.stage === "wren") {
     const journeys = f.carried.length + f.lettersSent;
@@ -234,8 +239,22 @@ export function stageFacts(f: Pick<CourierFacts, "stage" | "dates" | "joinedAt" 
   return [];
 }
 
-/** The journey's three stops: a date when the day is known, what gets her there when it's ahead. */
-export function journeyStops(f: Pick<CourierFacts, "stage" | "dates" | "joinedAt">, fmt: Pick<CourierFormat, "t" | "day">): CourierVM["journey"] {
+/** One stop of the journey, drawn as her form at that stage (owner, 2026-10-26: "she grows"). */
+export type CourierStop = {
+  id: "hatch" | "fledge" | "wren";
+  name: string;
+  /** its day ("SEP 20 · NOW"), what gets her there, or "" */
+  sub: string;
+  state: CourierStopState;
+  /** the next stop only: your letters toward it (done of `of`), and that said in words; of 0 = no count */
+  done: number;
+  of: number;
+  progress: string;
+};
+
+/** The journey's three stops: a date when the day is known, what gets her there when it's ahead,
+    and on the next one your real count toward it (never the other person's part). */
+export function journeyStops(f: Pick<CourierFacts, "stage" | "dates" | "joinedAt"> & Partial<Pick<CourierFacts, "next">>, fmt: Pick<CourierFormat, "t" | "day">): CourierVM["journey"] {
   const { t } = fmt;
   const cur = STAGE_INDEX[f.stage];
   const NAME: Record<WrenStage, string> = { egg: t("wren.name.egg"), hatch: t("wren.name.hatch"), fledge: t("wren.name.fledge"), wren: t("wren.name.grown") };
@@ -245,7 +264,11 @@ export function journeyStops(f: Pick<CourierFacts, "stage" | "dates" | "joinedAt
     const d = state !== "later" ? stageDay(st, f.dates, f.joinedAt, fmt.day) : null;
     // a passed stop with no date says nothing
     const sub = d ? `${d}${state === "now" ? ` · ${t("wren.now")}` : ""}` : state === "later" ? t(`wren.milestone.${st}`) : "";
-    return { id: st, name: NAME[st], sub, state };
+    // the count belongs to the next stop, and only when there is more than one thing to count
+    const counted = idx === cur + 1 && f.next && f.next[1] > 1 ? f.next : null;
+    const done = counted ? Math.max(0, Math.min(counted[0], counted[1])) : 0;
+    const of = counted ? counted[1] : 0;
+    return { id: st as CourierStop["id"], name: NAME[st], sub, state, done, of, progress: counted ? t("wren.journey.yours", { n: done, m: of }) : "" };
   });
 }
 

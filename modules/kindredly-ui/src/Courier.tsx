@@ -78,7 +78,9 @@ export type KCourierBand = { show: boolean; line: string; sub: string; bringing:
 export type KCourierSlip = { rows: string[]; lit: boolean; threadId: string };
 export type KCourierLog = { rows: string[]; line: string };
 export type KCourierFact = { icon: "letter" | "kindred" | "date" | "next"; text: string };
-export type KCourierStop = { id: string; name: string; sub: string; state: "done" | "now" | "later" };
+/** A journey stop: her form at that stage (bird), and on the next stop your count toward it
+    (done of `of`, and in words; of 0 = none). */
+export type KCourierStop = { id: string; name: string; sub: string; state: "done" | "now" | "later"; bird: KImageRefProps; done: number; of: number; progress: string };
 export type KCourierKeepsake = { id: string; name: string; evidence: string; fresh: boolean; a11y: string; icon: KImageRefProps };
 export type KCourierCell = { key: "looks" | "dress"; label: string; value: string; count: string; swatch: string };
 export type KCourierTile = { id: string; label: string; lock: string; hint: string; on: boolean; bird: KImageRefProps };

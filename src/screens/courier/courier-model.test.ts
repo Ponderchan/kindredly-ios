@@ -146,7 +146,7 @@ ok("starving: wilt", heroOf({ ...base, hungry: { mood: "sleepy", line: "hg", wil
 /* ── the stage's facts and the journey ── */
 {
   const hatch = stageFacts(base, fmt);
-  ok("hatched: the day you joined, and what fledges her", hatch[0].text === "wren.pill.hatched:day(2026-10-14)" && hatch[1].icon === "next");
+  ok("hatched: the day you joined, and no fixed count (2026-10-26)", hatch[0].text === "wren.pill.hatched:day(2026-10-14)" && hatch.length === 1);
   ok("fledged with no date: Flying", stageFacts({ ...base, stage: "fledge" }, fmt)[0].text === "wren.pill.flyingNoDate");
   const grown = stageFacts({ ...base, stage: "wren", kindreds: 1 }, fmt);
   ok("grown: journeys counted (carried + sent), one kindred", grown[0].text === "wren.pill.carried:3" && grown[1].text === "wren.pill.kindredOne");
@@ -158,6 +158,13 @@ ok("starving: wilt", heroOf({ ...base, hungry: { mood: "sleepy", line: "hg", wil
   ok("the stop she's at says NOW", stops[1].sub === "day(2026-10-20) · wren.now");
   ok("a stop ahead says what gets her there", stops[2].sub === "wren.milestone.wren");
   ok("a passed stop with no date says nothing", journeyStops({ ...base, stage: "wren", joinedAt: null }, fmt)[1].sub === "");
+  // the count (owner, 2026-10-26): on the next stop only, yours, clamped
+  const counted = journeyStops({ ...base, stage: "hatch", next: [4, 5] }, fmt);
+  ok("the next stop counts your letters", counted[1].done === 4 && counted[1].of === 5 && counted[1].progress === "wren.journey.yours:4,5");
+  ok("no count on the stop she's at or the one after", counted[0].of === 0 && counted[2].of === 0 && counted[2].progress === "");
+  ok("a count past its end is held at the end", journeyStops({ ...base, stage: "hatch", next: [9, 5] }, fmt)[1].done === 5);
+  ok("one thing to do is no count", journeyStops({ ...base, stage: "egg", next: [0, 1] }, fmt)[0].of === 0);
+  ok("grown: nothing ahead, nothing counted", journeyStops({ ...base, stage: "wren", next: null }, fmt).every((s) => s.of === 0));
 }
 
 /* ── the wardrobe ── */

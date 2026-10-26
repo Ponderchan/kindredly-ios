@@ -25,7 +25,7 @@ import ExpoUI
  - hero: { mood, faces: [{ mood, bird }], state, stage, wilt, label }
  - band: { show, line, sub, bringing }; slip: { rows, lit, threadId }; log: { rows, line }
  - name, kindLine, facts: [{ icon (letter | kindred | date | next), text }]
- - journey: [{ id, name, sub, state (done | now | later) }]
+ - journey: [{ id, name, sub, state (done | now | later), bird, done, of, progress }]
  - keepsakes: [{ id, name, evidence, fresh, a11y, icon }]
  - cells: [{ key (looks | dress), label, value, count, swatch }]
  - looks, dress: [{ id, label, lock, hint, on, bird }]
@@ -203,6 +203,10 @@ struct KCourierStopRecord: Record {
   @Field var name: String = ""
   @Field var sub: String = ""
   @Field var state: String = "later"
+  @Field var bird: KImageRefRecord = KImageRefRecord()
+  @Field var done: Int = 0
+  @Field var of: Int = 0
+  @Field var progress: String = ""
 }
 
 struct KCourierKeepsakeRecord: Record {
@@ -301,7 +305,10 @@ final class KCourierViewProps: KScreenProps {
       var seenStops = Set<String>()
       c.journey = journey.compactMap { s in
         guard !s.id.isEmpty, seenStops.insert(s.id).inserted else { return nil }
-        return KCourierStop(id: s.id, name: s.name, sub: s.sub, state: KCourierStop.State(rawValue: s.state) ?? .later)
+        return KCourierStop(
+          id: s.id, name: s.name, sub: s.sub, state: KCourierStop.State(rawValue: s.state) ?? .later,
+          bird: s.bird.ref, done: max(0, s.done), of: max(0, s.of), progress: s.progress
+        )
       }
       var seenK = Set<String>()
       c.keepsakes = keepsakes.compactMap { k in

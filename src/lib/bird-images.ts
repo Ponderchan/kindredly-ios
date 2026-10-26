@@ -56,7 +56,8 @@ export type BirdPose =
   | "fcHero"
   // the courier page in Swift (screens/courier): her perch and her wardrobe rack
   | HeroPose
-  | RackPose;
+  | RackPose
+  | StagePose;
 
 /* THE COURIER PAGE (/courier in Swift, 2026-10-26). Her perch draws her at the
    React Native perch's 186 in every face she can make there (her whereabouts'
@@ -79,6 +80,12 @@ const RACK_ACCESSORIES = Object.keys(ACCESSORY_SET) as WrenAccessory[];
 export type HeroPose = `hero-${WrenMood}` | `hero-${WrenMood}-bare`;
 export type RackPose = `rack-skin-${WrenSkin}` | `rack-acc-${WrenAccessory}`;
 
+/* THE JOURNEY (owner, 2026-10-26, "she grows"): her three grown-up forms on the courier page,
+   each at its own size so the row shows her growing; in her coat, wearing nothing, content. */
+export type StagePose = `stage-${"hatch" | "fledge" | "wren"}`;
+export const stagePose = (stage: "hatch" | "fledge" | "wren"): StagePose => `stage-${stage}`;
+const STAGE_SIZE = { hatch: 60, fledge: 72, wren: 92 } as const;
+
 /** The perch's picture for a face: in her look, or bare (accessory pinned to none). */
 export const heroPose = (mood: WrenMood, bare: boolean): HeroPose => (bare ? `hero-${mood}-bare` : `hero-${mood}`);
 /** A looks tile: this coat, wearing what she has on. */
@@ -97,7 +104,8 @@ const COURIER_POSES = Object.fromEntries([
   ]),
   ...RACK_SKINS.map((skin) => [rackSkinPose(skin), { size: RACK_SIZE, mood: "happy", skin }]),
   ...RACK_ACCESSORIES.map((accessory) => [rackAccessoryPose(accessory), { size: RACK_SIZE, mood: "happy", accessory }]),
-]) as Record<HeroPose | RackPose, BirdPoseSpec>;
+  ...(["hatch", "fledge", "wren"] as const).map((stage) => [stagePose(stage), { size: STAGE_SIZE[stage], mood: "content", stage, accessory: "none" }]),
+]) as Record<HeroPose | RackPose | StagePose, BirdPoseSpec>;
 
 /** What a pose draws. Anything pinned overrides the user's look; the rest is hers. */
 export type BirdPoseSpec = {

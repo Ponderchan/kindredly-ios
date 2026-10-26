@@ -18,6 +18,7 @@ import { useLetterFamily, useLetterFont, useP, useTheme } from "../lib/theme";
 import { THEMES } from "../theme/themes";
 import { useHatchlingForm } from "../lib/hatchling-form";
 import { WrenBird, type WrenAccessory, type WrenMood, type WrenPose, type WrenSkin, type WrenStage } from "./WrenBird";
+import "../data/strings-journey"; // wren.journey.yours
 import { CourierStage } from "./CourierStage";
 import { StateGlyph } from "./StateGlyph";
 import { FreeFlight, PillarsGlyph } from "./FreeFlightGame";
@@ -200,7 +201,8 @@ export function WrenHome({
   const journeys = carried.length + stats.lettersSent;
   const stageFacts = (st: WrenStage): { icon: "letter" | "kindred" | "date" | "next"; text: string }[] => {
     const d = dateFor(st);
-    if (st === "hatch") return [{ icon: "date", text: d ? tr("wren.pill.hatched", { date: d }) : tr("wren.pill.hatchedNoDate") }, { icon: "next", text: tr("wren.pill.toFledge") }];
+    // the day only (2026-10-26): "1 letter to fledge" was a fixed sentence; the journey counts the real way
+    if (st === "hatch") return [{ icon: "date", text: d ? tr("wren.pill.hatched", { date: d }) : tr("wren.pill.hatchedNoDate") }];
     if (st === "fledge") return [{ icon: "date", text: d ? tr("wren.pill.flying", { date: d }) : tr("wren.pill.flyingNoDate") }, { icon: "next", text: tr("wren.pill.toGrow") }];
     if (st === "wren") return [{ icon: "letter", text: tr("wren.pill.carried", { n: journeys }) }, { icon: "kindred", text: stats.kindreds === 1 ? tr("wren.pill.kindredOne") : tr("wren.pill.kindreds", { n: stats.kindreds }) }];
     return [];
@@ -410,36 +412,37 @@ export function WrenHome({
         )}
 
 
-        {/* ── the journey: ONE line, three stops, the days they really turned ── */}
+        {/* ── the journey: she grows (owner, 2026-10-26, option A; it was three dots on a line).
+             Her three forms side by side on one ground line, each at its own size: reached in
+             colour, ahead faint; the next one counts your letters toward it (KCourierJourney is
+             the Swift page's; this is the fallback's simpler drawing — faint, not a silhouette) ── */}
         <Text style={{ ...PFM.monoSemi, fontSize: 9.5, letterSpacing: 1.6, color: P.ink40, marginTop: 24 }}>{tr("wren.journeyShort")}</Text>
-        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 12 }}>
-          {JOURNEY.map((st, i) => {
-            const cur = stageIndex(info.stage);
-            const idx = stageIndex(st);
-            const st8 = idx < cur ? "done" : idx === cur ? "now" : "later";
-            return (
-              <View key={st} style={{ flexDirection: "row", alignItems: "center", flex: i < JOURNEY.length - 1 ? 1 : 0 }}>
-                <View style={{ width: st8 === "now" ? 16 : 12, height: st8 === "now" ? 16 : 12, borderRadius: 999, backgroundColor: st8 === "later" ? "transparent" : st8 === "now" ? P.pen : P.ink, borderWidth: st8 === "later" ? 1.5 : st8 === "now" ? 3 : 0, borderColor: st8 === "now" ? T.lav : P.ink40 }} />
-                {i < JOURNEY.length - 1 && <View style={{ flex: 1, height: 2, backgroundColor: idx < cur ? P.ink : T.lav, marginHorizontal: 4 }} />}
-              </View>
-            );
-          })}
-        </View>
-        <View style={{ flexDirection: "row", marginTop: 8 }}>
+        <View style={{ flexDirection: "row", marginTop: 12 }}>
+          <View style={{ position: "absolute", left: 2, right: 2, top: 92, height: 2, borderRadius: 1, backgroundColor: T.lav }} />
           {JOURNEY.map((st, i) => {
             const cur = stageIndex(info.stage);
             const idx = stageIndex(st);
             const st8 = idx < cur ? "done" : idx === cur ? "now" : "later";
             const d = st8 !== "later" ? dateFor(st) : null;
+            const size = st === "hatch" ? 60 : st === "fledge" ? 72 : 92;
+            const counted = idx === cur + 1 && statsReady && info.next?.progress && info.next.progress[1] > 1 ? info.next.progress : null;
+            const done = counted ? Math.min(counted[0], counted[1]) : 0;
+            const sub = d ? `${d}${st8 === "now" ? ` · ${tr("wren.now")}` : ""}` : st8 === "later" ? milestones[st] : "";
             return (
-              <View key={st} style={{ flex: 1, alignItems: i === 0 ? "flex-start" : i === JOURNEY.length - 1 ? "flex-end" : "center" }}>
-                <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 13, color: st8 === "now" ? P.pen : st8 === "done" ? P.ink : P.ink40 }}>{STAGE_NAME[st]}</Text>
-                {/* a date when the day is known; for a stop still ahead, what gets her there; a passed stop with no date says nothing */}
-                {(d || st8 === "later") && (
-                  <Text style={{ ...PFM.mono, fontSize: 9.5, letterSpacing: 0.8, color: P.ink40, marginTop: 3, textAlign: i === 0 ? "left" : i === JOURNEY.length - 1 ? "right" : "center" }}>
-                    {d ? `${d}${st8 === "now" ? ` · ${tr("wren.now")}` : ""}` : milestones[st]}
-                  </Text>
+              <View key={st} accessible accessibilityLabel={[STAGE_NAME[st], sub, counted ? tr("wren.journey.yours", { n: done, m: counted[1] }) : ""].filter(Boolean).join(", ")} style={{ flex: 1, alignItems: "center", gap: 6 }}>
+                <View style={{ height: 92, justifyContent: "flex-end", opacity: st8 === "later" ? 0.28 : 1 }}>
+                  <WrenBird size={size} stage={st} mood="content" accessory="none" />
+                </View>
+                <Text style={{ fontFamily: PF.letter, fontWeight: "700", fontSize: 15, color: st8 === "later" ? P.ink40 : P.ink }}>{STAGE_NAME[st]}</Text>
+                {counted && (
+                  <View style={{ flexDirection: "row", gap: 3 }}>
+                    {Array.from({ length: counted[1] }, (_, k) => (
+                      <View key={k} style={{ width: 12, height: 9, borderRadius: 2, backgroundColor: k < done ? P.pen : "transparent", borderWidth: k < done ? 0 : 1.4, borderColor: "#C9C4F2" }} />
+                    ))}
+                  </View>
                 )}
+                {!!sub && <Text style={{ ...PFM.mono, fontSize: 9, letterSpacing: 0.9, color: st8 === "now" ? P.pen : P.ink40, textAlign: "center" }}>{sub}</Text>}
+                {counted && <Text style={{ ...PFM.mono, fontSize: 9, letterSpacing: 0.9, color: P.ink40, textAlign: "center" }}>{tr("wren.journey.yours", { n: done, m: counted[1] })}</Text>}
               </View>
             );
           })}

@@ -6,7 +6,8 @@ import { KCourierView, type KCourierFace, type KCourierFirstClass, type KCourier
 import { SurfaceHost } from "../../components/NativeSurface";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
-import { heroPose, rackAccessoryPose, rackSkinPose, useBirdImageRef, useBirdImageRefs } from "../../lib/bird-images";
+import { heroPose, rackAccessoryPose, rackSkinPose, stagePose, useBirdImageRef, useBirdImageRefs } from "../../lib/bird-images";
+import "../../data/strings-journey"; // wren.journey.yours
 import { imageRecord, useAssetImageRefs } from "../../lib/images";
 import type { WrenMood } from "../../components/WrenBird";
 import { DOZE_MOOD, DROP_MOOD, HELD_MOOD, TAP_MOODS } from "./courier-model";
@@ -79,7 +80,10 @@ export function CourierNative({ onPlay }: { onPlay: () => void }) {
   const slip = useSameContent(view.slip);
   const log = useSameContent(view.log);
   const facts = useSameContent(view.facts);
-  const journey = useSameContent(view.journey);
+  /* the journey's three forms (owner, 2026-10-26: "she grows"), in her coat */
+  const stagePoses = useMemo(() => view.journey.map((s) => stagePose(s.id)), [view.journey]);
+  const stageBirds = useBirdImageRefs(stagePoses);
+  const journey = useSameContent(view.journey.map((s, i) => ({ ...s, bird: imageRecord(stageBirds[stagePoses[i]]) })));
   const keepsakes = useSameContent(
     useMemo(() => view.keepsakes.map<KCourierKeepsake>((k) => ({ ...k, icon: imageRecord(icons[k.id]) })), [view.keepsakes, icons]),
   );

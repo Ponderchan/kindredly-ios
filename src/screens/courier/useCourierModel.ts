@@ -187,6 +187,8 @@ export function useCourierModel(): CourierModel {
       {
         wren,
         stage: info.stage,
+        // nothing counted is shown as a number before the counts are in
+        next: statsReady ? (info.next?.progress ?? null) : null,
         statsReady,
         day: stats.day,
         kindreds: stats.kindreds,
