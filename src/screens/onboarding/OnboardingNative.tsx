@@ -174,12 +174,14 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
   const [switchState, setSwitchState] = useState({ busy: false, bad: false });
   const addressDone = useRef(false);
   const alive = useRef(true);
-  useEffect(
-    () => () => {
+  // set on every mount too: a re-run effect (Fast Refresh, Strict Mode) otherwise left it false for
+  // good and a sign-in never landed (its spinner stayed on; seen 2026-10-27)
+  useEffect(() => {
+    alive.current = true;
+    return () => {
       alive.current = false;
-    },
-    [],
-  );
+    };
+  }, []);
   /* a side opened or closed, or a screen changed: the fold starts over, as React Native's remounts it */
   useEffect(() => {
     setFold(FOLD0);

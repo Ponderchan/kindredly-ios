@@ -76,12 +76,14 @@ export function SignInSheet({ props }: { props: ObScreenProps }) {
   const [err, setErr] = useState<string | null>(null);
   const scroll = useRef<ScrollView>(null);
   const alive = useRef(true);
-  useEffect(
-    () => () => {
+  // set on every mount too: a re-run effect (Fast Refresh, Strict Mode) otherwise left it false for
+  // good and a sign-in never landed (its spinner stayed on; seen 2026-10-27)
+  useEffect(() => {
+    alive.current = true;
+    return () => {
       alive.current = false;
-    },
-    [],
-  );
+    };
+  }, []);
 
   const rise = useSharedValue(reduce ? 0 : 1);
   const dim = useSharedValue(reduce ? 1 : 0);
