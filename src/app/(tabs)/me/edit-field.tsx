@@ -12,6 +12,8 @@ import { P } from "../../../theme/post";
 import { FIELD_SPECS, checkField, fieldKind } from "../../../screens/edit-profile/edit-profile-model";
 import { dangerInk } from "../../../screens/settings/settings-model";
 import "../../../data/strings-step5-settings";
+import { NativeSurface } from "../../../components/NativeSurface";
+import { EditFieldNative } from "../../../screens/settings/EditFieldNative";
 
 /* ONE FIELD, ON ITS OWN PAGE (10a step 5, P:310): your pen name
    (/me/edit-field?f=pen) or your courier's (?f=courier), from Edit profile
@@ -28,7 +30,21 @@ import "../../../data/strings-step5-settings";
    prompt took 18 and lost two). A renamed courier re-stamps the morning
    knock, which is signed with her name. A pen name the account didn't take
    is said (it stays on the phone, and the next save carries it up). */
+/* 2026-10-27 ("make Me all Swift"): the one-field page is drawn in Swift
+   (screens/settings/EditFieldNative, KEditFieldView), with the React Native page
+   below as the remote switch's fallback ("editfield" in app_surfaces,
+   NativeSurface in mount mode). */
 export default function EditFieldScreen() {
+  const { t: tk } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <NativeSurface surface="editfield" view="KEditFieldView" mode="mount" native={() => <EditFieldNative />} fallback={() => <EditFieldRN />} />
+    </View>
+  );
+}
+
+/* the React Native page, unchanged */
+function EditFieldRN() {
   useLang();
   const { f } = useLocalSearchParams<{ f?: string }>();
   const kind = fieldKind(f);

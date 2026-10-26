@@ -54,6 +54,9 @@ export type BirdPose =
   | "lookGhost"
   | "lookWorn"
   | "fcHero"
+  // Write to us in Swift (screens/settings/WriteToUsNative): her listening at the opener, delighted when it went
+  | "listen24"
+  | "delight64"
   // the courier page in Swift (screens/courier): her perch and her wardrobe rack
   | HeroPose
   | RackPose
@@ -161,6 +164,12 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
   lookWorn: { size: 48, mood: "content", stage: "wren" },
   // the Swift paywall's hero: the grown bird flying, at 4a's 120, in her look
   fcHero: { size: 120, mood: "content", fly: true, stage: "wren" },
+  /* Write to us in Swift: the React Native page's WrenBird beside the opener
+     (24, listen) and over the sent page (64, delight), her look and stage.
+     Not base: captured only while that page asks. Help and the keepsake
+     page draw the base content bird (56) at their 26 and 24. */
+  listen24: { size: 24, mood: "listen" },
+  delight64: { size: 64, mood: "delight" },
   // the courier page's perch and rack (see COURIER_POSES above)
   ...COURIER_POSES,
 };

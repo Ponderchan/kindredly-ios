@@ -13,6 +13,8 @@ import { sendSupportLetter } from "../../../lib/db";
 import { fieldBox } from "../../../lib/field";
 import { dangerInk, footerVersion } from "../../../screens/settings/settings-model";
 import { versionFacts } from "../../../screens/settings/useSettingsModel";
+import { NativeSurface } from "../../../components/NativeSurface";
+import { WriteToUsNative } from "../../../screens/settings/WriteToUsNative";
 
 /* WRITE TO US — the contact form, refusing to be a contact form.
    ────────────────────────────────────────────────────────────────────────
@@ -35,7 +37,21 @@ import { versionFacts } from "../../../screens/settings/useSettingsModel";
 
 const VERSION = footerVersion(versionFacts());
 
+/* 2026-10-27 ("make Me all Swift"): Write to us is drawn in Swift
+   (screens/settings/WriteToUsNative, KWriteToUsView), with the React Native page
+   below as the remote switch's fallback ("writetous" in app_surfaces,
+   NativeSurface in mount mode). */
 export default function WriteToUs() {
+  const { t: tk } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <NativeSurface surface="writetous" view="KWriteToUsView" mode="mount" native={() => <WriteToUsNative />} fallback={() => <WriteToUsRN />} />
+    </View>
+  );
+}
+
+/* the React Native page, unchanged */
+function WriteToUsRN() {
   useLang();
   const { t: tk, dark } = useTheme();
   const safe = useSafeAreaInsets();

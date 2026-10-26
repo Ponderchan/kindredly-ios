@@ -12,6 +12,8 @@ import { dShort } from "../lib/format";
 import { SecondaryHeader } from "../components/10a/SecondaryHeader";
 import { keepsakeA11y } from "../screens/me/me-model";
 import "../data/strings-step5-me";
+import { NativeSurface } from "../components/NativeSurface";
+import { KeepsakesNative } from "../screens/keepsakes/KeepsakesNative";
 
 /* EVERYTHING SHE KEPT — the whole shelf, newest first, three to a row.
    The room shows the latest three and Me the latest two; "All N →" and Me's
@@ -27,7 +29,21 @@ import "../data/strings-step5-me";
    outline the same tiles wear on the courier page (WrenHome: 5.9:1 on bg;
    faint is the disabled colour), and the two pages agree. */
 
+/* 2026-10-27 ("make Me all Swift"): the shelf is drawn in Swift
+   (screens/keepsakes/KeepsakesNative, KKeepsakesView), with the React
+   Native page below as the remote switch's fallback ("keepsakes" in
+   app_surfaces, NativeSurface in mount mode). */
 export default function Keepsakes() {
+  const { t: tk } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <NativeSurface surface="keepsakes" view="KKeepsakesView" mode="mount" native={() => <KeepsakesNative />} fallback={() => <KeepsakesRN />} />
+    </View>
+  );
+}
+
+/* the React Native page, unchanged */
+function KeepsakesRN() {
   useLang();
   const router = useRouter();
   const { t: tk, dark } = useTheme();

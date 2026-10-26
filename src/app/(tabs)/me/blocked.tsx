@@ -17,6 +17,8 @@ import { useWhoBook } from "../../../lib/who";
 import { blockedRows } from "../../../screens/settings/blocked-model";
 import "../../../data/strings-step5-settings";
 import "../../../data/strings-a11y-sheets";
+import { NativeSurface } from "../../../components/NativeSurface";
+import { BlockedNative } from "../../../screens/settings/BlockedNative";
 
 /* Blocked & reported — the settings row that used to be a dead label.
    ────────────────────────────────────────────────────────────────────────
@@ -50,7 +52,21 @@ import "../../../data/strings-a11y-sheets";
 
 type Load = "loading" | "ok" | "failed";
 
+/* 2026-10-27 ("make Me all Swift"): Blocked & reported is drawn in Swift
+   (screens/settings/BlockedNative, KBlockedView), with the React Native page
+   below as the remote switch's fallback ("blocked" in app_surfaces,
+   NativeSurface in mount mode). */
 export default function BlockedScreen() {
+  const { t: tk } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <NativeSurface surface="blocked" view="KBlockedView" mode="mount" native={() => <BlockedNative />} fallback={() => <BlockedRN />} />
+    </View>
+  );
+}
+
+/* the React Native page, unchanged */
+function BlockedRN() {
   useLang();
   const { t: tk } = useTheme();
   const safe = useSafeAreaInsets();

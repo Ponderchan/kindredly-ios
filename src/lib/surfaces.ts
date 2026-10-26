@@ -145,6 +145,19 @@ import {
                   screens/onboarding holds the run, and the React Native
                   Onboarding2 stays what people see while this is off
 
+   The last Me pages (owner, 2026-10-27: "make Me all Swift"), each keeping
+   its React Native page the same way:
+
+     keepsakes    the whole shelf (keepsakes) — KKeepsakesView
+     keepsake     one keepsake (keepsake/[id]) — KKeepsakeView
+     mykindreds   My kindreds (my-kindreds) — KMyKindredsView, redrawn: only
+                  the kindreds, as signed cards (the React Native page still
+                  lists the pen pals too)
+     editfield    one field on its own page (me/edit-field) — KEditFieldView
+     blocked      Blocked & reported (me/blocked) — KBlockedView
+     help         How Kindredly works (me/help) — KHelpView
+     writetous    Write to us (me/write-to-us) — KWriteToUsView
+
    A kindred's page and Wren's desk stay React Native and have no key. */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
@@ -168,10 +181,18 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   makeface: false,
   // deliberately off: shipped dark in 1.2.6, switched on by a row after device testing
   onboarding: false,
+  // the last Me pages (owner, 2026-10-27: "make Me all Swift")
+  keepsakes: true,
+  keepsake: true,
+  mykindreds: true,
+  editfield: true,
+  blocked: true,
+  help: true,
+  writetous: true,
 };
 
-/** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page and the onboarding (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding";
+/** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding and the last Me pages (the `surface` prop of NativeSurface) */
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */

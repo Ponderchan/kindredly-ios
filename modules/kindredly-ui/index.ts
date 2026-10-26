@@ -179,6 +179,36 @@ export {
   type KMakeFaceViewProps,
 } from "./src/MakeFace";
 
+// the last Me pages (owner, 2026-10-27: "make Me all Swift"), each behind its own switch
+export {
+  KKeepsakeView,
+  KKeepsakesView,
+  type KKeepsakeStrings,
+  type KKeepsakeTile,
+  type KKeepsakeViewProps,
+  type KKeepsakesStrings,
+  type KKeepsakesViewProps,
+} from "./src/Keepsakes";
+export {
+  KMyKindredsView,
+  type KMyKindredCard,
+  type KMyKindredsState,
+  type KMyKindredsStrings,
+  type KMyKindredsViewProps,
+} from "./src/MyKindreds";
+export { KEditFieldView, type KEditFieldCommands, type KEditFieldStrings, type KEditFieldViewProps } from "./src/EditField";
+export {
+  KBlockedView,
+  nativeBlockedRow,
+  type KBlockedFace,
+  type KBlockedRow,
+  type KBlockedState,
+  type KBlockedStrings,
+  type KBlockedViewProps,
+} from "./src/Blocked";
+export { KHelpView, type KHelpItem, type KHelpStrings, type KHelpViewProps } from "./src/Help";
+export { KWriteToUsView, type KWriteToUsCommands, type KWriteToUsStrings, type KWriteToUsViewProps } from "./src/WriteToUs";
+
 // step 5, batch 0b: the spike lab (dev only: src/app/dev/step5-lab.tsx)
 export {
   KLabView,
