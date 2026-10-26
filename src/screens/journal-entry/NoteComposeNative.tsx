@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, type RefObject } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, type RefObject } from "react";
 import { View, useWindowDimensions } from "react-native";
 import { KIsland, useKCommands, useRev, type KInsets, type KScreenHandle, type KThemeKey, type LetterFontKey } from "../../../modules/kindredly-ui";
 import {
@@ -16,8 +16,6 @@ import { WrenBird } from "../../components/WrenBird";
 import { Recorder } from "../../components/Recorder";
 import { AudioCard } from "../../components/AudioCard";
 import { FrameViewer, type SelfComposeState } from "../../components/SelfCompose";
-import { CourierSendOff } from "../../components/CourierSendOff";
-import { P } from "../../theme/post";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
 import { localeTag } from "../../lib/format";
@@ -61,7 +59,7 @@ export function NoteComposeNative({
 }: {
   text: string;
   setText: (t: string) => void;
-  /** after the send-off: back to Notes */
+  /** after the seal moment: back to Notes */
   onDone: () => void;
   /** the ✕ (the route's leave guard asks first) */
   onClose: () => void;
@@ -90,6 +88,25 @@ export function NoteComposeNative({
   live.current = state.act;
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
+  /* SEALED: Swift plays the seal moment (KNoteSealMoment, ~2.2s) and says when it is over. Back to
+     Notes once, on its word, or 4s after the seal if no word came (said, not silent). */
+  const doneRef = useRef(onDone);
+  doneRef.current = onDone;
+  const left = useRef(false);
+  const leave = useCallback(() => {
+    if (left.current) return;
+    left.current = true;
+    doneRef.current();
+  }, []);
+  useEffect(() => {
+    if (!state.sealed) return;
+    const id = setTimeout(() => {
+      if (left.current) return;
+      console.warn("[note-compose] the seal moment never said it was over; going back to Notes anyway");
+      leave();
+    }, 4000);
+    return () => clearTimeout(id);
+  }, [state.sealed, leave]);
   const act = useMemo(
     () => ({
       close: () => closeRef.current(),
@@ -105,8 +122,9 @@ export function NoteComposeNative({
       wren: () => live.current.wren(),
       recorded: (uri: string, s: number) => live.current.recorded(uri, s),
       clearRecording: () => live.current.clearRecording(),
+      sealEnd: () => leave(),
     }),
-    [],
+    [leave],
   );
 
   const date = new Date().toLocaleString(localeTag(), { month: "short", day: "numeric" }).toLowerCase();
@@ -121,6 +139,9 @@ export function NoteComposeNative({
     sealLabel: t("sc.seal"),
     sealingLabel: t("sc.sealing"),
     sealHint: t("nc.moodFirst"),
+    // "KEPT · OCT 26": the send-off's own word, without its full stop, and the page's date
+    keptLine: `${t("so.kept").replace(/[.。!！]+$/u, "")} · ${date}`.toLocaleUpperCase(localeTag()),
+    keptSpoken: t("so.kept"),
     coverHint: t("sc.coverHint"),
     removeVideo: t("sc.a11y.removeVideo"),
   });
@@ -162,17 +183,6 @@ export function NoteComposeNative({
   );
 
   const seal = sealAction({ hasSomething: state.hasSomething, busy: state.busy, sealed: state.sealed, mood: state.mood });
-
-  /* SEALED: the live app's send-off, as the React Native page plays it (components/SelfCompose):
-     the seal presses in, the desk opens a slot, the page sinks into it, then back to Notes. The
-     design's veil ("Sealed. Just for you.") was dropped for it (owner, 2026-10-26). */
-  if (state.sealed) {
-    return (
-      <View style={{ flex: 1, backgroundColor: P.paper }}>
-        <CourierSendOff keep onDone={onDone} />
-      </View>
-    );
-  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -228,6 +238,7 @@ type Act = {
   wren: () => void;
   recorded: (uri: string, s: number) => void;
   clearRecording: () => void;
+  sealEnd: () => void;
 };
 
 type SurfaceProps = {
@@ -297,6 +308,7 @@ const NoteSurface = memo(function NoteSurface(p: SurfaceProps) {
         onRemoveMedia={act.removeMedia}
         onSeal={act.seal}
         onWren={act.wren}
+        onSealEnd={act.sealEnd}
       >
         {/* every island on every render, in this order (Slot.tsx) */}
         <KIsland name="wren" style={{ width: 30, height: 30 }}>

@@ -35,6 +35,7 @@ import ExpoUI
  - onNotePickGroup { group } · onNotePickFace { id }
  - onNoteCard { kind } · onNoteThumb { index } · onNoteRemoveMedia {}
  - onNoteSeal { text } (the words as typed) · onNoteWren {}
+ - onNoteSealEnd {} — the seal moment has played (sealed true): go back to Notes
 
  Unknown enum strings fall back rather than fail (a panel this binary doesn't know is none; a
  group is Calm). This file imports ExpoUI, so no bare Button / Text / Image / Label is written here.
@@ -51,6 +52,8 @@ struct KNoteComposeStringsRecord: Record {
   @Field var sealLabel: String = ""
   @Field var sealingLabel: String = ""
   @Field var sealHint: String = ""
+  @Field var keptLine: String = ""
+  @Field var keptSpoken: String = ""
   @Field var coverHint: String = ""
   @Field var removeVideo: String = ""
 
@@ -66,6 +69,8 @@ struct KNoteComposeStringsRecord: Record {
     s.sealLabel = sealLabel
     s.sealingLabel = sealingLabel
     s.sealHint = sealHint
+    s.keptLine = keptLine
+    s.keptSpoken = keptSpoken
     s.coverHint = coverHint
     s.removeVideo = removeVideo
     return s
@@ -138,6 +143,7 @@ final class KNoteComposeViewProps: KScreenProps {
   var onNoteRemoveMedia = EventDispatcher()
   var onNoteSeal = EventDispatcher()
   var onNoteWren = EventDispatcher()
+  var onNoteSealEnd = EventDispatcher()
 
   /// The field: as long-lived as the view, like `commands`.
   let driver = KNoteComposeDriver()
@@ -159,6 +165,7 @@ final class KNoteComposeViewProps: KScreenProps {
     a.onRemoveMedia = { [weak self] in self?.onNoteRemoveMedia() }
     a.onSeal = { [weak self] text in self?.onNoteSeal(["text": text]) }
     a.onWren = { [weak self] in self?.onNoteWren() }
+    a.onSealEnd = { [weak self] in self?.onNoteSealEnd() }
     return a
   }()
 

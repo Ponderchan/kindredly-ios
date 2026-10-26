@@ -48,11 +48,12 @@ import SwiftUI
          Mono 9 at .14em, sub; the chosen face ringed 2 in the panel's own face colour and 2 in
          the group's deep colour around it. A group tap chooses it and keeps the panel open; a
          face tap chooses it and closes the panel (TS).
- - THE SEAL MOMENT is not drawn here: once the page is sealed TS takes this view away and plays
-   the live app's send-off in its place (components/CourierSendOff, keep: the seal presses in,
-   the desk opens a slot and the page sinks into it), then goes back to Notes. The design's veil
-   ("Sealed. Just for you.") was built and dropped the same day (owner, 2026-10-26: keep the
-   live version's animation).
+ - THE SEAL MOMENT (owner, 2026-10-26, option A of three: "the mood is the seal"): the page's
+   head, words and bar fade, and the page becomes a card that folds in half; the chosen mood's
+   face drops onto the fold as a seal, with a tap of haptics; "KEPT · OCT 26" comes up under it;
+   then the note goes down and small into today, and onSealEnd takes the reader back to Notes,
+   where the new card pops in. KNoteSealMoment, at the end of this file. (Before it: the design's
+   "Sealed. Just for you." veil, then the live app's CourierSendOff, both the same day.)
 
  THE KEYBOARD is KComposePage's (the page sits in a Host that keeps the keyboard's safe area, so
  the stack is shortened by it and the bar rides its top; whether it is up is the difference of two
@@ -187,6 +188,10 @@ public struct KNoteComposeStrings: Equatable, Sendable {
   public var sealingLabel = ""
   /// VoiceOver's hint on the seal key while the page has no mood yet
   public var sealHint = ""
+  /// under the sealed note, mono capitals as TS sends them ("KEPT · OCT 26")
+  public var keptLine = ""
+  /// what VoiceOver says once the page is sealed ("Kept.")
+  public var keptSpoken = ""
   /// under two photos or more: the first is the cover
   public var coverHint = ""
   /// VoiceOver: the film's ✕
@@ -222,7 +227,7 @@ public struct KNoteComposeContent: Equatable, Sendable {
   public var hasSomething = false
   /// the page is being sealed
   public var busy = false
-  /// sealed: TS is about to take the page away for the send-off; nothing more can be touched
+  /// sealed: the seal moment plays over the page (KNoteSealMoment), then onSealEnd
   public var sealed = false
   /// no mood yet: the seal key's VoiceOver hint says so
   public var needsMood = false
@@ -261,6 +266,8 @@ public final class KNoteComposeActions {
   public var onRemoveMedia: () -> Void = {}
   /// SEAL IT HERE, with the words as typed
   public var onSeal: (String) -> Void = { _ in }
+  /// the seal moment has played: back to Notes
+  public var onSealEnd: () -> Void = {}
   /// Wren's row: her next line
   public var onWren: () -> Void = {}
 
@@ -361,6 +368,14 @@ public struct KNoteComposePage<Wren: View, Recorder: View>: View {
     }
     .animation(motion, value: showPanel)
     .animation(motion, value: content.panel)
+    // sealed: the page steps back for the seal moment
+    .opacity(content.sealed ? 0 : 1)
+    .animation(.easeOut(duration: 0.22).delay(0.12), value: content.sealed)
+    .overlay {
+      if content.sealed {
+        KNoteSealMoment(theme: theme, mood: content.mood, line: content.strings.keptLine, spoken: content.strings.keptSpoken, onEnd: actions.onSealEnd)
+      }
+    }
     .background { theme.bg.ignoresSafeArea() }
     .background {
       GeometryReader { geo in
@@ -970,5 +985,189 @@ struct KNotePath: Shape {
     let s = min(rect.width, rect.height) / 24
     let place = CGAffineTransform(a: s, b: 0, c: 0, d: s, tx: rect.midX - 12 * s, ty: rect.midY - 12 * s)
     return KSVGPath.path(d).applying(place)
+  }
+}
+
+// MARK: - the seal moment
+
+/// THE SEAL MOMENT (owner, 2026-10-26, option A of three: "the mood is the seal"). Over the page's
+/// own ground, in about two seconds:
+/// - the page becomes a card (sf with a line hairline, corners of 14, rule B's hard shadow), at
+///   most 280 wide and 160 tall, rising to the middle at .85, its words as four faint lines (.38s,
+///   cubic-bezier(.3,1,.3,1)) — a note, not the whole page (the full width read as a flat bar);
+/// - it folds in half: the top half swings down over the bottom one about the middle (.36s);
+/// - the mood's face drops onto the folded note as a seal (46 round: the mood's fill, a 3 ring
+///   of the page ground, the face 26 in its ink, the object's shadow), squashing as it lands,
+///   with a medium impact; the note gives 3pt under it;
+/// - the line ("KEPT · OCT 26", mono 9 at .16em, mute) comes up 18 below;
+/// - after a breath, the note, its seal and the line go down 210 and to .4 as they fade (.42s,
+///   an ease-in), and onEnd.
+/// Reduce Motion: the sealed note and the line are simply there, then fade; VoiceOver hears the
+/// spoken line once the seal is down. Nothing here can be touched.
+struct KNoteSealMoment: View {
+  let theme: KTheme
+  let mood: KNoteChosenMood?
+  let line: String
+  let spoken: String
+  let onEnd: () -> Void
+
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @State private var step = Step.page
+  @State private var sealedBeat = false
+
+  enum Step: Int, Comparable {
+    case page, card, folded, sealed, away
+    static func < (a: Step, b: Step) -> Bool { a.rawValue < b.rawValue }
+  }
+
+  /// the card before it folds
+  static let cardWidth: CGFloat = 280
+  static let cardHeight: CGFloat = 160
+  static let seal: CGFloat = 46
+
+  var body: some View {
+    GeometryReader { geo in
+      // a note, not the whole page: at most 280 wide (238 once it has drawn back to .85)
+      let width = min(geo.size.width - 36, Self.cardWidth)
+      let folded = step >= .folded
+      ZStack {
+        VStack(spacing: 18) {
+          note(width: width)
+          Text(line)
+            .kText(.mono(9, .medium, tracking: 0.16))
+            .foregroundStyle(theme.mute)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .opacity(step >= .sealed ? 1 : 0)
+            .offset(y: step >= .sealed ? 0 : 4)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.26).delay(0.12), value: step)
+        }
+        .scaleEffect(step == .away ? 0.4 : 1)
+        .offset(y: step == .away ? 210 : 0)
+        .opacity(step == .away ? 0 : 1)
+        // the card rises from where the words were (a little above the middle, at full width);
+        // folded, only its bottom half shows, so it moves up a quarter to stay in the middle
+        .offset(y: step == .page ? -geo.size.height * 0.18 : (folded ? -Self.cardHeight / 4 : 0))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+      }
+    }
+    .ignoresSafeArea()
+    .allowsHitTesting(true)
+    .contentShape(Rectangle())
+    .sensoryFeedback(.impact(weight: .medium), trigger: sealedBeat)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(spoken)
+    .task { await play() }
+  }
+
+  /// The card, folding; the seal on it once it has.
+  private func note(width: CGFloat) -> some View {
+    let half = Self.cardHeight / 2
+    let folded = step >= .folded
+    let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+    return ZStack(alignment: .top) {
+      // the bottom half, with the last two lines of the words
+      VStack(alignment: .leading, spacing: 9) {
+        bar(0.86)
+        bar(0.54)
+      }
+      .padding(.horizontal, 16)
+      .padding(.top, 14)
+      .frame(width: width, height: half, alignment: .topLeading)
+      .background(shape.fill(theme.sf))
+      // a hairline so the paper reads on a page of its own colour (rule B: no ink edge)
+      .overlay(shape.strokeBorder(theme.line, lineWidth: 1))
+      .kObjectDepth(shape, theme: theme)
+      .offset(y: half)
+      // the top half, swinging down over it about the fold
+      VStack(alignment: .leading, spacing: 9) {
+        bar(0.92)
+        bar(0.78)
+      }
+      .padding(.horizontal, 16)
+      .padding(.top, 16)
+      .frame(width: width, height: half, alignment: .topLeading)
+      .background(shape.fill(theme.sf))
+      .overlay {
+        // the outside of the fold is plain paper: the lines go as it turns past upright
+        shape.fill(theme.sf).opacity(folded ? 1 : 0)
+      }
+      .overlay(shape.strokeBorder(theme.line, lineWidth: 1))
+      .rotation3DEffect(.degrees(folded ? -180 : 0), axis: (x: 1, y: 0, z: 0), anchor: .bottom, perspective: 0.5)
+      // the seal on the folded note
+      if step >= .sealed || reduceMotion && folded {
+        sealView
+          .offset(y: half + half / 2 - (Self.seal + 6) / 2)
+          .transition(reduceMotion ? .opacity : .asymmetric(insertion: .modifier(active: KSealDrop(on: false), identity: KSealDrop(on: true)), removal: .identity))
+      }
+    }
+    .frame(width: width, height: Self.cardHeight, alignment: .top)
+    .scaleEffect(step == .page ? 1 : 0.85)
+    .opacity(step == .page ? 0 : 1)
+    // the note gives a little under the seal
+    .offset(y: sealedBeat ? 3 : 0)
+    .animation(.spring(response: 0.16, dampingFraction: 0.5), value: sealedBeat)
+  }
+
+  private var sealView: some View {
+    ZStack {
+      Circle().fill(mood?.group.mood.fill ?? theme.lav2)
+      if let mood {
+        KNoteFace(group: mood.group, artKey: mood.artKey, path: mood.path, size: 26, stroke: 2)
+      } else {
+        KNotePadlock(filled: false, color: theme.ink)
+          .frame(width: 20, height: 20)
+      }
+    }
+    .frame(width: Self.seal, height: Self.seal)
+    .padding(3)
+    .background(Circle().fill(theme.bg))
+    .kObjectDepth(Circle(), theme: theme, offset: 3)
+  }
+
+  private func bar(_ fraction: CGFloat) -> some View {
+    GeometryReader { g in
+      Capsule().fill(theme.line).frame(width: g.size.width * fraction, height: 4)
+    }
+    .frame(height: 4)
+  }
+
+  private func play() async {
+    if reduceMotion {
+      withAnimation(.easeOut(duration: 0.2)) { step = .folded }
+      step = .sealed
+      AccessibilityNotification.Announcement(spoken).post()
+      try? await Task.sleep(for: .milliseconds(1100))
+      withAnimation(.easeOut(duration: 0.25)) { step = .away }
+      try? await Task.sleep(for: .milliseconds(280))
+      onEnd()
+      return
+    }
+    try? await Task.sleep(for: .milliseconds(160))
+    withAnimation(.timingCurve(0.3, 1, 0.3, 1, duration: 0.38)) { step = .card }
+    try? await Task.sleep(for: .milliseconds(400))
+    withAnimation(.timingCurve(0.5, 0, 0.3, 1, duration: 0.36)) { step = .folded }
+    try? await Task.sleep(for: .milliseconds(380))
+    withAnimation(.timingCurve(0.5, 0, 0.6, 1.4, duration: 0.3)) { step = .sealed }
+    try? await Task.sleep(for: .milliseconds(230))
+    sealedBeat = true
+    AccessibilityNotification.Announcement(spoken).post()
+    try? await Task.sleep(for: .milliseconds(160))
+    sealedBeat = false
+    try? await Task.sleep(for: .milliseconds(620))
+    withAnimation(.timingCurve(0.6, 0, 0.8, 0.6, duration: 0.42)) { step = .away }
+    try? await Task.sleep(for: .milliseconds(440))
+    onEnd()
+  }
+}
+
+/// The seal coming down onto the note: from 40 above at 1.7 and clear, to its place.
+private struct KSealDrop: ViewModifier {
+  let on: Bool
+  func body(content: Content) -> some View {
+    content
+      .scaleEffect(on ? 1 : 1.7)
+      .offset(y: on ? 0 : -40)
+      .opacity(on ? 1 : 0)
   }
 }

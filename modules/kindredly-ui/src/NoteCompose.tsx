@@ -41,6 +41,10 @@ export type KNoteComposeStrings = {
   sealingLabel: string;
   /** VoiceOver's hint on the seal key while no mood is chosen */
   sealHint: string;
+  /** under the sealed note, display-ready mono capitals ("KEPT · OCT 26") */
+  keptLine: string;
+  /** what VoiceOver says once the page is sealed ("Kept.") */
+  keptSpoken: string;
   coverHint: string;
   /** VoiceOver: the film's ✕ */
   removeVideo: string;
@@ -88,6 +92,8 @@ export type KNoteComposeViewProps = CommonViewModifierProps &
     onRemoveMedia?: () => void;
     onSeal?: (text: string) => void;
     onWren?: () => void;
+    /** the seal moment has played (after sealed turned true): back to Notes */
+    onSealEnd?: () => void;
     /** the two <KIsland>s, "wren" then "recorder", every render (Slot.tsx) */
     children?: ReactNode;
   };
@@ -110,6 +116,7 @@ type NativeProps = Omit<
   | "onRemoveMedia"
   | "onSeal"
   | "onWren"
+  | "onSealEnd"
 > &
   Required<Pick<KNoteComposeViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
@@ -124,6 +131,7 @@ type NativeProps = Omit<
     onNoteRemoveMedia?: Ev<Record<string, never>>;
     onNoteSeal?: Ev<{ text: string }>;
     onNoteWren?: Ev<Record<string, never>>;
+    onNoteSealEnd?: Ev<Record<string, never>>;
   };
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
@@ -142,7 +150,7 @@ const NativeKNoteComposeView = requireNativeView<NativeProps>("KindredlyUI", "KN
 
 /** The bare SwiftUI page. Only inside an @expo/ui <Host>; its ref takes commands. */
 export const KNoteComposeView = forwardRef<KScreenHandle, KNoteComposeViewProps>(function KNoteComposeView(
-  { modifiers, letterFont, insets, rev, groups, thumbs, onClose, onTextChange, onFieldFocus, onPanel, onPickGroup, onPickFace, onCard, onThumb, onRemoveMedia, onSeal, onWren, ...rest },
+  { modifiers, letterFont, insets, rev, groups, thumbs, onClose, onTextChange, onFieldFocus, onPanel, onPickGroup, onPickFace, onCard, onThumb, onRemoveMedia, onSeal, onWren, onSealEnd, ...rest },
   ref,
 ) {
   const groupsSent = useMemo(() => nativeNoteGroups(groups), [groups]);
@@ -179,6 +187,7 @@ export const KNoteComposeView = forwardRef<KScreenHandle, KNoteComposeViewProps>
       onNoteRemoveMedia={onRemoveMedia ? () => onRemoveMedia() : undefined}
       onNoteSeal={onSeal ? (e) => onSeal(e.nativeEvent.text) : undefined}
       onNoteWren={onWren ? () => onWren() : undefined}
+      onNoteSealEnd={onSealEnd ? () => onSealEnd() : undefined}
     />
   );
 });
