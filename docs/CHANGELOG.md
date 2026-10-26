@@ -43,6 +43,7 @@ New
 - Seasons have one remote switch each: the app_surfaces key `halloween` is on with no row (so it works offline); a false row turns the Halloween stamps and looks off. [switch: halloween]
 
 Changed
+- The Writing Aura room (Portrait, Dimensions, Habits) and its share card are drawn natively: the same words and counts, smoother paging through the nine dimensions, native sheets, and the share card's picture made on the phone. The Aura card (on Me and in the room) loses its outline and stands on a soft purple shadow; its "Write your first letter" button is a filled pen-blue capsule and its share key a soft one. [binary] [switch: aura, auracard]
 - The guides in Wren's room show today's product: courier names and frosted windows instead of mosaics and numbers, signing to trade names, Stamp Press, tomorrow's bag, the two notification switches. Their words are rewritten in all nine languages, and Wren understands questions about pen names, signing and pressing your own stamps in each. [OTA]
 
 ---

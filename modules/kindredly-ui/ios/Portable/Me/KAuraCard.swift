@@ -16,11 +16,17 @@ import SwiftUI
  - the well: the count glyphs in ind and faint (five ticks while letters lead to the first
    label; then three slots for the labels a name needs, and the strongest label's five slips)
    and the caption, mono 500 10 at .06em, mute;
- - the call to action (ink, the page colour's system 600 14, padding 12, corners 14, full
-   width) and, once named, a 48-wide share key (sf, 2 ln, corners 14).
+ - the call to action and, once named, a 48-wide share key.
  The top of the card (everything above the buttons) is one button that opens the aura room,
  one VoiceOver element reading the label, the title, where it came from, the labels and the
  count.
+
+ VISUAL RULE B (owner, 2026-10-26). The card is a physical object: the sf face, corners 24, no
+ ink edge, standing on the shared hard purple shadow (.kObjectDepth, Portable/Kit/
+ KObjectDepth.swift); the 2.5 the old outline took stays as padding, so the inside (and the art
+ island TS sizes from it, auraArtWidth) is unchanged. Its controls are flat: the call to action
+ is a pen capsule (ind, the page colour's system 600 14, padding 12) and the share key a soft
+ one (lav, the glyph in ink). The same card heads the aura room (Portable/Aura) and sits on Me.
  */
 
 /// The Aura card's fixed sizes, for the app's island and the skeleton.
@@ -29,6 +35,23 @@ public enum KAuraCardMetrics {
   public static let artHeight: CGFloat = 110
   /// the art slot's corners
   public static let artCorner: CGFloat = 14
+  /// the card's corners (rule B: the face and its purple shadow)
+  public static let corner: CGFloat = 24
+  /// the inside's inset: InkCard .me's 16 and the 2.5 its outline took (rule B keeps it as
+  /// padding, so the art island TS sizes, auraArtWidth, stays the same)
+  public static var contentInsets: EdgeInsets { InkCardVariant.me.contentInsets }
+}
+
+extension View {
+  /// The Aura card's face under rule B: the inside padded as before, the sf face at corners 24,
+  /// no outline, on the shared hard purple shadow (kObjectDepth). The card and its skeleton.
+  func kAuraObjectFace(_ theme: KTheme) -> some View {
+    self
+      .frame(maxWidth: .infinity, alignment: .topLeading)
+      .padding(KAuraCardMetrics.contentInsets)
+      .background(RoundedRectangle(cornerRadius: KAuraCardMetrics.corner, style: .circular).fill(theme.sf))
+      .kObjectDepth(theme, cornerRadius: KAuraCardMetrics.corner)
+  }
 }
 
 public struct KAuraCard<Art: View>: View {
@@ -54,7 +77,7 @@ public struct KAuraCard<Art: View>: View {
   }
 
   public var body: some View {
-    InkCard(theme: theme, variant: .me, spacing: 12, soft: true) {
+    VStack(alignment: .leading, spacing: 12) {
       SwiftUI.Button {
         actions.onAuraOpen()
       } label: {
@@ -109,8 +132,8 @@ public struct KAuraCard<Art: View>: View {
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
             .padding(12)
-            .background(RoundedRectangle(cornerRadius: 14, style: .circular).fill(theme.ink))
-            .contentShape(Rectangle())
+            .background(Capsule(style: .circular).fill(theme.ind))
+            .contentShape(Capsule(style: .circular))
         }
         .buttonStyle(KFadePressStyle())
         if aura.share {
@@ -122,11 +145,8 @@ public struct KAuraCard<Art: View>: View {
               .foregroundStyle(theme.ink)
               .frame(width: 48)
               .frame(maxHeight: .infinity)
-              .background {
-                RoundedRectangle(cornerRadius: 14, style: .circular).fill(theme.sf)
-                RoundedRectangle(cornerRadius: 14, style: .circular).strokeBorder(theme.ln, lineWidth: 2)
-              }
-              .contentShape(Rectangle())
+              .background(Capsule(style: .circular).fill(theme.lav))
+              .contentShape(Capsule(style: .circular))
           }
           .buttonStyle(KFadePressStyle())
           .accessibilityLabel(aura.shareLabel)
@@ -134,6 +154,7 @@ public struct KAuraCard<Art: View>: View {
       }
       .fixedSize(horizontal: false, vertical: true)
     }
+    .kAuraObjectFace(theme)
   }
 
   private func chipView(_ chip: KMeAuraChip) -> some View {

@@ -1193,13 +1193,16 @@ struct KAuraSkeleton: View {
   let theme: KTheme
 
   var body: some View {
-    InkCard(theme: theme, variant: .me, spacing: 12) {
+    // the card's own face (rule B: sf, no outline, the purple object shadow), so the card that
+    // lands in its place doesn't change shape
+    VStack(alignment: .leading, spacing: 12) {
       RoundedRectangle(cornerRadius: 6, style: .circular).fill(theme.soft2).frame(width: 132, height: 22)
       RoundedRectangle(cornerRadius: 14, style: .circular).fill(theme.soft2).frame(height: KAuraCardMetrics.artHeight)
       RoundedRectangle(cornerRadius: 6, style: .circular).fill(theme.soft2).frame(width: 220, height: 24)
       RoundedRectangle(cornerRadius: 4, style: .circular).fill(theme.soft2).frame(width: 150, height: 12)
-      RoundedRectangle(cornerRadius: 14, style: .circular).fill(theme.soft2).frame(height: 44).padding(.top, 30)
+      Capsule(style: .circular).fill(theme.soft2).frame(height: 44).padding(.top, 30)
     }
+    .kAuraObjectFace(theme)
     .accessibilityHidden(true)
   }
 }

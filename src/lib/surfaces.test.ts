@@ -59,7 +59,10 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   ok("the two Me 4a keys are there and on", ME4A.every((k) => entries[k] === true));
   // the one-letter reader (2026-10-20)
   ok("the reader's key is there and on", entries.reader === true);
-  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + 2);
+  // the Writing Aura room and its share card (2026-10-26)
+  const AURA = ["aura", "auracard"];
+  ok("the aura's two keys are there and on", AURA.every((k) => entries[k] === true));
+  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + 2);
 }
 
 /* ── the crash breadcrumb ── */

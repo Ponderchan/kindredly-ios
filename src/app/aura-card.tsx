@@ -17,6 +17,8 @@ import { myAura, type Aura } from "../lib/aura";
 import { useAuth } from "../lib/auth";
 import { t, useLang } from "../lib/i18n";
 import "../data/strings-a11y-sheets";
+import { NativeSurface } from "../components/NativeSurface";
+import { AuraShareNative } from "../screens/aura/AuraShareNative";
 
 /* YOUR WRITING AURA — the share screen (owner's sheet).
    The card on the light ground, then two acts: share it, or save it to
@@ -36,7 +38,29 @@ import "../data/strings-a11y-sheets";
    (The stack slides it in on the same ground: app/_layout, P.penWash in
    the light themes and tk.bg in Midnight.) */
 
+/* 2026-10-26 (owner: ships in 1.0.7): the share card is drawn in Swift (screens/aura/
+   AuraShareNative, KAuraShareView: Swift draws the card and makes its picture), with the React
+   Native page below as the remote switch's fallback ("auracard" in app_surfaces, NativeSurface
+   in mount mode), its behaviour untouched. While it chooses, the page's own ground. */
 export default function AuraShareCard() {
+  const { t: tk, dark } = useTheme();
+  const ground = dark ? tk.bg : P.penWash;
+  return (
+    <View style={{ flex: 1, backgroundColor: ground }}>
+      <NativeSurface
+        surface="auracard"
+        view="KAuraShareView"
+        mode="mount"
+        native={() => <AuraShareNative />}
+        fallback={() => <AuraShareCardRN />}
+        pending={() => <View style={{ flex: 1, backgroundColor: ground }} />}
+      />
+    </View>
+  );
+}
+
+/* the React Native page, unchanged */
+export function AuraShareCardRN() {
   useLang();
   const { t: tk, dark } = useTheme();
   const ui = dark
