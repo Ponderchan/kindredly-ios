@@ -50,12 +50,12 @@ Changed
 - Wren's Journey (her page, from the courier card on Me) is drawn in SwiftUI: the same sky, perch, status band, tracking slip, journey, keepsakes, wardrobe and First Class card, with flatter controls (soft capsules for her stage facts and Track, Play without the black edge) and the two slips lifted on a soft purple shadow. Play still opens Free Flight as before. Nine languages. [binary] [switch: courier]
 - The guides in Wren's room show today's product: courier names and frosted windows instead of mosaics and numbers, signing to trade names, Stamp Press, tomorrow's bag, the two notification switches. Their words are rewritten in all nine languages, and Wren understands questions about pen names, signing and pressing your own stamps in each. [OTA]
 - The kindred ceremony (when both of you have signed) is drawn natively: the two signed cards, both sealed envelopes lifting at once, the frosted windows clearing onto the faces, the courier names struck through, the signatures drawing in with the pen names, and KINDREDS · date. Reduce Motion fades to the end state; VoiceOver says the outcome when it's done. [binary] [switch: ceremony]
-
----
 - On every tab but Today, the + opens an ordinary iOS sheet ("Who's this one for?"): it rises from the bottom, drags down to close, and goes down before the letter or the note page slides in (it used to wander as it opened and slide down over the new page). [binary]
 
 Fixed
 - Allowing photos for the first time on the Notes photo roll shows the roll at once; it used to say "No photos yet." until the app was opened again.
+
+---
 
 ## 1.0.6 (binary 1.2.5, build 35), 2026-10-25
 
