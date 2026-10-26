@@ -137,6 +137,13 @@ import {
      makeface     the flow (make-face) — KMakeFaceView, and its doors: Edit
                   profile's ＋ cell and onboarding's. OFF until a row turns it
                   on (it needs web 0047 run and /api/face deployed first)
+   The onboarding (owner, 2026-10-26; binary 1.2.6, App Store 1.0.7), keeping
+   its React Native run the same way. It ships OFF: the owner turns it on
+   with a row once it has been tried on a device.
+
+     onboarding   the new run, screens 1–13 (onboarding) — KOnboardingView;
+                  screens/onboarding holds the run, and the React Native
+                  Onboarding2 stays what people see while this is off
 
    A kindred's page and Wren's desk stay React Native and have no key. */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
@@ -159,10 +166,12 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   auracard: true,
   courier: true,
   makeface: false,
+  // deliberately off: shipped dark in 1.2.6, switched on by a row after device testing
+  onboarding: false,
 };
 
-/** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages and the courier page (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier";
+/** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page and the onboarding (the `surface` prop of NativeSurface) */
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */

@@ -187,6 +187,8 @@ export const KSCREEN_VIEWS = [
   "KCourierView",
   // Make your own face (2026-10-26; behind the "makeface" switch)
   "KMakeFaceView",
+  // the onboarding (binary 1.2.6, off by default)
+  "KOnboardingView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

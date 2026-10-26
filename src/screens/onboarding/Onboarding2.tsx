@@ -144,9 +144,18 @@ function useRealCtx(active: boolean): ObCtx | null {
   }, [active, notif, blocked, finished, auth.ready, account, uid, onboarded, p.dob, p.pronoun, p.avatarId, p.showMark, p.showSign]);
 }
 
-export default function Onboarding2() {
+/** The run as either renderer needs it: the screen's props, and whether its fade-in is skipped. */
+export type ObRun = { props: ObScreenProps; noFade: boolean };
+
+/**
+ * THE RUN ITSELF, for both renderers: this file's React Native screens below, and the SwiftUI run
+ * (OnboardingNative, behind app_surfaces "onboarding"). Everything above — who is here, the draft,
+ * the flow's moves and their effects, the anonymous session, the pending sign-in, persistence —
+ * lives here once; a renderer only draws `props` and calls what it holds. null until the context
+ * and the draft are known (draw the launch's last frame meanwhile).
+ */
+export function useObRun(): ObRun | null {
   const lang = useLang();
-  const insets = useSafeAreaInsets();
   const [demo] = useState(demoOn); // fixed for this run
   const demoRef = useRef(demo);
   /* 3x's one way out (owner, 2026-10-23): "Wrong year? Change it", once per phone (device-block) */
@@ -400,7 +409,7 @@ export default function Onboarding2() {
   const lastScreenRef = useRef<string | null>(null);
   const enteredFromRef = useRef<string | null>(null);
 
-  if (!ctx || !run) return <LaunchFrame />;
+  if (!ctx || !run) return null;
 
   const { draft, side } = run;
   const screen = draft.screen;
@@ -436,6 +445,16 @@ export default function Onboarding2() {
     demo,
     now,
   };
+  return { props, noFade };
+}
+
+export default function Onboarding2() {
+  const insets = useSafeAreaInsets();
+  const run = useObRun();
+  if (!run) return <LaunchFrame />;
+  const { props, noFade } = run;
+  const { draft, side, demo } = props;
+  const screen = draft.screen;
   const ground = groundOf(screen, draft);
   const Screen = SCREEN_COMPONENTS[screen];
   const vk = voiceKey(screen);
