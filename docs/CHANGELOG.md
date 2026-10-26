@@ -52,6 +52,7 @@ Changed
 - The kindred ceremony (when both of you have signed) is drawn natively: the two signed cards, both sealed envelopes lifting at once, the frosted windows clearing onto the faces, the courier names struck through, the signatures drawing in with the pen names, and KINDREDS · date. Reduce Motion fades to the end state; VoiceOver says the outcome when it's done. [binary] [switch: ceremony]
 - On every tab but Today, the + opens an ordinary iOS sheet ("Who's this one for?"): it rises from the bottom, drags down to close, and goes down before the letter or the note page slides in (it used to wander as it opened and slide down over the new page). [binary]
 - The Notes photo roll's head matches the composers: the same ×, the album title in the system font ("Recents", not RECENT), and Next in the system font.
+- On the Notes photo roll, Text note and Voice note are soft rounded cards like the Notes composer's (warm yellow and lavender, the name in the system font), instead of flat tiles with mono capitals.
 
 Fixed
 - Allowing photos for the first time on the Notes photo roll shows the roll at once; it used to say "No photos yet." until the app was opened again.

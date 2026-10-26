@@ -5,10 +5,9 @@ import { Image } from "expo-image";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as MediaLibrary from "expo-media-library/legacy";
-import Svg, { Line, Path, Rect } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
 import { PF, PFM } from "../theme/post";
-import { BRAND } from "../theme/themes";
 import { useP, useTheme } from "../lib/theme";
 import { leavePicked, takeKept } from "../lib/journal-handoff";
 import { CloseGlyph } from "../components/10a/BackChevron";
@@ -34,16 +33,21 @@ import { CloseGlyph } from "../components/10a/BackChevron";
    10a step 5: painted from the theme (useP / useTheme) — the page, the
    album sheet (it was a fixed white slab, glaring in Midnight), the empty
    frames and the selected album row. The two note keys keep their own pale
-   colours with a fixed dark ink on them, the marks on a picture stay white
-   on dark, and the pick stays the confirm green. Mono labels at 10 and 11. */
+   colours with a fixed dark ink on them (KEYS), the marks on a picture stay
+   white on dark, and the pick stays the confirm green. */
 
 /* the pick is a confirmation, so it wears the app's confirm green — the
    kindreds' landed tick — not the pen blue (owner, 2026-09-20) */
 const TICK = "#2E7D4F";
-/* the two note keys keep their own pale colours in every theme (P.keyText,
-   P.keyVoice), so their glyphs and words keep a fixed dark ink: the theme's
-   ink is light in Midnight */
-const KEY_INK = BRAND.inkOnBrand;
+/* THE TWO NOTE KEYS (owner, 2026-10-26: the flat tiles with mono capitals were "too ugly") are
+   the Notes composer's ＋ cards (KNotePlusPanel, the owner's Note Composer Bar): a card inset in
+   its cell, continuous corners of 20, the line icon 26 and the name in system 15 semibold, in a
+   mood pair that keeps its colours in every theme. Voice is the composer's Audio card (tired:
+   lav and pen); text takes happy's yellow with its face ink, which reads on it. */
+const KEYS = {
+  text: { fill: "#F6E7C6", ink: "#94681C" },
+  voice: { fill: "#E4E2F4", ink: "#3A34D6" },
+} as const;
 const MAX = 9;
 const PAGE = 60;
 type Frame = { id: string; uri: string; w: number; h: number; video: boolean; duration: number };
@@ -247,10 +251,18 @@ export default function JournalPick() {
   const cell = (width - 4) / 3;
   const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
-  const Tile = ({ label, tint, onPress, children }: { label: string; tint: string; onPress: () => void; children: React.ReactNode }) => (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ width: cell, height: cell, alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: tint, opacity: pressed ? 0.6 : 1 })}>
-      {children}
-      <Text style={{ ...PFM.monoSemi, fontSize: 10, letterSpacing: 1.2, color: KEY_INK }}>{label.toUpperCase()}</Text>
+  const Tile = ({ label, pair, onPress, icon }: { label: string; pair: { fill: string; ink: string }; onPress: () => void; icon: string }) => (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={{ width: cell, height: cell, padding: 6 }}>
+      {({ pressed }) => (
+        <View style={{ flex: 1, borderRadius: 20, borderCurve: "continuous", backgroundColor: pair.fill, alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 6, opacity: pressed ? 0.7 : 1 }}>
+          <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={pair.ink} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+            <Path d={icon} />
+          </Svg>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ fontSize: 15, fontWeight: "600", color: pair.ink }}>
+            {label}
+          </Text>
+        </View>
+      )}
     </Pressable>
   );
 
@@ -284,18 +296,9 @@ export default function JournalPick() {
      continues from the second picture underneath */
   const header = adding ? null : (
     <View style={{ flexDirection: "row", gap: 2, marginBottom: 2 }}>
-      <Tile label={t("jp.write")} tint={P.keyText} onPress={() => router.replace("/journal-entry")}>
-        <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={KEY_INK} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
-          <Path d="M4 20l4-1 11-11-3-3L5 16z" />
-          <Line x1={13} y1={8} x2={16} y2={11} />
-        </Svg>
-      </Tile>
-      <Tile label={t("jp.say")} tint={P.keyVoice} onPress={() => router.replace("/journal-entry?start=voice")}>
-        <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={KEY_INK} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
-          <Rect x={9} y={3} width={6} height={11} rx={3} />
-          <Path d="M6 11a6 6 0 0 0 12 0M12 17v4" />
-        </Svg>
-      </Tile>
+      <Tile label={t("jp.write")} pair={KEYS.text} onPress={() => router.replace("/journal-entry")} icon="M4 20l4-1 11-11-3-3L5 16z M13 8l3 3" />
+      {/* the composer's own microphone (KNotePlusPanel's Audio) */}
+      <Tile label={t("jp.say")} pair={KEYS.voice} onPress={() => router.replace("/journal-entry?start=voice")} icon="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z M5 11a7 7 0 0 0 14 0 M12 18v3" />
       {frames[0] ? frame(frames[0]) : <View style={{ width: cell, height: cell, backgroundColor: tk.soft2 }} />}
     </View>
   );
