@@ -171,6 +171,9 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
     paperKey: t("pp.a11y.key"),
     paperDone: t("pp.strip.done"),
     badgeFirst: t("pp.badge.fc"),
+    // the stamp strip (Let it travel L6): PICK A STAMP, and the paper strip's DONE
+    stampStripHead: state.stripHead,
+    stampStripDone: t("pp.strip.done"),
   });
 
   const vm = state.chosenVM;

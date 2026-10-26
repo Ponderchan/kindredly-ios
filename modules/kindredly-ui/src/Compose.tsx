@@ -121,6 +121,10 @@ export type KComposeStrings = {
   paperDone: string;
   /** the gold badge on a First Class swatch (1ST) */
   badgeFirst: string;
+  /** the stamp strip's head, PICK A STAMP (Let it travel L6; a binary before 1.0.7 ignores it) */
+  stampStripHead: string;
+  /** the stamp strip's right key (DONE, the paper strip's word) */
+  stampStripDone: string;
 };
 
 /** The chosen stamp, coloured for the page (theme/post channelColors against the theme's page

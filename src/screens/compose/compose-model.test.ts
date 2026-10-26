@@ -60,8 +60,8 @@ ok("over the ceiling: filling with no floor line", (() => { const k = key({ weig
 ok("speaking and not ready: no floor line", key({ mode: "speak", weight: 0 }).progress === -1);
 {
   const k = key({ weight: OPENING_MIN, wordsReady: true });
-  ok("needStamp: PICK A MOOD STAMP in ind, pressable", k.stage === "needStamp" && k.label === "cp.needStamp" && k.tone === "ind" && k.enabled);
-  ok("needStamp: the nudge leans toward the stamp key", k.nudge);
+  ok("needStamp: Pick a stamp in ind, pressable (L6's short label)", k.stage === "needStamp" && k.label === "cp.l6.pickStamp" && k.tone === "ind" && k.enabled);
+  ok("needStamp: the empty stamp slot hops", k.nudge);
   ok("needStamp: never squeezed to SEND", k.narrowLabel === "");
   ok("needStamp: no wash, no count", k.progress === -1 && k.count === "");
 }
@@ -151,6 +151,10 @@ ok("Wren: her language hello wins", line({ langHello: true }) === "cp.quote:HELL
 ok("Wren: speaking with no recording, her mood", line({ mode: "speak" }) === "cp.quote:MOOD");
 ok("Wren: a recording without its line, the prompt", line({ mode: "speak", hasRecording: true, weight: 0 }) === "cp.quote:PROMPT");
 ok("Wren: a recording with its line, her mood", line({ mode: "speak", hasRecording: true, weight: REPLY_MIN }) === "cp.quote:MOOD");
+ok("Wren: enough words and no stamp, she asks for one (L6)", line({ weight: 40, needStamp: true, stampLine: "STAMP" }) === "cp.quote:STAMP");
+ok("Wren: a voice letter ready without a stamp, she asks for one too", line({ mode: "speak", hasRecording: true, weight: REPLY_MIN, needStamp: true, stampLine: "STAMP" }) === "cp.quote:STAMP");
+ok("Wren: no stamp line given, the ladder as before", line({ needStamp: true }) === "cp.quote:LADDER");
+ok("Wren: her language hello still wins", line({ langHello: true, needStamp: true, stampLine: "STAMP" }) === "cp.quote:HELLO");
 
 // ── sendBody ──
 ok("send: the letter, trimmed", M.sendBody("write", "  hello there  ", "", true) === "hello there");
@@ -240,6 +244,39 @@ ok("season: its set comes first, marked", inSeason[0].title === "HALLOWEEN" && i
 ok("season: in its own order, unknown ids dropped", inSeason[0].items.map((i) => i.id).join() === "d,c");
 ok("season: an empty seasonal set isn't sent", M.stampSections({ seasonal: { title: "HALLOWEEN", mark: "SEASONAL", ids: ["nope"] }, suggested: { title: "FOR", ids: ["a"] }, recent: { title: "R", ids: [] }, categories: [], item }).map((s) => s.title).join() === "FOR");
 ok("season: null is the every-day tray", M.stampSections({ seasonal: null, suggested: { title: "FOR", ids: ["a"] }, recent: { title: "R", ids: [] }, categories: [], item }).map((s) => s.title).join() === "FOR");
+
+// ── the stamp strip: one row, the tray's order (Let it travel L6) ──
+{
+  const strip = M.stripGroups(
+    M.stampSections({
+      seasonal: { title: "HALLOWEEN", mark: "SEASONAL", ids: ["d"] },
+      suggested: { title: "FOR", ids: ["b", "a"] },
+      recent: { title: "RECENT", ids: ["a", "c"] },
+      categories: [{ title: "ONE", ids: ["a", "b", "c", "d"] }],
+      item,
+    }),
+  );
+  const ids = strip.flatMap((g) => g.items.map((i) => i.id)).join();
+  ok("strip: the season first, then the suggestions, then recent, then the rest", ids === "d,b,a,c");
+  ok("strip: a stamp shows once, where it first comes", new Set(ids.split(",")).size === ids.split(",").length);
+  ok("strip: a group left with nothing is dropped (ONE was all seen)", strip.map((g) => g.key).join() === "0:HALLOWEEN,1:FOR,2:RECENT");
+  ok("strip: the seasonal marker rides with the season's group alone", strip[0].mark === "SEASONAL" && strip.slice(1).every((g) => g.mark === ""));
+  ok("strip: out of season, the suggestions lead", M.stripGroups(sections)[0].items.map((i) => i.id).join() === "a,b");
+}
+
+// ── the bar's long-topic rule (Let it travel L6, Prompt 3) ──
+{
+  const B = M.TRAVEL_BAR;
+  ok("mono width: 0.6 em a Latin glyph, plus its spacing", Math.abs(M.monoLineWidth("abcde", 12, 0.06) - (5 * 7.2 + 5 * 0.72)) < 1e-9);
+  ok("mono width: a CJK glyph is a whole em", Math.abs(M.monoLineWidth("切手", 10, 0) - 20) < 1e-9);
+  const show = (topic: string, barWidth: number, paper?: boolean) => M.travelShowsLabel({ barWidth, topic, label: "Let it travel", paper });
+  ok("long topic: past 14 characters, the plane alone, however wide the bar", !show("#fifteen chars!", 2000) && [..."#fifteen chars!"].length === B.topicMaxChars + 1);
+  ok("long topic: 14 characters keep the words where both fit", show("#fourteen char", 2000));
+  ok("long topic: a short topic keeps the words on a 393 phone (341 between the sides)", show("#boo", 393 - 2 * B.side));
+  ok("long topic: where both don't fit, the plane alone (neither is cut)", !show("#late nights", 393 - 2 * B.side));
+  ok("long topic: a Pro Max (440) keeps the words for #late nights", show("#late nights", 440 - 2 * B.side));
+  ok("long topic: no paper key leaves more room (React Native's bar)", show("#becoming", 393 - 2 * B.side, false) && !show("#becoming", 393 - 2 * B.side));
+}
 
 /* ── the tray's names: their colour (the bright palette, owner 2026-10-19) ── */
 {

@@ -94,6 +94,9 @@ struct KComposeStringsRecord: Record {
   @Field var paperKey: String = ""
   @Field var paperDone: String = ""
   @Field var badgeFirst: String = ""
+  /// the stamp strip (Let it travel L6): PICK A STAMP and its DONE; "" from an older JS
+  @Field var stampStripHead: String = ""
+  @Field var stampStripDone: String = ""
 
   var strings: KComposeStrings {
     var s = KComposeStrings()
@@ -125,6 +128,9 @@ struct KComposeStringsRecord: Record {
     s.paperKey = paperKey
     s.paperDone = paperDone
     s.badgeFirst = badgeFirst
+    s.stampStripHead = stampStripHead
+    // an older JS sends no DONE: the paper strip's word stands in
+    s.stampStripDone = stampStripDone.isEmpty ? paperDone : stampStripDone
     return s
   }
 }

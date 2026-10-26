@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { ZoomIn } from "react-native-reanimated";
 import { GlyphInput } from "../../components/GlyphInput";
 import { Stamp, StampSlot } from "../../components/Stamp";
-import { KeyDot, MoreTray, Nudge, PlusGlyph, RoundKey, StampKeyGlyph, StampTray } from "../../components/ComposeTray";
+import { MoreTray } from "../../components/ComposeTray";
 import { WrenBird } from "../../components/WrenBird";
-import { StickerBox } from "../../components/10a/StickerBox";
 import { Recorder } from "../../components/Recorder";
+import { StampStrip, TravelBar } from "./TravelBar";
 import { AudioCard } from "../../components/AudioCard";
 import { useBreathe } from "../../components/anim";
 import { t } from "../../lib/i18n";
@@ -15,6 +15,7 @@ import { useLetterFamily, useTheme } from "../../lib/theme";
 import { MONO, PFM } from "../../theme/post";
 import { BRAND } from "../../theme/themes";
 import { STAMP_LADDER, stampSlotStroke } from "../../lib/stamp-frame";
+import "../../data/strings-travel"; // cp.l6.* (the bar's words)
 import type { ComposeState } from "./useComposeState";
 import { countBrand } from "./compose-model";
 import { CloseGlyph } from "../../components/10a/BackChevron";
@@ -30,11 +31,13 @@ import { CloseGlyph } from "../../components/10a/BackChevron";
 
    It looks as the App Store page did (owner, 2026-10-18: "the composer as
    it was"): the sticker-zine desk — ✕, TO A STRANGER, the stamp corner
-   tilted at the top; Wren bare beside her line; the letter 19/30; the two
-   round keys and the wide key below, which
-   fills toward the floor as you write with the count beside its label
-   ("7/20", key.count), and says SEND where LET IT TRAVEL would be squeezed
-   beside a long pill. Only the colours come from the theme's tokens (page
+   tilted at the top; Wren bare beside her line; the letter 19/30; and
+   below it the Let it travel L6 bar (owner, 2026-10-26; TravelBar.tsx, the
+   SwiftUI KComposeTravelBar's twin): + · the stamp slot or the chosen
+   stamp's #topic · the CTA capsule that fills toward the floor with the
+   count beside it ("7/20", key.count), asks for a stamp, then sends with
+   its paper plane; the stamp strip (PICK A STAMP) where the keyboard was.
+   Only the colours come from the theme's tokens (page
    bg, lines line, keys ln, the pen ind), so it still follows the four
    themes; the light themes' placeholder is the old lavender.
    Its type is the owner's (10-20): what you write (the letter, the
@@ -52,17 +55,17 @@ import { CloseGlyph } from "../../components/10a/BackChevron";
    (the gesture would otherwise pop the page past the leave guard); the
    count near the ceiling takes compose-model's brass (countBrand).
 
-   THE STAMP CORNER (stamps v3, owner 2026-10-19). It keeps its App Store
-   place, its 8° and its 50pt hit area; what sits in it is the stamp
-   itself at the ladder's composeCorner, 40×48 — your own stamp, so flat:
-   no letter tilt, no postmark. Before one is chosen it is the v3 frame
-   alone, unfilled, dashed in the theme's mute (darker on Lavender, where
-   mute is under 3:1: stampSlotStroke) (StampSlot, contract §7), so
-   choosing a stamp fills the outline it was promised. The toolbar's round
-   stamp key stays as it was; the #name pill is the App Store solid pill
-   like the #tag (stampVM). */
-const CORNER = STAMP_LADDER.composeCorner;
-const CORNER_DEG = typeof CORNER.tilt === "number" ? CORNER.tilt : 0;
+   THE STAMP CORNER (stamps v3, owner 2026-10-19; Let it travel L6,
+   2026-10-26). It keeps its place and its 50pt hit area; what sits in it
+   is the stamp itself at 30×36 (the tray tile's size), tilted 4° — your
+   own stamp, so flat: no letter tilt, no postmark. Before one is chosen it
+   is the v3 frame alone, unfilled, dashed in the theme's mute (darker on
+   Lavender, where mute is under 3:1: stampSlotStroke) (StampSlot, contract
+   §7), so choosing a stamp fills the outline it was promised. The bar
+   below shows the chosen stamp's #topic (TravelBar.tsx), as the SwiftUI
+   page does. */
+const CORNER = STAMP_LADDER.trayTile;
+const CORNER_DEG = 4;
 /** the corner's tap target, as it was: the old 44 tile and its 3pt of padding */
 const CORNER_BOX = 50;
 
@@ -70,15 +73,18 @@ export function ComposeRN({ state }: { state: ComposeState }) {
   const { t: tk } = useTheme();
   const { act } = state;
   const breathe = useBreathe(6, 2600);
-  const [keyW, setKeyW] = useState(0);
-  const narrow = keyW > 0 && keyW < 170 && !!state.key.narrowLabel;
   // the chosen stamp, official or photo ("c:<uuid>": its #topic on its category's colour)
   const chosen = state.chosenVM;
-  const key = state.key;
-  const filling = key.progress >= 0;
-  const keyFill = key.stage === "ready" ? tk.ink : key.stage === "needStamp" ? tk.ind : "transparent";
-  const keyBorder = key.stage === "ready" ? tk.ink : key.stage === "needStamp" ? tk.ind : tk.line;
-  const keyInk = key.stage === "ready" || key.stage === "needStamp" ? tk.bg : tk.mute;
+  // the bar rides 12 above the keyboard or a strip, 30 above the home indicator (L6)
+  const [kbUp, setKbUp] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardWillShow", () => setKbUp(true));
+    const hide = Keyboard.addListener("keyboardWillHide", () => setKbUp(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   const brand = state.count ? countBrand(state.count.tone, tk.dark) : "mute";
   const countColor = brand === "mute" ? tk.mute : BRAND[brand];
   const placeholder = tk.dark ? tk.mute : "#B9B3D8";
@@ -211,87 +217,16 @@ export function ComposeRN({ state }: { state: ComposeState }) {
 
           {/* the small line above the keys: the count near the ceiling, and the free writer's day */}
           {(!!state.count || !!state.quota) && (
-            <View style={{ paddingHorizontal: 24, flexDirection: "row", justifyContent: "flex-end", gap: 12, marginBottom: -2 }}>
+            <View style={{ paddingHorizontal: 26, flexDirection: "row", justifyContent: "flex-end", gap: 12, marginBottom: -2 }}>
               {state.count && <Text style={{ ...PFM.mono, fontSize: 11, letterSpacing: 0.4, color: countColor }}>{state.count.text}</Text>}
               {!!state.quota && <Text style={{ ...PFM.mono, fontSize: 11, letterSpacing: 0.6, color: tk.mute }}>{state.quota}</Text>}
             </View>
           )}
 
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 18, paddingTop: 10, paddingBottom: state.tray ? 10 : 24 }}>
-            {/* TWO ROUND KEYS, A KEYBOARD'S SHAPE (owner, 2026-09-20) */}
-            <RoundKey
-              onPress={() => act.openTray("more")}
-              badge={state.plusDot ? <KeyDot /> : undefined}
-              accessibilityLabel={state.tray === "more" ? t("wren.trackClose") : t("cp.plus.a11y")}
-            >
-              <PlusGlyph size={27} open={state.tray === "more"} color={state.tray === "more" ? tk.ind : tk.ink} />
-            </RoundKey>
-            {chosen ? (
-              /* CHOSEN: the stamp's own pill, the App Store solid pill like the #tag (stampVM:
-                 the hex, ink words, a 2pt ln edge and a hard 3/3 ln shadow, as on the web) */
-              <Pressable
-                onPress={() => act.openTray("stamps")}
-                hitSlop={4}
-                accessibilityRole="button"
-                accessibilityLabel={t("cp.stampChosen.a11y", { name: chosen.name })}
-                style={({ pressed }) => ({ maxWidth: 148, marginRight: 3, opacity: pressed ? 0.7 : 1 })}
-              >
-                <StickerBox
-                  fill={chosen.wash}
-                  stroke={chosen.line}
-                  lineWidth={2}
-                  radius={23}
-                  shadow={chosen.line}
-                  offset={3}
-                  faceStyle={{ height: 46, paddingHorizontal: 12, alignItems: "center", justifyContent: "center" }}
-                >
-                  <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68} style={{ ...PFM.monoSemi, fontSize: 11.5, letterSpacing: 0.2, color: chosen.ink }}>
-                    {chosen.tag}
-                  </Text>
-                </StickerBox>
-              </Pressable>
-            ) : (
-              <RoundKey onPress={() => act.openTray("stamps")} accessibilityLabel={t("cp.stamp.a11y")}>
-                <StampKeyGlyph open={state.tray === "stamps"} size={27} />
-              </RoundKey>
-            )}
-
-            {/* THE DOOR SHOWS HOW FAR IT IS: a wash rising toward the floor, the count beside the label */}
-            <Pressable
-              onPress={() => act.keyPress()}
-              onLayout={(e) => setKeyW(e.nativeEvent.layout.width)}
-              disabled={!key.enabled}
-              accessibilityRole="button"
-              accessibilityLabel={key.label}
-              accessibilityValue={key.countA11y ? { text: key.countA11y } : undefined}
-              accessibilityHint={key.hintA11y || undefined}
-              accessibilityState={{ disabled: !key.enabled }}
-              style={{ flex: 1, backgroundColor: keyFill, borderWidth: 1, borderColor: keyBorder, overflow: "hidden" }}
-            >
-              {filling && <View style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${Math.round(key.progress * 100)}%`, backgroundColor: tk.lav2 }} />}
-              {key.nudge && <Nudge color={tk.bg} />}
-              <View style={{ paddingVertical: 17, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ flexShrink: 1, ...PFM.monoSemi, fontSize: 13, letterSpacing: 1.4, color: keyInk }}>
-                  {narrow ? key.narrowLabel : key.label}
-                </Text>
-                {/* the count rides in the row, not over the label */}
-                {!!key.count && <Text style={{ ...PFM.mono, fontSize: 10.5, letterSpacing: 0.6, color: tk.mute }}>{key.count}</Text>}
-              </View>
-            </Pressable>
-          </View>
-          {state.tray === "stamps" && (
-            <StampTray
-              selected={state.sel}
-              sections={state.sections}
-              onPick={act.pickStamp}
-              custom={state.custom}
-              tab={state.trayTab}
-              fullTitle={state.customFullTitle}
-              onTab={act.pickTrayTab}
-              onMake={act.makeStamp}
-              onFullCta={act.fullCta}
-            />
-          )}
+          {/* LET IT TRAVEL L6 (owner, 2026-10-26): + · the stamp slot or the #topic · the CTA,
+              12 above a tray (the keyboard: KeyboardAvoidingView), 30 above the home indicator */}
+          <TravelBar state={state} bottom={state.tray || kbUp ? 12 : 30} />
+          {state.tray === "stamps" && <StampStrip state={state} />}
           {state.tray === "more" && (
             <MoreTray askOn={state.more.askOn} askDisabled={state.more.askDisabled} voiceOn={state.more.voiceOn} premium={!state.more.voiceLocked} onAsk={act.toggleAsk} onVoice={act.toggleVoice} />
           )}

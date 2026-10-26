@@ -3,6 +3,9 @@
 import SwiftUI
 
 /*
+ (Since Let it travel L6, owner 2026-10-26, the compose page draws KComposeTravelBar instead; this
+ toolbar stays in the kit, unchanged, for anything else that reuses it.)
+
  THE COMPOSE TOOLBAR, riding the keyboard's top, 10 apart. It looks as the App Store page's did
  (owner, 2026-10-18; compose.tsx and ComposeTray.tsx): the round keys, a keyboard's shape (owner,
  2026-09-20), then the wide key. In order: + · paper · stamp · wide key (letter papers, 2026-10-20).
