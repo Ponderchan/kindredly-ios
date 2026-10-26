@@ -110,7 +110,7 @@ export function buildDim(aura: Aura, d: DimKey, i: number, w: AuraWords, quoteLi
     label: w.dimLabel(d),
     counter: t("wa.dimOf", { i: i + 1 }),
     name: rep ? w.stickerName(rep.stickerId) : state === "balanced" ? t("wa.noLean") : t("wa.stillReading"),
-    line: rep ? `${w.stickerLine(rep)} ${w.stickerCount(rep)}` : state === "balanced" ? t("st.noLean") : t("st.stillReading"),
+    line: rep ? `${w.stickerLine(rep)} ${w.stickerCount(rep)}` : state === "balanced" ? t("st.noLean") : t("wa.fillsIn"),
     state: rep ? w.observationState(rep.state) : "",
     established: rep?.state === "established",
     quote,

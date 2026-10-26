@@ -195,7 +195,11 @@ export type AuraCardVM = {
 export const sceneId = (adj: string | null, noun: string): string => `${(adj ?? "quiet").replace(/_/g, "-")}-${noun.replace(/_/g, "-")}`;
 
 export function auraMeter(rung: Rung): AuraMeter {
-  if (rung.level <= 2) return { kind: "ticks", filled: Math.max(0, Math.min(rung.letters, 5)), total: 5, slips: null };
+  // as many ticks as the caption's "of m" (3 to the first reading, then 5), so "0 of 3" never sits over five boxes
+  if (rung.level <= 2) {
+    const total = rung.level === 2 ? 5 : 3;
+    return { kind: "ticks", filled: Math.max(0, Math.min(rung.letters, total)), total, slips: null };
+  }
   return { kind: "slots", filled: Math.max(0, Math.min(rung.stuck, 3)), total: 3, slips: rung.slips };
 }
 

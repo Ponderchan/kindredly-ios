@@ -1328,6 +1328,7 @@ strings(
     "wa.quoteFrom.sealed": "Your sealed page · {d}",
     "wa.quoteFrom.hatch": "Your first line",
     "wa.stillReading": "Still reading.",
+    "wa.fillsIn": "A few more letters and this one fills in.", // under "Still reading." on a dimension with no reading yet (the old line repeated it)
     "wa.noLean": "No lean here.",
     "wa.fromPieces": "FROM {n} PIECES OF YOUR TEXT",
     "wa.scope": "Scope",
@@ -3452,6 +3453,7 @@ strings(
     "wa.quoteFrom.sealed": "Tu página sellada · {d}",
     "wa.quoteFrom.hatch": "Tu primera línea",
     "wa.stillReading": "Aún leyendo.",
+    "wa.fillsIn": "Unas cartas más y esta se completa.", // under "Still reading." on a dimension with no reading yet (the old line repeated it)
     "wa.noLean": "Sin inclinación aquí.",
     "wa.fromPieces": "DE {n} TEXTOS TUYOS",
     "wa.scope": "Alcance",
@@ -5575,6 +5577,7 @@ strings(
     "wa.quoteFrom.sealed": "Sua página selada · {d}",
     "wa.quoteFrom.hatch": "Sua primeira linha",
     "wa.stillReading": "Ainda lendo.",
+    "wa.fillsIn": "Mais algumas cartas e esta se preenche.", // under "Still reading." on a dimension with no reading yet (the old line repeated it)
     "wa.noLean": "Sem inclinação aqui.",
     "wa.fromPieces": "DE {n} TEXTOS SEUS",
     "wa.scope": "Escopo",
@@ -7698,6 +7701,7 @@ strings(
     "wa.quoteFrom.sealed": "Halaman tersegelmu · {d}",
     "wa.quoteFrom.hatch": "Baris pertamamu",
     "wa.stillReading": "Masih membaca.",
+    "wa.fillsIn": "Beberapa surat lagi dan yang ini terisi.", // under "Still reading." on a dimension with no reading yet (the old line repeated it)
     "wa.noLean": "Tak condong di sini.",
     "wa.fromPieces": "DARI {n} TULISANMU",
     "wa.scope": "Cakupan",
@@ -9775,6 +9779,7 @@ strings(
     "wa.quoteFrom.sealed": "Ta page scellée · {d}",
     "wa.quoteFrom.hatch": "Ta première ligne",
     "wa.stillReading": "Je lis encore.",
+    "wa.fillsIn": "Quelques lettres de plus et celui-ci se remplit.", // under "Still reading." on a dimension with no reading yet (the old line repeated it)
     "wa.noLean": "Pas de penchant ici.",
     "wa.fromPieces": "D'APRÈS {n} DE TES TEXTES",
     "wa.scope": "Périmètre",
@@ -11825,6 +11830,7 @@ strings(
     "wa.quoteFrom.sealed": "Deine versiegelte Seite · {d}",
     "wa.quoteFrom.hatch": "Deine erste Zeile",
     "wa.stillReading": "Lese noch.",
+    "wa.fillsIn": "Ein paar Briefe mehr, und dieser hier füllt sich.", // under "Still reading." on a dimension with no reading yet (the old line repeated it)
     "wa.noLean": "Keine Neigung hier.",
     "wa.fromPieces": "AUS {n} DEINER TEXTE",
     "wa.scope": "Umfang",
@@ -13875,6 +13881,7 @@ strings(
     "wa.quoteFrom.sealed": "La tua pagina sigillata · {d}",
     "wa.quoteFrom.hatch": "La tua prima riga",
     "wa.stillReading": "Sto ancora leggendo.",
+    "wa.fillsIn": "Qualche lettera in più e questo si riempie.", // under "Still reading." on a dimension with no reading yet (the old line repeated it)
     "wa.noLean": "Nessuna tendenza qui.",
     "wa.fromPieces": "DA {n} DEI TUOI TESTI",
     "wa.scope": "Ambito",
@@ -15925,6 +15932,7 @@ strings(
     "wa.quoteFrom.sealed": "あなたの封印ページ · {d}",
     "wa.quoteFrom.hatch": "あなたの最初の一行",
     "wa.stillReading": "まだ読んでいます。",
+    "wa.fillsIn": "あと数通で、ここが埋まります。", // under "Still reading." on a dimension with no reading yet (the old line repeated it)
     "wa.noLean": "ここに偏りはありません。",
     "wa.fromPieces": "あなたの文章{n}本から",
     "wa.scope": "範囲",
@@ -17975,6 +17983,7 @@ strings(
     "wa.quoteFrom.sealed": "당신의 봉인 페이지 · {d}",
     "wa.quoteFrom.hatch": "당신의 첫 줄",
     "wa.stillReading": "아직 읽는 중.",
+    "wa.fillsIn": "몇 통만 더 오면 여기가 채워져요.", // under "Still reading." on a dimension with no reading yet (the old line repeated it)
     "wa.noLean": "여기엔 치우침이 없어요.",
     "wa.fromPieces": "당신의 글 {n}편에서",
     "wa.scope": "범위",

@@ -131,7 +131,7 @@ ok("no aura yet → no card (the skeleton)", buildAuraCard(null, fmt) === null);
   ok("rung 0: FROM YOUR FIRST LINES", c.from === "ap.from.first");
   ok("rung 0: the what-your-writing-says title", c.title === "ap.what");
   ok("rung 0: write your first letter, to compose", c.cta === "ap.cta.empty" && c.ctaTo === "compose");
-  ok("rung 0: five empty ticks", c.meter.kind === "ticks" && c.meter.total === 5 && c.meter.filled === 0 && c.meter.slips === null);
+  ok("rung 0: three empty ticks, as many as the line's 'of 3'", c.meter.kind === "ticks" && c.meter.total === 3 && c.meter.filled === 0 && c.meter.slips === null);
   ok("rung 0: 0 of 3 letters", c.caption === "ap.prog.letters{n:0,m:3}");
   ok("rung 0: no share", c.share === false);
   ok("the label is YOUR WRITING AURA", c.label === "ac.yourAuraTitle");
@@ -141,12 +141,12 @@ ok("no aura yet → no card (the skeleton)", buildAuraCard(null, fmt) === null);
   const c = buildAuraCard(facts(rung({ level: 1, letters: 1 })), fmt)!;
   ok("one letter: FROM YOUR FIRST LETTER", c.from === "ap.from.one");
   ok("one letter: another letter, to compose", c.cta === "ap.cta.another" && c.ctaTo === "compose");
-  ok("one letter: one tick lit", c.meter.filled === 1);
+  ok("one letter: one tick of three lit", c.meter.filled === 1 && c.meter.total === 3);
 }
 {
   const c = buildAuraCard(facts(rung({ level: 2, letters: 4 })), fmt)!;
   ok("rung 2: FROM YOUR 4 LETTERS", c.from === "ap.from.n{n:4}");
-  ok("rung 2: n of 5 letters", c.caption === "ap.prog.letters{n:4,m:5}");
+  ok("rung 2: n of 5 letters, over five ticks", c.caption === "ap.prog.letters{n:4,m:5}" && c.meter.total === 5 && c.meter.filled === 4);
   ok("rung 2: still to compose", c.ctaTo === "compose");
   ok("rung 2: pencil desk", c.art.fidelity === "pencil" && c.art.sceneId === null);
 }

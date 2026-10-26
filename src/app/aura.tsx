@@ -430,7 +430,7 @@ function DimCard({ d, i, aura, onRead }: { d: DimKey; i: number; aura: Aura; onR
         {rep ? stickerName(rep.stickerId) : state === "balanced" ? tr("wa.noLean") : tr("wa.stillReading")}
       </Text>
       <Text style={{ fontFamily: PF.letter, fontSize: 14, lineHeight: 21, color: tk.sub, marginTop: 10 }}>
-        {rep ? `${stickerLine(rep)} ${stickerCount(rep)}` : state === "balanced" ? tr("st.noLean") : tr("st.stillReading")}
+        {rep ? `${stickerLine(rep)} ${stickerCount(rep)}` : state === "balanced" ? tr("st.noLean") : tr("wa.fillsIn")}
       </Text>
       {rep && <Text style={{ ...PFM.mono, fontSize: 9.5, letterSpacing: 1.2, color: rep.state === "established" ? greenOn(tk) : tk.mute, marginTop: 8 }}>{observationState(rep.state)}</Text>}
       {quote && ev && (

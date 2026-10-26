@@ -62,6 +62,8 @@ Changed
 
 Fixed
 - Allowing photos for the first time on the Notes photo roll shows the roll at once; it used to say "No photos yet." until the app was opened again.
+- The Writing Aura card counts toward its first reading with three boxes, matching "0 of 3 letters"; it used to draw five under that line.
+- In the Writing Aura room, a dimension still being read says "Still reading." once, with "A few more letters and this one fills in." under it; the line under it used to start with "Still reading." again.
 
 ---
 

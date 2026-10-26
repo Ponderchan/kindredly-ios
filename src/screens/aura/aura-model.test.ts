@@ -135,7 +135,7 @@ function makeAura(over: Partial<Aura> = {}): Aura {
   const r = room.dims[ORDER.indexOf("rhythm")];
   ok("balanced signs: no lean, no state, no quote, no door", r.name === "wa.noLean" && r.line === "st.noLean" && r.state === "" && r.quote === "" && r.reading === null);
   const e = room.dims[ORDER.indexOf("emotion")];
-  ok("nothing yet: still reading", e.name === "wa.stillReading" && e.line === "st.stillReading" && !e.established);
+  ok("nothing yet: still reading", e.name === "wa.stillReading" && e.line === "wa.fillsIn" && !e.established);
 }
 {
   // evidence whose piece is no longer on the phone: no quote and no door, the name stays
