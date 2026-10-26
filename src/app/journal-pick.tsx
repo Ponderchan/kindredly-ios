@@ -8,7 +8,7 @@ import * as MediaLibrary from "expo-media-library/legacy";
 import * as ImagePicker from "expo-image-picker";
 import * as Application from "expo-application";
 import Constants from "expo-constants";
-import Svg, { Path } from "react-native-svg";
+import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
 import { PF, PFM } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
@@ -44,20 +44,23 @@ import "../data/strings-note-compose"; // jp.camera, jp.cameraDenied
 /* the pick is a confirmation, so it wears the app's confirm green — the
    kindreds' landed tick — not the pen blue (owner, 2026-09-20) */
 const TICK = "#2E7D4F";
-/* THE ROLL'S FIRST ROW (owner, 2026-10-26, from three directions: "the stickers"): Camera, Text
-   note, Voice note, each exactly a picture's cell (square, no corners, the roll's 2 gap: the
-   rounded cards' corners broke the grid), on a bright ground fixed in every theme: the brand's
-   acid, a lilac and a sky. In the middle a white sticker (56, continuous corners of 18) holding
-   the line icon 30 in ink, each turned a little its own way, standing on a hard shadow of the
-   ground darkened (the object's depth of rule B, no edge); the name 10 below in system 13 bold,
-   ink. (Before, the same day: full-colour cards with white type; pale cards; and at first flat
-   tiles with mono capitals.) */
+/* THE ROLL'S FIRST ROW (owner, 2026-10-26, of three directions: "the stamps"): Camera, Text
+   note, Voice note as three postage stamps, each exactly a picture's cell (the roll's 2 gap, so
+   the grid holds). A stamp is its colour edge to edge, perforated all round (half holes of 2.8 on
+   an 8 pitch, cut in the page's own colour so they read in every theme), a frame 9 in (1.5, the
+   ink at .25, or white at .5 on the blue), a denomination in mono 8 at its top right (01 02 03),
+   and the line icon 30 over the name in system 12 bold. Colours fixed in every theme: the
+   brand's acid, the pen blue (white on it), a pink. Keys, so flat: no shadow (rule B). (Before,
+   the same day: stickers; full-colour cards; pale cards; flat tiles with mono capitals.) */
 const KEYS = {
-  camera: { ground: "#C3E84F", turn: "-6deg" },
-  text: { ground: "#B9A8FF", turn: "4deg" },
-  voice: { ground: "#8FD3FF", turn: "-3deg" },
+  camera: { face: "#C3E84F", ink: "#1E1B35", frame: "rgba(30,27,53,0.25)", value: "01" },
+  text: { face: "#3A34D6", ink: "#FFFFFF", frame: "rgba(255,255,255,0.5)", value: "02" },
+  voice: { face: "#FF8FC7", ink: "#1E1B35", frame: "rgba(30,27,53,0.25)", value: "03" },
 } as const;
-const STICKER_INK = "#1E1B35";
+type StampLook = (typeof KEYS)[keyof typeof KEYS];
+/** the perforation: hole radius and pitch */
+const HOLE = 2.8;
+const PITCH = 8;
 const ICON = {
   camera: "M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
   text: "M4 20l4-1 11-11-3-3L5 16z M13 8l3 3",
@@ -271,34 +274,38 @@ export default function JournalPick() {
   const cell = (width - 4) / 3;
   const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
-  const Tile = ({ label, look, onPress, icon }: { label: string; look: { ground: string; turn: string }; onPress: () => void; icon: string }) => (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={{ width: cell, height: cell, backgroundColor: look.ground, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 6 }}>
-      {({ pressed }) => (
-        <>
-          <View
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 18,
-              borderCurve: "continuous",
-              backgroundColor: "#FFFFFF",
-              alignItems: "center",
-              justifyContent: "center",
-              transform: [{ rotate: look.turn }, { scale: pressed ? 0.94 : 1 }],
-              boxShadow: "3px 3px 0px rgba(30,27,53,0.18)",
-            }}
-          >
-            <Svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke={STICKER_INK} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
-              <Path d={icon} />
-            </Svg>
-          </View>
-          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ fontSize: 13, fontWeight: "700", color: STICKER_INK }}>
+  /* the holes along one side of a cell, centred on its edge so only their inner halves show */
+  const holes = (n: number) => Array.from({ length: n }, (_, k) => PITCH / 2 + k * PITCH);
+  const Tile = ({ label, look, onPress, icon }: { label: string; look: StampLook; onPress: () => void; icon: string }) => {
+    const along = holes(Math.floor(cell / PITCH));
+    // the row of holes sits in the middle of the side
+    const lead = (cell - along.length * PITCH) / 2;
+    return (
+      <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => ({ width: cell, height: cell, opacity: pressed ? 0.8 : 1 })}>
+        <Svg width={cell} height={cell} style={{ position: "absolute" }}>
+          <Rect x={0} y={0} width={cell} height={cell} fill={look.face} />
+          <Rect x={9} y={9} width={cell - 18} height={cell - 18} fill="none" stroke={look.frame} strokeWidth={1.5} />
+          {along.map((d) => (
+            <G key={d}>
+              <Circle cx={lead + d} cy={0} r={HOLE} fill={P.paper} />
+              <Circle cx={lead + d} cy={cell} r={HOLE} fill={P.paper} />
+              <Circle cx={0} cy={lead + d} r={HOLE} fill={P.paper} />
+              <Circle cx={cell} cy={lead + d} r={HOLE} fill={P.paper} />
+            </G>
+          ))}
+        </Svg>
+        <Text style={{ position: "absolute", top: 13, right: 14, ...PFM.monoSemi, fontSize: 8, letterSpacing: 0.6, color: look.ink, opacity: 0.8 }}>{look.value}</Text>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 14 }}>
+          <Svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke={look.ink} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+            <Path d={icon} />
+          </Svg>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ fontSize: 12, fontWeight: "700", color: look.ink }}>
             {label}
           </Text>
-        </>
-      )}
-    </Pressable>
-  );
+        </View>
+      </Pressable>
+    );
+  };
 
   /* the camera: a picture taken here goes to the page as one picked from the roll would */
   const shoot = async () => {
