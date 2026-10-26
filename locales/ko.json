@@ -2,5 +2,5 @@
   "NSMicrophoneUsageDescription": "Kindredly는 음성 편지나 음성 일기 페이지를 녹음할 수 있도록 마이크를 사용해요.",
   "NSPhotoLibraryUsageDescription": "Kindredly는 비공개 일기 페이지에 사진이나 영상을 더할 수 있도록 사진 보관함을 열어요.",
   "NSPhotoLibraryAddUsageDescription": "Kindredly는 요청할 때 오라 카드를 사진에 저장해요.",
-  "NSCameraUsageDescription": "Kindredly는 찍은 순간을 우표로 만들 수 있도록 카메라를 사용해요. 간직하기로 하기 전까지는 아무것도 저장되지 않아요."
+  "NSCameraUsageDescription": "Kindredly는 찍은 순간을 나만 보는 일기 페이지에 담거나 우표로 만들 수 있도록 카메라를 사용해요. 간직하기로 하기 전까지는 아무것도 저장되지 않아요."
 }

@@ -14,7 +14,9 @@ import { strings } from "../lib/i18n";
    - nc.moodFirst: VoiceOver's hint on the seal key before a mood is chosen (the key then opens the
      faces: the calendar is made of them). ja/ko polite (ます / 요) like every other VoiceOver hint
      and sc.moodHint, whose second half it repeats; only Wren's own lines are casual;
-   - nc.editor: VoiceOver's name for the writing field.
+   - nc.editor: VoiceOver's name for the writing field;
+   - jp.camera: the photo roll's camera card (2026-10-26), the phone's own word for its camera;
+   - jp.cameraDenied: said when the camera isn't allowed, in jp.denied's words and register.
 
    One file, nine blocks (en es pt id fr de it ja ko — pt is pt-BR), every block with the same keys:
    src/data/strings-note-compose.test.ts checks them (node src/data/strings-note-compose.test.ts).
@@ -30,6 +32,8 @@ strings(
     "nc.oneKind": "A page holds one kind",
     "nc.moodFirst": "Pick a mood first. It's how you'll find this day again.",
     "nc.editor": "Your page",
+    "jp.camera": "Camera",
+    "jp.cameraDenied": "Kindredly can't use your camera. Allow it in Settings to take a photo here.",
   },
   /* ── es · Español ── */
   {
@@ -40,6 +44,8 @@ strings(
     "nc.oneKind": "Cada página lleva un solo tipo",
     "nc.moodFirst": "Primero elige cómo te sentiste: así volverás a encontrar este día.",
     "nc.editor": "Tu página",
+    "jp.camera": "Cámara",
+    "jp.cameraDenied": "Kindredly no puede usar tu cámara. Permítelo en Ajustes para hacer una foto aquí.",
   },
   /* ── pt · Português (Brasil) ── */
   {
@@ -50,6 +56,8 @@ strings(
     "nc.oneKind": "Cada página leva um tipo só",
     "nc.moodFirst": "Escolha um humor primeiro: é assim que você reencontra este dia.",
     "nc.editor": "Sua página",
+    "jp.camera": "Câmera",
+    "jp.cameraDenied": "O Kindredly não consegue usar sua câmera. Permita em Ajustes para tirar uma foto aqui.",
   },
   /* ── id · Bahasa Indonesia ── */
   {
@@ -60,6 +68,8 @@ strings(
     "nc.oneKind": "Satu halaman, satu jenis",
     "nc.moodFirst": "Pilih suasana hatimu dulu. Dari situ kamu bisa menemukan hari ini lagi.",
     "nc.editor": "Halamanmu",
+    "jp.camera": "Kamera",
+    "jp.cameraDenied": "Kindredly tidak bisa memakai kameramu. Izinkan di Pengaturan untuk memotret di sini.",
   },
   /* ── fr · Français ── */
   {
@@ -70,6 +80,8 @@ strings(
     "nc.oneKind": "Une page, un seul type",
     "nc.moodFirst": "Choisis d'abord ton humeur : c'est grâce à elle que tu retrouveras ce jour.",
     "nc.editor": "Ta page",
+    "jp.camera": "Appareil photo",
+    "jp.cameraDenied": "Kindredly ne peut pas utiliser ton appareil photo. Autorise-le dans Réglages pour prendre une photo ici.",
   },
   /* ── de · Deutsch ── */
   {
@@ -80,6 +92,8 @@ strings(
     "nc.oneKind": "Pro Seite nur eine Art",
     "nc.moodFirst": "Wähl zuerst eine Stimmung – daran findest du diesen Tag wieder.",
     "nc.editor": "Deine Seite",
+    "jp.camera": "Kamera",
+    "jp.cameraDenied": "Kindredly kann deine Kamera nicht nutzen. Erlaube es in den Einstellungen, um hier ein Foto zu machen.",
   },
   /* ── it · Italiano ── */
   {
@@ -90,6 +104,8 @@ strings(
     "nc.oneKind": "Una pagina, un solo tipo",
     "nc.moodFirst": "Prima scegli l'umore: è così che ritroverai questo giorno.",
     "nc.editor": "La tua pagina",
+    "jp.camera": "Fotocamera",
+    "jp.cameraDenied": "Kindredly non può usare la fotocamera. Consentilo nelle Impostazioni per scattare una foto qui.",
   },
   /* ── ja · 日本語 ── */
   {
@@ -100,6 +116,8 @@ strings(
     "nc.oneKind": "1ページに1種類まで",
     "nc.moodFirst": "先に気分を選んでください。この日をあとで見つける手がかりになります。",
     "nc.editor": "自分のページ",
+    "jp.camera": "カメラ",
+    "jp.cameraDenied": "Kindredly からカメラが使えません。設定で許可すると、ここで写真を撮れます。",
   },
   /* ── ko · 한국어 ── */
   {
@@ -110,5 +128,7 @@ strings(
     "nc.oneKind": "한 페이지에 한 종류만",
     "nc.moodFirst": "먼저 기분을 골라 주세요. 나중에 이 날을 다시 찾는 단서가 돼요.",
     "nc.editor": "내 페이지",
+    "jp.camera": "카메라",
+    "jp.cameraDenied": "Kindredly가 카메라를 사용할 수 없어요. 설정에서 허용하면 여기서 사진을 찍을 수 있어요.",
   },
 );

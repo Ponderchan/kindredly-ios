@@ -5,12 +5,17 @@ import { Image } from "expo-image";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as MediaLibrary from "expo-media-library/legacy";
+import * as ImagePicker from "expo-image-picker";
+import * as Application from "expo-application";
+import Constants from "expo-constants";
 import Svg, { Path } from "react-native-svg";
 import { t, useLang } from "../lib/i18n";
 import { PF, PFM } from "../theme/post";
 import { useP, useTheme } from "../lib/theme";
 import { leavePicked, takeKept } from "../lib/journal-handoff";
 import { CloseGlyph } from "../components/10a/BackChevron";
+import { newerVersion } from "../lib/update-prompt-core";
+import "../data/strings-note-compose"; // jp.camera, jp.cameraDenied
 
 /* TO YOURSELF STARTS AT THE PICTURES (owner, 2026-09-20).
    ────────────────────────────────────────────────────────────────────────
@@ -39,16 +44,26 @@ import { CloseGlyph } from "../components/10a/BackChevron";
 /* the pick is a confirmation, so it wears the app's confirm green — the
    kindreds' landed tick — not the pen blue (owner, 2026-09-20) */
 const TICK = "#2E7D4F";
-/* THE TWO NOTE KEYS (owner, 2026-10-26: the flat tiles with mono capitals were "too ugly") are
-   the Notes composer's ＋ cards (KNotePlusPanel, the owner's Note Composer Bar): a card the size
-   of a picture beside it (owner: "as big as the photos"), continuous corners of 16, the line
-   icon 26 and the name in system 15 semibold, in a mood pair that keeps its colours in every
-   theme. Voice is the composer's Audio card (tired:
-   lav and pen); text takes happy's yellow with its face ink, which reads on it. */
+/* THE ROLL'S FIRST ROW (owner, 2026-10-26, after an old design of theirs: "1+2+3"): Camera,
+   Text note, Voice note, each the size of a picture beside it, continuous corners of 16, a 40
+   line icon over the name in system 17 semibold, all in white on a full colour — keys, so flat
+   (rule B). Text is the pen blue, voice the low mood's deep blue, both fixed in every theme;
+   the camera card is the newest picture blurred under a dim, as a viewfinder would be. (Before:
+   pale cards with a 26 icon and 15 type; before that, flat tiles with mono capitals.) */
 const KEYS = {
-  text: { fill: "#F6E7C6", ink: "#94681C" },
-  voice: { fill: "#E4E2F4", ink: "#3A34D6" },
+  text: "#3A34D6",
+  voice: "#3B6E9B",
 } as const;
+const ICON = {
+  camera: "M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+  text: "M4 20l4-1 11-11-3-3L5 16z M13 8l3 3",
+  voice: "M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z M5 11a7 7 0 0 0 14 0 M12 18v3",
+};
+/* the camera card asks for the camera with words that name a journal page, which only binaries
+   from 1.2.6 (App Store 1.0.7) carry (app.json's NSCameraUsageDescription); an older one never
+   shows it, even after an update over the air */
+const BINARY: string | null = Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? null;
+const CAMERA_CARD = !!BINARY && !newerVersion("1.2.6", BINARY);
 const MAX = 9;
 const PAGE = 60;
 type Frame = { id: string; uri: string; w: number; h: number; video: boolean; duration: number };
@@ -252,20 +267,48 @@ export default function JournalPick() {
   const cell = (width - 4) / 3;
   const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
-  const Tile = ({ label, pair, onPress, icon }: { label: string; pair: { fill: string; ink: string }; onPress: () => void; icon: string }) => (
+  const Tile = ({ label, fill, under, onPress, icon }: { label: string; fill: string; under?: string; onPress: () => void; icon: string }) => (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={{ width: cell, height: cell }}>
       {({ pressed }) => (
-        <View style={{ flex: 1, borderRadius: 16, borderCurve: "continuous", backgroundColor: pair.fill, alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 6, opacity: pressed ? 0.7 : 1 }}>
-          <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={pair.ink} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+        <View style={{ flex: 1, borderRadius: 16, borderCurve: "continuous", overflow: "hidden", backgroundColor: fill, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 8, opacity: pressed ? 0.75 : 1 }}>
+          {under ? (
+            <>
+              <Image source={{ uri: under }} blurRadius={24} contentFit="cover" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} />
+              <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: "rgba(30,27,53,0.32)" }} />
+            </>
+          ) : null}
+          <Svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
             <Path d={icon} />
           </Svg>
-          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ fontSize: 15, fontWeight: "600", color: pair.ink }}>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontSize: 17, fontWeight: "600", color: "#FFFFFF" }}>
             {label}
           </Text>
         </View>
       )}
     </Pressable>
   );
+
+  /* the camera: a picture taken here goes to the page as one picked from the roll would */
+  const shoot = async () => {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(t("jp.camera"), t("jp.cameraDenied"), [
+        { text: t("ml.cancel"), style: "cancel" },
+        { text: t("jp.settings"), onPress: () => void Linking.openSettings() },
+      ]);
+      return;
+    }
+    try {
+      const r = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.9 });
+      const shot = r.canceled ? null : r.assets?.[0];
+      if (!shot) return;
+      leavePicked({ photos: [...keptRef.current, { uri: shot.uri, ratio: shot.width && shot.height ? shot.width / shot.height : 0.75 }] });
+      if (adding) router.back();
+      else router.replace("/journal-entry");
+    } catch (e) {
+      console.warn("[journal-pick] the camera didn't give a picture:", e);
+    }
+  };
 
   /* one frame of the roll — also the third tile up top, which is simply
      the newest picture (owner, 2026-09-20) */
@@ -297,13 +340,14 @@ export default function JournalPick() {
      continues from the second picture underneath */
   const header = adding ? null : (
     <View style={{ flexDirection: "row", gap: 2, marginBottom: 2 }}>
-      <Tile label={t("jp.write")} pair={KEYS.text} onPress={() => router.replace("/journal-entry")} icon="M4 20l4-1 11-11-3-3L5 16z M13 8l3 3" />
-      {/* the composer's own microphone (KNotePlusPanel's Audio) */}
-      <Tile label={t("jp.say")} pair={KEYS.voice} onPress={() => router.replace("/journal-entry?start=voice")} icon="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z M5 11a7 7 0 0 0 14 0 M12 18v3" />
-      {frames[0] ? frame(frames[0]) : <View style={{ width: cell, height: cell, backgroundColor: tk.soft2 }} />}
+      {CAMERA_CARD ? <Tile label={t("jp.camera")} fill="#2A2744" under={frames[0]?.uri} onPress={() => void shoot()} icon={ICON.camera} /> : null}
+      <Tile label={t("jp.write")} fill={KEYS.text} onPress={() => router.replace("/journal-entry")} icon={ICON.text} />
+      <Tile label={t("jp.say")} fill={KEYS.voice} onPress={() => router.replace("/journal-entry?start=voice")} icon={ICON.voice} />
+      {CAMERA_CARD ? null : frames[0] ? frame(frames[0]) : <View style={{ width: cell, height: cell, backgroundColor: tk.soft2 }} />}
     </View>
   );
-  const rest = adding ? frames : frames.slice(1);
+  // the newest picture sits in the first row only when there is no camera card there
+  const rest = adding || CAMERA_CARD ? frames : frames.slice(1);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }} edges={["top", "bottom"]}>

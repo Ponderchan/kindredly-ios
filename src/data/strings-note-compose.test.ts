@@ -30,8 +30,8 @@ const ok = (name: string, cond: boolean, extra = "") => {
 ok("nine blocks", blocks?.length === 9);
 const en = blocks[0];
 const keys = Object.keys(en);
-ok("seven keys (nc.sealed went with the veil, 2026-10-26)", keys.length === 7);
-ok("only nc.* keys", keys.every((k) => k.startsWith("nc.")));
+ok("nine keys (nc.sealed went with the veil; the roll's camera card came, 2026-10-26)", keys.length === 9);
+ok("only nc.* keys and the roll's camera (jp.camera*)", keys.every((k) => k.startsWith("nc.") || k.startsWith("jp.camera")));
 blocks.forEach((b, i) => {
   const lang = LANGS[i];
   const bk = Object.keys(b);
