@@ -40,9 +40,10 @@ import { CloseGlyph } from "../components/10a/BackChevron";
    kindreds' landed tick — not the pen blue (owner, 2026-09-20) */
 const TICK = "#2E7D4F";
 /* THE TWO NOTE KEYS (owner, 2026-10-26: the flat tiles with mono capitals were "too ugly") are
-   the Notes composer's ＋ cards (KNotePlusPanel, the owner's Note Composer Bar): a card inset in
-   its cell, continuous corners of 20, the line icon 26 and the name in system 15 semibold, in a
-   mood pair that keeps its colours in every theme. Voice is the composer's Audio card (tired:
+   the Notes composer's ＋ cards (KNotePlusPanel, the owner's Note Composer Bar): a card the size
+   of a picture beside it (owner: "as big as the photos"), continuous corners of 16, the line
+   icon 26 and the name in system 15 semibold, in a mood pair that keeps its colours in every
+   theme. Voice is the composer's Audio card (tired:
    lav and pen); text takes happy's yellow with its face ink, which reads on it. */
 const KEYS = {
   text: { fill: "#F6E7C6", ink: "#94681C" },
@@ -252,9 +253,9 @@ export default function JournalPick() {
   const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
   const Tile = ({ label, pair, onPress, icon }: { label: string; pair: { fill: string; ink: string }; onPress: () => void; icon: string }) => (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={{ width: cell, height: cell, padding: 6 }}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={{ width: cell, height: cell }}>
       {({ pressed }) => (
-        <View style={{ flex: 1, borderRadius: 20, borderCurve: "continuous", backgroundColor: pair.fill, alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 6, opacity: pressed ? 0.7 : 1 }}>
+        <View style={{ flex: 1, borderRadius: 16, borderCurve: "continuous", backgroundColor: pair.fill, alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 6, opacity: pressed ? 0.7 : 1 }}>
           <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke={pair.ink} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
             <Path d={icon} />
           </Svg>
