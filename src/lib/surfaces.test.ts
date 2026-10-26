@@ -68,7 +68,10 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   ok("the aura's two keys are there and on", AURA.every((k) => entries[k] === true));
   // Wren's Journey in Swift (2026-10-26)
   ok("the courier page's key is there and on", entries.courier === true);
-  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + 5);
+  // the onboarding in Swift (binary 1.2.6): DELIBERATELY OFF — it ships dark and a row turns it
+  // on after device testing, so the React Native run stays what people see until then
+  ok("the onboarding's key is there and off", "onboarding" in entries && entries.onboarding === false);
+  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + 6);
 }
 
 /* ── the crash breadcrumb ── */

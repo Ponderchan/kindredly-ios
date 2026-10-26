@@ -185,6 +185,8 @@ export const KSCREEN_VIEWS = [
   "KAuraShareView",
   // Wren's Journey, the courier page (2026-10-26)
   "KCourierView",
+  // the onboarding (binary 1.2.6, off by default)
+  "KOnboardingView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

@@ -1,13 +1,17 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import Svg, { Circle, Rect } from "react-native-svg";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { AvatarImage } from "../../../components/AvatarImage";
 import { FACES } from "../../../data/aura-avatar-lib";
 import { t } from "../../../lib/i18n";
+import { makeFaceHref, setMadeFaceWorn, useMadeFace, useMadeFaceAvatarId, useMakeFaceOn } from "../../../lib/make-face";
+import { dobString } from "../flow";
 import { Headline, Line, ScreenFrame } from "../parts/frame";
 import * as haptics from "../parts/haptics";
 import { AcidKey, TextKey } from "../parts/keys";
+import { MakeFaceCell } from "../parts/make-face";
 import { EDGE, FONT, OB, OB_MAX_FONT, SHADOW } from "../parts/tokens";
 import type { ObScreenProps } from "../types";
 import "../../../data/strings-onboarding2";
@@ -34,7 +38,15 @@ import "../../../data/strings-onboarding2";
    top-right edge, a sticker on the sticker, picks a face from the same pool
    (never the one already picked), rings it and scrolls it into view — for
    whoever would rather not choose. Its word is Edit profile's own Random
-   (ep.random), already in all nine languages. */
+   (ep.random), already in all nine languages.
+
+   MAKE YOURS (owner, 2026-10-26; lib/make-face): while its door may show
+   (useMakeFaceOn), the grid's first cell is "＋ Make yours" (parts/make-face).
+   It opens the flow with the birthday from 3; the face made is picked like any
+   other, its "made-<uuid>" id kept as the avatarId (saved with the profile).
+   Coming back with a face chosen in the flow ("This is me" there marks it
+   worn), it is picked here too. A library face or "Later" un-wears it
+   (setMadeFaceWorn(null)). The Swift screen (KObFaceScreen) has the same cell. */
 
 /** the dice, in the run's ink (it sits on the white chip in every theme the run has) */
 function Dice({ size = 16 }: { size?: number }) {
@@ -59,6 +71,24 @@ export default function S05Face(props: ObScreenProps) {
   const cell = cardW > 0 ? (cardW - 2 * EDGE - 2 * pad) / cols : 0;
   const face = Math.max(40, Math.min(60, cell - 18));
   const scroller = useRef<ScrollView>(null);
+  const router = useRouter();
+  const makeOn = useMakeFaceOn();
+  const made = useMadeFace();
+  const madeId = useMadeFaceAvatarId();
+  /* the cell takes the grid's first place, so a library face sits one place later */
+  const lead = makeOn ? 1 : 0;
+  const yours = made.state === "yours" && !!madeId;
+  /* back from the flow with a face worn: it is the one picked */
+  const wasYours = useRef(yours);
+  useEffect(() => {
+    if (yours && !wasYours.current && madeId && draft.avatarId !== madeId) props.set({ avatarId: madeId, faceLater: false });
+    wasYours.current = yours;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [yours, madeId]);
+  /* a library face or Later: the made face is no longer worn (its free try stays spent) */
+  const unwear = () => {
+    if (made.state !== "free") void setMadeFaceWorn(null);
+  };
 
   /* a face from this pool, not the one already picked; the grid scrolls so it shows a row above */
   const roll = () => {
@@ -66,8 +96,9 @@ export default function S05Face(props: ObScreenProps) {
     if (!pool.length) return;
     const a = pool[Math.floor(Math.random() * pool.length)];
     haptics.tick();
+    unwear();
     props.set({ avatarId: a.id, faceLater: false });
-    const row = Math.floor(list.indexOf(a) / cols);
+    const row = Math.floor((list.indexOf(a) + lead) / cols);
     if (cell > 0) scroller.current?.scrollTo({ y: Math.max(0, (row - 1) * cell), animated: true });
   };
 
@@ -77,7 +108,17 @@ export default function S05Face(props: ObScreenProps) {
       back={props.back}
       nest
       primary={<AcidKey label={t("ob2.face.key")} disabled={!props.canAdvance} onPress={() => props.advance()} />}
-      secondary={<TextKey label={t("ob2.face.later")} underline on="blue" onPress={props.skip} />}
+      secondary={
+        <TextKey
+          label={t("ob2.face.later")}
+          underline
+          on="blue"
+          onPress={() => {
+            unwear();
+            props.skip();
+          }}
+        />
+      }
     >
       <Headline style={{ marginTop: 8 }}>{t("ob2.face.head")}</Headline>
       <Line small>{t("ob2.face.line")}</Line>
@@ -86,6 +127,20 @@ export default function S05Face(props: ObScreenProps) {
         <View style={{ flex: 1, borderRadius: 18, borderWidth: EDGE, borderColor: OB.ink, backgroundColor: OB.paper, overflow: "hidden" }}>
           {cell > 0 && (
             <ScrollView ref={scroller} contentContainerStyle={{ padding: pad, paddingTop: pad + 14, flexDirection: "row", flexWrap: "wrap" }} showsVerticalScrollIndicator={false}>
+              {makeOn && (
+                <MakeFaceCell
+                  state={made.state}
+                  image={made.image}
+                  width={cell}
+                  selected={yours && draft.avatarId === madeId}
+                  onPress={() => {
+                    haptics.tick();
+                    if (yours && madeId) {
+                      if (draft.avatarId !== madeId) props.set({ avatarId: madeId, faceLater: false });
+                    } else router.push(makeFaceHref("onboarding", { dob: draft.dob ? dobString(draft.dob) : null }));
+                  }}
+                />
+              )}
               {list.map((a, i) => {
                 const on = draft.avatarId === a.id;
                 return (
@@ -94,6 +149,7 @@ export default function S05Face(props: ObScreenProps) {
                     onPress={() => {
                       if (on) return;
                       haptics.tick();
+                      unwear();
                       props.set({ avatarId: a.id, faceLater: false });
                     }}
                     accessibilityRole="button"

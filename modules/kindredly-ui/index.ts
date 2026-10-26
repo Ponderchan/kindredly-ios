@@ -140,6 +140,28 @@ export {
   type KCourierTile,
   type KCourierViewProps,
 } from "./src/Courier";
+// the onboarding (binary 1.2.6; app_surfaces "onboarding", off by default), in Swift
+export {
+  KOnboardingView,
+  type KObAuth,
+  type KObDob,
+  type KObDoor,
+  type KObEnvelope,
+  type KObEvent,
+  type KObFace,
+  type KObFold,
+  type KObGround,
+  type KObHatch,
+  type KObLetter,
+  type KObMake,
+  type KObName,
+  type KObScreenId,
+  type KObShell,
+  type KObSideId,
+  type KObWord,
+  type KOnboardingCommands,
+  type KOnboardingViewProps,
+} from "./src/Onboarding";
 
 // step 5, batch 0b: the spike lab (dev only: src/app/dev/step5-lab.tsx)
 export {

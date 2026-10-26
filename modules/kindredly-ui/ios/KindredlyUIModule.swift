@@ -129,6 +129,15 @@ public class KindredlyUIModule: Module {
       }
     }
 
+    // the onboarding (binary 1.2.6, App Store 1.0.7; behind app_surfaces "onboarding", off by
+    // default): adapter in Adapters/KOnboardingView.swift, the run in Portable/Onboarding;
+    // src/app/onboarding.tsx. New files: a pod install before the build.
+    ExpoUIView(KOnboardingView.self) {
+      AsyncFunction("command") { (view: KOnboardingView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+
     // dev only on the JS side (src/app/dev/step5-lab.tsx): the batch 0b spike lab, a screen view
     // like the eight above (KScreenProps, the command bus, a KField)
     ExpoUIView(KLabView.self) {

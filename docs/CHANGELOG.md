@@ -41,6 +41,7 @@ New
 - Halloween stamps: three free seasonal stamps (Spooky season, a jack-o'-lantern; Boo, a bedsheet ghost; Trick or treat, a wrapped sweet) sit first in the stamp tray with a small SEASONAL marker from Oct 24 to Nov 2 (local date). Outside those days they aren't offered, but letters stamped with them always show them. Nine languages. [binary] [switch: halloween]
 - Halloween looks for Wren: a witch hat and a bedsheet ghost, free for everyone, from Oct 24 to Nov 2. In those days the looks row on Me shows Bare · Witch hat · Ghost · First Class and the wardrobe offers them first; after the season they aren't offered, but a Wren already wearing one keeps it on. Nine languages. [OTA] [switch: halloween]
 - Seasons have one remote switch each: the app_surfaces key `halloween` is on with no row (so it works offline); a false row turns the Halloween stamps and looks off. [switch: halloween]
+- The first-run onboarding can be drawn natively in SwiftUI: the same thirteen screens, words and steps, with flat keys and soft purple shadows under the cards instead of black edges; while it is off, people see the onboarding exactly as before. [binary] [switch: onboarding, off by default]
 
 Changed
 - The Letter font now starts on System for everyone who never picked one, and System is the first tile in Settings → Font, before Newsreader. A font you chose stays.
