@@ -60,7 +60,9 @@ export type BirdPose =
   // the courier page in Swift (screens/courier): her perch and her wardrobe rack
   | HeroPose
   | RackPose
-  | StagePose;
+  | StagePose
+  // Wren's room in Swift (screens/wren-room/WrenRoomNative): the empty room's curious official bird
+  | "officialCurious";
 
 /* THE COURIER PAGE (/courier in Swift, 2026-10-26). Her perch draws her at the
    React Native perch's 186 in every face she can make there (her whereabouts'
@@ -172,6 +174,10 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
   delight64: { size: 64, mood: "delight" },
   // the courier page's perch and rack (see COURIER_POSES above)
   ...COURIER_POSES,
+  /* Wren's room in Swift: the empty room's OfficialBird (64, curious), whose WrenBird is
+     round(64 × .62) = 40 — the brand bird, pinned like "official" (the header's face, as on her
+     Kindreds row). Not base: captured only while the room asks. */
+  officialCurious: { size: 40, mood: "curious", stage: "wren", skin: "sticker", accessory: "none", mark: null },
 };
 
 /** The user's look, as BirdSnapshots reads it from the Wren contexts. */

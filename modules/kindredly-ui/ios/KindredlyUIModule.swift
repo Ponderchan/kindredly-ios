@@ -274,5 +274,14 @@ public class KindredlyUIModule: Module {
         view.props.commands.send(name, args)
       }
     }
+
+    // Wren's room, the chat with the courier (2026-10-27; behind the "wrenroom" switch, off by
+    // default): adapter in Adapters/KWrenRoomView.swift, the page in Portable/WrenRoom/
+    // KWrenRoomScreen.swift; src/app/room/wren.tsx. New files: a pod install before the build.
+    ExpoUIView(KWrenRoomView.self) {
+      AsyncFunction("command") { (view: KWrenRoomView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
   }
 }

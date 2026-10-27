@@ -23,7 +23,7 @@ import { uploadMoment } from "../../lib/db";
 import { MediaImage } from "../../lib/media";
 import { PhotoLightbox, type LightboxPhoto } from "../../components/PhotoLightbox";
 import { answerFor, fetchAnswers, readAnswersCache, type Answer } from "../../lib/wren-answers";
-import { GUIDES, isGuideId, type GuideId } from "../../data/guides";
+import { GUIDES, isGuideId } from "../../data/guides";
 import { stallReport } from "../../lib/stall-probe";
 import { looksBroken } from "../../lib/wren-match";
 import {
@@ -47,6 +47,9 @@ import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
 import { atBottomOf, follow, settlesAtEnd, spendsOwn, type FollowFacts } from "../../screens/chat/follow";
 import { useKeyboardRN, useKeyboardSettle, useKeyboardTray } from "../../screens/chat/useKeyboardRN";
 import { BackChevron } from "../../components/10a/BackChevron";
+import { NativeSurface } from "../../components/NativeSurface";
+import { WrenRoomNative } from "../../screens/wren-room/WrenRoomNative";
+import { FIRST_CHIPS, buildWrenStream, guideSlugOf, wrenItemKey, wrenSpeaker, type WrenRoomItem, type WrenSpeakerWords } from "../../screens/wren-room/wren-room-model";
 
 /* WREN'S DESK — the one room everybody has.
    ────────────────────────────────────────────────────────────────────────
@@ -89,15 +92,24 @@ import { BackChevron } from "../../components/10a/BackChevron";
    · the tray is on the theme (LeaveATrace's 10a cards, in the keyboard's
      place). */
 
-type Item =
-  | { type: "post"; post: WrenPost; at: string }
-  | { type: "mail"; mail: WrenMail; at: string }
-  | { type: "reply"; mail: WrenMail; at: string }
-  | { type: "local"; local: WrenLocal; at: string };
+/* the transcript and its speakers are screens/wren-room/wren-room-model's, shared with the Swift room */
+type Item = WrenRoomItem;
 
-const FIRST_CHIPS: GuideId[] = ["letters", "kindreds", "aura"];
+/* 2026-10-27: the room can be drawn in Swift (screens/wren-room/WrenRoomNative,
+   KWrenRoomView), with the React Native room below as the remote switch's
+   fallback ("wrenroom" in app_surfaces, NativeSurface in mount mode; off by
+   default until it has been checked on the simulator). */
+export default function WrenDeskRoute() {
+  const T = useTheme().t;
+  return (
+    <View style={{ flex: 1, backgroundColor: T.bg }}>
+      <NativeSurface surface="wrenroom" view="KWrenRoomView" mode="mount" native={() => <WrenRoomNative />} fallback={() => <WrenDeskScreen />} />
+    </View>
+  );
+}
 
-export default function WrenDeskScreen() {
+/* the React Native room */
+function WrenDeskScreen() {
   useLang();
   // the theme's colours: P keyed like the static palette (useP), T the 10a tokens
   const P = useP();
@@ -224,15 +236,7 @@ export default function WrenDeskScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.guide]);
 
-  const stream = useMemo<Item[]>(() => {
-    const all: Item[] = [
-      ...posts.map((post) => ({ type: "post" as const, post, at: post.at })),
-      ...mail.map((m) => ({ type: "mail" as const, mail: m, at: m.at })),
-      ...mail.filter((m) => m.reply).map((m) => ({ type: "reply" as const, mail: m, at: m.repliedAt || m.at })),
-      ...local.map((l) => ({ type: "local" as const, local: l, at: l.at })),
-    ];
-    return all.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
-  }, [posts, mail, local]);
+  const stream = useMemo<Item[]>(() => buildWrenStream(posts, mail, local), [posts, mail, local]);
 
   const canSend = text.trim().length > 0 && !sending;
 
@@ -334,23 +338,21 @@ export default function WrenDeskScreen() {
     setTimeout(() => inputRef.current?.focus(), 160);
   };
 
-  const labelOf = (x: Item): string => {
-    if (x.type === "mail")
-      return x.mail.kind === "bug" ? `${t("ui.you")} · ${t("wo.bug.t").toUpperCase()}` : x.mail.kind === "idea" ? `${t("ui.you")} · ${t("wo.idea.t").toUpperCase()}` : t("ui.you");
-    if (x.type === "local") return x.local.q ? t("ui.you") : OFFICIAL_NAME.toUpperCase();
-    if (x.type === "reply") return OFFICIAL_NAME.toUpperCase();
-    return x.post.kind === "event"
-      ? `${OFFICIAL_NAME.toUpperCase()} · ${t("wo.kind.event")}`
-      : x.post.kind === "note"
-        ? `${OFFICIAL_NAME.toUpperCase()} · ${t("wo.kind.note")}`
-        : OFFICIAL_NAME.toUpperCase();
+  const words: WrenSpeakerWords = {
+    you: t("ui.you"),
+    wren: OFFICIAL_NAME.toUpperCase(),
+    bug: t("wo.bug.t").toUpperCase(),
+    idea: t("wo.idea.t").toUpperCase(),
+    event: t("wo.kind.event"),
+    note: t("wo.kind.note"),
   };
+  const labelOf = (x: Item): string => wrenSpeaker(x, words);
 
   const openLink = (url: string) => {
     // a post may point back into the app — at a guide, most often
-    const m = url.match(/^kindredly:\/\/\/?guide\/([a-z]+)$/);
-    if (m && isGuideId(m[1])) {
-      void show({ kind: "guide", guide: m[1] }, null);
+    const g = guideSlugOf(url);
+    if (isGuideId(g)) {
+      void show({ kind: "guide", guide: g }, null);
       return;
     }
     void Linking.openURL(url);
@@ -416,7 +418,7 @@ export default function WrenDeskScreen() {
             const Label = (l: string, own: boolean, first: boolean) => (
               <Text style={{ ...PFM.monoSemi, fontSize: 9.5, letterSpacing: 1.2, color: own ? P.ink40 : P.pen, marginTop: first ? 0 : 16, marginBottom: 5 }}>{l}</Text>
             );
-            const key = it.type === "post" ? `p-${it.post.id}` : it.type === "local" ? `l-${it.local.id}` : it.type === "reply" ? `r-${it.mail.id}` : `m-${it.mail.id}`;
+            const key = wrenItemKey(it);
 
             if (it.type === "local") {
               const a = it.local.answer;
