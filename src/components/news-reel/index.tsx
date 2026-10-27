@@ -34,6 +34,13 @@ const NEWS: Record<string, News> = {
 
 export const newsReelOf = (id: string): Reel | null => NEWS[id]?.reel ?? null;
 
+/** A release's card as the Swift room draws it (screens/wren-room/WrenRoomNative): its words'
+    keys and where its button goes, or null for a reel this build doesn't ship. */
+export const newsCardOf = (id: string): Omit<News, "reel"> | null => {
+  const n = NEWS[id];
+  return n ? { title: n.title, body: n.body, cta: n.cta, href: n.href } : null;
+};
+
 /** the id in a kindredly:///news/<id> link, or null */
 export const newsIdOf = (link: string | null | undefined): string | null => {
   const m = (link || "").match(/^kindredly:\/\/\/?news\/([0-9][0-9.]*)$/);

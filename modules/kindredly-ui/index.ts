@@ -234,3 +234,15 @@ export {
   type KIntroRitualStroke,
   type KIntroRitualViewProps,
 } from "./src/IntroRitual";
+
+// Wren's room, the chat with the courier (2026-10-27), in Swift, behind the "wrenroom" switch
+// (src/screens/wren-room/WrenRoomNative.tsx)
+export {
+  KWrenRoomView,
+  type KWrenRoomCard,
+  type KWrenRoomChip,
+  type KWrenRoomCommands,
+  type KWrenRoomRow,
+  type KWrenRoomStrings,
+  type KWrenRoomViewProps,
+} from "./src/WrenRoom";

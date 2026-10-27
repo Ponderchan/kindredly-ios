@@ -158,7 +158,15 @@ import {
      help         How Kindredly works (me/help) — KHelpView
      writetous    Write to us (me/write-to-us) — KWriteToUsView
 
-   A kindred's page and Wren's desk stay React Native and have no key. */
+   A kindred's page and Wren's desk stay React Native and have no key.
+
+   Since 2026-10-27 Wren's desk has a key after all: it can be drawn in
+   Swift, keeping its React Native room the same way. OFF until it has
+   been checked on the simulator:
+
+     wrenroom     Wren's room (room/wren) — KWrenRoomView; the guide reels
+                  and the news reel stay React Native inside it (islands),
+                  screens/wren-room holds its state */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
   room: true,
@@ -189,10 +197,12 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   blocked: true,
   help: true,
   writetous: true,
+  // Wren's room (2026-10-27): off until it has been checked on the simulator
+  wrenroom: false,
 };
 
 /** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding and the last Me pages (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous";
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "wrenroom";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */

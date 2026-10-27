@@ -197,6 +197,8 @@ export const KSCREEN_VIEWS = [
   "KBlockedView",
   "KHelpView",
   "KWriteToUsView",
+  // Wren's room, the chat with the courier (2026-10-27; behind the "wrenroom" switch)
+  "KWrenRoomView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];
