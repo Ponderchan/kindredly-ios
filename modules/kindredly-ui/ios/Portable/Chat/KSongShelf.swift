@@ -113,10 +113,14 @@ public struct KSongShelf: View {
           .accessibilityLabel(content.closeLabel)
           .accessibilityAddTraits(.isButton)
           .accessibilityAction { actions.onClose() }
-        // the sheet at its own height, at most 72% of the screen; a tap inside it is its own
+        // The sheet at its own height, at most 72% of the screen, on the bottom edge. A frame with
+        // only a maxHeight takes the height PROPOSED to it (clamped), not its child's, so the sheet
+        // sits at the bottom of that 72% box (alignment .bottom), and only the sheet itself takes
+        // touches (its contentShape is inside the frame): the box's empty top is the dim's, and a
+        // tap there closes the shelf.
         sheet
-          .frame(maxHeight: geo.size.height * Self.maxShare)
           .contentShape(Rectangle())
+          .frame(maxHeight: geo.size.height * Self.maxShare, alignment: .bottom)
       }
       .frame(width: geo.size.width, height: geo.size.height)
     }
