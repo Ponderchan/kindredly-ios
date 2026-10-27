@@ -3,6 +3,7 @@ import { forwardRef, useMemo, type ReactNode, type Ref } from "react";
 import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
 import type { KImageRefProps, KInsets, KScreenBaseProps, KScreenHandle, KStandardCommands } from "./types";
+import type { KVoiceSlotAction, KVoiceSlotCommand } from "./VoicePieces";
 
 /* THE NOTES COMPOSER, drawn by SwiftUI (ios/Portable/Notes/KNoteComposePage.swift, adapter
    ios/Adapters/KNoteComposeView.swift), for src/screens/journal-entry/NoteComposeNative.tsx. Every
@@ -60,6 +61,8 @@ export type KNoteThumb = { id: string; kind: "photo" | "video"; image: KImageRef
 export type KNoteComposeCommands = Omit<KStandardCommands, "setText" | "focus"> & {
   setText: { target: "body"; value: string };
   focus: { target: "body" };
+  /** the voice slot: what Swift draws itself of the recorder and the take (VoicePieces.tsx) */
+  recorder: KVoiceSlotCommand;
 };
 
 export type KNoteComposeViewProps = CommonViewModifierProps &
@@ -94,6 +97,8 @@ export type KNoteComposeViewProps = CommonViewModifierProps &
     onWren?: () => void;
     /** the seal moment has played (after sealed turned true): back to Notes */
     onSealEnd?: () => void;
+    /** a tap in the voice slot's Swift recording bar or take card (the `recorder` command) */
+    onVoice?: (action: KVoiceSlotAction) => void;
     /** the two <KIsland>s, "wren" then "recorder", every render (Slot.tsx) */
     children?: ReactNode;
   };
@@ -117,6 +122,7 @@ type NativeProps = Omit<
   | "onSeal"
   | "onWren"
   | "onSealEnd"
+  | "onVoice"
 > &
   Required<Pick<KNoteComposeViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
@@ -132,6 +138,7 @@ type NativeProps = Omit<
     onNoteSeal?: Ev<{ text: string }>;
     onNoteWren?: Ev<Record<string, never>>;
     onNoteSealEnd?: Ev<Record<string, never>>;
+    onNoteVoice?: Ev<{ action: KVoiceSlotAction }>;
   };
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
@@ -150,7 +157,7 @@ const NativeKNoteComposeView = requireNativeView<NativeProps>("KindredlyUI", "KN
 
 /** The bare SwiftUI page. Only inside an @expo/ui <Host>; its ref takes commands. */
 export const KNoteComposeView = forwardRef<KScreenHandle, KNoteComposeViewProps>(function KNoteComposeView(
-  { modifiers, letterFont, insets, rev, groups, thumbs, onClose, onTextChange, onFieldFocus, onPanel, onPickGroup, onPickFace, onCard, onThumb, onRemoveMedia, onSeal, onWren, onSealEnd, ...rest },
+  { modifiers, letterFont, insets, rev, groups, thumbs, onClose, onTextChange, onFieldFocus, onPanel, onPickGroup, onPickFace, onCard, onThumb, onRemoveMedia, onSeal, onWren, onSealEnd, onVoice, ...rest },
   ref,
 ) {
   const groupsSent = useMemo(() => nativeNoteGroups(groups), [groups]);
@@ -188,6 +195,7 @@ export const KNoteComposeView = forwardRef<KScreenHandle, KNoteComposeViewProps>
       onNoteSeal={onSeal ? (e) => onSeal(e.nativeEvent.text) : undefined}
       onNoteWren={onWren ? () => onWren() : undefined}
       onNoteSealEnd={onSealEnd ? () => onSealEnd() : undefined}
+      onNoteVoice={onVoice ? (e) => onVoice(e.nativeEvent.action) : undefined}
     />
   );
 });

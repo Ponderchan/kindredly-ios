@@ -19,6 +19,7 @@ import { WrenBird, type WrenMood } from "../../components/WrenBird";
 import { useBreathe } from "../../components/anim";
 import { Recorder } from "../../components/Recorder";
 import { AudioCard } from "../../components/AudioCard";
+import { VoiceBarDriver, VoiceTakeDriver, createVoiceSlot, useVoicePieces, type VoiceSlot } from "../../components/VoiceSlot";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
 import { t } from "../../lib/i18n";
@@ -49,7 +50,12 @@ import type { ComposeActions, ComposeState } from "./useComposeState";
      attached; blur comes from the shared state's sheets (blurThen with this
      view's ref) and from the page itself before a tray or the key;
    - Wren's mood reaches her island through a small store, so a mood change
-     redraws the bird and nothing else. */
+     redraws the bird and nothing else;
+   - the voice slot (components/VoiceSlot): with the "recorder" or
+     "audiocard" switch on, the page draws the recording bar or the take's
+     card itself, told by the `recorder` command (VoiceBarDriver and
+     VoiceTakeDriver hold the recording and the player, beside the Host),
+     and the island keeps only what is still React Native. */
 
 /** A value outside React's render, for an island that must update without its parents. */
 function createValueStore<T>(initial: T) {
@@ -107,6 +113,7 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
       commands.send("setText", { target: "body", value: words.text });
       commands.send("setText", { target: "ask", value: words.ask });
       if (sentLive.current) commands.send("composer", sentLive.current.live);
+      slot.resend();
       // (owner, 2026-10-20) the page opens with the keyboard down: the page, Wren and the paper are
       // seen first, and a tap on the placeholder brings the keyboard up
       if (firstAttach.current) firstAttach.current = false;
@@ -136,6 +143,12 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
     seenFocus.current = state.focus.serial;
     commands.send("focus", { target: state.focus.target });
   }, [state.focus, commands]);
+
+  // the voice slot: which pieces Swift draws (once), and what they show
+  const pieces = useVoicePieces();
+  const slot = useMemo(() => createVoiceSlot(pieces, (cmd) => commands.send("recorder", cmd)), [pieces, commands]);
+  slot.take = !!state.recUri;
+  const speaking = state.mode === "speak";
 
   // Wren's mood, to her island alone (the store is made once; the effect keeps it current)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -188,36 +201,45 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
   const paperHead = useSameContent<KComposePaperHead>(state.paperHead);
 
   return (
-    <ComposeSurface
-      viewRef={commands.ref}
-      theme={theme}
-      letterFont={letterFont}
-      insets={insets}
-      rev={rev}
-      strings={strings}
-      stamp={stamp}
-      mode={state.mode}
-      tray={state.tray ?? "none"}
-      sections={sections}
-      askOn={state.askOpen}
-      more={more}
-      plusDot={state.plusDot}
-      quota={state.quota}
-      capPanel={state.capPanel}
-      busy={state.busy}
-      trayTab={state.trayTab}
-      customState={state.custom.state}
-      customStamps={customStamps}
-      customFull={state.custom.full}
-      paper={state.paper}
-      papers={papers}
-      paperHead={paperHead}
-      act={state.act}
-      moodStore={moodStore}
-      recUri={state.recUri}
-      recDur={state.recDur}
-      islandWidth={Math.max(0, width - 44)}
-    />
+    <>
+      <ComposeSurface
+        viewRef={commands.ref}
+        theme={theme}
+        letterFont={letterFont}
+        insets={insets}
+        rev={rev}
+        strings={strings}
+        stamp={stamp}
+        mode={state.mode}
+        tray={state.tray ?? "none"}
+        sections={sections}
+        askOn={state.askOpen}
+        more={more}
+        plusDot={state.plusDot}
+        quota={state.quota}
+        capPanel={state.capPanel}
+        busy={state.busy}
+        trayTab={state.trayTab}
+        customState={state.custom.state}
+        customStamps={customStamps}
+        customFull={state.custom.full}
+        paper={state.paper}
+        papers={papers}
+        paperHead={paperHead}
+        act={state.act}
+        moodStore={moodStore}
+        recUri={state.recUri}
+        recDur={state.recDur}
+        islandWidth={Math.max(0, width - 44)}
+        pieces={pieces}
+        slot={slot}
+      />
+      {/* the recording and the take's player for the page's own Swift pieces (nothing drawn here) */}
+      {speaking && pieces.bar ? (
+        <VoiceBarDriver slot={slot} recUri={state.recUri} recDur={state.recDur} onRecorded={state.act.recorded} onClear={state.act.clearRecording} />
+      ) : null}
+      {speaking && pieces.card && state.recUri ? <VoiceTakeDriver slot={slot} uri={state.recUri} durationS={state.recDur} /> : null}
+    </>
   );
 }
 
@@ -250,6 +272,9 @@ type SurfaceProps = {
   recUri: string | null;
   recDur: number;
   islandWidth: number;
+  /** which of the voice slot's pieces the page draws itself (fixed for the page) */
+  pieces: { bar: boolean; card: boolean };
+  slot: VoiceSlot;
 };
 
 /* The Host, the view and its islands, redrawn only when a slow prop changes
@@ -297,13 +322,14 @@ const ComposeSurface = memo(function ComposeSurface(p: SurfaceProps) {
         onFullCta={act.fullCta}
         onPickPaper={act.pickPaper}
         onPaperUpgrade={act.paperUpgrade}
+        onVoice={p.slot.action}
       >
         {/* every island on every render, in this order (Slot.tsx) */}
         <KIsland name="wren" style={{ width: 46, height: 46 }}>
           <WrenIsland store={p.moodStore} />
         </KIsland>
         <KIsland name="recorder" interactive style={{ width: p.islandWidth }}>
-          {p.mode === "speak" ? <RecorderIsland recUri={p.recUri} recDur={p.recDur} act={act} /> : null}
+          {p.mode === "speak" ? <RecorderIsland recUri={p.recUri} recDur={p.recDur} act={act} pieces={p.pieces} /> : null}
         </KIsland>
       </KComposeView>
     </SurfaceHost>
@@ -326,12 +352,13 @@ function WrenIsland({ store }: { store: ValueStore<WrenMood> }) {
 }
 
 /* The Recorder (expo-audio, its permission and length alerts) and the take
-   to listen back to. It sizes itself; the island's width is the page's. */
-function RecorderIsland({ recUri, recDur, act }: { recUri: string | null; recDur: number; act: ComposeActions }) {
+   to listen back to. It sizes itself; the island's width is the page's.
+   Whatever the page draws itself (pieces) is left out. */
+function RecorderIsland({ recUri, recDur, act, pieces }: { recUri: string | null; recDur: number; act: ComposeActions; pieces: { bar: boolean; card: boolean } }) {
   return (
     <View style={{ gap: 12 }}>
-      <Recorder doneUri={recUri} doneDur={recDur} onDone={act.recorded} onClear={act.clearRecording} />
-      {recUri ? <AudioCard url={recUri} durationS={recDur} compact /> : null}
+      {pieces.bar ? null : <Recorder doneUri={recUri} doneDur={recDur} onDone={act.recorded} onClear={act.clearRecording} />}
+      {recUri && !pieces.card ? <AudioCard url={recUri} durationS={recDur} compact /> : null}
     </View>
   );
 }

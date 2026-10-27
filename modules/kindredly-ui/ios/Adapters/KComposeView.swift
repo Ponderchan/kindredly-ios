@@ -32,6 +32,10 @@ import ExpoUI
    (the strip's seven, in order), paperHead { title, tag, tagTone: gold | ind | none }
  - children: <KIsland name="wren">, <KIsland name="recorder">
 
+ The recorder slot (KVoiceSlot, Portable/Voice): the island alone, as it always was, until the
+ `recorder` command says Swift draws the recording bar and/or the take's card itself (the
+ "recorder" and "audiocard" switches; src/components/VoiceSlot.tsx).
+
  Commands (KCommandBus):
  - setText { target: "body" | "ask", value }   a draft resumed, a seed, a remount's reseed
  - focus { target: "body" | "ask" }            the autofocus, the question just attached
@@ -41,6 +45,8 @@ import ExpoUI
               countA11y, hintA11y }, count: { text, tone } }   the live state, sent when it changes
               (countA11y / hintA11y go to keySpeech: VoiceOver's value and hint on the wide key)
  - reset {}                                     blurs (nothing else to put back)
+ - recorder { showBar, bar, showCard, card: { look, playing, label }, island }   the voice slot
+              (KVoiceSlotState(args:), Adapters/KVoicePiecesView.swift), sent when it changes
 
  Events, with what nativeEvent carries:
  - onComposeClose {}
@@ -57,6 +63,8 @@ import ExpoUI
  - onComposeTrayTab { tab }                 official | custom (the tab row)
  - onComposeMakeStamp {}                    the custom tab's dashed + (TS opens the Stamp Press)
  - onComposeFullCta {}                      the 3/3 card's "Make more with First Class →"
+ - onComposeVoice { action }                press | discard | toggle: a tap in the voice slot's
+                                            Swift bar or card
    (a custom stamp is picked with onComposePickStamp { id: "c:<uuid>" }, as any stamp)
 
  Unknown enum strings fall back rather than fail (a mode or tray this binary doesn't know is
@@ -247,12 +255,15 @@ final class KComposeViewProps: KScreenProps {
   var onComposeFullCta = EventDispatcher()
   var onComposePickPaper = EventDispatcher()
   var onComposePaperUpgrade = EventDispatcher()
+  var onComposeVoice = EventDispatcher()
 
   /// The fields and the live state: as long-lived as the view, like `commands`.
   let driver = KComposeDriver()
   /// The wide key's VoiceOver value and hint (key.countA11y / key.hintA11y), set from the same
   /// composer command as `driver.live` and handed down the environment (KComposeToolbar.swift).
   let keySpeech = KComposeKeySpeech()
+  /// The voice slot's state, from the `recorder` command (as long-lived as the view).
+  let voiceSlot = KVoiceSlotModel()
 
   /// The page's taps and edits, made once: each closure reaches this props object's events.
   private(set) lazy var actions: KComposeActions = {
@@ -293,6 +304,8 @@ final class KComposeViewProps: KScreenProps {
       keySpeech.set(value: k.kString("countA11y") ?? "", hint: k.kString("hintA11y") ?? "")
       let live = Self.live(args)
       if driver.live != live { driver.live = live }
+    case "recorder":
+      voiceSlot.update(KVoiceSlotState(args: args))
     default:
       break
     }
@@ -392,7 +405,10 @@ struct KComposeView: ExpoSwiftUI.View {
     ) {
       props.children?.kSlot("wren")
     } recorder: {
-      props.children?.kSlot("recorder")
+      // the island's gap (ComposeNative's RecorderIsland): 12
+      KVoiceSlot(model: props.voiceSlot, theme: props.kTheme, spacing: 12, island: props.children?.kSlot("recorder")) { action in
+        props.onComposeVoice(["action": action.rawValue])
+      }
     }
     .kScreenEnvironment(props)
     .environment(\.kComposeKeySpeech, props.keySpeech)

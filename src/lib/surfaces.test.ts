@@ -86,7 +86,10 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   // three Notes pages in Swift (2026-10-27): on after their simulator pass
   const NOTE_PAGES = ["noteentry", "noteday", "photoroll"];
   ok("the three Notes pages' keys are there and on", NOTE_PAGES.every((k) => entries[k] === true));
-  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + ME_LAST.length + SMALL.length + NOTE_PAGES.length + 9);
+  // three pieces of the composers in Swift (2026-10-27): there, and OFF until their simulator pass
+  const COMPOSE_PIECES = ["recorder", "audiocard", "lettertravel"];
+  ok("the composers' three pieces' keys are there and off", COMPOSE_PIECES.every((k) => k in entries && entries[k] === false));
+  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + ME_LAST.length + SMALL.length + NOTE_PAGES.length + COMPOSE_PIECES.length + 9);
 }
 
 /* ── the crash breadcrumb ── */

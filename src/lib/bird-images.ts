@@ -62,7 +62,9 @@ export type BirdPose =
   | RackPose
   | StagePose
   // Wren's room in Swift (screens/wren-room/WrenRoomNative): the empty room's curious official bird
-  | "officialCurious";
+  | "officialCurious"
+  // Let it travel in Swift (components/LetterTravel): the courier flying, empty-handed
+  | "travelFly";
 
 /* THE COURIER PAGE (/courier in Swift, 2026-10-26). Her perch draws her at the
    React Native perch's 186 in every face she can make there (her whereabouts'
@@ -125,6 +127,8 @@ export type BirdPoseSpec = {
   mark?: null;
   /** always mounted, for snapshotBird (Live Activities) */
   base?: boolean;
+  /** false: the fly pose without the letter under her feet (WrenBird `letter`) */
+  letter?: false;
 };
 
 /* sizes are the RN call sites' own, so the Swift picture is the same drawing */
@@ -178,6 +182,12 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
      round(64 × .62) = 40 — the brand bird, pinned like "official" (the header's face, as on her
      Kindreds row). Not base: captured only while the room asks. */
   officialCurious: { size: 40, mood: "curious", stage: "wren", skin: "sticker", accessory: "none", mark: null },
+  /* Let it travel in Swift: LetterTravel's own WrenBird (pose fly, mood delight, letter false —
+     the envelope she carries is drawn at her beak), in her look. Captured at 112, the most the
+     piece draws her (132 × .74 × the sheet's scale), and scaled down as she flies off. Not base:
+     the compose page asks for it while the switch is on (LetterTravelWarm), so she is there
+     before the first send. */
+  travelFly: { size: 112, mood: "delight", fly: true, letter: false },
 };
 
 /** The user's look, as BirdSnapshots reads it from the Wren contexts. */

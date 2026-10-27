@@ -3,7 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import type { KScreenHandle } from "../../modules/kindredly-ui";
 import { NativeSurface } from "../components/NativeSurface";
-import { LetterTravel } from "../components/LetterTravel";
+import { LetterTravel, LetterTravelWarm } from "../components/LetterTravel";
 import { LeaveSheet, type LeaveAction } from "../components/LeaveSheet";
 import { SignUpSheet } from "../components/SignUpSheet";
 import { useTheme } from "../lib/theme";
@@ -75,6 +75,9 @@ export default function Compose() {
         native={() => <ComposeNative state={state} viewRef={viewRef} />}
         fallback={() => <ComposeRN state={state} />}
       />
+
+      {/* her flying snapshot kept ready while the page is open (the Swift send-off draws it) */}
+      <LetterTravelWarm />
 
       {/* the courier takes the letter and flies — over the page, which stays */}
       {state.step === "sending" && (

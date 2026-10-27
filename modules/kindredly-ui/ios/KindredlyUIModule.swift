@@ -339,5 +339,16 @@ public class KindredlyUIModule: Module {
     Function("setTextScript") { (lang: String) in
       KType.tallScript = lang == "ja" || lang == "ko"
     }
+
+    // The composers' pieces (2026-10-27), each behind its own switch (off by default) with its
+    // React Native piece as the fallback: the recording bar ("recorder"), the voice card
+    // ("audiocard"), each in a small Host of its own on a React Native screen (Adapters/
+    // KVoicePiecesView.swift, Portable/Voice; inside the Swift composers the page draws them,
+    // KVoiceSlot), and the send-off, Let it travel ("lettertravel": Adapters/KLetterTravelView.swift,
+    // Portable/Compose/KLetterTravel.swift). No commands: they only draw and report taps. New
+    // files: a pod install before the build.
+    ExpoUIView(KRecorderView.self)
+    ExpoUIView(KAudioCardView.self)
+    ExpoUIView(KLetterTravelView.self)
   }
 }

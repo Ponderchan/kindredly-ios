@@ -1,12 +1,33 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Text, View, useWindowDimensions } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import { KLetterTravelView, isKindredlyUIViewAvailable } from "../../modules/kindredly-ui";
 import { PF, PFM } from "../theme/post";
 import { WrenBird } from "./WrenBird";
+import { NativeSurface, SurfaceHost } from "./NativeSurface";
 import { useWrenName } from "../lib/wren-name";
+import { useBirdImageRef } from "../lib/bird-images";
+import { useNativeSurface } from "../lib/surfaces";
 import { t, useLang } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
+import {
+  DONE_MS,
+  STILL_HOLD_MS,
+  STILL_T,
+  TOTAL,
+  TRAVEL_H as H,
+  TRAVEL_W as W,
+  clamp,
+  lerp,
+  newTravelClock,
+  restartTravelClock,
+  stepTravel,
+  travelArc,
+  travelCardLine,
+  travelFrame,
+  type TravelClock,
+} from "./letter-travel-model";
 
 /* LET IT TRAVEL — the owner's Travel Animation sheet (2026-09-19), ported
    beat for beat.
@@ -32,18 +53,21 @@ import { useTheme } from "../lib/theme";
    her frozen in mid-air with the letter — the owner, 2026-09-20: 太恶心了.
    Now it rests on the arrival card ("Off to the other side"), a still
    picture that is meant to be looked at, and only the fade-out waits. A
-   send that fails brings the desk back with her word on it. */
+   send that fails brings the desk back with her word on it.
 
-const W = 393;
-const H = 852;
-const CUES = { Fold: 0, Pickup: 0.9, World: 1.6, Cross: 2.5 };
-const TOTAL = 3.7;
-/** the arrival card, before the fade: the clock rests here until the send has landed */
-const HOLD_AT = TOTAL - 0.18;
-/** past this long at the hold, the card says she is still flying */
-const WAIT_MS = 2500;
-/** once the send has landed, how long the card says so before the fade */
-const DONE_MS = 900;
+   TWO WAYS TO DRAW IT (2026-10-27). The clock and the sheet's numbers are
+   letter-travel-model's (stepTravel, travelFrame), which LetterTravelRN
+   draws every frame from. With the "lettertravel" switch on (lib/surfaces)
+   and the binary carrying KLetterTravelView, SwiftUI plays the piece
+   instead (KLetterTravel: a line-for-line port of the same numbers, its
+   own clock, the same beats, rest, tap and Reduce Motion), in one
+   full-screen Host (NativeSurface: the crash breadcrumb, a JS error back
+   to React Native), with her snapshot (bird-images travelFly) for Wren.
+   TS keeps the send (`ready`), the words and onDone. */
+
+/* the sheet (393 x 852), the cues (Fold 0, Pickup 0.9, World 1.6, Cross 2.5,
+   3.7 in all), the rest on the arrival card (HOLD_AT, WAIT_MS, DONE_MS) and
+   the easing all live in letter-travel-model, shared with the Swift piece */
 
 /* THE ILLUSTRATION KEEPS ITS OWN COLOURS IN EVERY THEME (10a): the paper,
    the envelope, the planet with its day and its night side — a picture of
@@ -131,44 +155,87 @@ const tap = () => {
   } catch {}
 };
 
-const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
-const lerp = (t: number, a: number, b: number) => a + (b - a) * t;
-const ramp = (t: number, stops: number[], vals: number[]) => {
-  for (let i = 1; i < stops.length; i++) {
-    if (t <= stops[i]) {
-      const f = (t - stops[i - 1]) / (stops[i] - stops[i - 1] || 1);
-      return lerp(clamp(f, 0, 1), vals[i - 1], vals[i]);
-    }
-  }
-  return vals[vals.length - 1];
-};
-const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
-const easeInOutQuad = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
-const easeOutBack = (t: number) => {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-};
-type Ease = (t: number) => number;
-const animate = (from: number, to: number, start: number, end: number, ease: Ease) => (T: number) => from + (to - from) * ease(clamp((T - start) / (end - start), 0, 1));
-const enter = (from: number, to: number, start: number, end: number) => animate(from, to, start, end, easeOutCubic);
-const draw = (from: number, to: number, start: number, end: number) => animate(from, to, start, end, easeInOutQuad);
-const pop = (from: number, to: number, start: number, end: number) => animate(from, to, start, end, easeOutBack);
-
-export function LetterTravel({
-  ready,
-  onDone,
-  title,
-  note,
-  ground: groundProp,
-}: {
+type LetterTravelProps = {
   ready: boolean;
   onDone: () => void;
   title?: string;
   note?: string;
   /** the room's colour; the theme's page colour (tk.bg) by default */
   ground?: string;
-}) {
+};
+
+/** The send-off: the SwiftUI piece where it can be, else React Native's (see the top). */
+export function LetterTravel(props: LetterTravelProps) {
+  const { t: tk } = useTheme();
+  const ground = props.ground ?? tk.bg ?? C.page;
+  return (
+    <NativeSurface
+      surface="lettertravel"
+      view="KLetterTravelView"
+      mode="mount"
+      native={() => <LetterTravelSwift {...props} ground={ground} />}
+      fallback={() => <LetterTravelRN {...props} />}
+      // the page's colour for the moment the phone's answers take: the piece opens on it anyway
+      pending={() => <View style={{ flex: 1, backgroundColor: ground }} />}
+    />
+  );
+}
+
+/** While the compose page is open with the switch on: keeps her flying snapshot captured, so
+    she is there from the first frame of the first send. Renders nothing. */
+export function LetterTravelWarm() {
+  const on = useNativeSurface("lettertravel") && isKindredlyUIViewAvailable("KLetterTravelView");
+  return on ? <WarmBird /> : null;
+}
+function WarmBird() {
+  useBirdImageRef("travelFly");
+  return null;
+}
+
+/* The SwiftUI piece. It runs its own clock and says once when it is over; if it never does once
+   the send has landed (the longest it can take from there is the whole flight, the card's moment
+   and a slow mount), the page is uncovered anyway, and said. */
+function LetterTravelSwift({ ready, onDone, title, note, ground }: LetterTravelProps & { ground: string }) {
+  useLang();
+  const { key: theme } = useTheme();
+  const wren = useWrenName();
+  const bird = useBirdImageRef("travelFly");
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
+  const told = useRef(false);
+  const finish = useCallback(() => {
+    if (told.current) return;
+    told.current = true;
+    onDoneRef.current();
+  }, []);
+  useEffect(() => {
+    if (!ready) return;
+    const id = setTimeout(() => {
+      if (told.current) return;
+      console.warn("[letter-travel] the Swift send-off never said it was over; uncovering the page anyway");
+      finish();
+    }, TOTAL * 1000 + DONE_MS + 3000);
+    return () => clearTimeout(id);
+  }, [ready, finish]);
+  return (
+    <SurfaceHost style={{ backgroundColor: ground }}>
+      <KLetterTravelView
+        theme={theme}
+        ground={ground}
+        ready={ready}
+        title={title ?? t("so.travel.title")}
+        sub={(note ?? t("so.travel.sub", { name: wren })).toUpperCase()}
+        wait={t("so.travel.wait").toUpperCase()}
+        done={t("so.travel.done").toUpperCase()}
+        bird={bird}
+        onDone={finish}
+      />
+    </SurfaceHost>
+  );
+}
+
+/** The React Native piece (the "lettertravel" switch's fallback). */
+export function LetterTravelRN({ ready, onDone, title, note, ground: groundProp }: LetterTravelProps) {
   useLang();
   const { t: tk, dark } = useTheme();
   const ground = groundProp ?? tk.bg ?? C.page;
@@ -189,12 +256,12 @@ export function LetterTravel({
   /* SAY WHAT IS HAPPENING (owner's phone, 2026-10-20: the arrival card stood still for 40 s on a
      slow network and then simply went away — "没有反馈 我也不知道"). Past a short rest the card's
      line says she is still flying; when the send lands it says so for a moment before the fade,
-     so the piece never leaves without telling the writer the letter went. */
-  const readyAt = useRef<number | null>(null);
-  if (ready && readyAt.current === null) readyAt.current = Date.now();
-  const holdAt = useRef<number | null>(null);
-  const leaving = useRef(false);
-  const tapped = useRef(false);
+     so the piece never leaves without telling the writer the letter went.
+     The clock's memory (letter-travel-model TravelClock): when the send landed, when the card
+     began to rest, and the tap and the end, each once. It outlives a restart of the clock. */
+  const clock = useRef<TravelClock | null>(null);
+  if (clock.current === null) clock.current = newTravelClock(Date.now());
+  if (ready && clock.current.readyAt === null) clock.current.readyAt = Date.now();
   /* onDone through a ref: the clock effect used to depend on it, and the
      caller passes a fresh function on every render — so the moment the
      send finished (`ready` flipped, the parent re-rendered) the clock was
@@ -204,43 +271,22 @@ export function LetterTravel({
   onDoneRef.current = onDone;
 
   /* the clock: authored seconds; it rests at HOLD_AT until `ready`, and the
-     time spent resting is subtracted so the fade resumes without a jump */
+     time spent resting is subtracted so the fade resumes without a jump
+     (stepTravel, which keeps the notes on the bugs this once had) */
   useEffect(() => {
     if (reduce) {
-      setT(TOTAL - 0.3);
+      setT(STILL_T);
       return;
     }
     let raf = 0;
-    const t0 = Date.now();
-    let paused = 0; // seconds spent resting at the hold — the same unit as `wall`
-    let pauseAt: number | null = null;
+    const c = clock.current as TravelClock;
+    restartTravelClock(c, Date.now());
     const tick = () => {
-      const now = Date.now();
-      const wall = (now - t0) / 1000;
-      setBeat(wall);
-      let tt = wall - paused;
-      const confirmed = readyRef.current && readyAt.current !== null && now - Math.max(readyAt.current, holdAt.current ?? now) >= DONE_MS;
-      if (tt >= HOLD_AT && !confirmed) {
-        if (pauseAt === null) pauseAt = now;
-        if (holdAt.current === null) holdAt.current = now;
-        tt = HOLD_AT;
-      } else if (pauseAt !== null) {
-        /* in seconds. This was added in milliseconds against a clock in
-           seconds, so the first frame after the hold landed thousands of
-           seconds before the start — the flat sheet, and it stayed there.
-           The old restart-on-send bug had hidden it: the clock was rebuilt
-           from zero at that moment anyway, so the sum was never read. */
-        paused += (now - pauseAt) / 1000;
-        pauseAt = null;
-        tt = wall - paused;
-      }
-      setT(tt);
-      if (!tapped.current && tt >= CUES.Pickup - 0.12) {
-        tapped.current = true;
-        tap();
-      }
-      if (!leaving.current && tt >= TOTAL) {
-        leaving.current = true;
+      const s = stepTravel(c, Date.now(), readyRef.current);
+      setBeat(s.beat);
+      setT(s.T);
+      if (s.tap) tap();
+      if (s.done) {
         onDoneRef.current();
         return;
       }
@@ -255,85 +301,23 @@ export function LetterTravel({
     if (!reduce || !ready) return;
     const id = setTimeout(() => {
       Animated.timing(fade, { toValue: 0, duration: 260, useNativeDriver: true }).start(() => onDoneRef.current());
-    }, 900 + DONE_MS);
+    }, STILL_HOLD_MS);
     return () => clearTimeout(id);
   }, [reduce, ready, fade]);
 
   /* the card's second line: the usual one, "still flying…" once the rest runs long, "sent" once it lands */
-  const heldFor = holdAt.current !== null ? Date.now() - holdAt.current : 0;
-  const atCard = reduce || T >= HOLD_AT - 0.01;
-  const cardLine = !atCard ? null : ready ? t("so.travel.done") : heldFor >= WAIT_MS || (reduce && beat > WAIT_MS / 1000) ? t("so.travel.wait") : null;
+  const holdAt = clock.current.holdAt;
+  const line = travelCardLine({ reduce: !!reduce, T, ready, heldForMs: holdAt !== null ? Date.now() - holdAt : 0, beat });
+  const cardLine = line === "done" ? t("so.travel.done") : line === "wait" ? t("so.travel.wait") : null;
 
-  /* ── the sheet's numbers ── */
-  const fold = draw(0, 1, 0.24, CUES.Pickup - 0.1)(T);
-  const seal = pop(0, 1, CUES.Pickup - 0.4, CUES.Pickup + 0.05)(T);
-  const sealSquash = 1 - Math.max(0, Math.sin(clamp((T - (CUES.Pickup - 0.4)) / 0.45, 0, 1) * Math.PI)) * 0.16;
-
-  const swoop = enter(0, 1, CUES.Pickup - 0.05, CUES.World - 0.08)(T);
-  const lift = enter(0, 1, CUES.World - 0.24, CUES.World + 0.16)(T);
-  const taken = clamp((lift - 0.15) / 0.85, 0, 1);
-
-  const out = draw(0, 1, CUES.World - 0.05, CUES.Cross + 0.1)(T);
-  const cross = draw(0, 1, CUES.Cross + 0.05, TOTAL - 0.5)(T);
-  const markIn = enter(0, 1, TOTAL - 0.78, TOTAL - 0.3)(T);
-  const outro = draw(0, 1, TOTAL - 0.16, TOTAL)(T);
-
-  /* the globe grows in from below as we pull back */
-  const gR = ramp(out, [0, 1], [86, 166]);
-  const gCX = W / 2;
-  const gCY = ramp(out, [0, 1], [H + 150, 530]);
-  const gTop = gCY - gR;
-
+  /* ── the sheet's numbers (letter-travel-model travelFrame: the globe growing in from below as
+     we pull back; the bird carried with the desk to home, so the arc starts under her — she used
+     to jump 250pt there; one steady wing beat easing into a slow breath and level as she lands —
+     she used to tremble on the far side of the world) ── */
+  const f = travelFrame(T, beat);
+  const { fold, seal, sealSquash, swoop, taken, out, cross, markIn, outro, gR, gCX, gCY, gTop, home, away, deskX, deskY, birdX, birdY, birdS, heading, bob, envOnDesk, foldW, foldH, sealed } = f;
   /* the route: a great-circle arc over the top of the globe */
-  const A = -168;
-  const B = -12;
-  const onArc = (p: number): [number, number] => {
-    const ang = (lerp(p, A, B) * Math.PI) / 180;
-    const r = gR + 6 + Math.sin(p * Math.PI) * 62;
-    return [gCX + Math.cos(ang) * r, gCY + Math.sin(ang) * r];
-  };
-  const home = onArc(0);
-  const away = onArc(1);
-
-  const deskX = W / 2;
-  const deskY = 452;
-
-  /* the bird: desk pickup → up → along the arc. As the world pulls into
-     view the desk becomes a point on it — home — and she is carried there
-     with it, so the arc starts under her. She used to be left above the
-     desk and then drawn at home the frame the arc began: a 250pt jump,
-     between the owner's 12th and 13th frames. */
-  const [ax, ay] = onArc(cross);
-  const flyUp = enter(0, 1, CUES.World - 0.2, CUES.Cross + 0.05)(T);
-  const preX = lerp(swoop, -120, deskX - 78) + flyUp * 34;
-  const preY = lerp(swoop, 700, deskY - 6) - lift * 44 - flyUp * 120;
-  const birdX = cross > 0.001 ? ax : lerp(out, preX, home[0]);
-  const birdY = cross > 0.001 ? ay : lerp(out, preY, home[1]);
-  const birdS = (0.6 + swoop * 0.14) * (1 - out * 0.62);
-  /* SHE LANDS, SHE DOESN'T SHAKE (the owner's recording, 2026-09-23).
-     The wing rate used to rise with `cross` (2 → 7 a second) and was
-     multiplied by the whole elapsed time, so as it rose the phase raced
-     ahead — a dozen beats a second along the arc — and once she had
-     arrived it sat at 7 a second for as long as the send took: the bird
-     trembling on the far side of the world. Now the wings keep one steady
-     beat, and over her last 0.4s of arc they ease into a slow breath.
-     Her heading came from the point just ahead of her, and at the end of
-     the arc there is none — atan2(0, 0) snapped her level in one frame;
-     it is taken across her position now, and eases level as she lands. */
-  const landing = enter(0, 1, TOTAL - 0.9, TOTAL - 0.5)(T);
-  const behind = onArc(Math.max(cross - 0.02, 0));
-  const ahead = onArc(Math.min(cross + 0.02, 1));
-  const arcHeading = (Math.atan2(ahead[1] - behind[1], ahead[0] - behind[0]) * 180) / Math.PI;
-  const heading = cross > 0.001 ? arcHeading * (1 - landing) : -8 + swoop * 6 - flyUp * 14;
-  const since = beat - (CUES.Pickup - 0.05);
-  const flap = Math.sin(since * 2.4 * Math.PI * 2) * 3;
-  const breath = Math.sin(since * 0.8 * Math.PI * 2) * 1.2;
-  const bob = swoop > 0.01 ? flap * (1 - landing) + breath * landing : 0;
-
-  const envOnDesk = (1 - taken) * (1 - out);
-  const foldW = ramp(fold, [0, 0.52, 1], [214, 210, 132]);
-  const foldH = ramp(fold, [0, 0.52, 1], [268, 252, 86]);
-  const sealed = fold > 0.62;
+  const onArc = (p: number) => travelArc(f, p);
 
   /* other people's letters, crossing at the same time */
   const others: [number, number, number][] = [
