@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Alert, Pressable, ScrollView, Text } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import { t, useLang } from "../lib/i18n";
@@ -10,6 +10,8 @@ import { loadLore, removeLore, type LoreEntry } from "../lib/lore";
 import { SecondaryHeader } from "../components/10a/SecondaryHeader";
 import { sheetWords } from "../components/sheet-chrome";
 import "../data/strings-step5-me";
+import { NativeSurface } from "../components/NativeSurface";
+import { LoreNative } from "../screens/lore/LoreNative";
 
 /* LORE — the shelf of kept moments. Local, account-scoped, only yours.
    Each clipping is a line someone wrote you (or an opened fold), pinned by
@@ -24,8 +26,23 @@ import "../data/strings-step5-me";
    Taking a line down is a VoiceOver action too (ml.rm.remove, with a hint),
    not only a long-press nobody using VoiceOver could find; the confirm asks
    "Take this line down?" and its button says Remove — it used to ask
-   "Keep this?" over a bare ✕, which VoiceOver read as a multiplication sign. */
+   "Keep this?" over a bare ✕, which VoiceOver read as a multiplication sign.
+
+   2026-10-27: Lore is drawn in Swift (screens/lore/LoreNative, KLoreView),
+   with the React Native page below as the remote switch's fallback ("lore"
+   in app_surfaces, off until the simulator pass; NativeSurface in mount
+   mode). */
 export default function Lore() {
+  const { t: tk } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <NativeSurface surface="lore" view="KLoreView" mode="mount" native={() => <LoreNative />} fallback={() => <LoreRN />} />
+    </View>
+  );
+}
+
+/* the React Native page, unchanged */
+function LoreRN() {
   const { t: tk } = useTheme();
   useLang();
   const letterFace = useLetterFamily();

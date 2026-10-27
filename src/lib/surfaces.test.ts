@@ -80,7 +80,10 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   ok("the kindred page's key is there and off", "kindredpage" in entries && entries.kindredpage === false);
   // Wren's room in Swift (2026-10-27): there, and OFF until it has been checked on the simulator
   ok("Wren's room's key is there and off", "wrenroom" in entries && entries.wrenroom === false);
-  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + ME_LAST.length + 9);
+  // five small pages in Swift (2026-10-27): there, and OFF until the simulator pass
+  const SMALL = ["report", "voice", "drafts", "stampbook", "lore"];
+  ok("the five small pages' keys are there and off", SMALL.every((k) => k in entries && entries[k] === false));
+  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + ME_LAST.length + SMALL.length + 9);
 }
 
 /* ── the crash breadcrumb ── */

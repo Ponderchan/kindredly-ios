@@ -167,7 +167,18 @@ import {
                   is off (both draw by the rules in screens/chat/kindred-page)
      wrenroom     Wren's room (room/wren) — KWrenRoomView; the guide reels
                   and the news reel stay React Native inside it (islands),
-                  screens/wren-room holds its state */
+                  screens/wren-room holds its state
+
+   Five small pages (2026-10-27), each keeping its React Native page the
+   same way, OFF until their simulator pass too:
+
+     report       the Voice report, Wren's night letter (report) —
+                  KVoiceReportView
+     voice        Your Voice in detail (voice, a dev page) — KVoiceDetailView
+     drafts       Unsent (drafts) — KDraftsView
+     stampbook    the growth stamps' album (stamps, a dev page) —
+                  KStampBookView
+     lore         Lore, the kept lines (lore) — KLoreView */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
   room: true,
@@ -202,10 +213,16 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   kindredpage: false,
   // Wren's room (2026-10-27): off until it has been checked on the simulator
   wrenroom: false,
+  // five small pages (2026-10-27): off until the simulator pass
+  report: false,
+  voice: false,
+  drafts: false,
+  stampbook: false,
+  lore: false,
 };
 
-/** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages, a kindred's page and Wren's room (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "kindredpage" | "wrenroom";
+/** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages, a kindred's page, Wren's room and the five small pages (the `surface` prop of NativeSurface) */
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "kindredpage" | "wrenroom" | "report" | "voice" | "drafts" | "stampbook" | "lore";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */

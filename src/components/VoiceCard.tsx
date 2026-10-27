@@ -8,6 +8,7 @@ import { useLetterFamily } from "../lib/theme";
 import { AuraPoem } from "./AuraPoem";
 import { WrenBird } from "./WrenBird";
 import type { VoiceRead } from "../lib/voice";
+import { constellationShape } from "../lib/constellation";
 
 /* YOUR WRITING AURA — the hero of Me's "You" room. The card itself grows up:
    empty is Wren waiting inside a pale ring; evolving gets the glowing orb, a
@@ -307,38 +308,12 @@ export function AuraOrb({
 
 /* stars over the orb — same star-tree as ever, one of them gilded */
 function ConstellationOverlay({ S, units, stars, dark, dimScores }: { S: number; units: number[]; stars: number; dark?: boolean; dimScores?: number[] }) {
-  const cx = S / 2;
-  const cy = S / 2;
-  const k = S / 190;
-  const u = (i: number) => units[i % Math.max(1, units.length)] ?? 0.5;
   /* WITH DIMS, THE SHAPE IS THE WRITER. Nine stars, one per dimension,
      each at its own compass point, radius by score — a rhythm-led writer's
      sky is spiked where a balanced writer's is round. The generic spiral
-     below remains only as the fallback for callers without a reading. */
-  const pts = dimScores?.length
-    ? dimScores.map((sc, i) => {
-        const a = -Math.PI / 2 + (i / dimScores.length) * Math.PI * 2 + (u(i) - 0.5) * 0.3;
-        const r = (14 + (sc / 100) * 58 + u(i + 3) * 6) * k;
-        return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) * 0.8, big: sc >= 70, w: 0.45 + (sc / 100) * 0.55 };
-      })
-    : Array.from({ length: stars }, (_, i) => {
-        const a = i * 2.399 + u(i) * 1.4;
-        const r = (16 + (i / Math.max(1, stars - 1)) * 58 + u(i + 3) * 10) * k;
-        return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) * 0.8, big: i % 3 === 0, w: 0.45 + u(i + 1) * 0.55 };
-      });
-  const links = pts.slice(1).map((p, kk) => {
-    const i = kk + 1;
-    let best = 0;
-    let bd = Infinity;
-    for (let j = 0; j < i; j++) {
-      const d = (p.x - pts[j].x) ** 2 + (p.y - pts[j].y) ** 2;
-      if (d < bd) {
-        bd = d;
-        best = j;
-      }
-    }
-    return [i, best] as const;
-  });
+     remains only as the fallback for callers without a reading. Worked out
+     in lib/constellation, which the Swift Voice report draws from too. */
+  const { pts, links } = constellationShape(S, units, stars, dimScores);
   const bigFill = dark ? "#FFFFFF" : C.purpleMid;
   const smallA = dark ? "#CFC9F2" : "#9A93E8";
   const gold = "#F0B95A";

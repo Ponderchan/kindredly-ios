@@ -201,6 +201,12 @@ export const KSCREEN_VIEWS = [
   "KKindredPageView",
   // Wren's room, the chat with the courier (2026-10-27; behind the "wrenroom" switch)
   "KWrenRoomView",
+  // five small pages (2026-10-27), off by default: the Voice report, Your Voice, Unsent, the stamp album, Lore
+  "KVoiceReportView",
+  "KVoiceDetailView",
+  "KDraftsView",
+  "KStampBookView",
+  "KLoreView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

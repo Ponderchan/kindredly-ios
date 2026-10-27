@@ -13,6 +13,8 @@ import { reportGate, type ReportGate } from "../lib/report";
 import { voiceRead as voiceAI } from "../lib/wren";
 import { useAuth } from "../lib/auth";
 import { useEntitlement } from "../lib/entitlement";
+import { NativeSurface } from "../components/NativeSurface";
+import { VoiceDetailNative } from "../screens/voice/VoiceDetailNative";
 
 /* Your Voice, in detail — the nine signals Wren reads, each translated into
    plain warm language with an evidence strength. Never a grade; the page
@@ -30,7 +32,23 @@ import { useEntitlement } from "../lib/entitlement";
    the letter's colours, not the page's. Its card keeps the soft shadow
    that every card here has, fixed in 10a. */
 
+/* 2026-10-27: Your Voice is drawn in Swift (screens/voice/
+   VoiceDetailNative, KVoiceDetailView), with the React Native page below
+   as the remote switch's fallback ("voice" in app_surfaces, off until the
+   simulator pass; NativeSurface in mount mode). Still a dev page: a
+   release build goes home before either is drawn. */
 export default function VoiceDetail() {
+  const { t: tk } = useTheme(); // above the dev gate, so it runs every render
+  if (!__DEV__) return <Redirect href="/" />;
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <NativeSurface surface="voice" view="KVoiceDetailView" mode="mount" native={() => <VoiceDetailNative />} fallback={() => <VoiceDetailRN />} />
+    </View>
+  );
+}
+
+/* the React Native page, unchanged */
+function VoiceDetailRN() {
   const { t: tk } = useTheme(); // above the dev gate, so it runs every render
   if (!__DEV__) return <Redirect href="/" />;
   useLang();
