@@ -181,8 +181,8 @@ import {
      lore         Lore, the kept lines (lore) — KLoreView
 
    Three Notes pages (2026-10-27), each keeping its React Native page the
-   same way. noteentry and noteday are on since their simulator pass;
-   photoroll stays OFF until its Next and picks work.
+   same way, on since their simulator pass too (the roll walked from the ＋
+   four times: picks, Next, albums, Text note, Voice note, Camera's alert).
 
      noteentry    one journal page (journal/[id]) — KNotePageView; the voice
                   card and the film stay React Native islands
@@ -231,11 +231,10 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   drafts: true,
   stampbook: true,
   lore: true,
-  // three Notes pages (2026-10-27): the page and the day on after their simulator pass; the photo
-  // roll stays off (its Next and its picks failed on the simulator; being fixed)
+  // three Notes pages (2026-10-27): on after their simulator pass
   noteentry: true,
   noteday: true,
-  photoroll: false,
+  photoroll: true,
 };
 
 /** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages, a kindred's page, Wren's room, the five small pages and three Notes pages (the `surface` prop of NativeSurface) */

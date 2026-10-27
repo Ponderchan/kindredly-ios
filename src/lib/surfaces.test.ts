@@ -83,11 +83,9 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   // five small pages in Swift (2026-10-27): on after their simulator pass
   const SMALL = ["report", "voice", "drafts", "stampbook", "lore"];
   ok("the five small pages' keys are there and on", SMALL.every((k) => entries[k] === true));
-  // three Notes pages in Swift (2026-10-27): the page and the day on after their simulator pass;
-  // the photo roll OFF until its Next and picks work
+  // three Notes pages in Swift (2026-10-27): on after their simulator pass
   const NOTE_PAGES = ["noteentry", "noteday", "photoroll"];
-  ok("the Notes page and day are on", entries.noteentry === true && entries.noteday === true);
-  ok("the photo roll is there and off", "photoroll" in entries && entries.photoroll === false);
+  ok("the three Notes pages' keys are there and on", NOTE_PAGES.every((k) => entries[k] === true));
   ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + ME_LAST.length + SMALL.length + NOTE_PAGES.length + 9);
 }
 
