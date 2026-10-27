@@ -211,6 +211,10 @@ export const KSCREEN_VIEWS = [
   "KNotePageView",
   "KNoteDayView",
   "KPhotoRollView",
+  // the pieces over the chat (2026-10-27), each in its own Modal: the lightbox, the song shelf, the signing sheet
+  "KPhotoLightboxView",
+  "KSongShelfView",
+  "KSignSheetView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

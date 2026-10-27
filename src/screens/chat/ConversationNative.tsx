@@ -44,6 +44,9 @@ import {
 import { useRoomModel, type ChatUi } from "./useRoomModel";
 import { useLettersModel } from "./useLettersModel";
 import { ChatHeader } from "./ChatHeader";
+import { useOverlayRenderer } from "../../components/OverlayNativeSurface";
+import { SongShelfSwift, type SongShelfProps } from "./SongShelfNative";
+import { shelfSaysKey, shelfTitleOf, shelfWhoOf } from "./song-shelf";
 
 /* THE CONVERSATION IN SWIFTUI (10a step 5): the room (RoomNative) and the
    pen-pal chat (LettersNative) in ONE Host holding KConversationView, with
@@ -386,12 +389,19 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
   );
 }
 
+/* THE SHELF: SwiftUI's (SongShelfNative, the "songshelf" switch) where it can be, else the React
+   Native one below; both write from song-shelf. */
+function SongShelf(p: SongShelfProps) {
+  const { native, toRN } = useOverlayRenderer("songshelf", "KSongShelfView", p.open);
+  return native ? <SongShelfSwift {...p} onFallback={toRN} /> : <SongShelfRN {...p} />;
+}
+
 /* THE SHELF — every song either of you left, in order (room/[id].tsx), on the theme.
    On Midnight it is drawn as a sheet rather than more page: under the black dim (lib/theme
    scrimColor) it is sf with LeaveSheet's ln rule on top, and the bird's line inside steps
    down to soft2 — Midnight's soft is sf, so a soft card would vanish into the sheet. The
    light themes keep the page-coloured shelf and the soft card. */
-function SongShelf({ open, onClose, songs, songSays, name }: { open: boolean; onClose: () => void; songs: SharedSong[]; songSays: { line: string; evidence: string } | null; name: string }) {
+function SongShelfRN({ open, onClose, songs, songSays, name }: { open: boolean; onClose: () => void; songs: SharedSong[]; songSays: { line: string; evidence: string } | null; name: string }) {
   const { t: tk, dark } = useTheme();
   // what Wren says about the songs is her line: the reader's Letter font
   const face = useLetterFamily();
@@ -413,7 +423,7 @@ function SongShelf({ open, onClose, songs, songSays, name }: { open: boolean; on
           {!!songSays && (
             <View style={{ marginHorizontal: 16, marginBottom: 12, borderRadius: 16, backgroundColor: dark ? tk.soft2 : tk.soft, padding: 12, flexDirection: "row", alignItems: "center", gap: 9 }}>
               <WrenBird size={18} mood="curious" />
-              <Text style={{ flex: 1, ...face, fontSize: 14, lineHeight: 20, color: tk.ink }}>{t(songSays.line === "late" ? "rm.shelf.late" : "rm.shelf.both", { name })}</Text>
+              <Text style={{ flex: 1, ...face, fontSize: 14, lineHeight: 20, color: tk.ink }}>{t(shelfSaysKey(songSays.line), { name })}</Text>
               <Text style={{ ...PFM.monoMed, fontSize: 9, letterSpacing: 1, color: tk.mute }}>{songSays.evidence}</Text>
             </View>
           )}
@@ -428,10 +438,10 @@ function SongShelf({ open, onClose, songs, songSays, name }: { open: boolean; on
                 <Text style={{ fontSize: 15, color: tk.ind }}>♪</Text>
                 <View style={{ flex: 1 }}>
                   <Text numberOfLines={1} style={{ fontSize: 15, color: tk.ink }}>
-                    {sg.title || sg.url.replace(/^https?:\/\//, "").split("/")[0]}
+                    {shelfTitleOf(sg)}
                   </Text>
                   <Text style={{ ...PFM.monoMed, fontSize: 9, letterSpacing: 1, color: tk.mute, marginTop: 3 }}>
-                    {(sg.mine ? t("ui.you") : name).toUpperCase()} · {dShort(sg.at).toUpperCase()}
+                    {shelfWhoOf(sg, name, t("ui.you"), dShort)}
                   </Text>
                 </View>
                 <Text style={{ ...PFM.mono, fontSize: 12, color: tk.ind }}>›</Text>

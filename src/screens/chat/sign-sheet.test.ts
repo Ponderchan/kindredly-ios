@@ -105,6 +105,23 @@ const legacy = FACES.find((f) => f.legacy);
   ok("button: off while sending", !S.canSign({ name: good, typed: true, drawing: null, busy: true }));
 }
 
+/* ── the pad, as both renderers size and ink it (the SwiftUI pad, 2026-10-27) ── */
+{
+  const { penStrokePath, PEN_W, PEN_H } = await import("../../lib/pen-signature.ts");
+  ok("pad size: the sheet's content width at the box's aspect", (() => { const s = S.padSizeOf(375); return s.width === 343 && s.height === Math.round(343 * (PEN_H / PEN_W)); })());
+  ok("pad size: never under 200 wide", S.padSizeOf(150).width === 200);
+  ok("pad size: never over 600 wide", S.padSizeOf(1024).width === 600 && S.padSizeOf(1024).height === Math.round(600 * (PEN_H / PEN_W)));
+  ok("pad size: whole points", Number.isInteger(S.padSizeOf(393).height));
+  const a = [{ x: 10, y: 20 }, { x: 30, y: 25 }, { x: 50, y: 40 }];
+  const b = [{ x: 70, y: 60 }];
+  ok("ink: nothing drawn → no path", S.padInkPath([]) === "");
+  ok("ink: one path, each stroke smoothed as penStrokePath does", S.padInkPath([a, b]) === penStrokePath([10, 20, 30, 25, 50, 40]) + penStrokePath([70, 60]));
+  ok("ink: a tap is a dot", S.padInkPath([b]).includes("l0.1 0"));
+  ok("points: pairs back into pad points", JSON.stringify(S.padPointsOf([1, 2, 3, 4])) === JSON.stringify([{ x: 1, y: 2 }, { x: 3, y: 4 }]));
+  ok("points: an odd tail is dropped", S.padPointsOf([1, 2, 3]).length === 1);
+  ok("points: junk is dropped", S.padPointsOf([1, "2", NaN, 4, 5, 6]).length === 1 && S.padPointsOf([1, "2", NaN, 4, 5, 6])[0].x === 5);
+}
+
 /* ── the words ── */
 {
   const base = { courier: "Sunday Kite", theirSigned: false, handle: "", photo: false, isGuest: false };

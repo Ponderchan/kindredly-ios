@@ -1,9 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { KPhotoLightboxView } from "../../modules/kindredly-ui";
 import { MediaImage } from "../lib/media";
-import { t } from "../lib/i18n";
+import { t, useLang } from "../lib/i18n";
 import { dismissKeyboard } from "../lib/keyboard";
+import { localImageRef, useSignedImageRefs } from "../lib/images";
+import { useTheme } from "../lib/theme";
+import { SurfaceHost } from "./NativeSurface";
+import { OverlaySurface, useOverlayRenderer } from "./OverlayNativeSurface";
 
 /* A PHOTO, BIG (owner, 2026-10-10: a tiny moment in a kindred's room
    couldn't be tapped, let alone opened). Tap a photo — in a room, on Wren's
@@ -20,11 +25,62 @@ import { dismissKeyboard } from "../lib/keyboard";
    React Native field, or a SwiftUI one React Native's Keyboard.dismiss()
    can't reach (lib/keyboard) — so it never stays up over the photo. The
    screens already let go before they open it (blurThen); this is the
-   backstop for any caller that doesn't. */
+   backstop for any caller that doesn't.
+
+   SWIFT (2026-10-27, the "lightbox" switch, off until its simulator pass):
+   PhotoLightbox picks between this React Native lightbox (PhotoLightboxRN)
+   and the same Modal with its inside drawn by SwiftUI (PhotoLightboxSwift:
+   modules/kindredly-ui KPhotoLightboxView, ios/Portable/Chat/
+   KPhotoLightbox.swift) — the same stage, the same ×, the same pinch, pan
+   and tap rules. The keyboard and the signing of a moments path stay here;
+   components/OverlayNativeSurface picks, and arms the crash breadcrumb at
+   every opening. */
 
 export type LightboxPhoto = { path?: string | null; uri?: string | null } | null;
 
-export function PhotoLightbox({ photo, onClose }: { photo: LightboxPhoto; onClose: () => void }) {
+type LightboxProps = { photo: LightboxPhoto; onClose: () => void };
+
+/** A photo opened full screen: the SwiftUI lightbox where it can be, else React Native's. */
+export function PhotoLightbox({ photo, onClose }: LightboxProps) {
+  const { native, toRN } = useOverlayRenderer("lightbox", "KPhotoLightboxView", !!photo);
+  return native ? <PhotoLightboxSwift photo={photo} onClose={onClose} onFallback={toRN} /> : <PhotoLightboxRN photo={photo} onClose={onClose} />;
+}
+
+/* the stage, near-black in every theme */
+const STAGE = "rgba(10,10,12,0.96)";
+
+/** The same Modal, its inside drawn by SwiftUI. */
+function PhotoLightboxSwift({ photo, onClose, onFallback }: LightboxProps & { onFallback: () => void }) {
+  useLang();
+  const { key: theme } = useTheme();
+  const insets = useSafeAreaInsets();
+  useEffect(() => {
+    if (photo) dismissKeyboard();
+  }, [photo]);
+  // a moments path signed and keyed by its storage path (MediaImage signs the same bucket); a plain uri as it is
+  const path = photo?.path ?? null;
+  const signed = useSignedImageRefs("moments", [path]);
+  const ref = path ? (signed[path] ?? null) : localImageRef(photo?.uri);
+  const viewInsets = useMemo(() => ({ top: insets.top, bottom: insets.bottom, tabBarRoom: 0 }), [insets.top, insets.bottom]);
+  return (
+    <Modal visible={!!photo} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
+      <OverlaySurface
+        surface="lightbox"
+        view="KPhotoLightboxView"
+        onFallback={onFallback}
+        pending={() => <View style={{ flex: 1, backgroundColor: STAGE }} />}
+        native={() => (
+          <SurfaceHost>
+            <KPhotoLightboxView theme={theme} insets={viewInsets} photo={ref} closeLabel={t("wren.trackClose")} onClose={onClose} />
+          </SurfaceHost>
+        )}
+      />
+    </Modal>
+  );
+}
+
+/** The React Native lightbox, unchanged. */
+function PhotoLightboxRN({ photo, onClose }: LightboxProps) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const pinched = useRef(false);

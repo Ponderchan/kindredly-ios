@@ -190,7 +190,22 @@ import {
                   Notes tab's own cards
      photoroll    the photo roll the ＋ opens (journal-pick) — KPhotoRollView;
                   the library, the permission and the picking stay in TS
-                  (screens/photo-roll) */
+                  (screens/photo-roll)
+
+   The pieces over the chat (2026-10-27), each keeping its React Native
+   piece the same way and OFF until its simulator pass. Each keeps its
+   React Native Modal and draws its inside in Swift, under a NativeSurface
+   mounted when it opens, so the crash breadcrumb covers every opening
+   (components/OverlayNativeSurface):
+
+     lightbox     a photo opened full screen (components/PhotoLightbox, every
+                  caller) — KPhotoLightboxView
+     songshelf    a kindred room's song shelf (screens/chat/
+                  ConversationNative) — KSongShelfView
+     signsheet    the pen-pal chat's signing sheet (screens/chat/SignSheet,
+                  identity on) — KSignSheetView; the drawing's strokes, the
+                  pen name, the trade and the guest's sign-in sheet stay TS
+                  and React Native (screens/chat/SignSheetNative) */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
   room: true,
@@ -235,10 +250,14 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   noteentry: true,
   noteday: true,
   photoroll: true,
+  // the pieces over the chat (2026-10-27): off until their simulator pass
+  lightbox: false,
+  songshelf: false,
+  signsheet: false,
 };
 
-/** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages, a kindred's page, Wren's room, the five small pages and three Notes pages (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "kindredpage" | "wrenroom" | "report" | "voice" | "drafts" | "stampbook" | "lore" | "noteentry" | "noteday" | "photoroll";
+/** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages, a kindred's page, Wren's room, the five small pages, three Notes pages and the three pieces over the chat (the `surface` prop of NativeSurface) */
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "kindredpage" | "wrenroom" | "report" | "voice" | "drafts" | "stampbook" | "lore" | "noteentry" | "noteday" | "photoroll" | "lightbox" | "songshelf" | "signsheet";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */

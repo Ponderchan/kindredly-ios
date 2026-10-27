@@ -16,8 +16,10 @@ import type { PenSignature } from "../../lib/db";
 import { FACES } from "../../data/aura-avatar-lib";
 import { AvatarImage } from "../../components/AvatarImage";
 import { PenSignature as PenSignatureView } from "../../components/PenSignature";
-import { SignaturePad, padHeightOf } from "../../components/SignaturePad";
+import { SignaturePad } from "../../components/SignaturePad";
 import { SignUpSheet } from "../../components/SignUpSheet";
+import { useOverlayRenderer } from "../../components/OverlayNativeSurface";
+import { SignSheetSwift } from "./SignSheetNative";
 import { dangerInk } from "../settings/settings-model";
 import { FIELD_SPECS, PEN_NAME_MAX, resolvePronoun, type PronounId } from "../edit-profile/edit-profile-model";
 import {
@@ -28,6 +30,7 @@ import {
   faceA11y,
   faceChoices,
   nameErrorKey,
+  padSizeOf,
   padTakesStroke,
   padValue,
   sheetCopy,
@@ -95,7 +98,14 @@ import "../../data/strings-a11y-chat"; // ch.a11y.nameLong; and the chat's and r
 
    DEMO MODE: on a demo thread the dev pages decide what the sheet believes
    about the reader (sign-sheet setSignDemo: the pen name held, guest or
-   not); a demo never saves to the profile or reaches the server. */
+   not); a demo never saves to the profile or reaches the server.
+
+   SWIFT (2026-10-27, the "signsheet" switch, off until its simulator pass):
+   SignSheetView picks between this React Native sheet (SignSheetViewRN) and
+   SignSheetNative's, which keeps this same window, dim, slide and sign-in
+   sheet and draws the sheet's inside in SwiftUI. Everything it decides is
+   still here and in sign-sheet.ts: the strokes, the pen name and its check,
+   the faces, the send. */
 
 /** what the connected sheet reads from the letters model */
 type SignSheetModel = Pick<LettersModel, "askSign" | "setAskSign" | "signing" | "onSignSheet" | "detail" | "auth" | "name" | "isDemo">;
@@ -152,16 +162,22 @@ const FOCUS_AFTER_MS = 450;
 const FACE_ROW_LEAD = 16;
 const FACE_STEP = 64;
 
-/** The sheet itself, from plain facts: the connected SignSheet above, or the dev page. */
+/** The sheet itself, from plain facts: the connected SignSheet above, or the dev page. Its inside
+    is SwiftUI's (SignSheetNative, the "signsheet" switch) where it can be, else React Native's. */
 export function SignSheetView(p: SignSheetViewProps) {
+  const { native, toRN } = useOverlayRenderer("signsheet", "KSignSheetView", p.open);
+  return native ? <SignSheetSwift {...p} onFallback={toRN} /> : <SignSheetViewRN {...p} />;
+}
+
+/** The React Native sheet. */
+function SignSheetViewRN(p: SignSheetViewProps) {
   useLang();
   const { t: tk, dark } = useTheme();
   const insets = useSafeAreaInsets();
   const win = useWindowDimensions();
   const reduce = useReducedMotion();
 
-  const padW = Math.min(600, Math.max(200, win.width - 32));
-  const padH = padHeightOf(padW);
+  const { width: padW, height: padH } = padSizeOf(win.width);
 
   /* ── what the reader has done on the sheet (kept while the chat is open) ── */
   const [name, setName] = useState(p.handle);
