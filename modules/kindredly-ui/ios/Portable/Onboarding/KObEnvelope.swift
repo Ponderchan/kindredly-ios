@@ -103,7 +103,7 @@ struct KObEnvelopeScreen: View {
           }
           .padding(.bottom, 8)
         }
-        .scrollIndicators(.hidden)
+        .obMoreBelow()
         .scrollBounceBehavior(.basedOnSize)
       } primary: {
         KObAcidKey(label: ctx.w("key"), disabled: !ctx.content.canAdvance, action: looksRight)
@@ -179,6 +179,9 @@ struct KObEnvelopeScreen: View {
         .padding(.top, 8)
     }
     .frame(height: h)
+    // a picture of the card at 1.25×, so its type stays the size it was drawn at, as 8's envelope
+    // does: under Larger Text the name grew past its room
+    .environment(\.dynamicTypeSize, .large)
     .clipShape(shape)
     .obDepth(shape, onBlue: true)
     .rotationEffect(.degrees(-2))
@@ -198,7 +201,10 @@ struct KObEnvelopeScreen: View {
       (Text(inked).foregroundStyle(KOb.ink) + Text(rest).foregroundStyle(Color.clear))
         .kText(.system(size, .semibold, tracking: -0.2 / size))
         .lineLimit(1)
-        .minimumScaleFactor(0.7)
+        // down to half, as the React Native card goes: an SE leaves the name about 96pt, and
+        // "Summery Modem" needs 122 at 70% and 97 at 55% (it ended "Summery M…", 2026-10-27);
+        // a 402pt phone fits it at 70%
+        .minimumScaleFactor(0.5)
         .layoutPriority(1)
       HStack(spacing: 4 * k) {
         if showMark, let mark = env.mark, beat >= 1 {

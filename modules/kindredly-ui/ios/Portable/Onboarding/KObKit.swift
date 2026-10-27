@@ -547,6 +547,39 @@ struct KObFrame<Body: View, Primary: View, Secondary: View>: View {
   }
 }
 
+/// A body that can run past the key (an SE, large type): while there is more below, its lower
+/// edge fades into the ground, and the indicator flashes once as it opens, so a card under the
+/// fold is known to be there (6's reveal strip sat unseen on an SE, 2026-10-27). A body that fits
+/// shows neither.
+struct KObMoreBelow: ViewModifier {
+  static let fade: CGFloat = 32
+  @State private var more = false
+
+  func body(content: Content) -> some View {
+    content
+      .scrollIndicators(.automatic)
+      .scrollIndicatorsFlash(onAppear: true)
+      .onScrollGeometryChange(for: Bool.self) { g in
+        g.contentSize.height + g.contentInsets.bottom - (g.contentOffset.y + g.containerSize.height) > 2
+      } action: { _, below in
+        more = below
+      }
+      .mask {
+        VStack(spacing: 0) {
+          Color.black
+          LinearGradient(colors: [.black, .black.opacity(0)], startPoint: .top, endPoint: .bottom)
+            .frame(height: more ? Self.fade : 0)
+            .animation(.easeOut(duration: 0.2), value: more)
+        }
+      }
+  }
+}
+
+extension View {
+  /// see KObMoreBelow
+  func obMoreBelow() -> some View { modifier(KObMoreBelow()) }
+}
+
 // MARK: - small drawings
 
 /// The dice, in ink (5 and 10).

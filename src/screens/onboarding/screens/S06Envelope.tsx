@@ -16,6 +16,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { AvatarImage } from "../../../components/AvatarImage";
 import { getFace } from "../../../data/aura-avatar-lib";
 import { Frost } from "../../../components/Frost";
@@ -80,6 +81,12 @@ import { OB_MAX_FONT } from "../parts/tokens";
    glyphs don't fit beside the face and the stamp corner on a 402pt phone, and wrapping it (WhoName's rule)
    makes the card taller than this screen has room for above the key */
 const K = 1.25;
+/* the card is a picture of that header, so its type stays the size it was drawn at (8's envelope
+   does the same): under Larger Text the name ran out of room and ended "Summery Mo…" */
+const CARD_FONT = 1;
+/** the scroller's lower edge, fading into the blue while there is more below */
+const FADE = 32;
+const BLUE_CLEAR = `${OB.blue}00`;
 /** the address line under the docket, in the letter's italic */
 const TO_H = 22;
 const TO_GAP = 8;
@@ -162,6 +169,20 @@ export default function S06Envelope(props: ObScreenProps) {
     });
   };
   const { height: sh } = useWindowDimensions();
+
+  /* ── more below (an SE, large type: the reveal strip sat under the fold, unseen, 2026-10-27): while
+     there is, the scroller's lower edge fades into the blue, and its indicator flashes once as it opens ── */
+  const scroller = useRef<ScrollView>(null);
+  const fold = useRef({ view: 0, content: 0, y: 0 });
+  const [below, setBelow] = useState(false);
+  const measureFold = () => {
+    const f = fold.current;
+    setBelow(f.content - (f.y + f.view) > 2);
+  };
+  useEffect(() => {
+    const id = setTimeout(() => scroller.current?.flashScrollIndicators(), 300);
+    return () => clearTimeout(id);
+  }, []);
   const nest = nestEggRect(sw, { top: insets.top, bottom: insets.bottom });
   const flipStyle = useAnimatedStyle(() => {
     const f = Math.min(1, out.value / 0.3);
@@ -202,7 +223,7 @@ export default function S06Envelope(props: ObScreenProps) {
       </View>
     </FittedName>
   ) : (
-    <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ ...said, fontSize: 16, lineHeight: 21, color: OB.inkSoft }}>{t("ob2.envelope.thinking")}</Text>
+    <Text maxFontSizeMultiplier={CARD_FONT} style={{ ...said, fontSize: 16, lineHeight: 21, color: OB.inkSoft }}>{t("ob2.envelope.thinking")}</Text>
   );
 
   const markLabel = draft.pronoun === "he" ? t("id.ob.mark.he") : t("id.ob.mark.she");
@@ -213,65 +234,85 @@ export default function S06Envelope(props: ObScreenProps) {
       <Animated.View pointerEvents="none" style={[{ position: "absolute", left: nest.x + NEST_EGG / 2 - NEST_EGG * 0.62, top: nest.y + NEST_EGG / 2 - NEST_EGG * 0.62, width: NEST_EGG * 1.24, height: NEST_EGG * 1.24, borderRadius: NEST_EGG, borderWidth: 3, borderColor: OB.gold }, ringStyle]} />
 
       <ScreenFrame ground="blue" back={props.back} nest primary={<AcidKey label={t("ob2.envelope.key")} disabled={!props.canAdvance} onPress={onLooksRight} />}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }} alwaysBounceVertical={false}>
-          <Headline style={{ marginTop: 4 }}>
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
-              {t("ob2.envelope.head")}
-            </Text>
-          </Headline>
+        <View style={{ flex: 1 }}>
+          <ScrollView
+            ref={scroller}
+            contentContainerStyle={{ paddingBottom: 8 }}
+            alwaysBounceVertical={false}
+            scrollEventThrottle={32}
+            onLayout={(e) => {
+              fold.current.view = e.nativeEvent.layout.height;
+              measureFold();
+            }}
+            onContentSizeChange={(_, h) => {
+              fold.current.content = h;
+              measureFold();
+            }}
+            onScroll={(e) => {
+              fold.current.y = e.nativeEvent.contentOffset.y;
+              measureFold();
+            }}
+          >
+            <Headline style={{ marginTop: 4 }}>
+              <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+                {t("ob2.envelope.head")}
+              </Text>
+            </Headline>
 
-          {/* your envelope */}
-          <Pressable onPress={finishNow} accessible accessibilityRole="image" accessibilityLabel={uid ? t("id.preview.a11y", { who: [name, showMark ? t(`id.mark.${draft.pronoun}`) : null, showSign && sign ? t(zodiacKey(sign)) : null].filter(Boolean).join(", ") }) : t("ob2.envelope.thinking")}>
-            <Animated.View ref={card} collapsable={false} style={[{ marginTop: 12, marginHorizontal: 4, marginRight: SHADOW + 4 }, flipStyle]}>
-              <EnvelopeCard
-                face={
-                  <FaceSlot size={m.face} avatarId={draft.avatarId} spec={spec} frostStyle={frostStyle} waiting={!uid} />
-                }
-                name={nameNode}
-                date={
-                  <Animated.View style={dateStyle}>
-                    <DocketDate text={date} k={K} />
-                  </Animated.View>
-                }
-                stamp={
-                  <Animated.View style={dateStyle}>
-                    <StampSlot width={m.stampW} fill={OB.paper} stroke="#B3B0C9" />
-                  </Animated.View>
-                }
-              />
-            </Animated.View>
-          </Pressable>
-
-          <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.small, { color: OB.white, textAlign: "center", marginTop: 9, fontSize: 13, lineHeight: 17.5 }]}>{t("ob2.envelope.caption")}</Text>
-
-          {/* the two switches */}
-          {(markable || sign) && (
-            <PaperCard top={10}>
-              {markable && (
-                <SwitchRow
-                  glyph={draft.pronoun as "she" | "he"}
-                  on={draft.showMark ?? true}
-                  a11y={markLabel}
-                  onToggle={() => props.set({ showMark: !(draft.showMark ?? true) })}
+            {/* your envelope */}
+            <Pressable onPress={finishNow} accessible accessibilityRole="image" accessibilityLabel={uid ? t("id.preview.a11y", { who: [name, showMark ? t(`id.mark.${draft.pronoun}`) : null, showSign && sign ? t(zodiacKey(sign)) : null].filter(Boolean).join(", ") }) : t("ob2.envelope.thinking")}>
+              <Animated.View ref={card} collapsable={false} style={[{ marginTop: 12, marginHorizontal: 4, marginRight: SHADOW + 4 }, flipStyle]}>
+                <EnvelopeCard
+                  face={
+                    <FaceSlot size={m.face} avatarId={draft.avatarId} spec={spec} frostStyle={frostStyle} waiting={!uid} />
+                  }
+                  name={nameNode}
+                  date={
+                    <Animated.View style={dateStyle}>
+                      <DocketDate text={date} k={K} maxFont={CARD_FONT} />
+                    </Animated.View>
+                  }
+                  stamp={
+                    <Animated.View style={dateStyle}>
+                      <StampSlot width={m.stampW} fill={OB.paper} stroke="#B3B0C9" />
+                    </Animated.View>
+                  }
                 />
-              )}
-              {markable && !!sign && <View style={{ height: 1.5, backgroundColor: "#ECEAF4", marginHorizontal: 14 }} />}
-              {!!sign && (
-                <SwitchRow
-                  glyph={sign as LineIconName}
-                  on={draft.showSign ?? true}
-                  a11y={t("ob2.envelope.signA11y", { sign: t(zodiacKey(sign)) })}
-                  onToggle={() => props.set({ showSign: !(draft.showSign ?? true) })}
-                />
-              )}
+              </Animated.View>
+            </Pressable>
+
+            <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.small, { color: OB.white, textAlign: "center", marginTop: 9, fontSize: 13, lineHeight: 17.5 }]}>{t("ob2.envelope.caption")}</Text>
+
+            {/* the two switches */}
+            {(markable || sign) && (
+              <PaperCard top={10}>
+                {markable && (
+                  <SwitchRow
+                    glyph={draft.pronoun as "she" | "he"}
+                    on={draft.showMark ?? true}
+                    a11y={markLabel}
+                    onToggle={() => props.set({ showMark: !(draft.showMark ?? true) })}
+                  />
+                )}
+                {markable && !!sign && <View style={{ height: 1.5, backgroundColor: "#ECEAF4", marginHorizontal: 14 }} />}
+                {!!sign && (
+                  <SwitchRow
+                    glyph={sign as LineIconName}
+                    on={draft.showSign ?? true}
+                    a11y={t("ob2.envelope.signA11y", { sign: t(zodiacKey(sign)) })}
+                    onToggle={() => props.set({ showSign: !(draft.showSign ?? true) })}
+                  />
+                )}
+              </PaperCard>
+            )}
+
+            {/* the reveal strip */}
+            <PaperCard top={10} padded>
+              <RevealStrip avatarId={draft.avatarId} spec={spec} still={reduce} />
             </PaperCard>
-          )}
-
-          {/* the reveal strip */}
-          <PaperCard top={10} padded>
-            <RevealStrip avatarId={draft.avatarId} spec={spec} still={reduce} />
-          </PaperCard>
-        </ScrollView>
+          </ScrollView>
+          {below && <LinearGradient pointerEvents="none" colors={[BLUE_CLEAR, OB.blue]} style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: FADE }} />}
+        </View>
       </ScreenFrame>
 
       {/* the letter's paper, growing out of the card until it is the screen (7's ground) */}
@@ -294,7 +335,7 @@ function EnvelopeCard({ face, name, date, stamp }: { face: React.ReactNode; name
         {w > 0 && (
           <AirmailPaper w={w - 2 * EDGE} h={h - 2 * EDGE} radius={17}>
             <Docket k={K} face={face} name={name} date={date} stamp={stamp} />
-            <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ marginTop: TO_GAP, height: TO_H, ...said, fontSize: 16, color: OB.ink }}>
+            <Text maxFontSizeMultiplier={CARD_FONT} numberOfLines={1} style={{ marginTop: TO_GAP, height: TO_H, ...said, fontSize: 16, color: OB.ink }}>
               {t("ob2.envelope.to")}
             </Text>
           </AirmailPaper>
@@ -316,9 +357,9 @@ function FittedName({ name, typed, size, children }: { name: string; typed: numb
     /* a row, not glyphs inside the text: the pop-ins animate, and an animated inline view inside a
        Text is laid out at the wrong place by Fabric */
     <View style={{ flexDirection: "row", alignItems: "center" }}>
-      <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ flexShrink: 1, fontSize: size, fontWeight: "600", color: OB.ink, letterSpacing: -0.2 }}>
+      <Text maxFontSizeMultiplier={CARD_FONT} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} style={{ flexShrink: 1, fontSize: size, fontWeight: "600", color: OB.ink, letterSpacing: -0.2 }}>
         {name.slice(0, n)}
-        <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ color: "transparent" }}>{name.slice(n)}</Text>
+        <Text maxFontSizeMultiplier={CARD_FONT} style={{ color: "transparent" }}>{name.slice(n)}</Text>
       </Text>
       {children}
     </View>

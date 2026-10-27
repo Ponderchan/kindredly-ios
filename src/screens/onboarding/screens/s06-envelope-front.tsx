@@ -178,11 +178,11 @@ export function NameMarks({
   );
 }
 
-/** The date under the name: mono 500 11k, quiet ink. */
-export function DocketDate({ text, k, style }: { text: string; k: number; style?: StyleProp<ViewStyle> }) {
+/** The date under the name: mono 500 11k, quiet ink. `maxFont` caps Larger Text (6's card passes 1: a picture). */
+export function DocketDate({ text, k, style, maxFont = OB_MAX_FONT }: { text: string; k: number; style?: StyleProp<ViewStyle>; maxFont?: number }) {
   return (
     <View style={style}>
-      <Text maxFontSizeMultiplier={OB_MAX_FONT} numberOfLines={1} style={{ ...PFM.monoMed, fontSize: 11 * k, letterSpacing: 0.88 * k, color: OB.inkSoft }}>
+      <Text maxFontSizeMultiplier={maxFont} numberOfLines={1} style={{ ...PFM.monoMed, fontSize: 11 * k, letterSpacing: 0.88 * k, color: OB.inkSoft }}>
         {text}
       </Text>
     </View>
