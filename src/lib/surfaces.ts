@@ -159,8 +159,8 @@ import {
      writetous    Write to us (me/write-to-us) — KWriteToUsView
 
    A kindred's page and Wren's room (2026-10-27), each keeping its React
-   Native page the same way. They ship OFF: each turns on after its
-   simulator pass.
+   Native page the same way. On since their simulator pass
+   (2026-10-27, iPhone 17 and SE, default and XXXL type).
 
      kindredpage  a kindred's page (kindred/[id]) — KKindredPageView; the
                   React Native KindredPage stays what people see while this
@@ -170,7 +170,7 @@ import {
                   screens/wren-room holds its state
 
    Five small pages (2026-10-27), each keeping its React Native page the
-   same way, OFF until their simulator pass too:
+   same way, on since their simulator pass too:
 
      report       the Voice report, Wren's night letter (report) —
                   KVoiceReportView
@@ -181,7 +181,8 @@ import {
      lore         Lore, the kept lines (lore) — KLoreView
 
    Three Notes pages (2026-10-27), each keeping its React Native page the
-   same way. They ship OFF: the makers turn them on after a simulator pass.
+   same way. noteentry and noteday are on since their simulator pass;
+   photoroll stays OFF until its Next and picks work.
 
      noteentry    one journal page (journal/[id]) — KNotePageView; the voice
                   card and the film stay React Native islands
@@ -220,19 +221,20 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   blocked: true,
   help: true,
   writetous: true,
-  // a kindred's page: off until its simulator pass
-  kindredpage: false,
-  // Wren's room (2026-10-27): off until it has been checked on the simulator
-  wrenroom: false,
-  // five small pages (2026-10-27): off until the simulator pass
-  report: false,
-  voice: false,
-  drafts: false,
-  stampbook: false,
-  lore: false,
-  // three Notes pages (2026-10-27): deliberately off until the simulator pass
-  noteentry: false,
-  noteday: false,
+  // a kindred's page: on after its simulator pass (2026-10-27)
+  kindredpage: true,
+  // Wren's room (2026-10-27): on after its simulator pass
+  wrenroom: true,
+  // five small pages (2026-10-27): on after their simulator pass
+  report: true,
+  voice: true,
+  drafts: true,
+  stampbook: true,
+  lore: true,
+  // three Notes pages (2026-10-27): the page and the day on after their simulator pass; the photo
+  // roll stays off (its Next and its picks failed on the simulator; being fixed)
+  noteentry: true,
+  noteday: true,
   photoroll: false,
 };
 

@@ -76,16 +76,18 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   // the last Me pages in Swift (owner, 2026-10-27: "make Me all Swift"), each on like the finished ports
   const ME_LAST = ["keepsakes", "keepsake", "mykindreds", "editfield", "blocked", "help", "writetous"];
   ok("the last Me pages' seven keys are there and on", ME_LAST.every((k) => entries[k] === true));
-  // a kindred's page in Swift (2026-10-27): there, and OFF until its simulator pass
-  ok("the kindred page's key is there and off", "kindredpage" in entries && entries.kindredpage === false);
-  // Wren's room in Swift (2026-10-27): there, and OFF until it has been checked on the simulator
-  ok("Wren's room's key is there and off", "wrenroom" in entries && entries.wrenroom === false);
-  // five small pages in Swift (2026-10-27): there, and OFF until the simulator pass
+  // a kindred's page in Swift (2026-10-27): on after its simulator pass
+  ok("the kindred page's key is there and on", entries.kindredpage === true);
+  // Wren's room in Swift (2026-10-27): on after its simulator pass
+  ok("Wren's room's key is there and on", entries.wrenroom === true);
+  // five small pages in Swift (2026-10-27): on after their simulator pass
   const SMALL = ["report", "voice", "drafts", "stampbook", "lore"];
-  ok("the five small pages' keys are there and off", SMALL.every((k) => k in entries && entries[k] === false));
-  // three Notes pages in Swift (2026-10-27): there, and OFF until the simulator pass
+  ok("the five small pages' keys are there and on", SMALL.every((k) => entries[k] === true));
+  // three Notes pages in Swift (2026-10-27): the page and the day on after their simulator pass;
+  // the photo roll OFF until its Next and picks work
   const NOTE_PAGES = ["noteentry", "noteday", "photoroll"];
-  ok("the three Notes pages' keys are there and off", NOTE_PAGES.every((k) => k in entries && entries[k] === false));
+  ok("the Notes page and day are on", entries.noteentry === true && entries.noteday === true);
+  ok("the photo roll is there and off", "photoroll" in entries && entries.photoroll === false);
   ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + ME_LAST.length + SMALL.length + NOTE_PAGES.length + 9);
 }
 
