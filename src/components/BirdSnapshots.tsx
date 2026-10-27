@@ -182,6 +182,7 @@ export function BirdSnapshots() {
               accessory={p.accessory}
               mark={p.mark}
               wilt={wilt}
+              letter={p.letter}
             />
           </View>
         );

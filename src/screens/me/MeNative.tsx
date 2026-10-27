@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useWindowDimensions } from "react-native";
+import { useIsFocused } from "expo-router";
 import { KIsland, useKCommands, useRev, type KScreenHandle } from "../../../modules/kindredly-ui";
 import {
   KMeView,
@@ -30,6 +31,7 @@ import { stampSpoken, useMemberStamps, useMyStamp } from "../../lib/member-marks
 import { FIRST_CLASS_SEGMENT, type AuraCardVM, type LookPose, type LookTileId, type Me4aView, type MeView } from "./me-model";
 import type { MeModel } from "./useMeModel";
 import { useStampCollection } from "./useStampCollection";
+import { useAuraArtData, useCourierCardData } from "./me-pieces";
 
 /* THE ME TAB IN SWIFTUI (4a, 2026-10-19): one Host for the whole screen
    (SurfaceHost: flex 1, every safe area ignored, light or dark from the
@@ -58,7 +60,10 @@ import { useStampCollection } from "./useStampCollection";
      (critic) — and each the size Swift places it at;
    - the locked First Class look and "All looks →" for a free reader show the
      First Class segment (a segment command, reported back like a chip);
-   - pressing Me again goes to the top (the model's scroll serial). */
+   - pressing Me again goes to the top (the model's scroll serial);
+   - two of the islands can be drawn by Swift instead (me-pieces, 2026-10-27, behind
+     "couriercard" and "auraart", off by default): then the record goes to KMeView and the island
+     stays in its place, empty. */
 
 /** The same value back while its content is the same (JSON), so a rebuilt but unchanged record
     keeps its identity and isn't re-sent to Swift. */
@@ -272,6 +277,13 @@ export function MeNative({ model }: { model: MeModel }) {
   const courierW = width - GUTTER * 2 - FRAME_LINES;
   const artW = auraArtWidth(width - GUTTER * 2);
 
+  // the courier's card and the Aura card's picture in Swift, when their switches are on (null:
+  // the island, as before); the card's loops run only while the tab is focused
+  const focused = useIsFocused();
+  const showsAura = segment === 1 && !!view.aura && !!aura;
+  const courierCard = useCourierCardData(courier, { showing: segment === 0, live: focused });
+  const auraArt = useAuraArtData(showsAura && view.aura ? view.aura.art : null, showsAura);
+
   return (
     <SurfaceHost>
       <KMeView
@@ -311,6 +323,8 @@ export function MeNative({ model }: { model: MeModel }) {
         onFirstClass={act.firstClass}
         fc={fcSent}
         onFcOpen={fcOpen}
+        courierCard={courierCard}
+        auraArt={auraArt}
       >
         <KIsland name="avatar" style={{ width: AVATAR, height: AVATAR }}>
           {/* stamped (C2), the island is drawn square: Swift scales it to the stamp's inner side
@@ -318,7 +332,7 @@ export function MeNative({ model }: { model: MeModel }) {
           <AvatarImage id={avatar.id} photoUri={avatar.photo} seed={avatar.seed} size={AVATAR} radius={myStamp ? 3.3 : undefined} />
         </KIsland>
         <KIsland name="courier" style={{ width: courierW, height: COURIER_H }}>
-          {segment === 0 ? (
+          {segment === 0 && !courierCard ? (
             <CourierCard
               framed
               width={courierW}
@@ -338,7 +352,7 @@ export function MeNative({ model }: { model: MeModel }) {
           ) : null}
         </KIsland>
         <KIsland name="auraArt" style={{ width: artW, height: AURA_ART_H }}>
-          {segment === 1 && view.aura && aura ? <AuraArtSlot art={view.aura.art} width={artW} /> : null}
+          {showsAura && view.aura && !auraArt ? <AuraArtSlot art={view.aura.art} width={artW} /> : null}
         </KIsland>
       </KMeView>
     </SurfaceHost>

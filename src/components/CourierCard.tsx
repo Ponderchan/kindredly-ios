@@ -11,6 +11,7 @@ import { WrenBird, type WrenStage } from "./WrenBird";
 import type { WhereaboutsRead } from "../lib/whereabouts";
 import { WHEREABOUTS_META } from "../lib/whereabouts";
 import { W14, cardShadow } from "./AuraCard";
+import { ARC_AT as AT, BAND_H, GLOBE, PALETTE, SCENE_H, daylight, onArc, type Palette } from "./courier-card-model";
 import { agoLabel, flightLog, type LogEntry } from "../lib/flight-log";
 import { useWhoBook } from "../lib/who";
 import type { ThreadSummary } from "../lib/db";
@@ -40,40 +41,13 @@ const REllipse = Reanimated.createAnimatedComponent(Ellipse);
 /* one block (the owner's V10): the scene is the whole card, and the words
    sit on it — on a second layer, the palette's deep tone fading up from
    the bottom, so every hour has the night's two-layer feel and white
-   words read on all of them */
-const SCENE_H = 236;
-const BAND_H = 92;
-
-/* THE HOUR PAINTS THE SCENE. Four skies, by the phone's clock — the same
-   route, the same bird, but morning is pale and low-lit, noon is clear
-   blue with a high sun, evening goes amber, night is the V10 sheet: deep
-   indigo, a moon, stars, and both windows lit. Text and chip inks follow
-   so they stay legible on each sky. */
-export type Daylight = "morning" | "day" | "evening" | "night";
-export function daylight(hour = new Date().getHours()): Daylight {
-  if (hour >= 5 && hour < 10) return "morning";
-  if (hour >= 10 && hour < 17) return "day";
-  if (hour >= 17 && hour < 20) return "evening";
-  return "night";
-}
-export interface Palette { text: string; scrim: string; button: string; buttonText: string; sky: [string, string]; sea: string; land: string; forest: string; rock: string; ink: string; chip: string; chipText: string; sun: string | null; sunAt: [number, number]; moon: boolean; stars: boolean; lit: boolean; cloud: string | null }
-export const PALETTE: Record<Daylight, Palette> = {
-  // `ink` draws on the sky; `body` draws on the white below it (the stage chip, the button)
-  morning: { text: "#1E1B35", scrim: "#C4E1C6", button: "#2D5B3A", buttonText: "#FFFFFF", land: "#B4DCA6", forest: "#4E9A5C", rock: "#9AA3B0", sea: "#9CC8E6", sky: ["#FBE3D6", "#EAF1E4"], ink: "#2D5B3A", chip: "#2D5B3A", chipText: "#FFFFFF", sun: "#FFD79A", sunAt: [0.1, 0.42], moon: false, stars: false, lit: false, cloud: "#FFFFFF" },
-  day: { text: "#1E1B35", scrim: "#ADDBB5", button: "#1F5C33", buttonText: "#FFFFFF", land: "#9CD48C", forest: "#3F8F52", rock: "#8E9AA6", sea: "#6FB6E8", sky: ["#BFE3F8", "#E3F3FB"], ink: "#1F5C33", chip: "#1F5C33", chipText: "#FFFFFF", sun: "#FFD54A", sunAt: [0.82, 0.16], moon: false, stars: false, lit: false, cloud: "#FFFFFF" },
-  evening: { text: "#3B2634", scrim: "#E6CBD3", button: "#4A2F3F", buttonText: "#FFFFFF", land: "#93BB8C", forest: "#3A6F46", rock: "#7E7A8E", sea: "#8FA6CF", sky: ["#F6C39A", "#E8C7E6"], ink: "#4A2F3F", chip: "#4A2F3F", chipText: "#FFFFFF", sun: "#FF9A57", sunAt: [0.9, 0.42], moon: false, stars: false, lit: true, cloud: "#FFE0CC" },
-  night: { text: "#FFFFFF", scrim: "#2B2660", button: "#FFFFFF", buttonText: "#1E1B35", land: "#2F5148", forest: "#1B3530", rock: "#3A3F5C", sea: "#1F2E5E", sky: ["#1E1B35", "#2E2A6B"], ink: "#DAD6F2", chip: "#FFFFFF", chipText: "#1E1B35", sun: null, sunAt: [0.84, 0.18], moon: true, stars: true, lit: true, cloud: null },
-};
-
-/* where on the arc she is, per state — 0 = your window, 1 = theirs */
-const AT: Record<WhereaboutsRead["state"], number> = { unsent: 0.06, home: 0.06, exploring: 0.5, delivery: 0.72, bringing: 0.3 };
-
-/* a point on the quadratic arc from (x0,y) over (cx,cy) to (x1,y) */
-const onArc = (tt: number, x0: number, x1: number, y: number, cy: number) => {
-  const u = 1 - tt;
-  const cx = (x0 + x1) / 2;
-  return { x: u * u * x0 + 2 * u * tt * cx + tt * tt * x1, y: u * u * y + 2 * u * tt * cy + tt * tt * y };
-};
+   words read on all of them. SCENE_H and BAND_H, the hour's four skies
+   (PALETTE, daylight: morning is pale and low-lit, noon clear blue with a
+   high sun, evening amber, night the V10 sheet), where on the arc she is
+   per state (ARC_AT) and the arc itself (onArc) live in the pure
+   courier-card-model, which the SwiftUI card on Me reads too; the palette
+   is re-exported here for everyone who imports it from this file. */
+export { PALETTE, daylight, type Daylight, type Palette } from "./courier-card-model";
 
 /* THE PLANET — a real globe, not a horizon: a circle whose shoulders you
    can see, sky in both bottom corners, the route thrown over the top of
@@ -81,7 +55,7 @@ const onArc = (tt: number, x0: number, x1: number, y: number, cy: number) => {
    two faint latitude lines and a thin atmosphere so it reads as a sphere;
    after dark a few lit towns. Flat shapes, no map: nobody can ask "where
    am I". */
-export const GLOBE = { top: 66, r: 0.44, shoulder: 0.3 };
+export { GLOBE };
 function Planet({ w, P }: { w: number; P: Palette }) {
   const R = w * GLOBE.r;
   const cx = w / 2;

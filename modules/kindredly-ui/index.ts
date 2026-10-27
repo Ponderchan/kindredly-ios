@@ -299,3 +299,20 @@ export {
   type KPhotoRollStrings,
   type KPhotoRollViewProps,
 } from "./src/NotePages";
+// two pieces of Me in Swift (2026-10-27), each behind its own switch ("couriercard", "auraart"), off by
+// default: the courier's card and the Aura card's picture, drawn inside KMeView and KAuraRoomView instead of
+// their islands; the two marker views draw one piece on its own (src/screens/me/me-pieces.ts builds them)
+export {
+  AURA_ART_OFF,
+  COURIER_CARD_OFF,
+  KAuraArtView,
+  KCourierCardView,
+  nativeAuraArt,
+  nativeCourierCard,
+  type KAuraArtData,
+  type KAuraArtViewProps,
+  type KCourierCardData,
+  type KCourierCardViewProps,
+  type KCourierPalette,
+  type KDeskPaint,
+} from "./src/MePieces";

@@ -4,6 +4,7 @@ import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
 import type { KImageRefProps, KInsets, KScreenBaseProps, KScreenHandle } from "./types";
 import type { KMeAura } from "./Me";
+import { nativeAuraArt, type KAuraArtData, type NativeAuraArt } from "./MePieces";
 
 /* THE WRITING AURA ROOM AND ITS SHARE CARD (owner decision 2026-10-26, 1.0.7), drawn by SwiftUI
    (ios/Portable/Aura/KAuraRoomScreen.swift and KAuraShareScreen.swift, adapters
@@ -133,6 +134,9 @@ export type KAuraRoomViewProps = CommonViewModifierProps &
     onScope?: (sealed: boolean) => void;
     /** the one <KIsland name="auraArt"> */
     children?: ReactNode;
+    /** the card's picture drawn by Swift instead of the island ("auraart", MePieces.tsx);
+        absent or `on` false keeps the island */
+    auraArt?: KAuraArtData | null;
   };
 
 type Ev<T> = (e: { nativeEvent: T }) => void;
@@ -140,7 +144,7 @@ type None = Ev<Record<string, never>>;
 type NativeImage = { uri: string; key: string; kind: "image" | "videoPoster" };
 type NativeDim = Omit<KAuraDim, "reading"> & { hasReading: boolean; reading: KAuraReading };
 
-type NativeRoomProps = Omit<KAuraRoomViewProps, "letterFont" | "insets" | "rev" | "data" | "initialLens" | "onBack" | "onShare" | "onWrite" | "onScope"> &
+type NativeRoomProps = Omit<KAuraRoomViewProps, "letterFont" | "insets" | "rev" | "data" | "initialLens" | "onBack" | "onShare" | "onWrite" | "onScope" | "auraArt"> &
   Required<Pick<KAuraRoomViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
     data: Omit<KAuraRoomData, "dims"> & { dims: NativeDim[] };
@@ -149,6 +153,7 @@ type NativeRoomProps = Omit<KAuraRoomViewProps, "letterFont" | "insets" | "rev" 
     onRoomShare?: None;
     onRoomWrite?: None;
     onRoomScope?: Ev<{ sealed: boolean }>;
+    auraArt: NativeAuraArt;
   };
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
@@ -164,11 +169,12 @@ const NativeKAuraRoomView = requireNativeView<NativeRoomProps>("KindredlyUI", "K
 
 /** The bare SwiftUI room. Only inside an @expo/ui <Host>; the auraArt island as its child. */
 export const KAuraRoomView = forwardRef<KScreenHandle, KAuraRoomViewProps>(function KAuraRoomView(
-  { modifiers, letterFont, insets, rev, data, initialLens, onBack, onShare, onWrite, onScope, ...rest },
+  { modifiers, letterFont, insets, rev, data, initialLens, onBack, onShare, onWrite, onScope, auraArt, ...rest },
   ref,
 ) {
   // follows the data's identity, so a render that changes nothing else doesn't send it again
   const sent = useMemo(() => ({ ...data, dims: data.dims.map(nativeDim) }), [data]);
+  const sentArt = useMemo(() => nativeAuraArt(auraArt), [auraArt]);
   return (
     <NativeKAuraRoomView
       ref={ref}
@@ -180,6 +186,7 @@ export const KAuraRoomView = forwardRef<KScreenHandle, KAuraRoomViewProps>(funct
       rev={rev ?? 0}
       data={sent}
       initialLens={initialLens ?? "portrait"}
+      auraArt={sentArt}
       onRoomBack={onBack ? () => onBack() : undefined}
       onRoomShare={onShare ? () => onShare() : undefined}
       onRoomWrite={onWrite ? () => onWrite() : undefined}

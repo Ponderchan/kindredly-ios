@@ -62,7 +62,9 @@ export type BirdPose =
   | RackPose
   | StagePose
   // Wren's room in Swift (screens/wren-room/WrenRoomNative): the empty room's curious official bird
-  | "officialCurious";
+  | "officialCurious"
+  // the courier card on Me in Swift (behind "couriercard"): her 50 on the arc or the sill, her 44 on the day-off cover
+  | CardPose;
 
 /* THE COURIER PAGE (/courier in Swift, 2026-10-26). Her perch draws her at the
    React Native perch's 186 in every face she can make there (her whereabouts'
@@ -125,7 +127,27 @@ export type BirdPoseSpec = {
   mark?: null;
   /** always mounted, for snapshotBird (Live Activities) */
   base?: boolean;
+  /** false pins the fly drawing empty-handed (WrenBird letter={false}); the letter rides with her otherwise */
+  letter?: false;
 };
+
+/* THE COURIER CARD ON ME (Swift, behind "couriercard", 2026-10-27). The React
+   Native card draws WrenBird live at her card stage (Me's stage floor, which
+   can sit above her own: it only moves forward), so each picture pins that
+   stage: 50 on the sill in her face (hunger's, or her whereabouts'), 50 in
+   flight (the fly drawing, which carries its letter; its face is the
+   drawing's own), and 44 on her day-off cover, happy, flying empty-handed
+   when grown, perched before. Her look is hers. Not base: captured only
+   while the card asks (components/courier-card-model courierCardPose). */
+const CARD_STAGES = ["egg", "hatch", "fledge", "wren"] as const satisfies readonly WrenStage[];
+export type CardPose = `card-${WrenStage}-${WrenMood}` | `card-fly-${WrenStage}` | `card-dayoff-${WrenStage}`;
+const CARD_POSES = Object.fromEntries(
+  CARD_STAGES.flatMap((stage) => [
+    ...HERO_MOODS.map((mood) => [`card-${stage}-${mood}`, { size: 50, mood, stage }]),
+    [`card-fly-${stage}`, { size: 50, mood: "content", fly: true, stage }],
+    [`card-dayoff-${stage}`, stage === "wren" ? { size: 44, mood: "happy", fly: true, stage, letter: false } : { size: 44, mood: "happy", stage }],
+  ]),
+) as Record<CardPose, BirdPoseSpec>;
 
 /* sizes are the RN call sites' own, so the Swift picture is the same drawing */
 export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
@@ -178,6 +200,8 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
      round(64 × .62) = 40 — the brand bird, pinned like "official" (the header's face, as on her
      Kindreds row). Not base: captured only while the room asks. */
   officialCurious: { size: 40, mood: "curious", stage: "wren", skin: "sticker", accessory: "none", mark: null },
+  // the courier card on Me in Swift (see CARD_POSES above)
+  ...CARD_POSES,
 };
 
 /** The user's look, as BirdSnapshots reads it from the Wren contexts. */

@@ -211,6 +211,10 @@ export const KSCREEN_VIEWS = [
   "KNotePageView",
   "KNoteDayView",
   "KPhotoRollView",
+  // two pieces of Me (2026-10-27): not screens but the binary's markers for the courier's card
+  // ("couriercard") and the Aura card's picture ("auraart"), drawn inside KMeView and KAuraRoomView
+  "KCourierCardView",
+  "KAuraArtView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];
