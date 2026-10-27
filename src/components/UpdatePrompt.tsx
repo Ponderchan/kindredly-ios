@@ -20,16 +20,40 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path, Rect } from "react-native-svg";
 import { WrenBird, type WrenMood, type WrenPose } from "./WrenBird";
 import { sheetCard, sheetKey, sheetKeyLabel } from "./sheet-chrome";
+import { NativeSurface, SurfaceHost } from "./NativeSurface";
+import { KParcelBannerView, KParcelSheetView, useRev, type KParcelArt, type KParcelBirds, type KParcelScene } from "../../modules/kindredly-ui";
 import { scrimColor, useP, useTheme } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
 import { openAppStore } from "../lib/update-prompt";
+import { useBirdImageRefs, type BirdPose } from "../lib/bird-images";
 import { BRAND } from "../theme/themes";
 import { PFM } from "../theme/post";
+import {
+  BEATS,
+  CARRY,
+  PARCEL_ART,
+  PARCEL_ART_RECORD,
+  PH,
+  PIVOTS,
+  PW,
+  S,
+  SCENE_H,
+  STAMP,
+  STARS,
+  UPDATE_BANNER_ROOM,
+  parcelSceneRecord,
+  sceneGeometry,
+  sceneWidth,
+  type StarTone,
+} from "./update-parcel";
 import "../data/strings-update-prompt";
 
 /* THE UPDATE PROMPT: WREN BRINGS A PARCEL (OTA, 2026-10-25; owner's copy set A).
    ────────────────────────────────────────────────────────────────────────
-   Two faces, both React Native so an over-the-air update reaches 1.2.4 and 1.2.5 as they are:
+   Two faces, both React Native so an over-the-air update reaches 1.2.4 and 1.2.5 as they are
+   (and, from the second Swift batch on, both drawn by SwiftUI where the "parcel" switch is on and
+   the binary carries KParcelSheetView / KParcelBannerView: see "SWIFT OR REACT NATIVE" below; the
+   drawing, the geometry and the beats are components/update-parcel's, shared by both):
 
    UpdateSheet: the sheet the first time the prompt applies (screens/today/TodayUpdate decides
    when). It wears the app's iOS sheet face (components/sheet-chrome: the floating card, the
@@ -68,9 +92,8 @@ const SPRING_BACK = { damping: 22, stiffness: 260 } as const;
 
 /* ── the parcel ─────────────────────────────────────────────────────────── */
 
-/** the parcel's box, in points and in its viewBox alike */
-const PW = 120;
-const PH = 100;
+/* the parcel's box (PW × PH, in points and in its viewBox alike), its paths and where its stamp
+   sits are components/update-parcel's */
 const BOX = BRAND.waxGold;
 const LID = BRAND.creamBorder;
 const INSIDE = BRAND.brassSeal;
@@ -80,25 +103,23 @@ const PAPER = "#FFFFFF";
 const PAPER_EDGE = "#D8D2C2";
 
 /* the front face, its foot rounded; the top seen a little from above, as two flaps meeting in the middle */
-const FRONT = "M4 26 H116 V92 Q116 96 112 96 H8 Q4 96 4 92 Z";
-const FRONT_SHADE = "M4 26 H116 V31 H4 Z";
-const TOP = "M14 6 H106 L116 26 H4 Z";
-const FLAP_L = "M14 6 H60 V26 H4 Z";
-const FLAP_R = "M60 6 H106 L116 26 H60 Z";
-const RIBBON_FRONT = "M54 26 H66 V96 H54 Z";
-const RIBBON_L = "M55 6 H60 V26 H54 Z";
-const RIBBON_R = "M60 6 H65 L66 26 H60 Z";
+const FRONT = PARCEL_ART.front;
+const FRONT_SHADE = PARCEL_ART.frontShade;
+const TOP = PARCEL_ART.top;
+const FLAP_L = PARCEL_ART.flapL;
+const FLAP_R = PARCEL_ART.flapR;
+const RIBBON_FRONT = PARCEL_ART.ribbonFront;
+const RIBBON_L = PARCEL_ART.ribbonL;
+const RIBBON_R = PARCEL_ART.ribbonR;
 /* the bow, its knot on the front edge at (60, 26) */
-const BOW_LOOPS = "M60 26 C50 10 34 11 37 21 C39 28 51 29 60 26 Z M60 26 C70 10 86 11 83 21 C81 28 69 29 60 26 Z";
-const BOW_SHADE = "M60 26 C53 17 44 17 45 22 C46 26 53 27 60 26 Z M60 26 C67 17 76 17 75 22 C74 26 67 27 60 26 Z";
-const BOW_TAILS = "M57 29 L49 43 L54 41.5 L57 45 L60 30 Z M63 29 L71 43 L66 41.5 L63 45 L60 30 Z";
-/* where the stamp sits on the front */
-const STAMP = { x: 18, y: 52, w: 84, h: 24 };
+const BOW_LOOPS = PARCEL_ART.bowLoops;
+const BOW_SHADE = PARCEL_ART.bowShade;
+const BOW_TAILS = PARCEL_ART.bowTails;
 
 const BOX_VIEW = `0 0 ${PW} ${PH}`;
 const FILL = { position: "absolute" as const, left: 0, top: 0, width: PW, height: PH };
 /* the box's foot, middle: what it shakes about (transformOrigin in points; RN's string form takes whole numbers only) */
-const PARCEL_FOOT = [PW / 2, 96, 0];
+const PARCEL_FOOT = [PIVOTS.foot.x, PIVOTS.foot.y, 0];
 
 function Bow() {
   return (
@@ -106,7 +127,7 @@ function Bow() {
       <Path d={BOW_TAILS} fill={RIBBON} />
       <Path d={BOW_LOOPS} fill={RIBBON} />
       <Path d={BOW_SHADE} fill="#000" opacity={0.14} />
-      <Rect x={55.5} y={21.5} width={9} height={9} rx={3} fill={RIBBON} />
+      <Rect x={PARCEL_ART.knot.x} y={PARCEL_ART.knot.y} width={PARCEL_ART.knot.w} height={PARCEL_ART.knot.h} rx={PARCEL_ART.knot.r} fill={RIBBON} />
     </>
   );
 }
@@ -151,84 +172,39 @@ function VersionStamp({ version }: { version: string }) {
 
 /* ── the scene ─────────────────────────────────────────────────────────── */
 
-const SCENE_H = 214;
-/** Wren's size, perched or flying */
-const S = 96;
-/* her feet in her own box (WrenBird's 200 viewBox at S): perched, between the two feet; flying,
-   where the letter would hang (the official fly art) */
-const PERCH_FEET = { x: 47, y: 83 };
-const FLY_FEET = { x: 51, y: 79 };
-/* flying, the parcel hangs from her feet by the bow's loops (their top is at y 12 in the box) */
-const CARRY = { dx: FLY_FEET.x - PW / 2, dy: FLY_FEET.y - 12 + 2 };
-
-/* the beats, in ms */
-const START_MS = 280; // the sheet rises first
-const FLY_MS = 950;
-const HOVER_MS = 220;
-const DROP_MS = 300;
-const LAND_MS = 640; // from the drop to her feet on the lid
-const SETTLE_MS = 160;
-const FIRST_SHAKE_MS = 1400;
-const SHAKE_EVERY: [number, number] = [3400, 5200];
-const CURIOUS_MS = 1300;
-const BOW_MS = 520;
-const FLAP_DELAY = 90;
-const FLAP_MS = 320;
-const STARS_DELAY = 140;
-const STARS_MS = 760;
+/* Wren's size (S), the scene's height (SCENE_H), where her feet are and how the parcel hangs from
+   them (CARRY), where everything stands for a width (sceneGeometry) and the stars are
+   components/update-parcel's; so are the beats, in ms: */
+const START_MS = BEATS.start; // the sheet rises first
+const FLY_MS = BEATS.fly;
+const HOVER_MS = BEATS.hover;
+const DROP_MS = BEATS.drop;
+const LAND_MS = BEATS.land; // from the drop to her feet on the lid
+const SETTLE_MS = BEATS.settle;
+const FIRST_SHAKE_MS = BEATS.firstShake;
+const SHAKE_EVERY = BEATS.shakeEvery;
+const CURIOUS_MS = BEATS.curious;
+const BOW_MS = BEATS.bow;
+const FLAP_DELAY = BEATS.flapDelay;
+const FLAP_MS = BEATS.flap;
+const STARS_DELAY = BEATS.starsDelay;
+const STARS_MS = BEATS.stars;
 /** from Update to the App Store */
-const OPEN_MS = 820;
+const OPEN_MS = BEATS.open;
 /* hard mode: from the App Store opening to the closed parcel again */
-const RESET_MS = 1200;
+const RESET_MS = BEATS.reset;
 /* the dev preview's ?play=1: Update presses itself this long after the sheet opens (she has landed and the parcel has shaken once) */
-const AUTO_PLAY_MS = 4600;
+const AUTO_PLAY_MS = BEATS.autoPlay;
 
-const between = ([a, b]: [number, number]) => a + Math.random() * (b - a);
+const between = ([a, b]: readonly [number, number]) => a + Math.random() * (b - a);
 
-/* where everything stands in a scene `width` wide */
-function sceneGeometry(width: number) {
-  const cx = width / 2;
-  const ground = SCENE_H - 14;
-  const restX = cx - PW / 2;
-  const restY = ground - 96; // the box's foot is at y 96
-  const footY = restY + 9; // her feet on the back of the lid, just behind the bow
-  const perchX = cx - PERCH_FEET.x;
-  const perchY = footY - PERCH_FEET.y;
-  // the parcel hovers 26 over the ground before she lets go
-  const hoverX = restX - CARRY.dx;
-  const hoverY = restY - 26 - CARRY.dy;
-  return {
-    cx,
-    ground,
-    restX,
-    restY,
-    perchX,
-    perchY,
-    hoverX,
-    hoverY,
-    // flying down to the lid, her feet where they'll stand
-    landX: cx - FLY_FEET.x,
-    landY: footY - FLY_FEET.y,
-    // she comes in from beyond the top right corner
-    startX: width + 20,
-    startY: -120,
-    // she rides the parcel's shake: the same turn about the parcel's foot, from her own box
-    perchOrigin: [restX + PW / 2 - perchX, ground - perchY, 0],
-  };
-}
+/* the stars' brand colours */
+const STAR_COLOR: Record<StarTone, string> = { waxGold: BRAND.waxGold, lime: BRAND.lime, postRed: BRAND.postRed };
+const STAR = PARCEL_ART.star;
+const STAR_RUN = BEATS.starRun; // each star's own flight, inside STARS_MS
 
-/* a few stars out of the open box: where each ends up (from the opening), how big, which colour, how late */
-const STARS = [
-  { dx: -58, dy: -64, size: 14, color: BRAND.waxGold, delay: 0 },
-  { dx: 52, dy: -80, size: 18, color: BRAND.waxGold, delay: 40 },
-  { dx: -20, dy: -98, size: 12, color: BRAND.lime, delay: 90 },
-  { dx: 80, dy: -34, size: 12, color: BRAND.postRed, delay: 60 },
-  { dx: -84, dy: -24, size: 10, color: BRAND.waxGold, delay: 120 },
-] as const;
-const STAR = "M10 0 L12.6 7.4 L20 10 L12.6 12.6 L10 20 L7.4 12.6 L0 10 L7.4 7.4 Z";
-const STAR_RUN = 560; // each star's own flight, inside STARS_MS
-
-function Star({ burst, x, y, dx, dy, size, color, delay }: { burst: SharedValue<number>; x: number; y: number } & (typeof STARS)[number]) {
+function Star({ burst, x, y, dx, dy, size, tone, delay }: { burst: SharedValue<number>; x: number; y: number } & (typeof STARS)[number]) {
+  const color = STAR_COLOR[tone];
   const st = useAnimatedStyle(() => {
     const p = Math.min(1, Math.max(0, (burst.value * STARS_MS - delay) / STAR_RUN));
     const e = 1 - (1 - p) * (1 - p) * (1 - p);
@@ -443,17 +419,26 @@ export function UpdateSheet({
   onUpdated: () => void;
 }) {
   if (!open) return null;
-  return <SheetBody version={version} force={force} demo={demo} autoPlay={demo && autoPlay} onShown={onShown} onLater={onLater} onUpdated={onUpdated} />;
+  const body: SheetProps = { version, force, demo, autoPlay: demo && autoPlay, onShown, onLater, onUpdated };
+  return (
+    <NativeSurface
+      surface="parcel"
+      view="KParcelSheetView"
+      mode="mount"
+      native={() => <ParcelSheetNative {...body} />}
+      fallback={() => <SheetBody {...body} />}
+      pending={() => null}
+    />
+  );
 }
 
-function SheetBody({ version, force, demo, autoPlay, onShown, onLater, onUpdated }: { version: string | null; force: boolean; demo: boolean; autoPlay: boolean; onShown?: () => void; onLater: () => void; onUpdated: () => void }) {
-  useLang(); // repaint when the reader changes language
-  const P = useP();
-  const { t: tk, dark } = useTheme();
-  const insets = useSafeAreaInsets();
-  const win = useWindowDimensions();
-  const still = useReducedMotion();
-  const width = win.width - 16; // sheetCard floats 8 in from each edge
+type SheetProps = { version: string | null; force: boolean; demo: boolean; autoPlay: boolean; onShown?: () => void; onLater: () => void; onUpdated: () => void };
+
+/* THE SHEET'S LOGIC, both renderers': Update (the parcel opens, and the App Store opens OPEN_MS
+   later — at once under Reduce Motion, where nothing opens), hard mode setting the scene back on
+   its parcel after each Update, and the dev preview's Update pressing itself. `busy` is set from
+   Update on: nothing puts the sheet away after it. */
+function useParcelSheet({ force, demo, autoPlay, still, onLater, onUpdated }: Pick<SheetProps, "force" | "demo" | "autoPlay" | "onLater" | "onUpdated"> & { still: boolean }) {
   const [opening, setOpening] = useState(false);
   // hard mode sets the scene back on its parcel after each Update (a fresh scene, no fly-in)
   const [round, setRound] = useState(0);
@@ -496,6 +481,20 @@ function SheetBody({ version, force, demo, autoPlay, onShown, onLater, onUpdated
     const id = setTimeout(() => autoUpdate.current(), AUTO_PLAY_MS);
     return () => clearTimeout(id);
   }, [autoPlay, round]);
+
+  return { opening, round, busy, later, update };
+}
+
+/** The React Native sheet (the "parcel" switch's fallback), exactly as it was. */
+function SheetBody({ version, force, demo, autoPlay, onShown, onLater, onUpdated }: SheetProps) {
+  useLang(); // repaint when the reader changes language
+  const P = useP();
+  const { t: tk, dark } = useTheme();
+  const insets = useSafeAreaInsets();
+  const win = useWindowDimensions();
+  const still = useReducedMotion();
+  const width = sceneWidth(win.width); // sheetCard floats 8 in from each edge
+  const { opening, round, busy, later, update } = useParcelSheet({ force, demo, autoPlay, still, onLater, onUpdated });
 
   // pulled down by the grabber (soft mode): far or fast enough and it goes, else it springs back
   const drag = useSharedValue(0);
@@ -581,11 +580,25 @@ function SheetBody({ version, force, demo, autoPlay, onShown, onLater, onUpdated
 
 /* ── the banner ────────────────────────────────────────────────────────── */
 
-/** The room the banner takes under the status bar: its 42 and the air above and below it. */
-export const UPDATE_BANNER_ROOM = 52;
+/** The room the banner takes under the status bar: its 42 and the air above and below it (components/update-parcel). */
+export { UPDATE_BANNER_ROOM };
 
 /** The slim bar on Today after Later: pinned `top` from the screen's top (the status bar's inset). */
 export function UpdateBanner({ top, onPress }: { top: number; onPress: () => void }) {
+  return (
+    <NativeSurface
+      surface="parcel"
+      view="KParcelBannerView"
+      mode="mount"
+      native={() => <ParcelBannerNative top={top} onPress={onPress} />}
+      fallback={() => <UpdateBannerRN top={top} onPress={onPress} />}
+      pending={() => null}
+    />
+  );
+}
+
+/** The React Native banner (the "parcel" switch's fallback), exactly as it was. */
+function UpdateBannerRN({ top, onPress }: { top: number; onPress: () => void }) {
   useLang();
   const { t: tk, dark } = useTheme();
   return (
@@ -618,6 +631,113 @@ export function UpdateBanner({ top, onPress }: { top: number; onPress: () => voi
           {t("upd.banner.cta")}
         </Text>
       </Pressable>
+    </View>
+  );
+}
+
+/* ── SWIFT OR REACT NATIVE ─────────────────────────────────────────────────
+   (2026-10-27, the second Swift batch.) With the "parcel" switch on and the binary carrying the
+   views, SwiftUI draws both faces (ios/Portable/Today/KParcelSheet.swift): the sheet in a
+   full-screen Host inside the same transparent Modal (its onShow is still the record's moment),
+   the banner in a Host its room tall under the status bar. Everything that decides stays here:
+   when either shows (screens/today/TodayUpdate), Update's timers (useParcelSheet), the App Store.
+   Swift draws the scene from components/update-parcel's paths, geometry and beats, and her four
+   pictures are BirdSnapshots captures (never redrawn): the grown bird at 96 in her own look,
+   flying with no letter of her own, content, curious and delighted. The scene's clock waits for
+   them (or BIRDS_WAIT_MS), so the fly-in never starts without her; TodayUpdate captures them as
+   soon as an update is waiting (useParcelBirds), so on Today they are there long before. Off, an
+   older binary, a JS error or a crash on opening: the React Native faces above, exactly as they
+   were. */
+
+/** her four faces in the scene (lib/bird-images) */
+const PARCEL_POSES: readonly BirdPose[] = ["parcelFly", "parcelContent", "parcelCurious", "parcelDelight"];
+const NO_POSES: readonly BirdPose[] = [];
+/** how long the Swift scene waits for her pictures before it starts without them */
+const BIRDS_WAIT_MS = 1200;
+
+/** Her four pictures for the Swift scene, captured while `on` (TodayUpdate asks as soon as an update waits). */
+export function useParcelBirds(on: boolean): KParcelBirds {
+  const refs = useBirdImageRefs(on ? PARCEL_POSES : NO_POSES);
+  return useMemo(
+    () => ({ fly: refs.parcelFly ?? null, content: refs.parcelContent ?? null, curious: refs.parcelCurious ?? null, delight: refs.parcelDelight ?? null }),
+    [refs],
+  );
+}
+
+const NATIVE_ART: KParcelArt = PARCEL_ART_RECORD;
+
+/** The sheet in SwiftUI, in the same transparent Modal. */
+function ParcelSheetNative({ version, force, demo, autoPlay, onShown, onLater, onUpdated }: SheetProps) {
+  useLang(); // repaint when the reader changes language
+  const { key: theme } = useTheme();
+  const insets = useSafeAreaInsets();
+  const win = useWindowDimensions();
+  const still = useReducedMotion();
+  const { opening, round, busy, later, update } = useParcelSheet({ force, demo, autoPlay, still, onLater, onUpdated });
+
+  // her pictures, or a moment's wait for them: then the scene's clock starts
+  const birds = useParcelBirds(true);
+  const [waited, setWaited] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setWaited(true), BIRDS_WAIT_MS);
+    return () => clearTimeout(id);
+  }, []);
+  const ready = waited || !!(birds.fly && birds.content && birds.curious && birds.delight);
+
+  const width = sceneWidth(win.width);
+  const scene = useMemo<KParcelScene>(() => parcelSceneRecord(width), [width]);
+  const rev = useRev(scene);
+  const strings = {
+    title: t("upd.title"),
+    line: t("upd.line"),
+    update: t("upd.update"),
+    later: t("upd.later"),
+    version: version ? t("upd.version", { version }) : "",
+  };
+
+  return (
+    <Modal visible transparent animationType="none" statusBarTranslucent onShow={onShown} onRequestClose={() => !force && !busy.current && later()}>
+      <SurfaceHost>
+        <KParcelSheetView
+          theme={theme}
+          insets={{ top: insets.top, bottom: insets.bottom, tabBarRoom: 0 }}
+          rev={rev}
+          strings={strings}
+          force={force}
+          opening={opening}
+          round={round}
+          ready={ready}
+          art={NATIVE_ART}
+          scene={scene}
+          birds={birds}
+          onUpdate={update}
+          // Swift has already let it go down and away; once Update is pressed nothing puts it away
+          onLater={() => {
+            if (!force && !busy.current) later();
+          }}
+        />
+      </SurfaceHost>
+    </Modal>
+  );
+}
+
+/** The banner in SwiftUI, in a Host its room tall, pinned `top` from the screen's top. */
+function ParcelBannerNative({ top, onPress }: { top: number; onPress: () => void }) {
+  useLang();
+  const { key: theme } = useTheme();
+  return (
+    <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, top, height: UPDATE_BANNER_ROOM }}>
+      <SurfaceHost>
+        <KParcelBannerView
+          theme={theme}
+          rev={1}
+          line={t("upd.banner")}
+          cta={t("upd.banner.cta")}
+          a11y={`${t("upd.banner")}, ${t("upd.update")}`}
+          art={NATIVE_ART}
+          onPress={onPress}
+        />
+      </SurfaceHost>
     </View>
   );
 }

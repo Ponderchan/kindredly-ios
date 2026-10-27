@@ -6,7 +6,8 @@ import { usePlusSheetOpen } from "../../lib/screen-insets";
 import { blurThen } from "../../lib/keyboard";
 import { markSheetShown, openAppStore, setUpdateSheetUp, useUpdatePrompt } from "../../lib/update-prompt";
 import { bannerShows, localDay, sheetDue } from "../../lib/update-prompt-core";
-import { UPDATE_BANNER_ROOM, UpdateBanner, UpdateSheet } from "../../components/UpdatePrompt";
+import { UPDATE_BANNER_ROOM, UpdateBanner, UpdateSheet, useParcelBirds } from "../../components/UpdatePrompt";
+import { useNativeSurface } from "../../lib/surfaces";
 import { useIdentityNoteUp } from "../edit-profile/IdentityNote";
 import type { TodayModel } from "./useTodayDesk";
 
@@ -53,6 +54,10 @@ export function TodayUpdate({ model, children }: { model: TodayModel; children: 
   const noteUp = useIdentityNoteUp();
   const win = useWindowDimensions();
   const [sheet, setSheet] = useState(false);
+  /* the Swift parcel scene ("parcel" switch) draws her from BirdSnapshots captures: taken as soon
+     as an update is waiting, so they are there long before the sheet rises */
+  const swiftParcel = useNativeSurface("parcel");
+  useParcelBirds(swiftParcel && up.ready && up.on && up.waiting);
 
   // a keyboard up anywhere (React Native's events come from UIKit's, so a SwiftUI field's counts)
   const [kbUp, setKbUp] = useState(() => Keyboard.isVisible());

@@ -15,6 +15,11 @@ import { STAMP_LADDER } from "../../lib/stamp-frame";
 import { LetterInFlight } from "../../components/LetterInFlight";
 import { LeaveSheet } from "../../components/LeaveSheet";
 import { InkPanel, ReplyBar } from "../../components/10a";
+import { NativeSurface } from "../../components/NativeSurface";
+import type { PoolLetter } from "../../lib/db";
+import type { CardVM } from "./today-cards";
+import { readerClosesOnSend, readerDocketA11y, readerHint, readerPlaceholder, readerText } from "./letter-reader-model";
+import { LetterReaderNative } from "./LetterReaderNative";
 import type { TodayModel } from "./useTodayDesk";
 
 /* THE UNFOLDED LETTER (both renderers: SwiftUI's UNFOLD ↓ and the React
@@ -59,15 +64,45 @@ import type { TodayModel } from "./useTodayDesk";
    face and the name it had a moment ago on the desk. */
 const READER_STAMP = STAMP_LADDER.readerHead;
 
+/* SWIFT OR REACT NATIVE (2026-10-27, the second Swift batch). The page sheet
+   stays React Native either way (it is the reader's whole reason to be a
+   Modal: no route). Inside it, with the "letterreader" switch on and the
+   binary carrying KLetterReaderView, SwiftUI draws the reader
+   (LetterReaderNative: the same docket, letter, stamp, WRITE BACK and reply
+   bar, the pouch-full sheet and the stamp toast still React Native over it);
+   otherwise — the switch off, an older binary, a JS error on the Swift path,
+   a crash there on the last two launches — LetterReaderRN below, exactly as
+   it was. Both read the letter, its VoiceOver docket, the bar's placeholder
+   and hint and what a send does from letter-reader-model. Decided once each
+   time the reader opens (NativeSurface "mount"). */
 export function LetterReader({ model }: { model: TodayModel }) {
+  useLang();
+  const { view, act } = model;
+  const id = view.readerId;
+  const letter = id ? view.feed.find((l) => l.id === id) ?? null : null;
+  const card = id ? view.cards.find((c) => c.id === id) ?? null : null;
+  if (!letter || !card) return null;
+  return (
+    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={act.closeReader}>
+      <NativeSurface
+        surface="letterreader"
+        view="KLetterReaderView"
+        mode="mount"
+        native={() => <LetterReaderNative model={model} letter={letter} card={card} />}
+        fallback={() => <LetterReaderRN model={model} letter={letter} card={card} />}
+      />
+    </Modal>
+  );
+}
+
+/** The React Native reader (the "letterreader" switch's fallback), inside LetterReader's sheet. */
+function LetterReaderRN({ model, letter, card }: { model: TodayModel; letter: PoolLetter; card: CardVM }) {
   useLang();
   const { t: tk } = useTheme();
   const face = useLetterFamily();
   const insets = useSafeAreaInsets();
   const { view, act } = model;
   const id = view.readerId;
-  const letter = id ? view.feed.find((l) => l.id === id) ?? null : null;
-  const card = id ? view.cards.find((c) => c.id === id) ?? null : null;
   const [writing, setWriting] = useState(false);
   // the identity switch (the table's row, or the dev preview): the docket in its new shape
   const identity = useIdentityOn();
@@ -99,13 +134,11 @@ export function LetterReader({ model }: { model: TodayModel }) {
     const tm = setTimeout(() => setStampLine(""), 2600);
     return () => clearTimeout(tm);
   }, [stampLine]);
-  if (!letter || !card) return null;
-
   const state = model.replyFor(letter.id);
   const s = view.strings;
 
   return (
-    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={act.closeReader}>
+    <>
       <View onLayout={(e) => setSheetH(e.nativeEvent.layout.height)} style={{ flex: 1, backgroundColor: tk.bg }}>
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingTop: 14, paddingBottom: 12 }}>
           <Pressable onPress={act.closeReader} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("ld.foldBack")} style={{ flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1 }}>
@@ -119,7 +152,7 @@ export function LetterReader({ model }: { model: TodayModel }) {
             {/* the same docket the card carries, so the letter keeps its face */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 22 }}>
               {identity ? (
-                <View accessible accessibilityLabel={`${card.who.spoken}. ${card.when}`} style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <View accessible accessibilityLabel={readerDocketA11y(card, true)} style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>
                   <WhoFaceView face={card.who.face} size={40} />
                   <View style={{ flex: 1, gap: 2 }}>
                     <WhoName name={card.who.name} marks={card.who} style={{ fontSize: 17, fontWeight: "600", color: tk.ink }} />
@@ -137,7 +170,7 @@ export function LetterReader({ model }: { model: TodayModel }) {
               <KeepableStamp id={letter.stamp} width={READER_STAMP.w} delivered letterId={letter.id} dark={tk.dark} from={{ letter: letter.id }} onDone={card.demo ? undefined : setStampLine} />
             </View>
 
-            <Text style={[{ fontSize: 19, lineHeight: 31, color: tk.ink }, face]}>{card.isVoice ? card.caption : card.body}</Text>
+            <Text style={[{ fontSize: 19, lineHeight: 31, color: tk.ink }, face]}>{readerText(card)}</Text>
 
             <Text style={{ ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: tk.mute, marginTop: 26 }}>
               {t("ld.written")} {sinceShort(letter.created_at)}
@@ -152,10 +185,10 @@ export function LetterReader({ model }: { model: TodayModel }) {
             ) : writing ? (
               <ReplyBar
                 // the letter's own: "write back to No. 7273…" (or "write back…" unsigned), as on the desk
-                placeholder={card.replyPlaceholder || s.placeholder}
+                placeholder={readerPlaceholder(card, s.placeholder)}
                 // the desk's reply hint in the bar's capitals (the headwind line, over the limit in red,
                 // the full pouch, "a thread opens…"); the bar opens with the keyboard, so it shows
-                hint={state.hint.toLocaleUpperCase(localeTag())}
+                hint={readerHint(state.hint, localeTag())}
                 hintWarn={state.hintWarn}
                 showsHint
                 sendLabel={s.send}
@@ -171,7 +204,7 @@ export function LetterReader({ model }: { model: TodayModel }) {
                      (Wren takes it and "Reply sent." shows on the desk). A full pouch only
                      explains, and the reader stays: the sheet that explains is drawn in
                      here, below */
-                  if (!state.pouchFull) act.closeReader();
+                  if (readerClosesOnSend(state)) act.closeReader();
                   act.send(letter.id, v);
                   return false;
                 }}
@@ -205,6 +238,6 @@ export function LetterReader({ model }: { model: TodayModel }) {
         />
         {stampLine ? <Toast msg={stampLine} bottom={Math.max(insets.bottom, 12) + 90} /> : null}
       </View>
-    </Modal>
+    </>
   );
 }

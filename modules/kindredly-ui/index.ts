@@ -333,3 +333,25 @@ export {
   type KSignUpSheetViewProps,
   type KToastViewProps,
 } from "./src/SharedSheets";
+// Today's overlays (2026-10-27, the second Swift batch), each behind its own switch, off by default:
+// the unfolded letter ("letterreader"), the wardrobe slip ("wardrobeslip"), the update prompt's
+// parcel sheet and banner ("parcel")
+export {
+  KLetterReaderView,
+  KParcelBannerView,
+  KParcelSheetView,
+  KWARDROBE_SLIP_DEPTH,
+  KWardrobeSlipView,
+  type KLetterReaderCommands,
+  type KLetterReaderComposer,
+  type KLetterReaderStrings,
+  type KLetterReaderViewProps,
+  type KParcelArt,
+  type KParcelBannerViewProps,
+  type KParcelBirds,
+  type KParcelScene,
+  type KParcelSheetViewProps,
+  type KParcelStar,
+  type KParcelStrings,
+  type KWardrobeSlipViewProps,
+} from "./src/TodayOverlays";

@@ -365,5 +365,19 @@ public class KindredlyUIModule: Module {
     ExpoUIView(KReportMenuView.self)
     ExpoUIView(KSignUpSheetView.self)
     ExpoUIView(KToastView.self)
+
+    // Today's overlays (2026-10-27, the second Swift batch), each behind its own switch (off by
+    // default) with its React Native piece as the fallback: the unfolded letter ("letterreader"),
+    // the first arrival's wardrobe slip ("wardrobeslip") and the update prompt's parcel sheet and
+    // banner ("parcel"). Adapters/KTodayOverlaysView.swift, Portable/Today (KLetterReaderScreen,
+    // KWardrobeSlip, KParcelSheet). New files: a pod install before the build.
+    ExpoUIView(KLetterReaderView.self) {
+      AsyncFunction("command") { (view: KLetterReaderView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+    ExpoUIView(KWardrobeSlipView.self)
+    ExpoUIView(KParcelSheetView.self)
+    ExpoUIView(KParcelBannerView.self)
   }
 }

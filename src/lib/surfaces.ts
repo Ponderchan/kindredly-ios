@@ -234,7 +234,23 @@ import {
                   question (a leave sheet) and the whole flow stay TS's
      signupsheet  the guest's sign-up sheet (components/SignUpSheet) —
                   KSignUpSheetView; the sign-ins stay TS's
-     toast        the toast (components/ui Toast) — KToastView */
+     toast        the toast (components/ui Toast) — KToastView
+
+                  (screens/photo-roll)
+
+   Today's overlays (2026-10-27, the second Swift batch), each keeping its
+   React Native piece the same way. OFF until their simulator pass:
+
+     letterreader the unfolded letter (screens/today/LetterReader, inside
+                  its React Native page sheet) — KLetterReaderView; the
+                  pouch-full sheet, the stamp toast and the crossing
+                  (LetterInFlight, an island) stay React Native
+     wardrobeslip the first arrival's wardrobe slip over Today
+                  (screens/today/WardrobeSlip) — KWardrobeSlipView; the
+                  wardrobe sheet it opens stays React Native
+     parcel       the update prompt's sheet and banner (components/
+                  UpdatePrompt) — KParcelSheetView, KParcelBannerView; when
+                  they show stays screens/today/TodayUpdate's */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
   room: true,
@@ -290,10 +306,14 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   reportsheet: false,
   signupsheet: false,
   toast: false,
+  // Today's overlays (2026-10-27): off until their simulator pass
+  letterreader: false,
+  wardrobeslip: false,
+  parcel: false,
 };
 
 /** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages, a kindred's page, Wren's room, the five small pages and three Notes pages (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "kindredpage" | "wrenroom" | "report" | "voice" | "drafts" | "stampbook" | "lore" | "noteentry" | "noteday" | "photoroll" | "introritual" | "lightbox" | "songshelf" | "signsheet" | "leavesheet" | "reportsheet" | "signupsheet" | "toast";
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "kindredpage" | "wrenroom" | "report" | "voice" | "drafts" | "stampbook" | "lore" | "noteentry" | "noteday" | "photoroll" | "introritual" | "lightbox" | "songshelf" | "signsheet" | "leavesheet" | "reportsheet" | "signupsheet" | "toast" | "letterreader" | "wardrobeslip" | "parcel";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */
