@@ -333,11 +333,5 @@ public class KindredlyUIModule: Module {
         view.props.commands.send(name, args)
       }
     }
-
-    // The app's language, for typography only (KType.tallScript): Japanese and Korean set the
-    // letter serifs with CJK leading. src/textScript.ts; the root layout calls it on every change.
-    Function("setTextScript") { (lang: String) in
-      KType.tallScript = lang == "ja" || lang == "ko"
-    }
   }
 }
