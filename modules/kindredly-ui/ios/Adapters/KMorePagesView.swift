@@ -71,6 +71,8 @@ struct KVoiceReportStringsRecord: Record {
   @Field var share: String = ""
   @Field var done: String = ""
   @Field var close: String = ""
+  @Field var sampleTitle: String = ""
+  @Field var sampleLine: String = ""
 }
 
 struct KReportMarkRecord: Record {
@@ -154,6 +156,8 @@ final class KVoiceReportViewProps: KScreenProps {
       c.share = s.share
       c.done = s.done
       c.close = s.close
+      c.sampleTitle = s.sampleTitle
+      c.sampleLine = s.sampleLine
       c.bird = bird.ref
       c.sky = sky.sky
       c.keepSky = keepSky.sky

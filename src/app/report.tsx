@@ -4,15 +4,17 @@ import { Pressable, Share, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { BlurView } from "expo-blur";
 import { PFM } from "../theme/post";
 import { useLetterFamily } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
 import { Constellation } from "../components/VoiceCard";
 import { WrenBird } from "../components/WrenBird";
 import { DEMO_JOURNAL } from "../data/demo";
-import { cachedVoiceAI, gatherWriting } from "../lib/voice";
-import { buildReport, markReportRead, type ReportData } from "../lib/report";
+import { reportSampleNote, reportTexts } from "../lib/report-door";
+import { cachedVoiceAI } from "../lib/voice";
+import { REPORT_AT, buildReport, markReportRead, type ReportData } from "../lib/report";
 import { getWrenType } from "../lib/wren-type";
 import { useAuth } from "../lib/auth";
 import "../data/strings-me4a"; // m4.rt.*, m4.pw.close
@@ -68,24 +70,27 @@ function VoiceReportRN() {
   const said = useLetterFamily(true);
   const { profile } = useAuth();
   const [data, setData] = useState<ReportData | null>(null);
+  // Me's row before the first report is due opens a sample: demo writing, blurred, how far to go
+  const sample = useLocalSearchParams<{ sample?: string }>().sample === "1";
+  const [have, setHave] = useState(0);
   const [idx, setIdx] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
       let alive = true;
       (async () => {
-        let texts = await gatherWriting((profile?.firstLine as string) || null);
-        if (__DEV__ && texts.length === 0) texts = DEMO_JOURNAL.map((e) => e.body).filter((b) => b.trim().length >= 3);
+        const { texts, have } = await reportTexts((profile?.firstLine as string) || null, sample, DEMO_JOURNAL.map((e) => e.body).filter((b) => b.trim().length >= 3));
         const [type, ai] = await Promise.all([getWrenType(), cachedVoiceAI()]);
         const d = await buildReport(texts, type?.id ?? null, ai?.voice_summary ?? null);
         if (!alive) return;
         setData(d);
-        void markReportRead(); // opened = read; the month is spent
+        setHave(have);
+        if (!sample) void markReportRead(); // opened = read; the month is spent (a sample spends nothing)
       })();
       return () => {
         alive = false;
       };
-    }, [profile?.firstLine]),
+    }, [profile?.firstLine, sample]),
   );
 
   const done = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/me"));
@@ -269,6 +274,20 @@ function VoiceReportRN() {
         <Animated.View key={screens[idx].key} entering={FadeIn.duration(320)} style={{ flex: 1, paddingHorizontal: 30, paddingBottom: 28 }}>
           {screens[idx].render()}
         </Animated.View>
+      )}
+      {/* a sample: the report's shape, blurred, and how far the first real one is */}
+      {sample && screens.length > 0 && (
+        <BlurView intensity={28} tint="dark" style={{ position: "absolute", left: 0, right: 0, top: 70, bottom: 0, alignItems: "center", justifyContent: "center", paddingHorizontal: 30 }}>
+          {(() => {
+            const note = reportSampleNote(have, REPORT_AT, t, wren);
+            return (
+              <View accessible style={{ maxWidth: 300, backgroundColor: "#2A2450", borderRadius: 18, paddingHorizontal: 22, paddingVertical: 18, gap: 8, shadowColor: "#120F2A", shadowOffset: { width: 4, height: 4 }, shadowOpacity: 1, shadowRadius: 0 }}>
+                <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700", textAlign: "center" }}>{note.title}</Text>
+                <Text style={{ color: "#B9B4D6", fontSize: 14, lineHeight: 19, textAlign: "center" }}>{note.line}</Text>
+              </View>
+            );
+          })()}
+        </BlurView>
       )}
       <Pressable onPress={() => advance(-1)} style={{ position: "absolute", left: 0, top: 90, bottom: 0, width: "30%" }} />
       <Pressable onPress={() => advance(1)} style={{ position: "absolute", right: 0, top: 90, bottom: 0, width: "55%" }} />

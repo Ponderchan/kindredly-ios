@@ -10,10 +10,11 @@ import { speakAs } from "./wren-name";
    itself obeys (reportGate), over the same pieces of writing it reads
    (gatherWriting), so the door never promises a report the page won't open.
 
-     progress  not enough writing for the first one yet ("10 pieces · 4 so far")
+     progress  not enough writing for the first one yet ("10 pieces · 4 so far"); a tap
+               shows a sample (REPORT_SAMPLE_HREF), blurred, with that line over it
      ready     the first one (free), or this month's (First Class)
      locked    the free one is spent and there is no First Class → the paywall
-     done      First Class, this month's is read; the next comes on the 1st
+     done      First Class, this month's is read (it opens again); the next comes on the 1st
 
    readReportDoor is the async read (Me's throttled read, and again on focus:
    opening the report marks the month read). reportDoorVM is pure — words and
@@ -48,6 +49,15 @@ export type ReportDoorFmt = {
 
 export const REPORT_HREF = "/report";
 export const REPORT_LOCK_HREF = "/paywall?src=report_lock";
+/** before the first report is due, a tap shows a sample: the report's shape, blurred, and how far to go */
+export const REPORT_SAMPLE_HREF = "/report?sample=1";
+
+/** The note over a sample: the row's own title and line (no new words), e.g. "The first one comes
+    at 10 pieces · 4 so far". */
+export function reportSampleNote(have: number, need: number, t: ReportDoorFmt["t"], wren: string): { title: string; line: string } {
+  const say = (s: string) => speakAs(s, wren);
+  return { title: say(t("m4.report.title.progress")), line: say(t("m4.report.sub.progress", { need, have: Math.min(have, need) })) };
+}
 
 /** The 1st of the month after `now`, as "YYYY-MM-01" (local calendar, as reportGate's month is). */
 export function firstOfNextMonth(now: Date = new Date()): string {
@@ -65,6 +75,15 @@ export function monthNameIn(iso: string, locale: string): string {
   return new Date(y, m - 1, 1).toLocaleDateString(locale, { month: "long" });
 }
 
+/** The writing a report page is built from: yours, or — for a sample — the demo journal's (the shape
+    of a report, never your words), with how far you are toward the first. In a dev build with no
+    writing yet, the demo journal stands in for yours, as before. */
+export async function reportTexts(firstLine: string | null, sample: boolean, demo: readonly string[]): Promise<{ texts: string[]; have: number }> {
+  const mine = await gatherWriting(firstLine);
+  if (sample) return { texts: [...demo], have: mine.length };
+  return { texts: __DEV__ && mine.length === 0 ? [...demo] : mine, have: mine.length };
+}
+
 /** Read the door's state: the same pieces and gate the report page uses. */
 export async function readReportDoor(premium: boolean, firstLine: string | null): Promise<ReportDoor> {
   const pieces = (await gatherWriting(firstLine)).length;
@@ -79,14 +98,15 @@ export function reportDoorVM(d: ReportDoor, fmt: ReportDoorFmt, wren: string): R
   const say = (s: string) => speakAs(s, wren);
   switch (d.state) {
     case "progress":
+      // a tap shows a sample (owner, 2026-10-21: it used to do nothing, with nothing said)
       return {
         show: true,
         title: say(t("m4.report.title.progress")),
         sub: say(t("m4.report.sub.progress", { need: d.need, have: Math.min(d.have, d.need) })),
-        enabled: false,
+        enabled: true,
         locked: false,
-        hint: "",
-        href: null,
+        hint: t("m4.report.hint.open"),
+        href: REPORT_SAMPLE_HREF,
       };
     case "ready":
       return {
@@ -109,14 +129,15 @@ export function reportDoorVM(d: ReportDoor, fmt: ReportDoorFmt, wren: string): R
         href: REPORT_LOCK_HREF,
       };
     case "done":
+      // this month's, read: it opens again (owner, 2026-10-21); the next comes on the 1st
       return {
         show: true,
         title: say(t("m4.report.title.done")),
         sub: say(t("m4.report.sub.done", { month: fmt.monthName(d.nextMonth) })),
-        enabled: false,
+        enabled: true,
         locked: false,
-        hint: "",
-        href: null,
+        hint: t("m4.report.hint.open"),
+        href: REPORT_HREF,
       };
   }
 }

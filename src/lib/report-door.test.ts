@@ -39,7 +39,7 @@ const vm = (d: ReportDoor) => D.reportDoorVM(d, fmt, "Pip");
 
 const p = vm({ state: "progress", have: 4, need: 10 });
 ok("progress: words", p.title === "m4.report.title.progress" && p.sub === "m4.report.sub.progress(need=10,have=4)", p.sub);
-ok("progress: goes nowhere", !p.enabled && !p.locked && p.href === null && p.hint === "");
+ok("progress: opens a sample", p.enabled && !p.locked && p.href === "/report?sample=1" && p.hint === "m4.report.hint.open");
 ok("progress: never says more than it needs", vm({ state: "progress", have: 14, need: 10 }).sub === "m4.report.sub.progress(need=10,have=10)");
 
 const r1 = vm({ state: "ready", kind: "first" });
@@ -54,7 +54,7 @@ ok("locked: gold lock, opens the paywall", l.enabled && l.locked && l.href === "
 
 const d = vm({ state: "done", nextMonth: "2026-11-01" });
 ok("done: next month named", d.title === "m4.report.title.done" && d.sub === "m4.report.sub.done(month=M[2026-11-01])", d.sub);
-ok("done: goes nowhere", !d.enabled && !d.locked && d.href === null && d.hint === "");
+ok("done: this month's opens again", d.enabled && !d.locked && d.href === "/report" && d.hint === "m4.report.hint.open");
 ok("every state shows", [p, r1, r2, l, d].every((x) => x.show === true));
 
 const named = D.reportDoorVM({ state: "ready", kind: "first" }, { ...fmt, t: () => "Wren wrote it" }, "Pip");
@@ -88,3 +88,9 @@ if (fails) {
   process.exit(1);
 }
 console.log("\nall passed");
+
+/* the sample's note: the row's own words, never more than it needs */
+{
+  const n = D.reportSampleNote(14, 10, (k: string, v?: Record<string, string | number>) => (v ? `${k}(${Object.entries(v).map(([a, b]) => `${a}=${b}`).join(",")})` : k), "Wren");
+  ok("sample note: title and line", n.title === "m4.report.title.progress" && n.line === "m4.report.sub.progress(need=10,have=10)", JSON.stringify(n));
+}

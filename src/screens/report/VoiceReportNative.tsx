@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Share } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useKCommands, useRev, type KScreenHandle } from "../../../modules/kindredly-ui";
 import { KVoiceReportView, type KVoiceReportSky } from "../../../modules/kindredly-ui/src/VoiceReport";
 import { SurfaceHost } from "../../components/NativeSurface";
@@ -11,8 +11,9 @@ import { useWrenName } from "../../lib/wren-name";
 import { useBirdImageRef } from "../../lib/bird-images";
 import { useAuth } from "../../lib/auth";
 import { DEMO_JOURNAL } from "../../data/demo";
-import { cachedVoiceAI, gatherWriting } from "../../lib/voice";
-import { buildReport, markReportRead, type ReportData } from "../../lib/report";
+import { reportSampleNote, reportTexts } from "../../lib/report-door";
+import { cachedVoiceAI } from "../../lib/voice";
+import { REPORT_AT, buildReport, markReportRead, type ReportData } from "../../lib/report";
 import { getWrenType } from "../../lib/wren-type";
 import { constellationShape } from "../../lib/constellation";
 import { reportView } from "./report-model";
@@ -48,23 +49,26 @@ export function VoiceReportNative() {
   const bird = useBirdImageRef("content");
   const { profile } = useAuth();
   const [data, setData] = useState<ReportData | null>(null);
+  // Me's row before the first report is due opens a sample: demo writing, blurred, how far to go
+  const sample = useLocalSearchParams<{ sample?: string }>().sample === "1";
+  const [have, setHave] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
       let alive = true;
       (async () => {
-        let texts = await gatherWriting((profile?.firstLine as string) || null);
-        if (__DEV__ && texts.length === 0) texts = DEMO_JOURNAL.map((e) => e.body).filter((b) => b.trim().length >= 3);
+        const { texts, have } = await reportTexts((profile?.firstLine as string) || null, sample, DEMO_JOURNAL.map((e) => e.body).filter((b) => b.trim().length >= 3));
         const [type, ai] = await Promise.all([getWrenType(), cachedVoiceAI()]);
         const d = await buildReport(texts, type?.id ?? null, ai?.voice_summary ?? null);
         if (!alive) return;
         setData(d);
-        void markReportRead(); // opened = read; the month is spent
+        setHave(have);
+        if (!sample) void markReportRead(); // opened = read; the month is spent (a sample spends nothing)
       })().catch((e) => console.warn("[report] the report wasn't built:", e));
       return () => {
         alive = false;
       };
-    }, [profile?.firstLine]),
+    }, [profile?.firstLine, sample]),
   );
 
   const view = useMemo(
@@ -100,10 +104,11 @@ export function VoiceReportNative() {
       done: view?.done ?? "",
       // the close key is there before the report is
       close: view?.close ?? t("m4.pw.close"),
+      ...(sample ? (({ title, line }) => ({ sampleTitle: title, sampleLine: line }))(reportSampleNote(have, REPORT_AT, t, wren)) : {}),
     }),
     // lang: the close key's name is t()'s
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [view, lang],
+    [view, lang, sample, have, wren],
   );
   const cards = useMemo(() => view?.cards ?? [], [view]);
   const chips = useMemo(() => view?.chips ?? [], [view]);

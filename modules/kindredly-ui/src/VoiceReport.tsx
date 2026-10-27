@@ -40,6 +40,10 @@ export type KVoiceReportStrings = {
   done: string;
   /** VoiceOver for the close key */
   close: string;
+  /** a sample, before the first report is due (Me's report row, while it counts toward it): the
+      cards drawn from the demo writing, blurred, under this title and line. "" = the real report */
+  sampleTitle?: string;
+  sampleLine?: string;
 };
 
 export type KVoiceReportCard = "cover" | "stars" | "hour" | "words" | "punct" | "quote" | "end";

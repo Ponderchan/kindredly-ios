@@ -101,6 +101,11 @@ public struct KVoiceReportContent: Equatable, Sendable {
   public var done = ""
   /// VoiceOver for the close key
   public var close = ""
+  /// a sample (Me's report row, before the first report is due): the cards are drawn from demo
+  /// writing, blurred and inert, under this title and line; "" draws the real report
+  public var sampleTitle = ""
+  public var sampleLine = ""
+  public var isSample: Bool { !sampleTitle.isEmpty }
   /// her snapshot under the quote, 44; nil while it is captured
   public var bird: KImageRef?
   /// the sky card's constellation (150) and the keepsake card's (110)
@@ -170,8 +175,15 @@ public struct KVoiceReportScreen: View {
             if let card = cards.indices.contains(shown) ? cards[shown] : nil {
               cardView(card)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // a sample shows the shape of a report, not words to read or keys to press
+                .blur(radius: content.isSample ? 9 : 0)
+                .allowsHitTesting(!content.isSample)
+                .accessibilityHidden(content.isSample)
                 .id(card)
                 .transition(.asymmetric(insertion: .opacity, removal: .identity))
+            }
+            if content.isSample {
+              sampleNote
             }
           }
           .padding(.horizontal, 30)
@@ -216,6 +228,29 @@ public struct KVoiceReportScreen: View {
   }
 
   // MARK: the chrome
+
+  /// over a sample: what it is, and how far the first real one is ("10 pieces · 4 so far")
+  private var sampleNote: some View {
+    VStack(spacing: 8) {
+      Text(content.sampleTitle)
+        .kText(.system(18, .bold))
+        .foregroundStyle(Color.white)
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+      Text(content.sampleLine)
+        .kText(.system(14))
+        .foregroundStyle(KReportNight.dim)
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+    .padding(.horizontal, 22)
+    .padding(.vertical, 18)
+    .frame(maxWidth: 300)
+    .background(RoundedRectangle(cornerRadius: 18, style: .circular).fill(KReportNight.card))
+    .kObjectDepth(RoundedRectangle(cornerRadius: 18, style: .circular), theme: .midnight)
+    .accessibilityElement(children: .combine)
+    .allowsHitTesting(false)
+  }
 
   private var progress: some View {
     HStack(spacing: 5) {
