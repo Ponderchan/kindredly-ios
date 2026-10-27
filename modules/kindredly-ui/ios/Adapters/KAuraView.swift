@@ -26,6 +26,8 @@ import ExpoUI
    A sticker: { id, name, bg, fg, border, pill, tilt, trying }.
  - initialLens: portrait | dims | habits (read when the view first draws)
  Children: one <KIsland name="auraArt"> (the card's inside × 110), as on Me.
+ - auraArt (KMePiecesView.swift): with `on`, Swift draws the card's picture (KAuraArt) and leaves
+   the island out ("auraart" switch, off by default).
  Events: onRoomBack {}, onRoomShare {}, onRoomWrite {}, onRoomScope { sealed }.
 
  KAuraShareView props, beyond KScreenProps:
@@ -179,6 +181,9 @@ final class KAuraRoomViewProps: KScreenProps {
   @Field var strings: KAuraRoomStringsRecord = KAuraRoomStringsRecord()
   @Field var data: KAuraRoomDataRecord = KAuraRoomDataRecord()
   @Field var initialLens: String = "portrait"
+  /// the card's picture in Swift (Adapters/KMePiecesView.swift, "auraart"): with `on`, drawn
+  /// here instead of the "auraArt" island
+  @Field var auraArt: KAuraArtRecord = KAuraArtRecord()
 
   var onRoomBack = EventDispatcher()
   var onRoomShare = EventDispatcher()
@@ -280,7 +285,11 @@ struct KAuraRoomView: ExpoSwiftUI.View {
       bottomInset: insets.bottom,
       actions: props.actions
     ) {
-      props.children?.kSlot("auraArt")
+      if props.auraArt.on {
+        KAuraArt(theme: props.kTheme, art: props.auraArt.model)
+      } else {
+        props.children?.kSlot("auraArt")
+      }
     }
     .kScreenEnvironment(props)
   }

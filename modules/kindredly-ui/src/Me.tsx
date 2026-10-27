@@ -4,6 +4,7 @@ import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
 import { nativeFrost, type KFrost, type KImageRefProps, type KInsets, type KScreenBaseProps, type KScreenHandle, type KStandardCommands } from "./types";
 import type { KKindredsFace } from "./Kindreds";
+import { nativeAuraArt, nativeCourierCard, type KAuraArtData, type KCourierCardData, type NativeAuraArt, type NativeCourierCard } from "./MePieces";
 
 /* THE ME TAB (4a, 2026-10-19), drawn by SwiftUI (ios/Portable/Me/KMeScreen.swift, adapter
    ios/Adapters/KMeView.swift), for src/screens/me/MeNative.tsx. Every word, figure and destination
@@ -251,6 +252,11 @@ export type KMeViewProps = CommonViewModifierProps &
     onFcOpen?: (form: KMeFcRollout["form"]) => void;
     /** the three <KIsland>s: avatar, courier, auraArt (see the top) */
     children?: ReactNode;
+    /** the courier's card drawn by Swift instead of the "courier" island ("couriercard",
+        MePieces.tsx); absent or `on` false keeps the island */
+    courierCard?: KCourierCardData | null;
+    /** the Aura card's picture drawn by Swift instead of the "auraArt" island ("auraart") */
+    auraArt?: KAuraArtData | null;
   };
 
 type Ev<T> = (e: { nativeEvent: T }) => void;
@@ -280,7 +286,7 @@ type EventProps =
   | "onFirstClass"
   | "onFcOpen";
 
-type NativeKMeViewProps = Omit<KMeViewProps, "letterFont" | "insets" | "rev" | "peekKindreds" | "looks" | "firstClass" | EventProps> &
+type NativeKMeViewProps = Omit<KMeViewProps, "letterFont" | "insets" | "rev" | "peekKindreds" | "looks" | "firstClass" | "courierCard" | "auraArt" | EventProps> &
   Required<Pick<KMeViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
     peekKindreds: Omit<KMePeekKindreds, "items"> & { items: (Omit<KMePeekKindred, "face"> & { face: NativeFace })[] };
@@ -306,6 +312,8 @@ type NativeKMeViewProps = Omit<KMeViewProps, "letterFont" | "insets" | "rev" | "
     onMeStamps?: Ev<{ action: KMeStampsAction; id: string }>;
     onMeFirstClass?: None;
     onMeFcOpen?: Ev<{ form: KMeFcRollout["form"] }>;
+    courierCard: NativeCourierCard;
+    auraArt: NativeAuraArt;
   };
 
 const NO_FC: KMeFcRollout = { form: "none", tab: false, firstClass: "", post: "", envelopeA11y: "", seatTimer: "", seatHead: "", seatPerks: "", open: "", reportEyebrow: "", reportSealed: "", reportHead: "", reportCta: "", tabA11y: "" };
@@ -350,6 +358,8 @@ export const KMeView = forwardRef<KScreenHandle, KMeViewProps>(function KMeView(
     onFirstClass,
     onFcOpen,
     fc,
+    courierCard,
+    auraArt,
     ...rest
   },
   ref,
@@ -359,6 +369,8 @@ export const KMeView = forwardRef<KScreenHandle, KMeViewProps>(function KMeView(
   const sentKindreds = useMemo(() => ({ ...peekKindreds, items: peekKindreds.items.map((k) => ({ ...k, face: face(k.face) })) }), [peekKindreds]);
   const sentLooks = useMemo(() => ({ ...looks, tiles: looks.tiles.map((t) => ({ ...t, bird: image(t.bird) })) }), [looks]);
   const sentFirstClass = useMemo(() => ({ ...firstClass, bird: image(firstClass.bird) }), [firstClass]);
+  const sentCourierCard = useMemo(() => nativeCourierCard(courierCard), [courierCard]);
+  const sentAuraArt = useMemo(() => nativeAuraArt(auraArt), [auraArt]);
   return (
     <NativeKMeView
       ref={ref}
@@ -374,6 +386,8 @@ export const KMeView = forwardRef<KScreenHandle, KMeViewProps>(function KMeView(
       looks={sentLooks}
       firstClass={sentFirstClass}
       fc={fc ?? NO_FC}
+      courierCard={sentCourierCard}
+      auraArt={sentAuraArt}
       onMeSettings={onSettings ? () => onSettings() : undefined}
       onMeEdit={onEdit ? () => onEdit() : undefined}
       onMePeek={onPeek ? (e) => onPeek(e.nativeEvent.key, e.nativeEvent.open) : undefined}

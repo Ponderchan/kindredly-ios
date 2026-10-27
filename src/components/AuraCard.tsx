@@ -11,7 +11,9 @@ import type { Aura } from "../lib/aura";
 import { rungOf } from "../lib/aura-ladder";
 import { AuraArtFit, AuraScene } from "./AuraScene";
 import { ShareIcon } from "./Icons";
-import { daylight } from "./CourierCard";
+// the hour from the pure model, not CourierCard (which imports this file: no require cycle)
+import { daylight } from "./courier-card-model";
+import { auraArtPlan } from "./aura-art-model";
 import { InkPanel } from "./10a/InkPanel";
 import { StickerBox, objectDepth } from "./10a/StickerBox";
 import { chipsFor, phaseHeadline, stickerLook, stickerName, titleDesc, titleName } from "../lib/sticker-copy";
@@ -212,6 +214,12 @@ export const AURA_ART_H = 110;
 /** the art slot's width on a card `cardWidth` wide: inside its padding and outline */
 export const auraArtWidth = (cardWidth: number): number => Math.max(0, cardWidth - 2 * (16 + 2.5));
 
+/** Which of the fifty pictures this bundle has (aura-art-model auraArtPlan asks). */
+export const AURA_ART_HAS = {
+  scene: (id: string): boolean => !!AURA_SCENES[id],
+  sketch: (id: string): boolean => !!AURA_SKETCHES[id],
+};
+
 /* The picture in the slot: the title's scene (in colour once named, its
    sketch while the name forms), fitted by height; otherwise the desk at the
    rung's fidelity, on the slot's own colour. The slot's corners are the
@@ -220,18 +228,14 @@ export function AuraArtSlot({ art, width, height = AURA_ART_H }: { art: AuraCard
   const { t: tk, dark } = useTheme();
   // the strokes come with the ground: light ones on a dark slot (me-model auraSlotPalette)
   const pal = useMemo(() => auraSlotPalette(tk, dark), [tk, dark]);
-  const src =
-    art.sceneId && art.fidelity === "colour" && AURA_SCENES[art.sceneId]
-      ? AURA_SCENES[art.sceneId]
-      : art.sceneId && art.fidelity === "sketch" && AURA_SKETCHES[art.sceneId]
-        ? AURA_SKETCHES[art.sceneId]
-        : null;
-  /* Midnight lays the picture in as a print (inset 6, its own corners).
+  /* which picture, if any (aura-art-model auraArtPlan, which the SwiftUI slot reads too).
+     Midnight lays the picture in as a print (inset 6, its own corners).
      The fifty scenes and their sketches are drawn on baked pale paper, the
      sketches almost all paper; run flush to the dark slot's top and bottom
      they read as a light slab cut into it, with soft2 bars at the sides.
      The picture keeps its colours; the light themes keep it flush. */
-  if (src) return <AuraArtFit width={width} height={height} src={src} ground={tk.soft2} inset={dark ? 6 : 0} />;
+  const plan = auraArtPlan(art, AURA_ART_HAS, dark);
+  if (plan.kind === "picture") return <AuraArtFit width={width} height={height} src={(plan.set === "scenes" ? AURA_SCENES : AURA_SKETCHES)[plan.id]} ground={tk.soft2} inset={plan.inset} />;
   return (
     <View style={{ width, height, backgroundColor: tk.soft2, overflow: "hidden" }}>
       <AuraScene width={width} height={height} fidelity={art.fidelity} day={daylight()} pal={pal} />

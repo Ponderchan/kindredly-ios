@@ -399,5 +399,15 @@ public class KindredlyUIModule: Module {
     ExpoUIView(KRecorderView.self)
     ExpoUIView(KAudioCardView.self)
     ExpoUIView(KLetterTravelView.self)
+
+    // Two pieces of Me in Swift (2026-10-27), each behind its own switch (off by default): the
+    // courier's card ("couriercard") and the Aura card's picture ("auraart"), drawn by KMeView
+    // and KAuraRoomView in place of their React Native islands. These two views are the binary's
+    // marker for each piece (TS asks for them before it turns an island off) and draw the piece
+    // on its own for a dev page. Adapters/KMePiecesView.swift, Portable/Me/KCourierCard.swift and
+    // KAuraArt.swift. New files: a pod install before the build.
+    ExpoUIView(KCourierCardView.self)
+    ExpoUIView(KAuraArtView.self)
+
   }
 }

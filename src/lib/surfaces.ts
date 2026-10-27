@@ -282,7 +282,21 @@ import {
      audiocard    the voice card, play/pause and its bars (components/AudioCard,
                   every AudioCardView) — KAudioCardView; the player stays in TS
      lettertravel the send-off, Let it travel (components/LetterTravel) —
-                  KLetterTravelView; TS keeps the send and the words */
+                  KLetterTravelView; TS keeps the send and the words
+
+                  (screens/photo-roll)
+
+   Two pieces of Me (2026-10-27): not pages but React Native islands inside
+   the Swift Me tab and the Swift aura room, drawn by Swift instead when on
+   (screens/me/me-pieces). Off, the island is drawn as before; a binary
+   without the piece's marker view keeps the island whatever this says.
+   OFF until each has been checked on the simulator:
+
+     couriercard  the courier's card on Me (CourierCard, framed) —
+                  KCourierCard in KMeView's courier frame; Wren is her
+                  snapshot (lib/bird-images card-*), never redrawn
+     auraart      the Aura card's picture on Me and in the aura room
+                  (AuraArtSlot / AuraScene) — KAuraArt in the card's slot */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
   room: true,
@@ -350,10 +364,13 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   recorder: false,
   audiocard: false,
   lettertravel: false,
+  // two pieces of Me (2026-10-27): off until their simulator pass
+  couriercard: false,
+  auraart: false,
 };
 
 /** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages, a kindred's page, Wren's room, the five small pages and three Notes pages (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "kindredpage" | "wrenroom" | "report" | "voice" | "drafts" | "stampbook" | "lore" | "noteentry" | "noteday" | "photoroll" | "introritual" | "lightbox" | "songshelf" | "signsheet" | "leavesheet" | "reportsheet" | "signupsheet" | "toast" | "letterreader" | "wardrobeslip" | "parcel" | "growthmoment" | "identitynote" | "firstflight" | "recorder" | "audiocard" | "lettertravel";
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "kindredpage" | "wrenroom" | "report" | "voice" | "drafts" | "stampbook" | "lore" | "noteentry" | "noteday" | "photoroll" | "introritual" | "lightbox" | "songshelf" | "signsheet" | "leavesheet" | "reportsheet" | "signupsheet" | "toast" | "letterreader" | "wardrobeslip" | "parcel" | "growthmoment" | "identitynote" | "firstflight" | "recorder" | "audiocard" | "lettertravel" | "couriercard" | "auraart";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */

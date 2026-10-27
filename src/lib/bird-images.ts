@@ -75,7 +75,9 @@ export type BirdPose =
   // the grow-up moment in Swift (components/GrowthMomentNative): her old form and her new one
   | GrowPose
   // Let it travel in Swift (components/LetterTravel): the courier flying, empty-handed
-  | "travelFly";
+  | "travelFly"
+  // the courier card on Me in Swift (behind "couriercard"): her 50 on the arc or the sill, her 44 on the day-off cover
+  | CardPose;
 
 /* THE COURIER PAGE (/courier in Swift, 2026-10-26). Her perch draws her at the
    React Native perch's 186 in every face she can make there (her whereabouts'
@@ -142,6 +144,24 @@ export type BirdPoseSpec = {
       hands her something else to carry or flies her empty-handed */
   letter?: false;
 };
+
+/* THE COURIER CARD ON ME (Swift, behind "couriercard", 2026-10-27). The React
+   Native card draws WrenBird live at her card stage (Me's stage floor, which
+   can sit above her own: it only moves forward), so each picture pins that
+   stage: 50 on the sill in her face (hunger's, or her whereabouts'), 50 in
+   flight (the fly drawing, which carries its letter; its face is the
+   drawing's own), and 44 on her day-off cover, happy, flying empty-handed
+   when grown, perched before. Her look is hers. Not base: captured only
+   while the card asks (components/courier-card-model courierCardPose). */
+const CARD_STAGES = ["egg", "hatch", "fledge", "wren"] as const satisfies readonly WrenStage[];
+export type CardPose = `card-${WrenStage}-${WrenMood}` | `card-fly-${WrenStage}` | `card-dayoff-${WrenStage}`;
+const CARD_POSES = Object.fromEntries(
+  CARD_STAGES.flatMap((stage) => [
+    ...HERO_MOODS.map((mood) => [`card-${stage}-${mood}`, { size: 50, mood, stage }]),
+    [`card-fly-${stage}`, { size: 50, mood: "content", fly: true, stage }],
+    [`card-dayoff-${stage}`, stage === "wren" ? { size: 44, mood: "happy", fly: true, stage, letter: false } : { size: 44, mood: "happy", stage }],
+  ]),
+) as Record<CardPose, BirdPoseSpec>;
 
 /* sizes are the RN call sites' own, so the Swift picture is the same drawing */
 export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
@@ -221,6 +241,8 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
      the compose page asks for it while the switch is on (LetterTravelWarm), so she is there
      before the first send. */
   travelFly: { size: 112, mood: "delight", fly: true, letter: false },
+  // the courier card on Me in Swift (see CARD_POSES above)
+  ...CARD_POSES,
 };
 
 /** The user's look, as BirdSnapshots reads it from the Wren contexts. */

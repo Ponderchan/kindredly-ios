@@ -16,6 +16,7 @@ import { letterFitLines } from "../../theme/post";
 import { buildAuraCard } from "../me/me-model";
 import { meFormat } from "../me/me-format";
 import { nativeAura } from "../me/MeNative";
+import { useAuraArtData } from "../me/me-pieces";
 import { auraRoomStrings, buildAuraRoom } from "./aura-model";
 import { auraWords } from "./aura-words";
 
@@ -23,7 +24,8 @@ import { auraWords } from "./aura-words";
    flex 1, every safe area ignored, light or dark from the theme, the crash breadcrumb's layout
    report) holding KAuraRoomView, with one React Native island inside — the Aura card's picture
    (AuraArtSlot: the title's scene, or the desk drawn at the rung's fidelity, which SwiftUI can't
-   draw), as on Me.
+   draw), as on Me — or, with "auraart" on, Swift draws that picture itself (me-pieces
+   useAuraArtData) and the island stays empty.
 
    The reads are the React Native page's (app/aura.tsx AuraRN): the aura (the dev store's in a
    dev store build) and the scope, again each time the room comes into view; a line she said had
@@ -101,6 +103,8 @@ export function AuraNative({ initialLens = "portrait" }: { initialLens?: KAuraLe
   // the lens the view opens on: read once (Swift owns it after)
   const lens = useRef(initialLens).current;
   const artW = auraArtWidth(width - 32);
+  // the card's picture in Swift when "auraart" is on (me-pieces); null: the island, as before
+  const auraArt = useAuraArtData(vm ? vm.art : null, !!vm);
 
   return (
     <SurfaceHost>
@@ -117,9 +121,10 @@ export function AuraNative({ initialLens = "portrait" }: { initialLens?: KAuraLe
         onShare={share}
         onWrite={write}
         onScope={(sealed) => void scope(sealed)}
+        auraArt={auraArt}
       >
         <KIsland name="auraArt" style={{ width: artW, height: AURA_ART_H }}>
-          {vm ? <AuraArtSlot art={vm.art} width={artW} /> : null}
+          {vm && !auraArt ? <AuraArtSlot art={vm.art} width={artW} /> : null}
         </KIsland>
       </KAuraRoomView>
     </SurfaceHost>

@@ -42,6 +42,9 @@ import ExpoUI
  Children: three <KIsland>s, found by name — "avatar" (72 × 72, scaled by the header as it
  collapses), "courier" (the frame's inside × 236) and "auraArt" (the Aura card's inside × 110).
  The courier and aura islands are placed only while their card shows; TS fills them only then.
+ - courierCard, auraArt (KMePiecesView.swift): with `on`, Swift draws the courier's card
+   (KCourierCard) or the Aura card's picture (KAuraArt) itself and leaves that island out; TS
+   then leaves the island empty ("couriercard" and "auraart" switches, off by default).
 
  Commands (KCommandBus): scrollTo { key: "top", animated } (Me pressed again while showing), and
  segment { index }, which shows a card as its chip would and sends onMeSegment as a chip does, so
@@ -469,6 +472,11 @@ final class KMeViewProps: KScreenProps {
   @Field var firstClass: KMeFirstClassRecord = KMeFirstClassRecord()
   @Field var fc: KMeFcRolloutRecord = KMeFcRolloutRecord()
   @Field var initialSegment: Int = 0
+  // two pieces in Swift (Adapters/KMePiecesView.swift), each off unless TS turns it on: the
+  // courier's card in the frame instead of the "courier" island, the Aura card's picture
+  // instead of the "auraArt" island
+  @Field var courierCard: KCourierCardRecord = KCourierCardRecord()
+  @Field var auraArt: KAuraArtRecord = KAuraArtRecord()
 
   var onMeSettings = EventDispatcher()
   var onMeEdit = EventDispatcher()
@@ -575,9 +583,17 @@ struct KMeView: ExpoSwiftUI.View {
     ) {
       props.children?.kSlot("avatar")
     } courier: {
-      props.children?.kSlot("courier")
+      if props.courierCard.on {
+        KCourierCard(card: props.courierCard.model)
+      } else {
+        props.children?.kSlot("courier")
+      }
     } auraArt: {
-      props.children?.kSlot("auraArt")
+      if props.auraArt.on {
+        KAuraArt(theme: props.kTheme, art: props.auraArt.model)
+      } else {
+        props.children?.kSlot("auraArt")
+      }
     }
     .kScreenEnvironment(props)
     .onKCommand(props.commands) { name, args in
