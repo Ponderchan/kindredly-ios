@@ -299,3 +299,6 @@ export {
   type KPhotoRollStrings,
   type KPhotoRollViewProps,
 } from "./src/NotePages";
+// Wren's introduction, the whole sheet (2026-10-27), in Swift, behind the "introritual" switch,
+// off until the simulator pass (src/components/IntroductionNative.tsx)
+export { KIntroductionView, type KIntroMosaic, type KIntroMosaicBeats, type KIntroMosaicScrap, type KIntroductionViewProps } from "./src/Introduction";

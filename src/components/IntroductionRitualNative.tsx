@@ -92,13 +92,16 @@ export function CeremonyRitual(props: Props) {
   );
 }
 
-const face = (f: ReturnType<typeof faceRecord>): KIntroRitualFace => ({ kind: f.kind, uri: f.uri, key: f.key, overscan: f.overscan, mask: f.mask });
+/* face, sideRecord, roadCrossings and noticeRecord are exported for the whole introduction
+   sheet in Swift ("introritual": components/IntroductionNative), which draws this same ritual
+   from the same records */
+export const face = (f: ReturnType<typeof faceRecord>): KIntroRitualFace => ({ kind: f.kind, uri: f.uri, key: f.key, overscan: f.overscan, mask: f.mask });
 
 /* the courier name's mono size, fitted to the card's column as the React Native ritual fits it to its 136 */
 const COLUMN = SLOT_W;
 const courierSize = (text: string): number => Math.max(8, Math.min(MONO.title, COLUMN / monoEms(text, 0.6 / MONO.title)));
 
-function sideRecord(s: SignedSide, name: string, f: ReturnType<typeof faceRecord>, ms: number): KIntroRitualSide {
+export function sideRecord(s: SignedSide, name: string, f: ReturnType<typeof faceRecord>, ms: number): KIntroRitualSide {
   const courier = s.courier ? s.courier.toLocaleUpperCase(localeTag()) : "";
   const plan = s.sig ? fitPlan(s.sig, ms) : null;
   const vb = plan && s.sig ? penViewBox(s.sig, "ink", { aspect: SLOT_W / SLOT_H }) : { x: 0, y: 0, w: 0, h: 0 };
@@ -124,6 +127,16 @@ const deg = (tilt: string): number => {
 
 const NO_NOTICE: KIntroRitualNotice = { show: false, name: "", bg: "#FFFFFF", fg: "#1E1B35", border: "#FFFFFF", radius: 8, tilt: 0, slapTilt: 2, shared: false };
 
+/** What she noticed, as the Swift sticker takes it (StickerChip lg, its look at i 1, slapped at ±2). */
+export function noticeRecord(notice: KindredNotice | null | undefined): KIntroRitualNotice {
+  if (!notice) return NO_NOTICE;
+  const look = stickerLook(notice.stickerId, 1);
+  return { show: true, name: stickerName(notice.stickerId), bg: look.bg, fg: look.fg, border: look.border, radius: look.radius, tilt: deg(look.tilt), slapTilt: notice.shared ? -2 : 2, shared: notice.shared };
+}
+
+/** The road's letters as the Swift road takes them: who sent each and the day it left ("OCT 14", or "—"). */
+export const roadCrossings = (road: ThreadMessage[]) => road.map((m) => ({ mine: m.mine, date: m.date ? dShort(m.date).toUpperCase() : "—" }));
+
 function SwiftRitual({ road, since, stamp, notice, signed, still = false, holdable = false, onHoldTheirs, announce = "", startAt, height }: Props & { signed: SignedPair; startAt: number; height: number }) {
   const { key: theme } = useTheme();
   const letterFont = useLetterFont();
@@ -142,12 +155,8 @@ function SwiftRitual({ road, since, stamp, notice, signed, still = false, holdab
     [signed.mine, faces.mine],
   );
   const theirs = useMemo(() => sideRecord(signed.theirs, signed.theirs.name, faceRecord(faces.theirs), SIGNED_BEATS.signTheirsMs), [signed.theirs, faces.theirs]);
-  const crossings = useMemo(() => road.map((m) => ({ mine: m.mine, date: m.date ? dShort(m.date).toUpperCase() : "—" })), [road]);
-  const sticker = useMemo<KIntroRitualNotice>(() => {
-    if (!notice) return NO_NOTICE;
-    const look = stickerLook(notice.stickerId, 1);
-    return { show: true, name: stickerName(notice.stickerId), bg: look.bg, fg: look.fg, border: look.border, radius: look.radius, tilt: deg(look.tilt), slapTilt: notice.shared ? -2 : 2, shared: notice.shared };
-  }, [notice]);
+  const crossings = useMemo(() => roadCrossings(road), [road]);
+  const sticker = useMemo(() => noticeRecord(notice), [notice]);
 
   // the held slot, measured from the view holding the Host: SignatureHold's anchor
   const wrap = useRef<View>(null);

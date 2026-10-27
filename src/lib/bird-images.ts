@@ -62,7 +62,10 @@ export type BirdPose =
   | RackPose
   | StagePose
   // Wren's room in Swift (screens/wren-room/WrenRoomNative): the empty room's curious official bird
-  | "officialCurious";
+  | "officialCurious"
+  // the introduction sheet in Swift (components/IntroductionNative): her at the top, the courier on the road
+  | "intro44"
+  | "introCourier26";
 
 /* THE COURIER PAGE (/courier in Swift, 2026-10-26). Her perch draws her at the
    React Native perch's 186 in every face she can make there (her whereabouts'
@@ -178,6 +181,11 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
      round(64 × .62) = 40 — the brand bird, pinned like "official" (the header's face, as on her
      Kindreds row). Not base: captured only while the room asks. */
   officialCurious: { size: 40, mood: "curious", stage: "wren", skin: "sticker", accessory: "none", mark: null },
+  /* The introduction sheet in Swift ("introritual"): React Native's WrenBird over her letter (44,
+     content, grown, her look) and the courier flying each letter on the mosaic ritual's road (26,
+     delight, flying, the sticker coat, her stage). Not base: captured only while the sheet asks. */
+  intro44: { size: 44, mood: "content", stage: "wren" },
+  introCourier26: { size: 26, mood: "delight", fly: true, skin: "sticker" },
 };
 
 /** The user's look, as BirdSnapshots reads it from the Wren contexts. */
