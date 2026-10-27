@@ -374,3 +374,17 @@ export {
   type KIdentityNoteSwitch,
   type KIdentityNoteViewProps,
 } from "./src/Moments";
+// the composers' pieces (2026-10-27), each behind its own switch, off by default: the recording
+// bar ("recorder"), the voice card ("audiocard") and the send-off, Let it travel ("lettertravel")
+export {
+  KAudioCardView,
+  KRecorderView,
+  type KAudioCardBar,
+  type KAudioCardLook,
+  type KAudioCardViewProps,
+  type KRecorderBar,
+  type KRecorderViewProps,
+  type KVoiceSlotAction,
+  type KVoiceSlotCommand,
+} from "./src/VoicePieces";
+export { KLetterTravelView, type KLetterTravelViewProps } from "./src/LetterTravel";

@@ -177,12 +177,12 @@ export function BirdSnapshots() {
               size={p.size}
               mood={p.mood}
               pose={p.fly ? "fly" : "perch"}
+              letter={p.letter}
               stage={p.stage}
               skin={p.skin}
               accessory={p.accessory}
               mark={p.mark}
               wilt={wilt}
-              letter={p.letter}
             />
           </View>
         );

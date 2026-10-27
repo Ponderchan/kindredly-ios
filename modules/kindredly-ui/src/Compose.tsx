@@ -3,6 +3,7 @@ import { forwardRef, useMemo, type ReactNode, type Ref } from "react";
 import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
 import type { KInsets, KScreenBaseProps, KScreenHandle, KStandardCommands } from "./types";
+import type { KVoiceSlotAction, KVoiceSlotCommand } from "./VoicePieces";
 
 /* THE COMPOSE PAGE, drawn by SwiftUI (ios/Portable/Compose/KComposePage.swift, adapter
    ios/Adapters/KComposeView.swift), for src/screens/compose/ComposeNative.tsx. Every word, the
@@ -185,6 +186,8 @@ export type KComposeCommands = Omit<KStandardCommands, "setText" | "focus" | "co
   setText: { target: "body" | "ask"; value: string };
   focus: { target: "body" | "ask" };
   composer: KComposeLive;
+  /** the voice slot: what Swift draws itself of the recorder and the take (VoicePieces.tsx) */
+  recorder: KVoiceSlotCommand;
 };
 
 export type KComposeViewProps = CommonViewModifierProps &
@@ -241,6 +244,8 @@ export type KComposeViewProps = CommonViewModifierProps &
     onMakeStamp?: () => void;
     /** the 3/3 card's link: the paywall */
     onFullCta?: () => void;
+    /** a tap in the voice slot's Swift recording bar or take card (the `recorder` command) */
+    onVoice?: (action: KVoiceSlotAction) => void;
     /** the two <KIsland>s, "wren" then "recorder", every render (Slot.tsx) */
     children?: ReactNode;
   };
@@ -267,6 +272,7 @@ type NativeKComposeViewProps = Omit<
   | "onFullCta"
   | "onPickPaper"
   | "onPaperUpgrade"
+  | "onVoice"
 > &
   Required<Pick<KComposeViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
@@ -285,6 +291,7 @@ type NativeKComposeViewProps = Omit<
     onComposeTrayTab?: Ev<{ tab: KComposeTrayTab }>;
     onComposeMakeStamp?: Ev<Record<string, never>>;
     onComposeFullCta?: Ev<Record<string, never>>;
+    onComposeVoice?: Ev<{ action: KVoiceSlotAction }>;
   };
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
@@ -325,6 +332,7 @@ export const KComposeView = forwardRef<KScreenHandle, KComposeViewProps>(functio
     onFullCta,
     onPickPaper,
     onPaperUpgrade,
+    onVoice,
     customStamps,
     papers,
     paperHead,
@@ -375,6 +383,7 @@ export const KComposeView = forwardRef<KScreenHandle, KComposeViewProps>(functio
       onComposeFullCta={onFullCta ? () => onFullCta() : undefined}
       onComposePickPaper={onPickPaper ? (e) => onPickPaper(e.nativeEvent.id) : undefined}
       onComposePaperUpgrade={onPaperUpgrade ? () => onPaperUpgrade() : undefined}
+      onComposeVoice={onVoice ? (e) => onVoice(e.nativeEvent.action) : undefined}
     />
   );
 });

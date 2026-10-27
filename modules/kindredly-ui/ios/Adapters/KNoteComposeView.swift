@@ -27,7 +27,10 @@ import ExpoUI
  - children: <KIsland name="wren">, <KIsland name="recorder">
 
  Commands (KCommandBus): setText { target: "body", value } · focus { target: "body" } · blur {} ·
- reset {} (blurs).
+ reset {} (blurs) · recorder { showBar, bar, showCard, card: { look, playing, label }, island }:
+ the voice slot (KVoiceSlot, Portable/Voice), the island alone until TS says Swift draws the
+ recording bar and/or the take's card (the "recorder" and "audiocard" switches;
+ src/components/VoiceSlot.tsx).
 
  Events, with what nativeEvent carries:
  - onNoteClose {} · onNoteTextChange { text } · onNoteFieldFocus { focused }
@@ -36,6 +39,7 @@ import ExpoUI
  - onNoteCard { kind } · onNoteThumb { index } · onNoteRemoveMedia {}
  - onNoteSeal { text } (the words as typed) · onNoteWren {}
  - onNoteSealEnd {} — the seal moment has played (sealed true): go back to Notes
+ - onNoteVoice { action } — press | discard | toggle: a tap in the voice slot's Swift bar or card
 
  Unknown enum strings fall back rather than fail (a panel this binary doesn't know is none; a
  group is Calm). This file imports ExpoUI, so no bare Button / Text / Image / Label is written here.
@@ -144,9 +148,12 @@ final class KNoteComposeViewProps: KScreenProps {
   var onNoteSeal = EventDispatcher()
   var onNoteWren = EventDispatcher()
   var onNoteSealEnd = EventDispatcher()
+  var onNoteVoice = EventDispatcher()
 
   /// The field: as long-lived as the view, like `commands`.
   let driver = KNoteComposeDriver()
+  /// The voice slot's state, from the `recorder` command (as long-lived as the view).
+  let voiceSlot = KVoiceSlotModel()
 
   /// The page's taps and edits, made once: each closure reaches this props object's events.
   private(set) lazy var actions: KNoteComposeActions = {
@@ -178,6 +185,8 @@ final class KNoteComposeViewProps: KScreenProps {
       driver.body.focus()
     case KCommandName.blur, KCommandName.reset:
       driver.blurAll()
+    case "recorder":
+      voiceSlot.update(KVoiceSlotState(args: args))
     default:
       break
     }
@@ -242,7 +251,10 @@ struct KNoteComposeView: ExpoSwiftUI.View {
     ) {
       props.children?.kSlot("wren")
     } recorder: {
-      props.children?.kSlot("recorder")
+      // the island's gap (NoteComposeNative's RecorderIsland): 10
+      KVoiceSlot(model: props.voiceSlot, theme: props.kTheme, spacing: 10, island: props.children?.kSlot("recorder")) { action in
+        props.onNoteVoice(["action": action.rawValue])
+      }
     }
     .kScreenEnvironment(props)
     .onKCommand(props.commands) { name, args in

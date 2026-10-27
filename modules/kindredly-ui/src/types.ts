@@ -222,6 +222,10 @@ export const KSCREEN_VIEWS = [
   "KWardrobeSlipView",
   "KParcelSheetView",
   "KParcelBannerView",
+  // the composers' pieces (2026-10-27), off by default: the recording bar, the voice card, Let it travel
+  "KRecorderView",
+  "KAudioCardView",
+  "KLetterTravelView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

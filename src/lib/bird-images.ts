@@ -73,7 +73,9 @@ export type BirdPose =
   | "parcelCurious"
   | "parcelDelight"
   // the grow-up moment in Swift (components/GrowthMomentNative): her old form and her new one
-  | GrowPose;
+  | GrowPose
+  // Let it travel in Swift (components/LetterTravel): the courier flying, empty-handed
+  | "travelFly";
 
 /* THE COURIER PAGE (/courier in Swift, 2026-10-26). Her perch draws her at the
    React Native perch's 186 in every face she can make there (her whereabouts'
@@ -136,7 +138,8 @@ export type BirdPoseSpec = {
   mark?: null;
   /** always mounted, for snapshotBird (Live Activities) */
   base?: boolean;
-  /** false: flying empty-handed (WrenBird's `letter`), for a scene that hands her something else to carry */
+  /** false: the fly pose without the letter under her feet (WrenBird `letter`), for a scene that
+      hands her something else to carry or flies her empty-handed */
   letter?: false;
 };
 
@@ -212,6 +215,12 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
   "grow-fledge": { size: GROWTH_SIZE.fledge, mood: "content", stage: "fledge", accessory: "none" },
   "grown-fledge": { size: GROWTH_SIZE.fledge, mood: "delight", stage: "fledge", accessory: "none" },
   "grown-wren": { size: GROWTH_SIZE.wren, mood: "delight", stage: "wren", accessory: "none" },
+  /* Let it travel in Swift: LetterTravel's own WrenBird (pose fly, mood delight, letter false —
+     the envelope she carries is drawn at her beak), in her look. Captured at 112, the most the
+     piece draws her (132 × .74 × the sheet's scale), and scaled down as she flies off. Not base:
+     the compose page asks for it while the switch is on (LetterTravelWarm), so she is there
+     before the first send. */
+  travelFly: { size: 112, mood: "delight", fly: true, letter: false },
 };
 
 /** The user's look, as BirdSnapshots reads it from the Wren contexts. */

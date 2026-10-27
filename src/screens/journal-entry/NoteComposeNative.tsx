@@ -15,6 +15,7 @@ import { SurfaceHost } from "../../components/NativeSurface";
 import { WrenBird } from "../../components/WrenBird";
 import { Recorder } from "../../components/Recorder";
 import { AudioCard } from "../../components/AudioCard";
+import { VoiceBarDriver, VoiceTakeDriver, createVoiceSlot, useVoicePieces, type VoiceSlot } from "../../components/VoiceSlot";
 import { FrameViewer, type SelfComposeState } from "../../components/SelfCompose";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
@@ -38,7 +39,11 @@ import { useNoteComposeState, type NoteComposeState } from "./useNoteComposeStat
      `text`) re-sends nothing native unless the page's emptiness flips;
    - the words go to Swift only when the view attaches (the route's `text`: the demo seed, or
      everything TS still holds after a remount); never an echo of typing;
-   - the page opens with the keyboard down (the design): no focus is sent. */
+   - the page opens with the keyboard down (the design): no focus is sent;
+   - the voice slot (components/VoiceSlot): with the "recorder" or "audiocard" switch on, the page
+     draws the recording bar or the take's card itself, told by the `recorder` command
+     (VoiceBarDriver and VoiceTakeDriver hold the recording and the player, beside the Host), and
+     the island keeps only what is still React Native. */
 
 function useSameContent<T>(value: T): T {
   const kept = useRef<{ json: string; value: T } | null>(null);
@@ -80,8 +85,16 @@ export function NoteComposeNative({
     blurOnUnmount: true,
     onViewAttach: () => {
       commands.send("setText", { target: "body", value: latest.current });
+      slot.resend();
     },
   });
+
+  // the voice slot: which pieces Swift draws (once), and what they show
+  const pieces = useVoicePieces();
+  const slot = useMemo(() => createVoiceSlot(pieces, (cmd) => commands.send("recorder", cmd)), [pieces, commands]);
+  const voice = state.att === "voice";
+  const recUri = voice ? state.mediaUri : null;
+  slot.take = !!recUri;
 
   // the page's actions, one object for its life (the surface is memoised on it)
   const live = useRef(state.act);
@@ -203,16 +216,21 @@ export function NoteComposeNative({
         cards={cards}
         thumbs={thumbs}
         coverHint={state.att === "photo" && n >= 2}
-        voice={state.att === "voice"}
+        voice={voice}
         hasSomething={state.hasSomething}
         busy={state.busy}
         sealed={state.sealed}
         needsMood={seal === "askMood"}
         act={act}
-        recUri={state.att === "voice" ? state.mediaUri : null}
+        recUri={recUri}
         recDur={state.dur}
         islandWidth={Math.max(0, width - 44)}
+        pieces={pieces}
+        slot={slot}
       />
+      {/* the recording and the take's player for the page's own Swift pieces (nothing drawn here) */}
+      {voice && pieces.bar ? <VoiceBarDriver slot={slot} recUri={recUri} recDur={state.dur} onRecorded={act.recorded} onClear={act.clearRecording} /> : null}
+      {voice && pieces.card && recUri ? <VoiceTakeDriver slot={slot} uri={recUri} durationS={state.dur} /> : null}
       <FrameViewer
         photos={state.photos}
         index={state.viewer}
@@ -267,6 +285,9 @@ type SurfaceProps = {
   recUri: string | null;
   recDur: number;
   islandWidth: number;
+  /** which of the voice slot's pieces the page draws itself (fixed for the page) */
+  pieces: { bar: boolean; card: boolean };
+  slot: VoiceSlot;
 };
 
 /* The Host, the view and its islands, redrawn only when a prop changes (every prop is kept by
@@ -309,13 +330,14 @@ const NoteSurface = memo(function NoteSurface(p: SurfaceProps) {
         onSeal={act.seal}
         onWren={act.wren}
         onSealEnd={act.sealEnd}
+        onVoice={p.slot.action}
       >
         {/* every island on every render, in this order (Slot.tsx) */}
         <KIsland name="wren" style={{ width: 30, height: 30 }}>
           <WrenIsland />
         </KIsland>
         <KIsland name="recorder" interactive style={{ width: p.islandWidth }}>
-          {p.voice ? <RecorderIsland recUri={p.recUri} recDur={p.recDur} act={act} /> : null}
+          {p.voice ? <RecorderIsland recUri={p.recUri} recDur={p.recDur} act={act} pieces={p.pieces} /> : null}
         </KIsland>
       </KNoteComposeView>
     </SurfaceHost>
@@ -332,12 +354,13 @@ function WrenIsland() {
   );
 }
 
-/* The Recorder (expo-audio, its permission and length alerts) and the take to listen back to. */
-function RecorderIsland({ recUri, recDur, act }: { recUri: string | null; recDur: number; act: Act }) {
+/* The Recorder (expo-audio, its permission and length alerts) and the take to listen back to.
+   Whatever the page draws itself (pieces) is left out. */
+function RecorderIsland({ recUri, recDur, act, pieces }: { recUri: string | null; recDur: number; act: Act; pieces: { bar: boolean; card: boolean } }) {
   return (
     <View style={{ gap: 10 }}>
-      <Recorder doneUri={recUri} doneDur={recDur} onDone={act.recorded} onClear={act.clearRecording} />
-      {recUri ? <AudioCard url={recUri} durationS={recDur} compact /> : null}
+      {pieces.bar ? null : <Recorder doneUri={recUri} doneDur={recDur} onDone={act.recorded} onClear={act.clearRecording} />}
+      {recUri && !pieces.card ? <AudioCard url={recUri} durationS={recDur} compact /> : null}
     </View>
   );
 }
