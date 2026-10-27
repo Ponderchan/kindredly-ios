@@ -343,10 +343,9 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   photoroll: true,
   // Wren's introduction, the whole sheet (2026-10-27): on after its simulator pass
   introritual: true,
-  // the pieces over the chat (2026-10-27): on after their simulator pass, but the song shelf
-  // (its dim didn't close it and its sheet stopped short of the bottom; being fixed)
+  // the pieces over the chat (2026-10-27): on after their simulator pass
   lightbox: true,
-  songshelf: false,
+  songshelf: true,
   signsheet: true,
   // the sheets every screen shares (2026-10-27): on after their simulator pass
   leavesheet: true,
