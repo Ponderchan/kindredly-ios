@@ -91,7 +91,10 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   // the pieces over the chat (2026-10-27): there, and OFF until their simulator pass
   const CHAT_OVERLAYS = ["lightbox", "songshelf", "signsheet"];
   ok("the chat overlays' three keys are there and off", CHAT_OVERLAYS.every((k) => k in entries && entries[k] === false));
-  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + ME_LAST.length + SMALL.length + NOTE_PAGES.length + CHAT_OVERLAYS.length + 10);
+  // the sheets every screen shares (2026-10-27): there, and OFF until their simulator pass
+  const SHEETS = ["leavesheet", "reportsheet", "signupsheet", "toast"];
+  ok("the four shared sheets' keys are there and off", SHEETS.every((k) => k in entries && entries[k] === false));
+  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + ME_LAST.length + SMALL.length + NOTE_PAGES.length + CHAT_OVERLAYS.length + SHEETS.length + 10);
 }
 
 /* ── the crash breadcrumb ── */

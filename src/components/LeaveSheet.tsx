@@ -1,7 +1,11 @@
-import { Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
+import { useRef } from "react";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SheetBody, SheetHeader, sheetWords, sheetCard, sheetKey, sheetKeyLabel } from "./sheet-chrome";
+import { NativeSurface, SurfaceHost } from "./NativeSurface";
+import { leaveSheetFrame, nativeLeaveKeys, rgbaParts } from "./shared-sheets-model";
+import { KLeaveSheetView } from "../../modules/kindredly-ui";
 import { scrimColor, useP, useTheme } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
 import { KEYBOARD_OUT_MS, blurThen, type CommandTarget } from "../lib/keyboard";
@@ -81,16 +85,7 @@ export interface LeaveAction {
   onPress: () => void;
 }
 
-export function LeaveSheet({
-  open,
-  title,
-  body,
-  actions,
-  cancelLabel,
-  bottomExtra = 0,
-  modal = false,
-  onCancel,
-}: {
+export type LeaveSheetProps = {
   open: boolean;
   title: string;
   body: string;
@@ -108,7 +103,77 @@ export function LeaveSheet({
       floating tab bar and every screen (see above) */
   modal?: boolean;
   onCancel: () => void;
-}) {
+};
+
+/* SWIFT OR REACT NATIVE (2026-10-27). The sheet is drawn by SwiftUI
+   (modules/kindredly-ui KLeaveSheetView, Portable/Sheets) when the
+   "leavesheet" switch is on and the binary has the view; otherwise — the
+   switch off (the default until its simulator pass), an older binary, a JS
+   error on the Swift path, a crash there on the last two launches — it is
+   LeaveSheetRN below, exactly as before. Each showing decides once, as it
+   opens (NativeSurface in mount mode, mounted only while open), and arms
+   the crash breadcrumb before the Swift sheet mounts. Same props, so no
+   call site changes; the words, the keys, the Modal, the tab bar's room
+   and every press's consequence stay here. */
+export function LeaveSheet(props: LeaveSheetProps) {
+  if (!props.open) return null;
+  return (
+    <NativeSurface
+      surface="leavesheet"
+      view="KLeaveSheetView"
+      mode="mount"
+      native={() => <LeaveSheetSwift {...props} />}
+      fallback={() => <LeaveSheetRN {...props} />}
+      // a frame or two while the breadcrumb is written: nothing yet, as before the sheet rises
+      pending={() => null}
+    />
+  );
+}
+
+/* The Swift sheet: a Host over the whole of what the React Native sheet
+   would cover (its screen, or its window-level Modal), the dim and the card
+   inside it. VoiceOver stays in it and the escape cancels, as the React
+   Native sheet's container does. */
+function LeaveSheetSwift({ title, body, actions, cancelLabel, bottomExtra = 0, modal = false, onCancel }: LeaveSheetProps) {
+  useLang(); // repaint when the reader changes language
+  const { key: theme, dark } = useTheme();
+  const insets = useSafeAreaInsets();
+  const win = useWindowDimensions();
+  // a press lands a moment later: it runs the action as it is now
+  const latest = useRef(actions);
+  latest.current = actions;
+  const frame = leaveSheetFrame({ winH: win.height, top: insets.top, bottom: insets.bottom, bottomExtra, modal });
+
+  const sheet = (
+    <View accessibilityViewIsModal onAccessibilityEscape={onCancel} style={StyleSheet.absoluteFill}>
+      <SurfaceHost>
+        <KLeaveSheetView
+          theme={theme}
+          title={sheetWords(title)}
+          body={body}
+          keys={nativeLeaveKeys(actions, sheetWords)}
+          cancel={cancelLabel === null ? null : sheetWords(cancelLabel ?? t("cp.leave.keep"))}
+          closeLabel={t("wren.trackClose")}
+          dim={rgbaParts(scrimColor(dark, 0.3))}
+          bottomMargin={frame.bottomMargin}
+          maxHeight={frame.maxHeight}
+          onKey={(i) => latest.current[i]?.onPress()}
+          onCancel={onCancel}
+        />
+      </SurfaceHost>
+    </View>
+  );
+
+  if (!modal) return sheet;
+  return (
+    <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={onCancel}>
+      {sheet}
+    </Modal>
+  );
+}
+
+/* the React Native sheet, unchanged */
+function LeaveSheetRN({ open, title, body, actions, cancelLabel, bottomExtra = 0, modal = false, onCancel }: LeaveSheetProps) {
   useLang(); // repaint when the reader changes language
   const P = useP();
   const { t: tk, dark } = useTheme();

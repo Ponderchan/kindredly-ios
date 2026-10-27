@@ -355,5 +355,15 @@ public class KindredlyUIModule: Module {
         view.props.commands.send(name, args)
       }
     }
+
+    // The sheets every screen shares (2026-10-27), each behind its own switch (off by default)
+    // with its React Native piece as the fallback: the leave sheet ("leavesheet"), the report /
+    // block card ("reportsheet"), the sign-up sheet ("signupsheet") and the toast ("toast").
+    // Adapters/KSharedSheetsView.swift, the faces in Portable/Sheets. No commands: they draw and
+    // report presses as events. New files: a pod install before the build.
+    ExpoUIView(KLeaveSheetView.self)
+    ExpoUIView(KReportMenuView.self)
+    ExpoUIView(KSignUpSheetView.self)
+    ExpoUIView(KToastView.self)
   }
 }
