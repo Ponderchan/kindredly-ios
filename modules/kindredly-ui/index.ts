@@ -234,3 +234,25 @@ export {
   type KIntroRitualStroke,
   type KIntroRitualViewProps,
 } from "./src/IntroRitual";
+
+// three Notes pages (2026-10-27): one journal page, one day of them, the photo roll; each behind
+// its own switch ("noteentry", "noteday", "photoroll"), off until the simulator pass
+export {
+  KNoteDayView,
+  KNotePageView,
+  KPhotoRollView,
+  type KNoteDayCommands,
+  type KNoteDayStrings,
+  type KNoteDayViewProps,
+  type KNotePagePhoto,
+  type KNotePageState,
+  type KNotePageStrings,
+  type KNotePageViewProps,
+  type KPhotoRollAlbum,
+  type KPhotoRollCommands,
+  type KPhotoRollEmpty,
+  type KPhotoRollFrame,
+  type KPhotoRollKey,
+  type KPhotoRollStrings,
+  type KPhotoRollViewProps,
+} from "./src/NotePages";

@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { localeTag } from "../../lib/format";
 import { Alert, Image, Pressable, ScrollView, Text, View } from "react-native";
 import { Button, Host, Image as SImage, Menu } from "@expo/ui/swift-ui";
 import { accessibilityLabel, contentShape, frame, menuIndicator, shapes } from "@expo/ui/swift-ui/modifiers";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useVideoPlayer, VideoView } from "expo-video";
 import Svg, { Path } from "react-native-svg";
 import { t, useLang } from "../../lib/i18n";
 import { PFM } from "../../theme/post";
@@ -17,6 +16,9 @@ import { demoJournal } from "../../data/demo";
 import { deleteEntry, hideDemoEntry, loadJournal, setCover, type JournalEntry } from "../../lib/journal";
 import { PhotoLightbox } from "../../components/PhotoLightbox";
 import { MoodChip, moodColors } from "../../screens/notes/notes-glyphs";
+import { DetailVideo } from "../../screens/note-page/DetailVideo";
+import { NativeSurface } from "../../components/NativeSurface";
+import { NotePageNative } from "../../screens/note-page/NotePageNative";
 import "../../data/strings-step5-notes";
 import "../../data/strings-step5-kitrn"; // a11y.back
 
@@ -31,7 +33,22 @@ const ON_HIGHLIGHT = "#1E1B35";
    Same surface and same plate as the tabs: white, rules doing the separation,
    mono for what the system files, the system font for what you wrote. The mood
    face and the photos keep their colour — they're content. */
+/* 2026-10-27: the page is drawn in Swift (screens/note-page/NotePageNative,
+   KNotePageView), with the React Native page below as the remote switch's
+   fallback ("noteentry" in app_surfaces, NativeSurface in mount mode; off by
+   default until the simulator pass). */
 export default function JournalDetail() {
+  const { t: tk } = useTheme();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <NativeSurface surface="noteentry" view="KNotePageView" mode="mount" native={() => <NotePageNative id={String(id ?? "")} />} fallback={() => <JournalDetailRN />} />
+    </View>
+  );
+}
+
+/* the React Native page, unchanged */
+function JournalDetailRN() {
   useLang();
   const P = useP();
   const { t: tk, dark } = useTheme();
@@ -353,50 +370,5 @@ function PhotoGallery({
   );
 }
 
-/* A tap plays or pauses. The ▶ follows the player itself, not the last tap:
-   it used to stay hidden once the film had played to its end (nothing set it
-   back), and the next tap paused a film that had already stopped, so a
-   replay took two taps. Now the end puts ▶ back, and a tap there starts the
-   film again from the beginning. */
-function DetailVideo({ uri }: { uri: string }) {
-  const [playing, setPlaying] = useState(false);
-  const ended = useRef(false);
-  const player = useVideoPlayer(uri, (p) => {
-    p.loop = false;
-  });
-  useEffect(() => {
-    const a = player.addListener("playingChange", (e) => setPlaying(e.isPlaying));
-    const b = player.addListener("playToEnd", () => {
-      ended.current = true;
-      setPlaying(false);
-    });
-    return () => {
-      a.remove();
-      b.remove();
-    };
-  }, [player]);
-  const toggle = () => {
-    if (playing) {
-      player.pause();
-      return;
-    }
-    if (ended.current) {
-      ended.current = false;
-      player.replay();
-      return;
-    }
-    player.play();
-  };
-  return (
-    <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel={playing ? t("jt.pause") : t("jt.play")} style={{ overflow: "hidden", marginBottom: 18 }}>
-      <VideoView player={player} style={{ width: "100%", aspectRatio: 9 / 16, maxHeight: 420 }} contentFit="cover" nativeControls={false} />
-      {!playing && (
-        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
-          <View style={{ width: 56, height: 56, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ color: "#fff", fontSize: 22, marginLeft: 3 }}>▶</Text>
-          </View>
-        </View>
-      )}
-    </Pressable>
-  );
-}
+/* the film (a tap plays or pauses, the end puts ▶ back): DetailVideo, now shared with the Swift
+   page (screens/note-page/DetailVideo) */

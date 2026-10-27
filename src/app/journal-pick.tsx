@@ -16,6 +16,8 @@ import { leavePicked, takeKept } from "../lib/journal-handoff";
 import { CloseGlyph } from "../components/10a/BackChevron";
 import { newerVersion } from "../lib/update-prompt-core";
 import "../data/strings-note-compose"; // jp.camera, jp.cameraDenied
+import { NativeSurface } from "../components/NativeSurface";
+import { PhotoRollNative } from "../screens/photo-roll/PhotoRollNative";
 
 /* TO YOURSELF STARTS AT THE PICTURES (owner, 2026-09-20).
    ────────────────────────────────────────────────────────────────────────
@@ -76,7 +78,23 @@ const PAGE = 60;
 type Frame = { id: string; uri: string; w: number; h: number; video: boolean; duration: number };
 type Album = { id: string | null; title: string; count: number; cover: string | null };
 
+/* 2026-10-27: the roll is drawn in Swift (screens/photo-roll/PhotoRollNative,
+   KPhotoRollView; its state in usePhotoRoll, the same steps as below), with
+   the React Native page below as the remote switch's fallback ("photoroll"
+   in app_surfaces, NativeSurface in mount mode; off by default until the
+   simulator pass). Only the one that mounts takes what the page handed over
+   (takeKept). */
 export default function JournalPick() {
+  const { t: tk } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <NativeSurface surface="photoroll" view="KPhotoRollView" mode="mount" native={() => <PhotoRollNative />} fallback={() => <JournalPickRN />} />
+    </View>
+  );
+}
+
+/* the React Native page, unchanged */
+function JournalPickRN() {
   useLang();
   const P = useP();
   const { t: tk } = useTheme();
