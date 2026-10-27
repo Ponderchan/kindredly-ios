@@ -105,11 +105,12 @@ public struct KLetterTravel: View {
           let step = clock.step(now: now, ready: ready)
           let line = KLetterTravelFrame.cardLine(reduce: false, T: step.T, ready: ready, heldFor: clock.heldFor(now: now), beat: step.beat)
           scene(size: geo.size, frame: KLetterTravelFrame(T: step.T, beat: step.beat), beat: step.beat, line: line)
-            .onChange(of: clock.tapped) { _, tapped in
-              if tapped { taps += 1 }
-            }
-            .onChange(of: clock.done) { _, done in
-              if done { finish() }
+            // the clock is a plain object, not observed state: `.onChange(of: clock.done)` never
+            // saw its flags turn, so the end was only told by TS's fallback timer, about three
+            // seconds late (seen on the simulator, 2026-10-28). Each frame reads them instead.
+            .onChange(of: step.T) { _, _ in
+              if clock.tapped && taps == 0 { taps = 1 }
+              if clock.done { finish() }
             }
         }
       }

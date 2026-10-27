@@ -183,7 +183,7 @@ function Scene({ moment, onClose }: { moment: Moment; onClose: () => void }) {
           onPress={onClose}
           style={({ pressed }) => ({ height: 52, borderRadius: 26, backgroundColor: tk.ind, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.8 : 1 })}
         >
-          <Text style={{ fontSize: 17, fontWeight: "600", color: "#FFFFFF" }}>{t("grow.ok")}</Text>
+          <Text style={{ fontSize: 17, fontWeight: "600", color: tk.bg }}>{t("grow.ok")}</Text>
         </Pressable>
       </Animated.View>
     </View>

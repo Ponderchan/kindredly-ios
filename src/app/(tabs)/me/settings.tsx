@@ -41,7 +41,8 @@ export default function SettingsScreen() {
         title={t("settings.language")}
         body={t("set.langBody", { n: model.langs.length })}
         actions={model.langs.map((l) => ({
-          label: l.label.toUpperCase(),
+          // the name as the language writes it ("Bahasa Indonesia"): sheetWords only re-cases all-caps labels
+          label: l.label,
           lead: l.flag,
           kind: l.id === model.lang ? ("primary" as const) : ("quiet" as const),
           selected: l.id === model.lang,

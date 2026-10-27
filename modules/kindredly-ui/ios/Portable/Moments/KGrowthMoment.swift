@@ -258,7 +258,9 @@ public struct KGrowthMoment: View {
     SwiftUI.Button(action: onClose) {
       Text(content.ok)
         .kText(.system(17, .semibold))
-        .foregroundStyle(KBrand.paperWhite)
+        // the page colour on ind, as every filled key (KTheme.bg): white in the light themes, the
+        // night in Midnight, where ind is a pale violet white words vanished on
+        .foregroundStyle(theme.bg)
         .lineLimit(1)
         .minimumScaleFactor(0.7)
         .frame(maxWidth: .infinity, minHeight: 52)

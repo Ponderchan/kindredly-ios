@@ -58,7 +58,7 @@ function Lab() {
     { label: t("cp.leave.discard"), kind: "destructive", onPress: close },
   ];
   const langs: LeaveAction[] = LANGS.map((l) => ({
-    label: l.label.toUpperCase(),
+    label: l.label,
     lead: l.flag,
     kind: l.id === getLang() ? "primary" : "quiet",
     selected: l.id === getLang(),
