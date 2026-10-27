@@ -207,6 +207,10 @@ export const KSCREEN_VIEWS = [
   "KDraftsView",
   "KStampBookView",
   "KLoreView",
+  // three Notes pages (2026-10-27): one journal page, one day of them, the photo roll
+  "KNotePageView",
+  "KNoteDayView",
+  "KPhotoRollView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

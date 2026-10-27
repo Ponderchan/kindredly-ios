@@ -159,8 +159,8 @@ function devLocalFilm(url: string): Promise<string | null> {
 }
 
 /** Dev only: { remote sample video URL → local copy } for the samples among `notes`, filled in as the
-    copies land. Empty in a release build. */
-function useDevFilms(notes: readonly NoteVM[]): Readonly<Record<string, string>> {
+    copies land. Empty in a release build. (Also the day page's, screens/note-page/NoteDayNative.) */
+export function useDevFilms(notes: readonly NoteVM[]): Readonly<Record<string, string>> {
   const wanted = useMemo(() => (__DEV__ ? [...new Set(notes.filter((n) => n.sample && n.video && /^https?:/i.test(n.video)).map((n) => n.video as string))].join("\n") : ""), [notes]);
   const [films, setFilms] = useState<Readonly<Record<string, string>>>({});
   useEffect(() => {

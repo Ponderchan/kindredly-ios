@@ -313,5 +313,31 @@ public class KindredlyUIModule: Module {
         view.props.commands.send(name, args)
       }
     }
+
+    // Three Notes pages (2026-10-27), each behind its own switch (off by default) with its React
+    // Native page as the fallback: one journal page ("noteentry"), one day of them ("noteday") and
+    // the photo roll ("photoroll"). Adapters/KNotePagesView.swift and KPhotoLibraryLoader.swift
+    // (the roll's ph:// pictures), screens in Portable/Notes. New files: a pod install before the build.
+    ExpoUIView(KNotePageView.self) {
+      AsyncFunction("command") { (view: KNotePageView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+    ExpoUIView(KNoteDayView.self) {
+      AsyncFunction("command") { (view: KNoteDayView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+    ExpoUIView(KPhotoRollView.self) {
+      AsyncFunction("command") { (view: KPhotoRollView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+
+    // The app's language, for typography only (KType.tallScript): Japanese and Korean set the
+    // letter serifs with CJK leading. src/textScript.ts; the root layout calls it on every change.
+    Function("setTextScript") { (lang: String) in
+      KType.tallScript = lang == "ja" || lang == "ko"
+    }
   }
 }

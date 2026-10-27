@@ -278,3 +278,24 @@ export { KVoiceDetailView, type KVoiceDetailGate, type KVoiceDetailRow, type KVo
 export { KDraftsView, type KDraftsCard, type KDraftsStrings, type KDraftsViewProps } from "./src/Drafts";
 export { KStampBookView, type KStampBookStrings, type KStampBookTile, type KStampBookViewProps } from "./src/StampBook";
 export { KLoreView, type KLoreCard, type KLoreStrings, type KLoreViewProps } from "./src/Lore";
+// three Notes pages (2026-10-27): one journal page, one day of them, the photo roll; each behind
+// its own switch ("noteentry", "noteday", "photoroll"), off until the simulator pass
+export {
+  KNoteDayView,
+  KNotePageView,
+  KPhotoRollView,
+  type KNoteDayCommands,
+  type KNoteDayStrings,
+  type KNoteDayViewProps,
+  type KNotePagePhoto,
+  type KNotePageState,
+  type KNotePageStrings,
+  type KNotePageViewProps,
+  type KPhotoRollAlbum,
+  type KPhotoRollCommands,
+  type KPhotoRollEmpty,
+  type KPhotoRollFrame,
+  type KPhotoRollKey,
+  type KPhotoRollStrings,
+  type KPhotoRollViewProps,
+} from "./src/NotePages";

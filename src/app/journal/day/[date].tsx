@@ -3,7 +3,7 @@ import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { PFM } from "../../../theme/post";
-import { useP } from "../../../lib/theme";
+import { useP, useTheme } from "../../../lib/theme";
 import { BackChevron } from "../../../components/10a/BackChevron";
 import { SealedEntry } from "../../../components/SealedEntry";
 import { dayKey } from "../../../components/SealedCalendar";
@@ -12,6 +12,8 @@ import { demoJournal } from "../../../data/demo";
 import { localeTag } from "../../../lib/format";
 import { t, useLang } from "../../../lib/i18n";
 import "../../../data/strings-step5-kitrn"; // a11y.back
+import { NativeSurface } from "../../../components/NativeSurface";
+import { NoteDayNative } from "../../../screens/note-page/NoteDayNative";
 
 /* One day of the sealed thread — every scrap you left on this date, oldest at
    the top of the day. Tap one to open the full page. Reached from the Notes
@@ -21,7 +23,22 @@ import "../../../data/strings-step5-kitrn"; // a11y.back
    always en-US, "Wednesday, October 14" in every language), the header has
    no rule (10a's sub-page headers), the mono at 11, and in a dev build every
    sample page opens (demoJournal, store mode or not). */
+/* 2026-10-27: the day is drawn in Swift (screens/note-page/NoteDayNative,
+   KNoteDayView, the Notes tab's own cards), with the React Native page below
+   as the remote switch's fallback ("noteday" in app_surfaces, NativeSurface
+   in mount mode; off by default until the simulator pass). */
 export default function SealedDay() {
+  const { t: tk } = useTheme();
+  const { date } = useLocalSearchParams<{ date: string }>();
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <NativeSurface surface="noteday" view="KNoteDayView" mode="mount" native={() => <NoteDayNative date={String(date ?? "")} />} fallback={() => <SealedDayRN />} />
+    </View>
+  );
+}
+
+/* the React Native page, unchanged */
+function SealedDayRN() {
   useLang(); // repaint when the reader changes language
   const P = useP();
   const { date } = useLocalSearchParams<{ date: string }>();
