@@ -379,5 +379,14 @@ public class KindredlyUIModule: Module {
     ExpoUIView(KWardrobeSlipView.self)
     ExpoUIView(KParcelSheetView.self)
     ExpoUIView(KParcelBannerView.self)
+
+    // Three full-screen moments (2026-10-27), each behind its own switch (off by default) with its
+    // React Native piece as the fallback: Wren's grow-up moment ("growthmoment"), the one-time
+    // identity note ("identitynote") and the first flight ("firstflight"). Adapters in
+    // Adapters/KMomentsView.swift, the moments in Portable/Moments. No commands: they draw from
+    // props and report taps as events. New files: a pod install before the build.
+    ExpoUIView(KGrowthMomentView.self)
+    ExpoUIView(KIdentityNoteView.self)
+    ExpoUIView(KFirstFlightView.self)
   }
 }

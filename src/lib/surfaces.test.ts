@@ -97,7 +97,10 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   // Today's overlays in Swift (2026-10-27): there, and OFF until their simulator pass
   const TODAY_OVERLAYS = ["letterreader", "wardrobeslip", "parcel"];
   ok("Today's three overlay keys are there and off", TODAY_OVERLAYS.every((k) => k in entries && entries[k] === false));
-  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + ME_LAST.length + SMALL.length + NOTE_PAGES.length + CHAT_OVERLAYS.length + SHEETS.length + TODAY_OVERLAYS.length + 10);
+  // three full-screen moments in Swift (2026-10-27): there, and OFF until their simulator pass
+  const MOMENTS = ["growthmoment", "identitynote", "firstflight"];
+  ok("the three moments' keys are there and off", MOMENTS.every((k) => k in entries && entries[k] === false));
+  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + ME_LAST.length + SMALL.length + NOTE_PAGES.length + CHAT_OVERLAYS.length + SHEETS.length + TODAY_OVERLAYS.length + MOMENTS.length + 10);
 }
 
 /* ── the crash breadcrumb ── */

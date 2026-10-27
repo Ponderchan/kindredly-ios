@@ -29,6 +29,7 @@ import type { WrenAccessory, WrenMood, WrenSkin, WrenStage } from "../components
 import type { HatchlingForm } from "./hatchling-form";
 import { fileExists, snapshotCacheKey, type ImageRefRecord } from "./images";
 import { hashStr } from "./mosaic";
+import { GROWTH_SIZE } from "./growth-moment-core";
 
 /** Every pose BirdSnapshots can draw. */
 export type BirdPose =
@@ -70,7 +71,9 @@ export type BirdPose =
   | "parcelFly"
   | "parcelContent"
   | "parcelCurious"
-  | "parcelDelight";
+  | "parcelDelight"
+  // the grow-up moment in Swift (components/GrowthMomentNative): her old form and her new one
+  | GrowPose;
 
 /* THE COURIER PAGE (/courier in Swift, 2026-10-26). Her perch draws her at the
    React Native perch's 186 in every face she can make there (her whereabouts'
@@ -201,6 +204,14 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
   parcelContent: { size: 96, mood: "content", stage: "wren" },
   parcelCurious: { size: 96, mood: "curious", stage: "wren" },
   parcelDelight: { size: 96, mood: "delight", stage: "wren" },
+  /* the grow-up moment in Swift (see GrowPose at the end of the file): the React Native scene's
+     WrenBirds — the old form content, the new one delighted, each at the moment's own size
+     (lib/growth-moment-core GROWTH_SIZE), at that stage, wearing nothing, in her coat. Not base:
+     captured only while the moment asks. */
+  "grow-hatch": { size: GROWTH_SIZE.hatch, mood: "content", stage: "hatch", accessory: "none" },
+  "grow-fledge": { size: GROWTH_SIZE.fledge, mood: "content", stage: "fledge", accessory: "none" },
+  "grown-fledge": { size: GROWTH_SIZE.fledge, mood: "delight", stage: "fledge", accessory: "none" },
+  "grown-wren": { size: GROWTH_SIZE.wren, mood: "delight", stage: "wren", accessory: "none" },
 };
 
 /** The user's look, as BirdSnapshots reads it from the Wren contexts. */
@@ -413,3 +424,12 @@ export function useBirdImageRefs<P extends BirdPose>(poses: readonly P[], opts: 
 export function useBirdImage(pose: BirdPose, opts: { wilt?: boolean } = {}): string | null {
   return useBirdImageRef(pose, opts)?.uri ?? null;
 }
+
+/* THE GROW-UP MOMENT IN SWIFT (2026-10-27, components/GrowthMomentNative): her old form ("grow-",
+   content) and her new one ("grown-", delighted). The moment only ever goes from a hatchling or a
+   fledgling to a fledgling or the grown bird (lib/growth-moment-core growthToShow). */
+export type GrowPose = `grow-${"hatch" | "fledge"}` | `grown-${"fledge" | "wren"}`;
+/** Her old form's picture for a moment from `stage`; null for a stage the moment never starts from. */
+export const growFromPose = (stage: WrenStage): GrowPose | null => (stage === "hatch" || stage === "fledge" ? `grow-${stage}` : null);
+/** Her new form's picture for a moment to `stage`. */
+export const growToPose = (stage: "fledge" | "wren"): GrowPose => `grown-${stage}`;

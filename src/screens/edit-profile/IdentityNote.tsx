@@ -16,6 +16,8 @@ import { strangerName } from "../../lib/stranger-name";
 import { zodiacFromDob, type Zodiac } from "../../lib/zodiac";
 import { MONO, PFM } from "../../theme/post";
 import { Frost } from "../../components/Frost";
+import { NativeSurface } from "../../components/NativeSurface";
+import { IdentityNoteSwift } from "./IdentityNoteNative";
 import { WhoGlyphs } from "../../components/WhoName";
 import { SoftSection, SoftSwitchRow } from "../settings/SoftRN";
 import { IDENTITY_NOTE_FLAG, identityNote, identityNoteSave, markOffered, resolvePronoun, showIdentityNote, showsMark, showsSign, type IdentityNoteVM, type PronounId } from "./edit-profile-model";
@@ -65,17 +67,8 @@ import "../../data/strings-identity";
 /* the 10a dim, as LeaveSheet's and SignUpSheet's */
 const DIM = "rgba(30,27,53,0.3)";
 
-/** The sheet itself, drawn from a note view: the connected IdentityNote below, or the dev page. */
-export function IdentityNoteSheet({
-  note,
-  frost,
-  pronoun,
-  sign,
-  when,
-  onMark,
-  onSign,
-  onDone,
-}: {
+/** The sheet's props, the same for both renderers. */
+export type IdentityNoteSheetProps = {
   note: IdentityNoteVM;
   /** your own frosted window (lib/frost frostSpec of your id); null draws none */
   frost: FrostSpec | null;
@@ -87,7 +80,30 @@ export function IdentityNoteSheet({
   onMark: (on: boolean) => void;
   onSign: (on: boolean) => void;
   onDone: () => void;
-}) {
+};
+
+/** The sheet itself, drawn from a note view: the connected IdentityNote below, or the dev page.
+    SWIFT OR REACT NATIVE (2026-10-27; "identitynote" in app_surfaces, off by default): with the
+    switch on and the binary carrying KIdentityNoteView, SwiftUI draws the dim and the sheet
+    (IdentityNoteNative); otherwise — the switch off, an older binary, a JS error on the Swift
+    path, a crash there on the last two launches — the React Native sheet below, exactly as
+    before. Who sees it, every save and the flag stay here either way. */
+export function IdentityNoteSheet(props: IdentityNoteSheetProps) {
+  return (
+    <NativeSurface
+      surface="identitynote"
+      view="KIdentityNoteView"
+      mode="mount"
+      native={() => <IdentityNoteSwift {...props} />}
+      fallback={() => <IdentityNoteSheetRN {...props} />}
+      // nothing for the frame or two the phone's answers take: the dim fades in with the sheet
+      pending={() => null}
+    />
+  );
+}
+
+/** The React Native sheet, as it shipped. */
+function IdentityNoteSheetRN({ note, frost, pronoun, sign, when, onMark, onSign, onDone }: IdentityNoteSheetProps) {
   const { t: tk } = useTheme();
   const insets = useSafeAreaInsets();
   const { letters } = note;
