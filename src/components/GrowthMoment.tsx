@@ -11,10 +11,12 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from "react-native-reanimated";
-import { WrenBird, type WrenStage } from "./WrenBird";
+import { WrenBird } from "./WrenBird";
+import { NativeSurface } from "./NativeSurface";
+import { GrowthMomentSwift } from "./GrowthMomentNative";
 import { useAuth } from "../lib/auth";
 import { checkGrowth } from "../lib/growth-moment";
-import type { GrowthMoment as Moment } from "../lib/growth-moment-core";
+import { GROWTH_BEATS, GROWTH_BURST, GROWTH_CURVES, GROWTH_SHAKE, GROWTH_SIZE, growthWords, type GrowthMoment as Moment } from "../lib/growth-moment-core";
 import { noteDay } from "../lib/format";
 import { t, useLang } from "../lib/i18n";
 import { useLetterFamily, useTheme } from "../lib/theme";
@@ -30,17 +32,22 @@ import "../data/strings-growth";
    Drawn over the tabs (a sibling of <Tabs>, as IdentityNote), in React Native so it reaches every
    binary by an update over the air. Her forms are WrenBird at the stage, wearing nothing, so the
    change reads. Reduce Motion: the new form, the stamp and the line simply fade in. VoiceOver hears
-   her line when it shows. `preview` (dev only) plays a given moment without checking anything. */
+   her line when it shows. `preview` (dev only) plays a given moment without checking anything.
+
+   SWIFT OR REACT NATIVE (2026-10-27; "growthmoment" in app_surfaces, off by default). When it
+   shows is decided here either way. With the switch on and the binary carrying KGrowthMomentView,
+   SwiftUI draws the scene (components/GrowthMomentNative: her two forms are snapshots of the real
+   WrenBird, lib/bird-images); otherwise — the switch off, an older binary, a JS error on the Swift
+   path, a crash there on the last two launches, or her pictures not ready in time — the React
+   Native scene below, exactly as before. Both play lib/growth-moment-core's clock. */
 
 let Haptics: typeof import("expo-haptics") | null = null;
 try {
   Haptics = require("expo-haptics");
 } catch {}
 
-const SIZE: Record<WrenStage, number> = { egg: 160, hatch: 160, fledge: 190, wren: 230 };
 /** how often the check may run (it reads the counts): on mount, then on returning to the app */
 const CHECK_EVERY_MS = 30_000;
-const BURST = 14;
 
 export function GrowthMoment({ preview = null, onClose }: { preview?: Moment | null; onClose?: () => void }) {
   useLang();
@@ -74,21 +81,30 @@ export function GrowthMoment({ preview = null, onClose }: { preview?: Moment | n
     setMoment(null);
     onClose?.();
   };
+  const rn = () => <Scene moment={moment} onClose={close} />;
   return (
     <Modal transparent animationType="none" visible onRequestClose={close} statusBarTranslucent>
       {/* keyed by the moment, so a different one always plays from its start */}
-      <Scene key={`${moment.from}-${moment.to}`} moment={moment} onClose={close} />
+      <NativeSurface
+        key={`${moment.from}-${moment.to}`}
+        surface="growthmoment"
+        view="KGrowthMomentView"
+        mode="mount"
+        native={() => <GrowthMomentSwift moment={moment} onClose={close} fallback={rn} />}
+        fallback={rn}
+        // nothing for the frame or two the phone's answers take: the ground fades in with the scene
+        pending={() => null}
+      />
     </Modal>
   );
 }
 
+/** The React Native scene, as it shipped. */
 function Scene({ moment, onClose }: { moment: Moment; onClose: () => void }) {
   const { t: tk } = useTheme();
   const wrenFace = useLetterFamily(true);
   const reduce = useReducedMotion();
-  const line = t(moment.to === "wren" ? "grow.line.wren" : "grow.line.fledge");
-  const stage = t(moment.to === "wren" ? "wren.name.grown" : "wren.name.fledge");
-  const mark = `${stage} · ${noteDay(new Date())}`.toUpperCase();
+  const { line, mark } = growthWords(moment, t, noteDay(new Date()));
 
   const ground = useSharedValue(0);
   const shake = useSharedValue(0);
@@ -101,31 +117,29 @@ function Scene({ moment, onClose }: { moment: Moment; onClose: () => void }) {
 
   useEffect(() => {
     AccessibilityInfo.announceForAccessibility(line);
+    const B = GROWTH_BEATS;
     if (reduce) {
-      ground.value = withTiming(1, { duration: 250 });
+      ground.value = withTiming(1, { duration: B.groundStill });
       oldOut.value = 1;
-      pop.value = withTiming(1, { duration: 300 });
-      stamp.value = withTiming(1, { duration: 300 });
-      words.value = withTiming(1, { duration: 300 });
+      pop.value = withTiming(1, { duration: B.still });
+      stamp.value = withTiming(1, { duration: B.still });
+      words.value = withTiming(1, { duration: B.still });
       return;
     }
-    ground.value = withTiming(1, { duration: 300 });
+    ground.value = withTiming(1, { duration: B.ground });
     // the old form shakes, then gives way
-    shake.value = withDelay(
-      450,
-      withSequence(...[-6, 6, -5, 5, -3, 0].map((x) => withTiming(x, { duration: 110, easing: Easing.linear }))),
-    );
-    oldOut.value = withDelay(1150, withTiming(1, { duration: 220 }));
-    burst.value = withDelay(1150, withTiming(1, { duration: 900, easing: Easing.bezier(0.2, 0.8, 0.3, 1) }));
-    pop.value = withDelay(1270, withTiming(1, { duration: 520, easing: Easing.bezier(0.3, 1.4, 0.5, 1) }));
+    shake.value = withDelay(B.shakeAt, withSequence(...GROWTH_SHAKE.map((x) => withTiming(x, { duration: B.shakeStep, easing: Easing.linear }))));
+    oldOut.value = withDelay(B.outAt, withTiming(1, { duration: B.outMs }));
+    burst.value = withDelay(B.burstAt, withTiming(1, { duration: B.burstMs, easing: Easing.bezier(...GROWTH_CURVES.burst) }));
+    pop.value = withDelay(B.popAt, withTiming(1, { duration: B.popMs, easing: Easing.bezier(...GROWTH_CURVES.pop) }));
     const tap = setTimeout(() => {
       try {
         void Haptics?.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       } catch {}
-    }, 1300);
-    stamp.value = withDelay(1850, withTiming(1, { duration: 360, easing: Easing.bezier(0.5, 0, 0.6, 1.4) }));
-    words.value = withDelay(2150, withTiming(1, { duration: 300 }));
-    bob.value = withDelay(2500, withRepeat(withSequence(withTiming(-5, { duration: 1200 }), withTiming(0, { duration: 1200 })), -1));
+    }, B.hapticAt);
+    stamp.value = withDelay(B.stampAt, withTiming(1, { duration: B.stampMs, easing: Easing.bezier(...GROWTH_CURVES.stamp) }));
+    words.value = withDelay(B.wordsAt, withTiming(1, { duration: B.wordsMs }));
+    bob.value = withDelay(B.bobAt, withRepeat(withSequence(withTiming(-B.bobBy, { duration: B.bobMs }), withTiming(0, { duration: B.bobMs })), -1));
     return () => clearTimeout(tap);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -149,12 +163,12 @@ function Scene({ moment, onClose }: { moment: Moment; onClose: () => void }) {
     <View accessibilityViewIsModal style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
       <Animated.View style={[{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: tk.lav2 }, groundStyle]} />
       <View style={{ width: 280, height: 250, alignItems: "center", justifyContent: "flex-end" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        {!reduce && Array.from({ length: BURST }, (_, i) => <Bit key={i} i={i} burst={burst} />)}
+        {!reduce && Array.from({ length: GROWTH_BURST }, (_, i) => <Bit key={i} i={i} burst={burst} />)}
         <Animated.View style={[{ position: "absolute", bottom: 0 }, oldStyle]}>
-          <WrenBird size={SIZE[moment.from]} stage={moment.from} mood="content" accessory="none" />
+          <WrenBird size={GROWTH_SIZE[moment.from]} stage={moment.from} mood="content" accessory="none" />
         </Animated.View>
         <Animated.View style={[{ position: "absolute", bottom: 0 }, newStyle]}>
-          <WrenBird size={SIZE[moment.to]} stage={moment.to} mood="delight" accessory="none" />
+          <WrenBird size={GROWTH_SIZE[moment.to]} stage={moment.to} mood="delight" accessory="none" />
         </Animated.View>
       </View>
       <Animated.View style={[{ marginTop: 22, borderWidth: 2, borderColor: tk.ind, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 }, stampStyle]}>
@@ -178,7 +192,7 @@ function Scene({ moment, onClose }: { moment: Moment; onClose: () => void }) {
 
 /** One piece of the burst: a lilac feather or a gold spark, flying out from her middle. */
 function Bit({ i, burst }: { i: number; burst: SharedValue<number> }) {
-  const angle = (i / BURST) * Math.PI * 2;
+  const angle = (i / GROWTH_BURST) * Math.PI * 2;
   const reach = 90 + (i % 4) * 22;
   const spark = i % 3 === 0;
   const style = useAnimatedStyle(() => ({

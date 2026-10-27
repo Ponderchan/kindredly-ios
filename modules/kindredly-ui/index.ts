@@ -299,3 +299,22 @@ export {
   type KPhotoRollStrings,
   type KPhotoRollViewProps,
 } from "./src/NotePages";
+// three full-screen moments (2026-10-27), each behind its own switch, off by default: Wren's
+// grow-up moment ("growthmoment"), the one-time identity note ("identitynote"), the first flight
+// ("firstflight")
+export {
+  KFirstFlightView,
+  KGrowthMomentView,
+  KIdentityNoteView,
+  type KFirstFlightColors,
+  type KFirstFlightCurve,
+  type KFirstFlightCurves,
+  type KFirstFlightPoint,
+  type KFirstFlightStop,
+  type KFirstFlightTrack,
+  type KFirstFlightViewProps,
+  type KGrowthBeats,
+  type KGrowthMomentViewProps,
+  type KIdentityNoteSwitch,
+  type KIdentityNoteViewProps,
+} from "./src/Moments";

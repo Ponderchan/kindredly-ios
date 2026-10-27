@@ -39,26 +39,13 @@ import type { HatchlingForm } from "../lib/hatchling-form";
 import type { PoolLetter } from "../lib/db";
 import { t } from "../lib/i18n";
 import { objectDepth } from "./10a/StickerBox";
+import { FLIGHT_CURVES, FLIGHT_H, FLIGHT_TOTAL, FLIGHT_W, FLY0, FLY1, HOME, LOOP_D, STOPS, birdTrack, envelopeTrack, flightPoints, stopStamp, stopTimesMs, stopWords, trailCurve } from "./first-flight-model";
+import { NativeSurface, useSurfaceHost } from "./NativeSurface";
+import { FirstFlightSwift } from "./FirstFlightNative";
 
-const W = 390, H = 844, TOTAL = 3.05;
-/* the loop: your city → three stops → home, four cubic segments on the chart */
-const SEGS: [number, number][][] = [
-  [[78, 640], [60, 440], [140, 300], [210, 250]],
-  [[210, 250], [280, 200], [330, 160], [318, 300]],
-  [[318, 300], [306, 440], [250, 470], [300, 560]],
-  [[300, 560], [350, 650], [190, 700], [78, 640]],
-];
-const STOPS: [number, number][] = [[210, 250], [318, 300], [300, 560]];
-const bez = (p: [number, number][], u: number): [number, number] => {
-  const v = 1 - u;
-  return [
-    v * v * v * p[0][0] + 3 * v * v * u * p[1][0] + 3 * v * u * u * p[2][0] + u * u * u * p[3][0],
-    v * v * v * p[0][1] + 3 * v * v * u * p[1][1] + 3 * v * u * u * p[2][1] + u * u * u * p[3][1],
-  ];
-};
-const pathD = SEGS.map((s, i) => (i === 0 ? `M${s[0][0]} ${s[0][1]} ` : "") + `C ${s[1][0]} ${s[1][1]}, ${s[2][0]} ${s[2][1]}, ${s[3][0]} ${s[3][1]}`).join(" ");
-/* the flight window on the clock, in seconds */
-const FLY0 = 0.8, FLY1 = 2.6;
+/* the board, the loop, the stops and the clock: first-flight-model, shared with the SwiftUI flight */
+const W = FLIGHT_W, H = FLIGHT_H, TOTAL = FLIGHT_TOTAL;
+const pathD = LOOP_D;
 
 /** The flight's colours, when the caller's ground isn't the theme's (the new onboarding's Shell). */
 export type FlightColors = {
@@ -76,23 +63,8 @@ export type FlightColors = {
   accent: string;
 };
 
-export function FirstFlight({
-  her,
-  opener,
-  stops,
-  form,
-  mark,
-  skin,
-  accessory,
-  onDone,
-  colors,
-  head,
-  envelope,
-  envelopeSize,
-  line,
-  skipLabel,
-  still = false,
-}: {
+/** The flight's props, the same for both renderers. */
+export type FirstFlightProps = {
   her: string;
   opener: string;
   stops: PoolLetter[];
@@ -116,7 +88,51 @@ export function FirstFlight({
   skipLabel?: string;
   /** the landed chart alone, dimmed: no bird, no letter, no title, no clock, onDone never called */
   still?: boolean;
-}) {
+};
+
+/* SWIFT OR REACT NATIVE (2026-10-27; "firstflight" in app_surfaces, off by default). With the switch
+   on and the binary carrying KFirstFlightView, SwiftUI draws the flight (components/
+   FirstFlightNative: the chart, the trail, the letter folding, the envelopes, on one clock; her,
+   and any head, envelope or line a caller passes, stay React Native islands that Swift moves).
+   Otherwise — the switch off, an older binary, a JS error on the Swift path, a crash there on the
+   last two launches — the React Native flight below, exactly as before. Inside a Swift screen's
+   island (the Swift onboarding draws the flight in one) it stays React Native: a Host of its own
+   there would be SwiftUI inside React Native inside SwiftUI. */
+export function FirstFlight(props: FirstFlightProps) {
+  const inSwift = useSurfaceHost() != null;
+  const ground = useP().penWash;
+  if (inSwift) return <FirstFlightRN {...props} />;
+  return (
+    <NativeSurface
+      surface="firstflight"
+      view="KFirstFlightView"
+      mode="mount"
+      native={() => <FirstFlightSwift {...props} />}
+      fallback={() => <FirstFlightRN {...props} />}
+      // the flight's own ground while the phone's answers are read: nothing blinks
+      pending={() => <View style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0, backgroundColor: props.colors?.ground ?? ground }} />}
+    />
+  );
+}
+
+/** The React Native flight, as it shipped. */
+function FirstFlightRN({
+  her,
+  opener,
+  stops,
+  form,
+  mark,
+  skin,
+  accessory,
+  onDone,
+  colors,
+  head,
+  envelope,
+  envelopeSize,
+  line,
+  skipLabel,
+  still = false,
+}: FirstFlightProps) {
   const themeP = useP();
   const themeT = useTheme().t;
   // the words carried are content: the reader's Letter font (italic where it has one)
@@ -146,18 +162,7 @@ export function FirstFlight({
   };
 
   /* the sampled loop and the moment she passes each point */
-  const pts = useMemo(() => {
-    const out: { x: number; y: number; at: number }[] = [];
-    const n = 9;
-    SEGS.forEach((s, si) => {
-      for (let i = si === 0 ? 0 : 1; i < n; i++) {
-        const [x, y] = bez(s, i / (n - 1));
-        const frac = (si + i / (n - 1)) / SEGS.length;
-        out.push({ x, y, at: FLY0 + frac * (FLY1 - FLY0) });
-      }
-    });
-    return out;
-  }, []);
+  const pts = useMemo(() => flightPoints(), []);
 
   useEffect(() => {
     if (still) return; // the landed chart: nothing plays, nothing is called
@@ -174,54 +179,53 @@ export function FirstFlight({
       tick(0, () => void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)),
       tick(300, () => void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)),
       tick(FLY0 * 1000, () => { setMood("content"); void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); }),
-      ...STOPS.map((_, i) => tick((FLY0 + ((i + 1) / SEGS.length) * (FLY1 - FLY0)) * 1000, () => void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light))),
+      ...stopTimesMs().map((ms) => tick(ms, () => void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light))),
       tick(FLY1 * 1000, () => { setMood("delight"); void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft); }),
     ];
     return () => { alive = false; timers.forEach(clearTimeout); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* every other value on the clock (first-flight-model FLIGHT_CURVES, shared with the SwiftUI flight) */
+  const { cardFold, cardFade, envFade, envScale, envTurn, title, chart, birdScale, birdTurn, trayFade, trayRise } = FLIGHT_CURVES;
+
   /* 1 · the letter folds in place, the envelope takes its place */
   const cardStyle = useAnimatedStyle(() => {
-    const s = interpolate(clock.value, [0.05, 0.55], [1, 0.04], Extrapolation.CLAMP);
-    return { transform: [{ translateY: -70 * (1 - s) }, { scaleY: s }], opacity: interpolate(clock.value, [0.5, 0.6], [1, 0], Extrapolation.CLAMP) };
+    const s = interpolate(clock.value, cardFold.t, cardFold.v, Extrapolation.CLAMP);
+    return { transform: [{ translateY: -70 * (1 - s) }, { scaleY: s }], opacity: interpolate(clock.value, cardFade.t, cardFade.v, Extrapolation.CLAMP) };
   });
   /* the envelope appears where the letter folded, then rides under her */
-  const envT = [0, FLY0 - 0.001, ...pts.map((p) => p.at), 2.85, TOTAL];
   /* (a bigger envelope keeps its centre where the plain one's was) */
-  const envX = [135, 135, ...pts.map((p) => p.x - 20), 90, 90].map((x) => x + (120 - env.w) / 2);
-  const envY = [330, 330, ...pts.map((p) => p.y + 22), 420, 420].map((y) => y + (80 - env.h) / 2);
+  const { t: envT, x: envX, y: envY } = envelopeTrack(pts, env);
   const envStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(clock.value, [0.3, 0.55, 2.5, 2.65], [0, 1, 1, 0], Extrapolation.CLAMP),
+    opacity: interpolate(clock.value, envFade.t, envFade.v, Extrapolation.CLAMP),
     transform: [
       { translateX: interpolate(clock.value, envT, envX, Extrapolation.CLAMP) },
       { translateY: interpolate(clock.value, envT, envY, Extrapolation.CLAMP) },
-      { scale: interpolate(clock.value, [0.3, 0.6, FLY0, FLY0 + 0.25], [0.6, 1, 1, 0.5], Extrapolation.CLAMP) },
-      { rotate: `${interpolate(clock.value, [FLY0, FLY0 + 0.25], [0, -12], Extrapolation.CLAMP)}deg` },
+      { scale: interpolate(clock.value, envScale.t, envScale.v, Extrapolation.CLAMP) },
+      { rotate: `${interpolate(clock.value, envTurn.t, envTurn.v, Extrapolation.CLAMP)}deg` },
     ],
   }));
-  const titleStyle = useAnimatedStyle(() => ({ opacity: interpolate(clock.value, [0.6, 1.0], [1, 0.18], Extrapolation.CLAMP) }));
-  const chartStyle = useAnimatedStyle(() => ({ opacity: interpolate(clock.value, [0.55, 0.9, 2.7, 3.0], [0, 1, 1, 0.35], Extrapolation.CLAMP) }));
+  const titleStyle = useAnimatedStyle(() => ({ opacity: interpolate(clock.value, title.t, title.v, Extrapolation.CLAMP) }));
+  const chartStyle = useAnimatedStyle(() => ({ opacity: interpolate(clock.value, chart.t, chart.v, Extrapolation.CLAMP) }));
 
   /* 2 · she follows the loop; 3 · she comes home to the middle, larger */
-  const inT = [0, FLY0 - 0.001, ...pts.map((p) => p.at), 2.85, TOTAL];
-  const xs = [240, 240, ...pts.map((p) => p.x), 150, 150];
-  const ys = [232, 232, ...pts.map((p) => p.y), 380, 380];
+  const { t: inT, x: xs, y: ys } = birdTrack(pts);
   const birdStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: interpolate(clock.value, inT, xs, Extrapolation.CLAMP) - 45 },
       { translateY: interpolate(clock.value, inT, ys, Extrapolation.CLAMP) - 45 },
-      { scale: interpolate(clock.value, [0, FLY0, FLY0 + 0.3, FLY1, 2.9], [1, 1, 0.78, 0.78, 1.5], Extrapolation.CLAMP) },
-      { rotate: `${interpolate(clock.value, [FLY0 - 0.05, FLY0 + 0.25, FLY1 - 0.25, FLY1], [0, -16, -16, 0], Extrapolation.CLAMP)}deg` },
+      { scale: interpolate(clock.value, birdScale.t, birdScale.v, Extrapolation.CLAMP) },
+      { rotate: `${interpolate(clock.value, birdTurn.t, birdTurn.v, Extrapolation.CLAMP)}deg` },
     ],
   }));
   const trayStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(clock.value, [2.55, 2.85], [0, 1], Extrapolation.CLAMP),
-    transform: [{ translateY: interpolate(clock.value, [2.55, 2.9], [24, 0], Extrapolation.CLAMP) }],
+    opacity: interpolate(clock.value, trayFade.t, trayFade.v, Extrapolation.CLAMP),
+    transform: [{ translateY: interpolate(clock.value, trayRise.t, trayRise.v, Extrapolation.CLAMP) }],
   }));
 
-  const words = (l?: PoolLetter) => (l?.body || "").split(/\s+/).slice(0, 4).join(" ");
-  const stampOf = (l?: PoolLetter) => (l?.stamp ? "#" + String(l.stamp).replace(/-/g, " ") : "");
+  const words = stopWords;
+  const stampOf = stopStamp;
 
   return (
     <Pressable onPress={still ? undefined : finish} disabled={still} style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0, backgroundColor: P.penWash, alignItems: "center", justifyContent: "center" }}>
@@ -233,7 +237,7 @@ export function FirstFlight({
             {Array.from({ length: 33 }, (_, i) => <Line key={"h" + i} x1={0} y1={i * 26} x2={W} y2={i * 26} stroke={tk.ln} strokeOpacity={0.06} />)}
             {[180, 330, 480, 630].map((y) => <Path key={y} d={`M0 ${y} Q195 ${y - 26} 390 ${y}`} fill="none" stroke={tk.ln} strokeOpacity={0.16} strokeDasharray="4 6" />)}
             <Path d={pathD} fill="none" stroke={tk.ln} strokeOpacity={0.14} />
-            {[[78, 640], ...STOPS].map(([x, y], i) => (
+            {[HOME, ...STOPS].map(([x, y], i) => (
               <React.Fragment key={i}>
                 <Circle cx={x} cy={y} r={16} fill={i === 0 ? tk.sf : "#FFF3C4"} stroke={tk.ln} strokeWidth={1.5} />
                 <Circle cx={x} cy={y} r={10} fill="none" stroke={tk.ln} strokeWidth={0.8} strokeDasharray="1.5 2.5" opacity={0.7} />
@@ -312,6 +316,7 @@ export function FirstFlight({
 function TrailDot({ clock, at, x, y, color }: { clock: SharedValue<number>; at: number; x: number; y: number; color?: string }) {
   const themeP = useP();
   const P = color ? { ...themeP, pen: color } : themeP;
-  const style = useAnimatedStyle(() => ({ opacity: interpolate(clock.value, [at - 0.02, at, 2.9, 3.05], [0, 0.7, 0.7, 0.3], Extrapolation.CLAMP) }));
+  const fade = trailCurve(at);
+  const style = useAnimatedStyle(() => ({ opacity: interpolate(clock.value, fade.t, fade.v, Extrapolation.CLAMP) }));
   return <Animated.View style={[{ position: "absolute", left: x - 2.2, top: y - 2.2, width: 4.4, height: 4.4, borderRadius: 2.2, backgroundColor: P.pen }, style]} pointerEvents="none" />;
 }
