@@ -260,6 +260,36 @@ public class KindredlyUIModule: Module {
       }
     }
 
+    // Five small pages (2026-10-27), each behind its own switch (off by default) with its React
+    // Native page as the fallback: the Voice report, Your Voice in detail, Unsent, the stamp album
+    // and Lore. Adapters in Adapters/KMorePagesView.swift, screens in Portable/Pages. New files: a
+    // pod install before the build.
+    ExpoUIView(KVoiceReportView.self) {
+      AsyncFunction("command") { (view: KVoiceReportView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+    ExpoUIView(KVoiceDetailView.self) {
+      AsyncFunction("command") { (view: KVoiceDetailView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+    ExpoUIView(KDraftsView.self) {
+      AsyncFunction("command") { (view: KDraftsView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+    ExpoUIView(KStampBookView.self) {
+      AsyncFunction("command") { (view: KStampBookView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+    ExpoUIView(KLoreView.self) {
+      AsyncFunction("command") { (view: KLoreView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
+
     // The app's language, for typography only (KType.tallScript): Japanese and Korean set the
     // letter serifs with CJK leading. src/textScript.ts; the root layout calls it on every change.
     Function("setTextScript") { (lang: String) in

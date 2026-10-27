@@ -234,3 +234,18 @@ export {
   type KIntroRitualStroke,
   type KIntroRitualViewProps,
 } from "./src/IntroRitual";
+
+// five small pages (2026-10-27), each behind its own switch, off by default: the Voice report,
+// Your Voice in detail, Unsent, the stamp album and Lore
+export {
+  KVoiceReportView,
+  type KVoiceReportCard,
+  type KVoiceReportMark,
+  type KVoiceReportSky,
+  type KVoiceReportStrings,
+  type KVoiceReportViewProps,
+} from "./src/VoiceReport";
+export { KVoiceDetailView, type KVoiceDetailGate, type KVoiceDetailRow, type KVoiceDetailStrings, type KVoiceDetailViewProps } from "./src/VoiceDetail";
+export { KDraftsView, type KDraftsCard, type KDraftsStrings, type KDraftsViewProps } from "./src/Drafts";
+export { KStampBookView, type KStampBookStrings, type KStampBookTile, type KStampBookViewProps } from "./src/StampBook";
+export { KLoreView, type KLoreCard, type KLoreStrings, type KLoreViewProps } from "./src/Lore";

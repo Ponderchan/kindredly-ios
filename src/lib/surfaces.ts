@@ -158,6 +158,17 @@ import {
      help         How Kindredly works (me/help) — KHelpView
      writetous    Write to us (me/write-to-us) — KWriteToUsView
 
+   Five small pages (2026-10-27), each keeping its React Native page the
+   same way. They ship OFF: the makers turn each on after a simulator pass.
+
+     report       the Voice report, Wren's night letter (report) —
+                  KVoiceReportView
+     voice        Your Voice in detail (voice, a dev page) — KVoiceDetailView
+     drafts       Unsent (drafts) — KDraftsView
+     stampbook    the growth stamps' album (stamps, a dev page) —
+                  KStampBookView
+     lore         Lore, the kept lines (lore) — KLoreView
+
    A kindred's page and Wren's desk stay React Native and have no key. */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
@@ -189,10 +200,16 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   blocked: true,
   help: true,
   writetous: true,
+  // five small pages (2026-10-27): off until the simulator pass
+  report: false,
+  voice: false,
+  drafts: false,
+  stampbook: false,
+  lore: false,
 };
 
-/** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding and the last Me pages (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous";
+/** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages and the five small pages (the `surface` prop of NativeSurface) */
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "report" | "voice" | "drafts" | "stampbook" | "lore";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */

@@ -11,6 +11,8 @@ import { BackChevron } from "../components/10a/BackChevron";
 import { GROWTH_STAMPS, type GrowthStamp, type GrowthStats } from "../data/growth";
 import { EMPTY_STATS, collectGrowthStats } from "../lib/stats";
 import { useAuth } from "../lib/auth";
+import { NativeSurface } from "../components/NativeSurface";
+import { StampBookNative } from "../screens/stamps/StampBookNative";
 
 /* The stamp album — Kindredly's growth stamps. Earned in colour, the rest
    waiting in grey. Tap one for its story. The stamps keep their own
@@ -18,8 +20,25 @@ import { useAuth } from "../lib/auth";
    role: cream is the page, the card is sf, muted lines are sub, the small
    counts and labels are mute, a stamp not yet earned is named in faint,
    and the buttons are ind and ink with their label in the page colour. The
-   dim behind the card stays a fixed shade. */
+   dim behind the card stays a fixed shade.
+
+   2026-10-27: the album is drawn in Swift (screens/stamps/StampBookNative,
+   KStampBookView), with the React Native page below as the remote switch's
+   fallback ("stampbook" in app_surfaces, off until the simulator pass;
+   NativeSurface in mount mode). Still a dev page: a release build goes
+   home before either is drawn. */
 export default function StampsScreen() {
+  const { t: tk } = useTheme(); // above the dev gate, so it runs every render
+  if (!__DEV__) return <Redirect href="/" />;
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <NativeSurface surface="stampbook" view="KStampBookView" mode="mount" native={() => <StampBookNative />} fallback={() => <StampsRN />} />
+    </View>
+  );
+}
+
+/* the React Native page, unchanged */
+function StampsRN() {
   const { t: tk } = useTheme(); // above the dev gate, so it runs every render
   if (!__DEV__) return <Redirect href="/" />;
   const router = useRouter();

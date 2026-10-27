@@ -16,6 +16,8 @@ import { buildReport, markReportRead, type ReportData } from "../lib/report";
 import { getWrenType } from "../lib/wren-type";
 import { useAuth } from "../lib/auth";
 import "../data/strings-me4a"; // m4.rt.*, m4.pw.close
+import { NativeSurface } from "../components/NativeSurface";
+import { VoiceReportNative } from "../screens/report/VoiceReportNative";
 
 /* The Voice report — Wren's night letter about how you write. One fact per
    screen, tap to move; the last card is yours to share. Deliberately dark:
@@ -37,7 +39,28 @@ const DIM = "#B9B4D6";
 
 type Screen = { key: string; render: () => React.ReactNode };
 
+/* 2026-10-27: the night letter is drawn in Swift (screens/report/
+   VoiceReportNative, KVoiceReportView), with the React Native page below
+   as the remote switch's fallback ("report" in app_surfaces, off until
+   the simulator pass; NativeSurface in mount mode). Both wait on the
+   night's own ground. */
 export default function VoiceReport() {
+  return (
+    <View style={{ flex: 1, backgroundColor: NIGHT }}>
+      <NativeSurface
+        surface="report"
+        view="KVoiceReportView"
+        mode="mount"
+        native={() => <VoiceReportNative />}
+        fallback={() => <VoiceReportRN />}
+        pending={() => <View style={{ flex: 1, backgroundColor: NIGHT }} />}
+      />
+    </View>
+  );
+}
+
+/* the React Native page, unchanged */
+function VoiceReportRN() {
   useLang();
   const router = useRouter();
   const wren = useWrenName();

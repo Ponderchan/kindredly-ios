@@ -12,6 +12,8 @@ import { isCustomStampId } from "../lib/custom-stamps";
 import { dLong } from "../lib/format";
 import { deleteDraft, loadDrafts, type Draft } from "../lib/drafts";
 import { BackChevron } from "../components/10a/BackChevron";
+import { NativeSurface } from "../components/NativeSurface";
+import { DraftsNative } from "../screens/drafts/DraftsNative";
 
 /* Unsent — the letters you started and didn't send.
    ────────────────────────────────────────────────────────────────────────
@@ -38,7 +40,21 @@ import { BackChevron } from "../components/10a/BackChevron";
    tilt (it used to lean −4°) and no postmark. */
 const DRAFT_STAMP = STAMP_LADDER.draftsRow;
 
+/* 2026-10-27: Unsent is drawn in Swift (screens/drafts/DraftsNative,
+   KDraftsView), with the React Native page below as the remote switch's
+   fallback ("drafts" in app_surfaces, off until the simulator pass;
+   NativeSurface in mount mode). */
 export default function DraftsScreen() {
+  const { t: tk } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <NativeSurface surface="drafts" view="KDraftsView" mode="mount" native={() => <DraftsNative />} fallback={() => <DraftsRN />} />
+    </View>
+  );
+}
+
+/* the React Native page, unchanged */
+function DraftsRN() {
   useLang();
   const router = useRouter();
   const { t: tk } = useTheme();
