@@ -265,5 +265,14 @@ public class KindredlyUIModule: Module {
     Function("setTextScript") { (lang: String) in
       KType.tallScript = lang == "ja" || lang == "ko"
     }
+
+    // A kindred's page (2026-10-27; behind the "kindredpage" switch, off by default): adapter in
+    // Adapters/KKindredPageView.swift, the page in Portable/Chat/KKindredPageScreen.swift;
+    // src/app/kindred/[id].tsx. New files: a pod install before the build.
+    ExpoUIView(KKindredPageView.self) {
+      AsyncFunction("command") { (view: KKindredPageView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
   }
 }

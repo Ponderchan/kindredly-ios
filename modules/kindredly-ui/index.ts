@@ -234,3 +234,22 @@ export {
   type KIntroRitualStroke,
   type KIntroRitualViewProps,
 } from "./src/IntroRitual";
+
+// a kindred's page (2026-10-27), in Swift, behind the "kindredpage" switch (off by default;
+// src/screens/chat/KindredPageNative.tsx)
+export {
+  KKindredPageView,
+  type KKindredPageDim,
+  type KKindredPageFace,
+  type KKindredPageFaceShape,
+  type KKindredPageFact,
+  type KKindredPageLearned,
+  type KKindredPageOpening,
+  type KKindredPagePerson,
+  type KKindredPageResonance,
+  type KKindredPageSigned,
+  type KKindredPageState,
+  type KKindredPageStrings,
+  type KKindredPageTrack,
+  type KKindredPageViewProps,
+} from "./src/KindredPage";

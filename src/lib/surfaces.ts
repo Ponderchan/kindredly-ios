@@ -158,7 +158,14 @@ import {
      help         How Kindredly works (me/help) — KHelpView
      writetous    Write to us (me/write-to-us) — KWriteToUsView
 
-   A kindred's page and Wren's desk stay React Native and have no key. */
+   Wren's desk stays React Native and has no key.
+
+   A kindred's page (2026-10-27), keeping its React Native page the same
+   way. It ships OFF: it turns on after its simulator pass.
+
+     kindredpage  a kindred's page (kindred/[id]) — KKindredPageView; the
+                  React Native KindredPage stays what people see while this
+                  is off (both draw by the rules in screens/chat/kindred-page) */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
   room: true,
@@ -189,10 +196,12 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   blocked: true,
   help: true,
   writetous: true,
+  // a kindred's page: off until its simulator pass
+  kindredpage: false,
 };
 
-/** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding and the last Me pages (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous";
+/** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages and a kindred's page (the `surface` prop of NativeSurface) */
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "kindredpage";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */

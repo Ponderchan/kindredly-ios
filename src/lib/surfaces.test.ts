@@ -76,7 +76,9 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   // the last Me pages in Swift (owner, 2026-10-27: "make Me all Swift"), each on like the finished ports
   const ME_LAST = ["keepsakes", "keepsake", "mykindreds", "editfield", "blocked", "help", "writetous"];
   ok("the last Me pages' seven keys are there and on", ME_LAST.every((k) => entries[k] === true));
-  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + ME_LAST.length + 7);
+  // a kindred's page in Swift (2026-10-27): there, and OFF until its simulator pass
+  ok("the kindred page's key is there and off", "kindredpage" in entries && entries.kindredpage === false);
+  ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + ME_LAST.length + 8);
 }
 
 /* ── the crash breadcrumb ── */

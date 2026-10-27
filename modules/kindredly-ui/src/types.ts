@@ -197,6 +197,8 @@ export const KSCREEN_VIEWS = [
   "KBlockedView",
   "KHelpView",
   "KWriteToUsView",
+  // a kindred's page (2026-10-27; behind the "kindredpage" switch, off by default)
+  "KKindredPageView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];
