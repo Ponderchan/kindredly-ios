@@ -213,6 +213,10 @@ export const KSCREEN_VIEWS = [
   "KPhotoRollView",
   // Wren's introduction, the whole sheet (2026-10-27; behind the "introritual" switch, off by default)
   "KIntroductionView",
+  // the pieces over the chat (2026-10-27), each in its own Modal: the lightbox, the song shelf, the signing sheet
+  "KPhotoLightboxView",
+  "KSongShelfView",
+  "KSignSheetView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

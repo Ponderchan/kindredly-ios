@@ -1,4 +1,4 @@
-import { PEN_MAX_STROKES, penFaceOrNull, penFromPad, penInkBox, type PadPoint, type PadSize, type PenSig } from "../../lib/pen-signature";
+import { PEN_H, PEN_MAX_STROKES, PEN_W, penFaceOrNull, penFromPad, penInkBox, penStrokePath, type PadPoint, type PadSize, type PenSig } from "../../lib/pen-signature";
 import { checkField, facePool, type FaceDefLite, type PronounId, type TFn } from "../edit-profile/edit-profile-model";
 
 /* THE SIGNING SHEET, AS RULES (identity Phase 2; .claude/identity-build/PHASE2.md §6).
@@ -98,6 +98,39 @@ export function drawingOf(strokes: readonly (readonly PadPoint[])[], pad: PadSiz
 
 /** What goes to sign_thread: null when typed ("Type it instead"), else the drawing. */
 export const sigToSend = (typed: boolean, drawing: PenSig | null): PenSig | null => (typed ? null : drawing);
+
+/* ── the pad, as both renderers size and ink it ────────────────────────── */
+
+/** The pad for a window this wide: the sheet's content width (16 a side), 200 to 600, and the
+    box's own aspect (components/SignaturePad padHeightOf), in whole points. */
+export function padSizeOf(windowWidth: number): PadSize {
+  const width = Math.min(600, Math.max(200, windowWidth - 32));
+  return { width, height: Math.round(width * (PEN_H / PEN_W)) };
+}
+
+/** The pad's finished strokes as one SVG path in pad points, smoothed as the published drawing
+    will be (penStrokePath, as components/SignaturePad inks them): what the SwiftUI pad draws. */
+export function padInkPath(strokes: readonly (readonly PadPoint[])[]): string {
+  return strokes
+    .map((s) => {
+      const flat: number[] = [];
+      for (const p of s) flat.push(p.x, p.y);
+      return penStrokePath(flat);
+    })
+    .join("");
+}
+
+/** A stroke the SwiftUI pad reported (x0, y0, x1, y1 …) as pad points; an odd tail or a value
+    that isn't a finite number is dropped. */
+export function padPointsOf(flat: readonly unknown[]): PadPoint[] {
+  const out: PadPoint[] = [];
+  for (let i = 0; i + 1 < flat.length; i += 2) {
+    const x = flat[i];
+    const y = flat[i + 1];
+    if (typeof x === "number" && typeof y === "number" && Number.isFinite(x) && Number.isFinite(y)) out.push({ x, y });
+  }
+  return out;
+}
 
 /** SIGN AND SEND is on: a name that may go, and a signature (typed, or a drawing that counts), and nothing going. */
 export function canSign(i: { name: NameCheck; typed: boolean; drawing: PenSig | null; busy: boolean }): boolean {

@@ -302,3 +302,18 @@ export {
 // Wren's introduction, the whole sheet (2026-10-27), in Swift, behind the "introritual" switch,
 // off until the simulator pass (src/components/IntroductionNative.tsx)
 export { KIntroductionView, type KIntroMosaic, type KIntroMosaicBeats, type KIntroMosaicScrap, type KIntroductionViewProps } from "./src/Introduction";
+// the pieces over the chat (2026-10-27), each inside its own React Native Modal and behind its own
+// switch, off by default: a photo opened full screen ("lightbox"), a kindred room's song shelf
+// ("songshelf"), the pen-pal chat's signing sheet ("signsheet")
+export {
+  KPhotoLightboxView,
+  KSignSheetView,
+  KSongShelfView,
+  type KPhotoLightboxViewProps,
+  type KSignSheetCommands,
+  type KSignSheetFace,
+  type KSignSheetStrings,
+  type KSignSheetViewProps,
+  type KSongShelfRow,
+  type KSongShelfViewProps,
+} from "./src/ChatOverlays";

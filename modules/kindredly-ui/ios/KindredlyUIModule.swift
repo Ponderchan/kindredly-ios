@@ -341,5 +341,19 @@ public class KindredlyUIModule: Module {
     // reports the ✕, TALK TO, a held signature and VoiceOver's two actions as events. New files:
     // a pod install before the build.
     ExpoUIView(KIntroductionView.self)
+
+    // The pieces over the chat (2026-10-27), each inside its own React Native Modal and behind its
+    // own switch (off by default) with the React Native piece as the fallback: a photo opened full
+    // screen ("lightbox"), a kindred room's song shelf ("songshelf") and the pen-pal chat's signing
+    // sheet ("signsheet"). Adapters/KChatOverlaysView.swift, the pieces in Portable/Chat
+    // (KPhotoLightbox, KSongShelf, KSignSheet). Only the sheet takes commands (its pen-name field).
+    // New files: a pod install before the build.
+    ExpoUIView(KPhotoLightboxView.self)
+    ExpoUIView(KSongShelfView.self)
+    ExpoUIView(KSignSheetView.self) {
+      AsyncFunction("command") { (view: KSignSheetView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
   }
 }
