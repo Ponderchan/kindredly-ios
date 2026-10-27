@@ -341,32 +341,33 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   noteentry: true,
   noteday: true,
   photoroll: true,
-  // Wren's introduction, the whole sheet (2026-10-27): off until its simulator pass
-  introritual: false,
-  // the pieces over the chat (2026-10-27): off until their simulator pass
-  lightbox: false,
+  // Wren's introduction, the whole sheet (2026-10-27): on after its simulator pass
+  introritual: true,
+  // the pieces over the chat (2026-10-27): on after their simulator pass, but the song shelf
+  // (its dim didn't close it and its sheet stopped short of the bottom; being fixed)
+  lightbox: true,
   songshelf: false,
-  signsheet: false,
-  // the sheets every screen shares (2026-10-27): off until their simulator pass
-  leavesheet: false,
-  reportsheet: false,
-  signupsheet: false,
-  toast: false,
-  // Today's overlays (2026-10-27): off until their simulator pass
-  letterreader: false,
-  wardrobeslip: false,
-  parcel: false,
-  // three full-screen moments (2026-10-27): off until their simulator pass
-  growthmoment: false,
-  identitynote: false,
-  firstflight: false,
-  // three pieces of the composers (2026-10-27): off until their simulator pass
-  recorder: false,
-  audiocard: false,
-  lettertravel: false,
-  // two pieces of Me (2026-10-27): off until their simulator pass
-  couriercard: false,
-  auraart: false,
+  signsheet: true,
+  // the sheets every screen shares (2026-10-27): on after their simulator pass
+  leavesheet: true,
+  reportsheet: true,
+  signupsheet: true,
+  toast: true,
+  // Today's overlays (2026-10-27): on after their simulator pass
+  letterreader: true,
+  wardrobeslip: true,
+  parcel: true,
+  // three full-screen moments (2026-10-27): on after their simulator pass
+  growthmoment: true,
+  identitynote: true,
+  firstflight: true,
+  // three pieces of the composers (2026-10-27): on after their simulator pass
+  recorder: true,
+  audiocard: true,
+  lettertravel: true,
+  // two pieces of Me (2026-10-27): on after their simulator pass
+  couriercard: true,
+  auraart: true,
 };
 
 /** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages, a kindred's page, Wren's room, the five small pages and three Notes pages (the `surface` prop of NativeSurface) */

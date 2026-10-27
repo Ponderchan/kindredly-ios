@@ -86,26 +86,27 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   // three Notes pages in Swift (2026-10-27): on after their simulator pass
   const NOTE_PAGES = ["noteentry", "noteday", "photoroll"];
   ok("the three Notes pages' keys are there and on", NOTE_PAGES.every((k) => entries[k] === true));
-  // Wren's introduction, the whole sheet in Swift (2026-10-27): there, and OFF until its simulator pass
-  ok("the introduction's key is there and off", "introritual" in entries && entries.introritual === false);
-  // the pieces over the chat (2026-10-27): there, and OFF until their simulator pass
+  // Wren's introduction, the whole sheet in Swift (2026-10-27): on after the simulator pass
+  ok("the introduction's key is there and on", entries.introritual === true);
+  // the pieces over the chat (2026-10-27): on after the simulator pass (the song shelf still off)
   const CHAT_OVERLAYS = ["lightbox", "songshelf", "signsheet"];
-  ok("the chat overlays' three keys are there and off", CHAT_OVERLAYS.every((k) => k in entries && entries[k] === false));
-  // the sheets every screen shares (2026-10-27): there, and OFF until their simulator pass
+  ok("the lightbox and the sign sheet are on", entries.lightbox === true && entries.signsheet === true);
+  ok("the song shelf is there and off (its dim and its height, being fixed)", "songshelf" in entries && entries.songshelf === false);
+  // the sheets every screen shares (2026-10-27): on after the simulator pass
   const SHEETS = ["leavesheet", "reportsheet", "signupsheet", "toast"];
-  ok("the four shared sheets' keys are there and off", SHEETS.every((k) => k in entries && entries[k] === false));
-  // Today's overlays in Swift (2026-10-27): there, and OFF until their simulator pass
+  ok("the four shared sheets' keys are there and on", SHEETS.every((k) => entries[k] === true));
+  // Today's overlays in Swift (2026-10-27): on after the simulator pass
   const TODAY_OVERLAYS = ["letterreader", "wardrobeslip", "parcel"];
-  ok("Today's three overlay keys are there and off", TODAY_OVERLAYS.every((k) => k in entries && entries[k] === false));
-  // three full-screen moments in Swift (2026-10-27): there, and OFF until their simulator pass
+  ok("Today's three overlay keys are there and on", TODAY_OVERLAYS.every((k) => entries[k] === true));
+  // three full-screen moments in Swift (2026-10-27): on after the simulator pass
   const MOMENTS = ["growthmoment", "identitynote", "firstflight"];
-  ok("the three moments' keys are there and off", MOMENTS.every((k) => k in entries && entries[k] === false));
-  // three pieces of the composers in Swift (2026-10-27): there, and OFF until their simulator pass
+  ok("the three moments' keys are there and on", MOMENTS.every((k) => entries[k] === true));
+  // three pieces of the composers in Swift (2026-10-27): on after the simulator pass
   const COMPOSE_PIECES = ["recorder", "audiocard", "lettertravel"];
-  ok("the composers' three pieces' keys are there and off", COMPOSE_PIECES.every((k) => k in entries && entries[k] === false));
-  // two pieces of Me in Swift (2026-10-27): there, and OFF until their simulator pass
+  ok("the composers' three pieces' keys are there and on", COMPOSE_PIECES.every((k) => entries[k] === true));
+  // two pieces of Me in Swift (2026-10-27): on after the simulator pass
   const ME_PIECES = ["couriercard", "auraart"];
-  ok("the two Me pieces' keys are there and off", ME_PIECES.every((k) => k in entries && entries[k] === false));
+  ok("the two Me pieces' keys are there and on", ME_PIECES.every((k) => entries[k] === true));
   ok("nothing else is in the table", Object.keys(entries).length === NINE.length + ME4A.length + AURA.length + ME_LAST.length + SMALL.length + NOTE_PAGES.length + CHAT_OVERLAYS.length + SHEETS.length + TODAY_OVERLAYS.length + MOMENTS.length + COMPOSE_PIECES.length + ME_PIECES.length + 10);
 }
 
