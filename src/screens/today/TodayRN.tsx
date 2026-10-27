@@ -805,7 +805,7 @@ export function TodayRN({ model }: { model: TodayModel }) {
             <CardFace card={deck.leaving.card} letter={deck.leaving.letter} model={model} still />
           </LeavingCard>
         )}
-        {flow.letter && <WrenLetterRN letter={view.wrenLetter} animateIn={flow.playing} reduce={reduce} wilt={view.wren.wilt} />}
+        {flow.letter && <WrenLetterRN letter={view.wrenLetter} animateIn={flow.playing} reduce={reduce} wilt={view.wren.wilt} onBringBack={act.bringBack} />}
       </Animated.View>
 
       <HeaderRN title={view.strings.title} safeTop={insets.top} />
@@ -1608,7 +1608,7 @@ const CHIP_IN = new Keyframe({
   100: { opacity: 1, transform: [{ scale: 1 }] },
 }).duration(300);
 
-function WrenLetterRN({ letter, animateIn, reduce, wilt }: { letter: WrenLetterVM; animateIn: boolean; reduce: boolean; wilt: boolean }) {
+function WrenLetterRN({ letter, animateIn, reduce, wilt, onBringBack }: { letter: WrenLetterVM; animateIn: boolean; reduce: boolean; wilt: boolean; onBringBack: () => void }) {
   const { t: tk, dark } = useTheme();
   const letterKey = useLetterFont();
   const letterFace = useLetterFamily();
@@ -1703,6 +1703,21 @@ function WrenLetterRN({ letter, animateIn, reduce, wilt }: { letter: WrenLetterV
             <View style={{ width: 46, height: 56, borderRadius: 4, borderWidth: 2.5, borderStyle: "dotted", borderColor: tk.ln, backgroundColor: tk.soft, alignItems: "center", justifyContent: "center", transform: [{ rotate: "4deg" }] }}>
               <WrenBird size={32} mood="content" wilt={wilt} />
             </View>
+            {/* the ⋯ a card has, with its one item: the day's last pass, brought back */}
+            {!!letter.bringBack && (
+              <Pressable
+                onPress={() =>
+                  ActionSheetIOS.showActionSheetWithOptions({ options: [letter.bringBack, t("rp.menu.never")], cancelButtonIndex: 1 }, (i) => {
+                    if (i === 0) onBringBack();
+                  })
+                }
+                accessibilityRole="button"
+                accessibilityLabel={letter.more}
+                style={{ width: 22, height: 44, alignItems: "center", justifyContent: "center" }}
+              >
+                <LineIcon name="more" size={22} color={tk.sub} />
+              </Pressable>
+            )}
           </View>
           <View style={{ marginTop: 10, gap: 8 }}>
             {letter.lines.map((l, i) => (

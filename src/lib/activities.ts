@@ -209,6 +209,17 @@ export async function startLetterOut(letterId: string, stampId: string | null | 
   }
 }
 
+/** the day is open again (its last pass brought back, or a new morning): her "all read" comes off the lock screen */
+export async function endDayClosed(): Promise<void> {
+  const m = load();
+  if (!m) return;
+  try {
+    for (const i of m.DayClosed.getInstances()) await i.end("immediate");
+  } catch (e) {
+    if (__DEV__) console.warn("[activities] day closed, ending:", String((e as Error)?.message ?? e));
+  }
+}
+
 /** dev + sign-out: take her off the lock screen entirely */
 export async function endAllActivities(): Promise<void> {
   const m = load();

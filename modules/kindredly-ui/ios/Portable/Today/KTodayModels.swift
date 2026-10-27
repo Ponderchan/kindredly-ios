@@ -181,6 +181,11 @@ public struct KWrenLetterModel: Equatable, Sendable {
   public var chip = ""
   /// VoiceOver: "A letter from Wren"
   public var a11y = ""
+  /// the ⋯'s one item, "Bring back the last letter", while the day's last pass can be undone;
+  /// "" draws no ⋯ (a done desk has no card, so its ⋯ was the only way back: No. 1692)
+  public var bringBack = ""
+  /// VoiceOver for that ⋯ (the cards' own)
+  public var more = ""
 
   public init() {}
 }

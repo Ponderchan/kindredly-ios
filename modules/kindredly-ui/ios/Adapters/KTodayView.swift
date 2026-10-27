@@ -230,6 +230,8 @@ struct KTodayWrenLetterRecord: Record {
   @Field var notYet: String = ""
   @Field var chip: String = ""
   @Field var a11y: String = ""
+  @Field var bringBack: String = ""
+  @Field var more: String = ""
 
   var model: KWrenLetterModel {
     var m = KWrenLetterModel()
@@ -243,6 +245,8 @@ struct KTodayWrenLetterRecord: Record {
     m.notYet = notYet
     m.chip = chip
     m.a11y = a11y
+    m.bringBack = bringBack
+    m.more = more
     return m
   }
 }

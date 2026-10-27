@@ -105,6 +105,8 @@ struct KWrenLetter: View {
   let focusOnAppear: Bool
   /// drop the bag's envelopes in one by one (the letter came in through the timeline)
   let animateIn: Bool
+  /// the ⋯'s Bring back (shown while model.bringBack says so)
+  let onBringBack: () -> Void
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   /// the reader's Letter font: her lines are set in it
@@ -119,12 +121,13 @@ struct KWrenLetter: View {
   /// how many envelopes have dropped in (only read while they are dropping in)
   @State private var dropped = 0
 
-  init(theme: KTheme, model: KWrenLetterModel, stampBird: KImageRef?, focusOnAppear: Bool = false, animateIn: Bool = false) {
+  init(theme: KTheme, model: KWrenLetterModel, stampBird: KImageRef?, focusOnAppear: Bool = false, animateIn: Bool = false, onBringBack: @escaping () -> Void = {}) {
     self.theme = theme
     self.model = model
     self.stampBird = stampBird
     self.focusOnAppear = focusOnAppear
     self.animateIn = animateIn
+    self.onBringBack = onBringBack
   }
 
   /// the envelopes in the bag now: all three at rest and under Reduce Motion
@@ -265,6 +268,21 @@ struct KWrenLetter: View {
       }
       .frame(maxWidth: .infinity, alignment: .leading)
       stamp
+      // the ⋯ a letter card has, with its one item: the day's last pass, brought back
+      if !model.bringBack.isEmpty {
+        Menu {
+          SwiftUI.Button(action: onBringBack) {
+            Label(model.bringBack, systemImage: "arrow.uturn.backward")
+          }
+        } label: {
+          KLineIcon(.more, size: KLetterCard.moreGlyph, lineWidth: 3.2, color: theme.sub)
+            .frame(width: KLetterCard.moreTarget, height: KLetterCard.moreTarget)
+            .contentShape(Rectangle())
+        }
+        .menuIndicator(.hidden)
+        .padding(.horizontal, -(KLetterCard.moreTarget - KLetterCard.moreGlyph) / 2)
+        .accessibilityLabel(model.more)
+      }
     }
   }
 

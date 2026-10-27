@@ -199,21 +199,24 @@ struct KDoneView: View {
   let letter: KWrenLetterModel
   let birds: KTodayBirds
   @ObservedObject var flow: KDayFlow
+  /// her letter's ⋯: the day's last pass, brought back (TS reopens the desk; the flow resets)
+  let onBringBack: () -> Void
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-  init(theme: KTheme, letter: KWrenLetterModel, birds: KTodayBirds, flow: KDayFlow) {
+  init(theme: KTheme, letter: KWrenLetterModel, birds: KTodayBirds, flow: KDayFlow, onBringBack: @escaping () -> Void = {}) {
     self.theme = theme
     self.letter = letter
     self.birds = birds
     self.flow = flow
+    self.onBringBack = onBringBack
   }
 
   var body: some View {
     ZStack {
       if flow.letterShown {
         // her stamp is her own picture, at rest (the content capture: TS's fallback for them all)
-        KWrenLetter(theme: theme, model: letter, stampBird: birds.idle, focusOnAppear: flow.played, animateIn: flow.played)
+        KWrenLetter(theme: theme, model: letter, stampBird: birds.idle, focusOnAppear: flow.played, animateIn: flow.played, onBringBack: onBringBack)
           .transition(reduceMotion ? .opacity : .kWrenLetterRise)
       }
     }

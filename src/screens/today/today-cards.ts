@@ -211,7 +211,8 @@ export function canBringBack(rec: DayRecord): boolean {
 export function bringBack(rec: DayRecord): DayRecord {
   if (!canBringBack(rec)) return rec;
   const id = rec.undo;
-  return { ...rec, passed: rec.passed.filter((p) => p !== id), undo: null };
+  // from a done desk too (her letter's ⋯): the day is open again, so the done moment goes with it
+  return { ...rec, passed: rec.passed.filter((p) => p !== id), undo: null, doneAt: null };
 }
 
 /**
@@ -396,10 +397,16 @@ export type WrenLetterVM = {
   /** THAT'S ALL FOR TODAY (the letter's tap) */
   chip: string;
   a11y: string;
+  /** the ⋯'s one item, "Bring back the last letter", while the last pass can still be undone
+      ("" otherwise: no ⋯). Without it a mistaken pass of the day's last letter had no way back:
+      the bring-back lives in a card's ⋯, and a done desk has no card (No. 1692, 2026-10-20). */
+  bringBack: string;
+  /** VoiceOver for that ⋯ (the cards' own) */
+  more: string;
 };
 
 export function buildWrenLetter(
-  { facts, name, doneAt, now }: { facts: WrenLetterFacts; name: string; doneAt: number | null; now: Date },
+  { facts, name, doneAt, now, canBringBack = false }: { facts: WrenLetterFacts; name: string; doneAt: number | null; now: Date; canBringBack?: boolean },
   fmt: Pick<TodayFormat, "t" | "stampTime" | "clockHour">,
 ): WrenLetterVM {
   const { t } = fmt;
@@ -416,6 +423,8 @@ export function buildWrenLetter(
     notYet: `${t("ld.notYet")} · ${countdown}`,
     chip: t("cod.wholePost"),
     a11y: t("wl.a11y", { name }),
+    bringBack: canBringBack ? t("ld.bringBack") : "",
+    more: t("rp.menu.a11y"),
   };
 }
 

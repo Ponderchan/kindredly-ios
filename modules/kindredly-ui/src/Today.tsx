@@ -149,6 +149,10 @@ export type KTodayWrenLetter = {
   notYet: string;
   chip: string;
   a11y: string;
+  /** the ⋯'s one item while the last pass can be brought back; "" = no ⋯ */
+  bringBack: string;
+  /** VoiceOver for the ⋯ */
+  more: string;
 };
 
 /** The window's sky by the hour, "#RRGGBB" (today-cards WindowSky). */

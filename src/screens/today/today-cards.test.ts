@@ -157,6 +157,11 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   const r2 = M.bringBack(r1);
   ok("bring back: the letter is back on screen", r2.passed.length === 0 && r2.undo === null && M.unpassed(r2.desk, r2.passed)[0].id === "a");
   ok("bring back: only once (a second is a no-op)", !M.canBringBack(r2) && M.bringBack(r2) === r2);
+  // the day's last letter passed by mistake (No. 1692): the desk was done, her letter's ⋯ brings it back
+  const allPassed = M.markDone(M.passLetter(M.passLetter(M.passLetter(r0, "a"), "b"), "c"), 99);
+  ok("bring back: from a done desk, the last pass is offered", M.deskPhase({ loaded: true, offline: false, desk: allPassed.desk, passed: allPassed.passed }) === "done" && M.canBringBack(allPassed));
+  const reopened = M.bringBack(allPassed);
+  ok("bring back: a done desk reads again, and its done moment goes", M.deskPhase({ loaded: true, offline: false, desk: reopened.desk, passed: reopened.passed }) === "reading" && reopened.doneAt === null && M.unpassed(reopened.desk, reopened.passed)[0].id === "c");
   const r3 = M.passLetter(M.passLetter(r0, "a"), "b");
   ok("bring back: only the last pass", M.bringBack(r3).passed.join() === "a");
   const replied = M.answerLetter(r1, "b");
@@ -266,6 +271,8 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   ok("her letter: the countdown to 08:00 (23:54 → 8H 06M)", vm.countdown === "ld.countdown(h=8,m=06)" && vm.notYet === "ld.notYet · ld.countdown(h=8,m=06)");
   ok("her letter: the foot names her in capitals", vm.foot === "cod.nextPost(name=ÉMILE)" && vm.chip === "cod.wholePost" && vm.a11y === "wl.a11y(name=émile)" && vm.from === "wl.from");
   ok("her letter: a two-word name works", M.buildWrenLetter({ facts: f, name: "Sir Pip", doneAt: 1, now }, fmt).sign === "wl.sign(initial=S,name=Sir Pip)");
+  ok("her letter: no ⋯ unless the last pass can come back", vm.bringBack === "" && vm.more === "rp.menu.a11y");
+  ok("her letter: the ⋯'s one item when it can", M.buildWrenLetter({ facts: f, name: "Wren", doneAt: 1, now, canBringBack: true }, fmt).bringBack === "ld.bringBack");
 
   const sky = M.windowSky({ sky: ["#1E1B35", "#2E2A6B"], scrim: "#2B2660", chip: "#FFFFFF", text: "#FFFFFF", stars: true }, true);
   ok("window sky: night takes the night gradient, her moonlit ink on the pipes, white words", sky.top === "#1E1B35" && sky.bottom === "#2E2A6B" && sky.pillarFill === "#2B2660" && sky.pillarInk === "#DAD6F2" && sky.text === "#FFFFFF" && sky.stars && sky.night);

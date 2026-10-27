@@ -25,7 +25,7 @@ import { useAuth } from "../../lib/auth";
 import { SEND_BEAT_MS } from "../../lib/net";
 import { DAY_LETTERS, MAX_IN_FLIGHT, inFlight, rationPool, type FlightThread } from "../../lib/ration";
 import { deskDay, isNightHour } from "../../lib/day";
-import { startDayClosed } from "../../lib/activities";
+import { endDayClosed, startDayClosed } from "../../lib/activities";
 import { onYou } from "../../lib/waiting";
 import { readRoomSeen } from "../../lib/room-seen";
 import { useWrenStage, wrenStageDirty } from "../../lib/wren-stage";
@@ -516,7 +516,11 @@ export function useRealTodayDeps(): TodayDeps {
         void sealDay(day);
         void startDayClosed(facts); // her, on the lock screen, till she's back
       },
-      unseal: (day) => void unsealDay(day),
+      // the desk is open again (a new day, or the last pass brought back): she comes off the lock screen too
+      unseal: (day) => {
+        void unsealDay(day);
+        void endDayClosed();
+      },
       openWindow: () => router.push("/courier?play=1"),
     }),
     [router],
@@ -1273,9 +1277,11 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   canPlayRef.current = canPlay;
   const factsCount = rec.passed.length + rec.answered.length;
   const repliedCount = rec.answered.length;
+  // her letter's ⋯ brings the last pass back from a done desk (the cards' ⋯ does it while reading)
+  const bringBackDone = C.canBringBack(rec) && phase === "done";
   const wrenLetter = useMemo(
-    () => C.buildWrenLetter({ facts: { count: factsCount, replied: repliedCount, waiting: source.waiting, canPlay }, name: wren, doneAt: rec.doneAt, now }, fmt),
-    [factsCount, repliedCount, source.waiting, canPlay, wren, rec.doneAt, now, fmt],
+    () => C.buildWrenLetter({ facts: { count: factsCount, replied: repliedCount, waiting: source.waiting, canPlay }, name: wren, doneAt: rec.doneAt, now, canBringBack: bringBackDone }, fmt),
+    [factsCount, repliedCount, source.waiting, canPlay, wren, rec.doneAt, now, fmt, bringBackDone],
   );
   const light = daylight(hour);
   const flightWindow = useMemo(() => C.buildWindow({ canPlay, name: wren, countdown: wrenLetter.countdown, sky: C.windowSky(PALETTE[light], light === "night") }, t), [canPlay, wren, wrenLetter.countdown, light, lang]); // eslint-disable-line react-hooks/exhaustive-deps

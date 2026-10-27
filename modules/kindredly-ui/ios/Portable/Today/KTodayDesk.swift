@@ -298,7 +298,7 @@ public struct KTodayDesk: View {
           actions: actions,
           onReply: { id in reply(id) }
         )
-        KDoneView(theme: theme, letter: content.wrenLetter, birds: content.birds, flow: flow)
+        KDoneView(theme: theme, letter: content.wrenLetter, birds: content.birds, flow: flow) { [actions] in actions.onBringBack() }
       }
       .frame(width: max(0, W - 2 * KTodayGeometry.gutter), height: slotHeight)
       // the keyboard's own length, so the card and the bar move together; a short ease under
