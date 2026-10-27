@@ -339,5 +339,13 @@ public class KindredlyUIModule: Module {
     Function("setTextScript") { (lang: String) in
       KType.tallScript = lang == "ja" || lang == "ko"
     }
+
+    // Wren's introduction, the whole sheet (2026-10-27; behind the "introritual" switch, off by
+    // default): adapter in Adapters/KIntroductionView.swift, the sheet in Portable/Chat/
+    // KIntroduction.swift, its mosaic ritual in Portable/Chat/KIntroMosaicRitual.swift (the signed
+    // one is KIntroRitual); src/components/IntroductionNative.tsx. No commands: it draws, and
+    // reports the ✕, TALK TO, a held signature and VoiceOver's two actions as events. New files:
+    // a pod install before the build.
+    ExpoUIView(KIntroductionView.self)
   }
 }

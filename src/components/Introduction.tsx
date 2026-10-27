@@ -1,24 +1,19 @@
 import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { MONO, PFM } from "../theme/post";
 import { useLetterFamily, useP, useTheme } from "../lib/theme";
-import { AvatarImage } from "./AvatarImage";
-import { ritualDoneAt } from "./IntroductionRitual";
 import { CeremonyRitual } from "./IntroductionRitualNative";
-import Animated, { FadeIn, useReducedMotion } from "react-native-reanimated";
-import { useSignatureHold } from "./SignatureHold";
-import type { SignedPair } from "../lib/signed-sides";
-import { dShort } from "../lib/format";
-import { stickerName } from "../lib/sticker-copy";
-import type { ThreadMessage } from "../lib/db";
-import { roadFact, type KindredNotice } from "../lib/kindred-read";
+import { IntroductionSwift } from "./IntroductionNative";
+import { NativeSurface } from "./NativeSurface";
+import { useIntroduction, type IntroductionProps } from "./useIntroduction";
 import { t, useLang } from "../lib/i18n";
 import { dismissKeyboard } from "../lib/keyboard";
+import { nativeOn } from "../lib/surfaces";
+import { isKindredlyUIViewAvailable } from "../../modules/kindredly-ui";
 import { WrenBird } from "./WrenBird";
 import "../data/strings-step5-chat"; // in.meFallback, in.knowYouUnsigned
-import "../data/strings-identity2"; // id2.in.*, id2.rp.signature
-import "../data/strings-a11y-chat"; // in.a11yOff
 
 /* Wren's introduction — the ceremony that replaces the reveal toast.
    ────────────────────────────────────────────────────────────────────────
@@ -65,204 +60,154 @@ import "../data/strings-a11y-chat"; // in.a11yOff
 
    SWIFT (owner, 2026-10-26; 1.0.7): with `signed`, the ritual itself is
    drawn by SwiftUI behind the "ceremony" switch (CeremonyRitual in
-   IntroductionRitualNative), on the same clock; this sheet, its words, its
-   button and the Report / Block card stay React Native either way, and
-   VoiceOver also hears the sentence announced once the ritual is done. */
-export function Introduction({
-  open,
-  wren,
-  otherSeed,
-  otherFace,
-  otherName,
-  otherArchetype,
-  myName,
-  road = [],
-  mySeed = "me",
-  myFace = null,
-  notice = null,
-  since = new Date().toISOString(),
-  stamp = null,
-  signed = null,
-  report,
-  reducedMotion,
-  onClose,
-  onTalk,
-}: {
-  open: boolean;
-  wren: string;
-  otherSeed: string;
-  otherFace?: string | null;
-  otherName: string;
-  /** the read of their writing — the part a name could never have said */
-  otherArchetype?: string | null;
-  /** the reader's own pen name, or "" when they have none */
-  myName: string;
-  /** the letters that bought this, oldest first — five each way */
-  road?: ThreadMessage[];
-  mySeed?: string;
-  myFace?: string | null;
-  /** what Wren noticed about the two of you — counted from their letters */
-  notice?: KindredNotice | null;
-  /** the day the names met */
-  since?: string;
-  /** the stamp the correspondence opened under */
-  stamp?: string | null;
-  /** identity on: what each side signed (lib/signed-sides); null/absent = today's mosaic ritual */
-  signed?: SignedPair | null;
-  /** identity on: who a held signature is reported about, and where a block goes */
-  report?: { threadId?: string | null; targetUser?: string | null; onBlocked?: () => void };
-  /** dev preview only: force Reduce Motion on or off (else the system's setting) */
-  reducedMotion?: boolean;
-  onClose: () => void;
-  /** the exit isn't "dismiss" — it's the door into the room */
-  onTalk: () => void;
-}) {
+   IntroductionRitualNative), on the same clock, and VoiceOver also hears
+   the sentence announced once the ritual is done.
+
+   THE WHOLE SHEET IN SWIFT (2026-10-27, behind "introritual", OFF by
+   default): the same page sheet (this Modal) holds one SwiftUI Host
+   (IntroductionNative → KIntroductionView) that draws the header, her
+   letter, the ritual — the mosaic one redrawn in SwiftUI on the very same
+   clock (introduction-model), the signed one the ceremony's KIntroRitual —
+   what she noticed, the line under it and TALK TO. The words, the clock,
+   the faces, Reduce Motion, the hold and its Report / Block card (still
+   React Native, over the Host) are this file's, shared by both bodies
+   (useIntroduction). It is chosen as the sheet opens and kept until it
+   closes (NativeSurface, mount mode: the switch, the binary having the
+   view, the crash breadcrumb, a JS error), and a signed ritual takes the
+   Swift sheet only while the "ceremony" switch would have drawn it in
+   Swift too. Off, or any of that: this sheet, exactly as before
+   (IntroductionRN). What the ritual records as seen (the once-per-phone
+   ledger) is useCeremony's, before either draws. */
+export function Introduction(props: IntroductionProps) {
   useLang(); // repaint when the reader changes language
+  const { open, onClose } = props;
   /* it rises on its own (the second signature landing, a room opened after the reveal), not from a
      tap that already let go of the keyboard: put it away, whoever holds it (lib/keyboard) */
   useEffect(() => {
     if (open) dismissKeyboard();
   }, [open]);
+  return (
+    <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <IntroductionSheet {...props} />
+    </Modal>
+  );
+}
+
+/* What the Modal holds: mounted as it opens, gone once it has closed, so the choice below is made
+   once per showing. The clock starts here, before the Swift path's breadcrumb is written. */
+function IntroductionSheet(props: IntroductionProps) {
+  const [startAt] = useState(() => Date.now());
+  // off (the default), this is the React Native sheet with nothing in front of it
+  const [swiftOn] = useState(() => nativeOn("introritual"));
+  // the signed ritual in Swift is the ceremony's; with that switch off it stays React Native
+  const [ceremonyOn] = useState(() => nativeOn("ceremony") && isKindredlyUIViewAvailable("KIntroRitualView"));
+  const P = useP();
+  if (!swiftOn || (props.signed && !ceremonyOn)) return <IntroductionRN {...props} />;
+  return (
+    <NativeSurface
+      surface="introritual"
+      view="KIntroductionView"
+      mode="mount"
+      native={() => <IntroductionSwift {...props} startAt={startAt} />}
+      fallback={() => <IntroductionRN {...props} />}
+      // the sheet's own page while the phone's answers are read (a frame or two)
+      pending={() => <View style={{ flex: 1, backgroundColor: P.paper }} />}
+    />
+  );
+}
+
+/** The React Native sheet's body: exactly the introduction as it was before the Swift sheet. */
+function IntroductionRN(props: IntroductionProps) {
+  useLang();
+  const { wren, otherSeed, otherFace, otherName, myName, road = [], mySeed = "me", myFace = null, notice = null, since = new Date().toISOString(), stamp = null, signed = null, onClose, onTalk } = props;
   const P = useP();
   // Wren's words here are content: the reader's Letter font (her two lines in its italic)
   const face = useLetterFamily();
   const wrenFace = useLetterFamily(true);
   const tk = useTheme().t;
   const insets = useSafeAreaInsets();
-  const systemStill = useReducedMotion();
-  const still = reducedMotion ?? systemStill;
-  const doneAt = ritualDoneAt(!!signed, still);
-  /* the signed ritual's end state, when their signature may be held (and VoiceOver offers it) */
-  const [done, setDone] = useState(false);
-  useEffect(() => {
-    setDone(false);
-    if (!open || !signed) return;
-    const id = setTimeout(() => setDone(true), doneAt);
-    return () => clearTimeout(id);
-  }, [open, signed, doneAt]);
-  const hold = useSignatureHold({
-    threadId: report?.threadId,
-    targetUser: signed ? report?.targetUser : null,
-    onBlocked: report?.onBlocked,
-    inSheet: true,
-  });
-  // what was signed, when it was: the line under the ritual and TALK TO follow it
-  const theirName = signed ? signed.theirs.name : otherName;
-  const meName = signed ? signed.mine.name : myName;
-  const ritualA11y = signed
-    ? [
-        t("id2.in.a11y", { name: signed.theirs.courier, pen: signed.theirs.name }),
-        t("id2.in.a11yMine", { name: signed.mine.courier, pen: signed.mine.name || t("in.meFallback") }),
-        t("in.sinceChip", { date: dShort(since).toUpperCase() }),
-      ].join(" ")
-    : /* the mosaic ritual (no signatures: the switch off, or names traded before it) is one
-         sentence too, not the jumping counts, ten envelopes' dates and a half-typed name */
-      [
-        road.length ? t("in.a11yOff", { n: road.length, name: otherName }) : otherName,
-        t("in.sinceChip", { date: dShort(since).toUpperCase() }),
-      ]
-        .filter(Boolean)
-        .join(" ");
-  const holdable = !!signed && done && hold.can;
+  const { still, doneAt, hold, holdable, words } = useIntroduction(props);
+  const ritualA11y = words.ritualA11y;
   return (
-    <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: P.paper }}>
-        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 18, paddingBottom: 12 }}>
-          {/* the sheet's title, as every secondary title: System 500 17, centred (the ✕'s width
-              mirrored on the left keeps it on the middle) */}
-          <View style={{ width: 24 }} />
-          <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, fontWeight: "500", textAlign: "center", color: P.ink }}>
-            {t("intro.carriedBy", { name: wren })}
-          </Text>
-          <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel={t("wren.trackClose")} style={{ width: 24, alignItems: "flex-end" }}>
-            <Text style={{ ...PFM.mono, fontSize: 16, color: P.ink40 }}>✕</Text>
-          </Pressable>
-        </View>
-
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 26, paddingTop: 30, paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
-          <WrenBird size={44} mood="content" stage="wren" />
-
-          <Text style={{ ...wrenFace, fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 18 }}>
-            {t("intro.body")}
-          </Text>
-
-          {/* THE RITUAL — four beats: the ten letters stamped in order, the
-              mosaic flying into a postmark, the name typed into it by •>,
-              and both faces resolving side by side. Identity on: the road,
-              the frost wiped clear, the courier names struck, the two
-              signatures drawn in, the bump — one VoiceOver sentence. */}
-          <View
-            style={{ marginTop: 22, marginBottom: 4 }}
-            {...(ritualA11y
-              ? {
-                  accessible: true,
-                  accessibilityLabel: ritualA11y,
-                  accessibilityActions: holdable ? hold.actions : undefined,
-                  onAccessibilityAction: hold.onAction,
-                }
-              : null)}
-          >
-            {/* Swift where it can be (the "ceremony" switch, both sides signed), else React Native's */}
-            <CeremonyRitual
-              road={road}
-              otherSeed={otherSeed}
-              otherFace={otherFace}
-              otherName={otherName}
-              mySeed={mySeed}
-              myFace={myFace}
-              myName={myName || t("in.meFallback")}
-              since={since}
-              stamp={stamp}
-              notice={notice}
-              signed={signed}
-              still={still}
-              holdable={holdable}
-              onHoldTheirs={hold.open}
-              announce={ritualA11y}
-            />
-          </View>
-
-          {/* what she noticed — a label you both wear, or their strongest;
-              and when five letters were too few for any label, what the
-              road itself says. Counted, never generated. */}
-          {(() => {
-            const fact = notice ? null : roadFact(road);
-            if (!notice && !fact) return null;
-            const line = notice
-              ? notice.shared
-                ? t("in.both", { label: stickerName(notice.stickerId), n: notice.supporting, m: notice.eligible })
-                : t("in.theirs", { name: theirName, label: stickerName(notice.stickerId), n: notice.supporting, m: notice.eligible })
-              : fact!.nightTheirs > 0
-                ? t("in.roadNight", { n: fact!.letters, d: fact!.days, k: fact!.nightTheirs })
-                : t("in.roadWait", { n: fact!.letters, d: fact!.days, g: fact!.longestWaitDays });
-            return (
-              <Animated.View entering={FadeIn.duration(500).delay(doneAt)} style={{ marginTop: 10, alignItems: "center", paddingHorizontal: 8 }}>
-                <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.16, color: P.pen }}>{t("in.noticed", { wren: wren.toUpperCase() })}</Text>
-                <Text style={{ ...face, fontSize: 14, lineHeight: 20, color: P.ink60, marginTop: 6, textAlign: "center" }}>{line}</Text>
-              </Animated.View>
-            );
-          })()}
-
-          <Text style={{ ...wrenFace, fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 26 }}>
-            {meName ? t("in.knowYou", { name: meName }) : t("in.knowYouUnsigned")}
-          </Text>
-        </ScrollView>
-
-        {/* Report this signature / Block, under their held signature — inside this sheet */}
-        {signed ? hold.sheet : null}
-
-        <View style={{ paddingHorizontal: 22, paddingBottom: Math.max(insets.bottom, 12) + 8 }}>
-          <Pressable
-            onPress={onTalk}
-            accessibilityRole="button"
-            style={({ pressed }) => ({ backgroundColor: tk.ind, borderRadius: 14, paddingVertical: 15, alignItems: "center", opacity: pressed ? 0.85 : 1 })}
-          >
-            <Text style={{ fontSize: 16, fontWeight: "600", letterSpacing: 0.4, color: tk.bg }}>
-              {t("in.talkTo", { name: theirName })}
-            </Text>
-          </Pressable>
-        </View>
+    <View style={{ flex: 1, backgroundColor: P.paper }}>
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 22, paddingTop: 18, paddingBottom: 12 }}>
+        {/* the sheet's title, as every secondary title: System 500 17, centred (the ✕'s width
+            mirrored on the left keeps it on the middle) */}
+        <View style={{ width: 24 }} />
+        <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, fontWeight: "500", textAlign: "center", color: P.ink }}>
+          {words.title}
+        </Text>
+        <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel={words.close} style={{ width: 24, alignItems: "flex-end" }}>
+          <Text style={{ ...PFM.mono, fontSize: 16, color: P.ink40 }}>✕</Text>
+        </Pressable>
       </View>
-    </Modal>
+
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 26, paddingTop: 30, paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
+        <WrenBird size={44} mood="content" stage="wren" />
+
+        <Text style={{ ...wrenFace, fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 18 }}>{words.body}</Text>
+
+        {/* THE RITUAL — four beats: the ten letters stamped in order, the
+            mosaic flying into a postmark, the name typed into it by •>,
+            and both faces resolving side by side. Identity on: the road,
+            the frost wiped clear, the courier names struck, the two
+            signatures drawn in, the bump — one VoiceOver sentence. */}
+        <View
+          style={{ marginTop: 22, marginBottom: 4 }}
+          {...(ritualA11y
+            ? {
+                accessible: true,
+                accessibilityLabel: ritualA11y,
+                accessibilityActions: holdable ? hold.actions : undefined,
+                onAccessibilityAction: hold.onAction,
+              }
+            : null)}
+        >
+          {/* Swift where it can be (the "ceremony" switch, both sides signed), else React Native's */}
+          <CeremonyRitual
+            road={road}
+            otherSeed={otherSeed}
+            otherFace={otherFace}
+            otherName={otherName}
+            mySeed={mySeed}
+            myFace={myFace}
+            myName={myName || t("in.meFallback")}
+            since={since}
+            stamp={stamp}
+            notice={notice}
+            signed={signed}
+            still={still}
+            holdable={holdable}
+            onHoldTheirs={hold.open}
+            announce={ritualA11y}
+          />
+        </View>
+
+        {/* what she noticed — a label you both wear, or their strongest;
+            and when five letters were too few for any label, what the
+            road itself says. Counted, never generated. */}
+        {words.noticedLine ? (
+          <Animated.View entering={FadeIn.duration(500).delay(doneAt)} style={{ marginTop: 10, alignItems: "center", paddingHorizontal: 8 }}>
+            <Text style={{ ...PFM.monoSemi, fontSize: MONO.label, letterSpacing: MONO.label * 0.16, color: P.pen }}>{words.noticedHead}</Text>
+            <Text style={{ ...face, fontSize: 14, lineHeight: 20, color: P.ink60, marginTop: 6, textAlign: "center" }}>{words.noticedLine}</Text>
+          </Animated.View>
+        ) : null}
+
+        <Text style={{ ...wrenFace, fontSize: 16.5, lineHeight: 26, color: P.ink60, marginTop: 26 }}>{words.knowYou}</Text>
+      </ScrollView>
+
+      {/* Report this signature / Block, under their held signature — inside this sheet */}
+      {signed ? hold.sheet : null}
+
+      <View style={{ paddingHorizontal: 22, paddingBottom: Math.max(insets.bottom, 12) + 8 }}>
+        <Pressable
+          onPress={onTalk}
+          accessibilityRole="button"
+          style={({ pressed }) => ({ backgroundColor: tk.ind, borderRadius: 14, paddingVertical: 15, alignItems: "center", opacity: pressed ? 0.85 : 1 })}
+        >
+          <Text style={{ fontSize: 16, fontWeight: "600", letterSpacing: 0.4, color: tk.bg }}>{words.talkTo}</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }

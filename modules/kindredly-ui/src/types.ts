@@ -211,6 +211,8 @@ export const KSCREEN_VIEWS = [
   "KNotePageView",
   "KNoteDayView",
   "KPhotoRollView",
+  // Wren's introduction, the whole sheet (2026-10-27; behind the "introritual" switch, off by default)
+  "KIntroductionView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

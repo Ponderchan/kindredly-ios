@@ -190,7 +190,18 @@ import {
                   Notes tab's own cards
      photoroll    the photo roll the ＋ opens (journal-pick) — KPhotoRollView;
                   the library, the permission and the picking stay in TS
-                  (screens/photo-roll) */
+                  (screens/photo-roll)
+
+   Wren's introduction (2026-10-27), keeping its React Native sheet the same
+   way. OFF until its simulator pass:
+
+     introritual  the whole introduction sheet a kindred's room or a pen pal's
+                  chat shows once names are traded (components/Introduction →
+                  IntroductionNative, KIntroductionView): the header, her
+                  letter, the mosaic ritual redrawn in SwiftUI on the same
+                  clock, what she noticed and TALK TO; with signatures, the
+                  ceremony's KIntroRitual, and only while "ceremony" is on.
+                  The hold's Report / Block card stays React Native */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
   room: true,
@@ -235,10 +246,12 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   noteentry: true,
   noteday: true,
   photoroll: true,
+  // Wren's introduction, the whole sheet (2026-10-27): off until its simulator pass
+  introritual: false,
 };
 
 /** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages, a kindred's page, Wren's room, the five small pages and three Notes pages (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "kindredpage" | "wrenroom" | "report" | "voice" | "drafts" | "stampbook" | "lore" | "noteentry" | "noteday" | "photoroll";
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "kindredpage" | "wrenroom" | "report" | "voice" | "drafts" | "stampbook" | "lore" | "noteentry" | "noteday" | "photoroll" | "introritual";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */

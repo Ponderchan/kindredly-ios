@@ -6,7 +6,7 @@ import { MONO, PF, PFM } from "../theme/post";
 import { BRAND } from "../theme/themes";
 import { useLetterFamily, useP, useTheme } from "../lib/theme";
 import { AvatarImage } from "./AvatarImage";
-import { COLS, MosaicId, inkedCells } from "./MosaicId";
+import { MosaicId } from "./MosaicId";
 import { WrenGlyph } from "./GlyphInput";
 import { StickerChip } from "./AuraCard";
 import { Stamp } from "./Stamp";
@@ -14,7 +14,6 @@ import { STAMP_DOT_PT } from "../lib/stamp-frame";
 import { WrenBird } from "./WrenBird";
 import { t } from "../lib/i18n";
 import { dShort, localeTag } from "../lib/format";
-import { hashStr } from "../lib/format";
 import { stickerLook } from "../lib/sticker-copy";
 import type { ThreadMessage } from "../lib/db";
 import type { KindredNotice } from "../lib/kindred-read";
@@ -24,6 +23,23 @@ import { penDrawPlan, penTypedUpright, penViewBox, type PenDrawStep, type PenSig
 import type { SignedPair, SignedSide } from "../lib/signed-sides";
 import { PenSignature } from "./PenSignature";
 import { StickerBox, objectDepth } from "./10a/StickerBox";
+import {
+  BURST_MS,
+  SCRAP_CELL,
+  SCRAP_GRID,
+  T_BUMP,
+  T_BURST,
+  T_FLY,
+  T_NAME,
+  T_NOTICE,
+  T_RITUAL_DONE,
+  T_ROAD,
+  T_SLAP,
+  T_STEP,
+  burstScraps,
+  typedNameBeats,
+  type Scrap as ScrapThrow,
+} from "./introduction-model";
 
 /* THE RITUAL — a sticker book, not a ceremony.
    ────────────────────────────────────────────────────────────────────────
@@ -80,15 +96,10 @@ import { StickerBox, objectDepth } from "./10a/StickerBox";
    signature / Block (`onHoldTheirs`; the Introduction draws the card).
    No postmark wavy lines anywhere; the envelopes' stamps are Stamp's. */
 
-const T_ROAD = 380;
-const T_STEP = 240; // one letter crosses every 240 ms; the last lands before the burst
-const T_FLY = 620; // how long one crossing takes
-const T_BURST = T_ROAD + 10 * T_STEP + T_FLY + 300;
-const T_SLAP = T_BURST + 520;
-const T_NAME = T_SLAP + 520;
-const T_BUMP = T_NAME + 1500;
-const T_NOTICE = T_BUMP + 1100;
-export const T_RITUAL_DONE = T_NOTICE + 700;
+/* the mosaic ritual's clock (T_ROAD … T_RITUAL_DONE) and its burst live in introduction-model,
+   which the SwiftUI sheet ("introritual": components/IntroductionNative) reads too, so the two
+   renderers keep one clock */
+export { T_RITUAL_DONE };
 
 /* identity on: the signed beats (PHASE2.md §7.1), on the same road */
 const S_WINDOWS = 3400; // the two windows fade in (250ms)
@@ -420,36 +431,26 @@ function Crossing({ from, to, y, at, date, stamp }: { from: number; to: number; 
   );
 }
 
-/* their mosaic, then its own squares thrown outward and falling like paper */
-const CELL = 9;
-const GAP = 3.5;
-const GRID = COLS * CELL + (COLS - 1) * GAP;
+/* their mosaic, then its own squares thrown outward and falling like paper (each scrap's place
+   and throw: introduction-model burstScraps, which the SwiftUI ritual draws from too) */
 function Burst({ seed, at }: { seed: string; at: number }) {
-  const cells = Array.from(inkedCells(seed)).map((k) => {
-    const [r, c] = k.split(",").map(Number);
-    return { key: k, r, c };
-  });
+  const scraps = useMemo(() => burstScraps(seed), [seed]);
   const v = useSharedValue(0);
   useEffect(() => {
-    v.value = withDelay(at, withTiming(1, { duration: 1100, easing: ease.out, reduceMotion: ReduceMotion.System }));
+    v.value = withDelay(at, withTiming(1, { duration: BURST_MS, easing: ease.out, reduceMotion: ReduceMotion.System }));
   }, [at, v]);
   return (
-    <View pointerEvents="none" style={{ position: "absolute", width: GRID, height: GRID, alignItems: "center", justifyContent: "center" }}>
-      {cells.map((cell, i) => (
-        <Scrap key={cell.key} r={cell.r} c={cell.c} n={i} v={v} />
+    <View pointerEvents="none" style={{ position: "absolute", width: SCRAP_GRID, height: SCRAP_GRID, alignItems: "center", justifyContent: "center" }}>
+      {scraps.map((s) => (
+        <Scrap key={`${s.r},${s.c}`} s={s} v={v} />
       ))}
     </View>
   );
 }
-function Scrap({ r, c, n, v }: { r: number; c: number; n: number; v: { value: number } }) {
+function Scrap({ s, v }: { s: ScrapThrow; v: { value: number } }) {
   const P = useP(); // a mosaic cell is ink, as 10a draws the mosaic
-  const x0 = c * (CELL + GAP) - GRID / 2 + CELL / 2;
-  const y0 = r * (CELL + GAP) - GRID / 2 + CELL / 2;
   // each scrap has its own throw: direction from its place in the grid, a little chaos from its index
-  const h = hashStr(`scrap-${n}`);
-  const ang = Math.atan2(y0, x0 || 0.01) + (((h % 40) - 20) * Math.PI) / 180;
-  const dist = 70 + (h % 50);
-  const spin = ((h % 2 ? 1 : -1) * (180 + (h % 180)));
+  const { x0, y0, ang, dist, spin } = s;
   const style = useAnimatedStyle(() => {
     const p = v.value;
     const gravity = 90 * p * p;
@@ -462,7 +463,7 @@ function Scrap({ r, c, n, v }: { r: number; c: number; n: number; v: { value: nu
       opacity: p < 0.7 ? 1 : 1 - (p - 0.7) / 0.3,
     };
   });
-  return <Animated.View pointerEvents="none" style={[{ position: "absolute", width: CELL, height: CELL, backgroundColor: P.ink }, style]} />;
+  return <Animated.View pointerEvents="none" style={[{ position: "absolute", width: SCRAP_CELL, height: SCRAP_CELL, backgroundColor: P.ink }, style]} />;
 }
 
 /* a sticker slapped down: arrives big and flat-fast, squashes, springs back, settles tilted */
@@ -499,15 +500,15 @@ function TypedName({ name, at, color }: { name: string; at: number; color: strin
   const jolt = useSharedValue(0);
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
-    timers.push(setTimeout(() => setCaret(true), at));
-    for (let i = 1; i <= name.length; i++) timers.push(setTimeout(() => setN(i), at + 240 + i * 95));
-    const done = at + 240 + name.length * 95;
+    const b = typedNameBeats(name.length, at);
+    timers.push(setTimeout(() => setCaret(true), b.caret));
+    for (let i = 1; i <= name.length; i++) timers.push(setTimeout(() => setN(i), b.letter(i)));
     timers.push(
       setTimeout(() => {
         jolt.value = withSequence(withTiming(1, { duration: 70 }), withTiming(0, { duration: 260, easing: ease.back }));
-      }, done + 80),
+      }, b.jolt),
     );
-    timers.push(setTimeout(() => setCaret(false), done + 600));
+    timers.push(setTimeout(() => setCaret(false), b.caretOff));
     return () => timers.forEach(clearTimeout);
   }, [name, at, jolt]);
   const style = useAnimatedStyle(() => ({ transform: [{ scale: 1 + 0.06 * jolt.value }] }));
