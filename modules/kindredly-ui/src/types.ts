@@ -211,6 +211,11 @@ export const KSCREEN_VIEWS = [
   "KNotePageView",
   "KNoteDayView",
   "KPhotoRollView",
+  // Today's overlays (2026-10-27), off by default: the unfolded letter, the wardrobe slip, the update prompt's parcel
+  "KLetterReaderView",
+  "KWardrobeSlipView",
+  "KParcelSheetView",
+  "KParcelBannerView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

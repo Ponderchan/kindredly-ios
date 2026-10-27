@@ -62,7 +62,12 @@ export type BirdPose =
   | RackPose
   | StagePose
   // Wren's room in Swift (screens/wren-room/WrenRoomNative): the empty room's curious official bird
-  | "officialCurious";
+  | "officialCurious"
+  // the update prompt's parcel scene in Swift (components/UpdatePrompt): her four faces there
+  | "parcelFly"
+  | "parcelContent"
+  | "parcelCurious"
+  | "parcelDelight";
 
 /* THE COURIER PAGE (/courier in Swift, 2026-10-26). Her perch draws her at the
    React Native perch's 186 in every face she can make there (her whereabouts'
@@ -125,6 +130,8 @@ export type BirdPoseSpec = {
   mark?: null;
   /** always mounted, for snapshotBird (Live Activities) */
   base?: boolean;
+  /** false: flying empty-handed (WrenBird's `letter`), for a scene that hands her something else to carry */
+  letter?: false;
 };
 
 /* sizes are the RN call sites' own, so the Swift picture is the same drawing */
@@ -178,6 +185,14 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
      round(64 × .62) = 40 — the brand bird, pinned like "official" (the header's face, as on her
      Kindreds row). Not base: captured only while the room asks. */
   officialCurious: { size: 40, mood: "curious", stage: "wren", skin: "sticker", accessory: "none", mark: null },
+  /* the update prompt's parcel scene in Swift (components/UpdatePrompt ParcelSheetNative): the
+     React Native scene's WrenBird at 96, the grown bird in her own look, flying with the parcel
+     instead of a letter of her own, then sitting on it content, curious and delighted. Not base:
+     captured only while an update waits (TodayUpdate) or the sheet is up. */
+  parcelFly: { size: 96, mood: "content", fly: true, stage: "wren", letter: false },
+  parcelContent: { size: 96, mood: "content", stage: "wren" },
+  parcelCurious: { size: 96, mood: "curious", stage: "wren" },
+  parcelDelight: { size: 96, mood: "delight", stage: "wren" },
 };
 
 /** The user's look, as BirdSnapshots reads it from the Wren contexts. */

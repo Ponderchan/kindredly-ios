@@ -6,6 +6,11 @@ import Svg, { Path } from "react-native-svg";
 import { WardrobeRack } from "../../components/WardrobeRack";
 import { WrenBird, type WrenAccessory, type WrenSkin } from "../../components/WrenBird";
 import { FirstClassPaywall } from "../../app/paywall";
+import { NativeSurface } from "../../components/NativeSurface";
+import { Host } from "@expo/ui/swift-ui";
+import { KWARDROBE_SLIP_DEPTH, KWardrobeSlipView } from "../../../modules/kindredly-ui";
+import { useBirdImageRef } from "../../lib/bird-images";
+import { useTheme } from "../../lib/theme";
 import { useEntitlement } from "../../lib/entitlement";
 import { WARDROBE_SLIP, getFlags, unsetFlag } from "../../lib/flags";
 import { t, useLang } from "../../lib/i18n";
@@ -71,13 +76,100 @@ export function TodayWardrobeSlip({ model }: { model: TodayModel }) {
   return <WardrobeSlip bottom={hostH - controlTop + 10} onSeen={done} />;
 }
 
+/* SWIFT OR REACT NATIVE (2026-10-27, the second Swift batch). The slip is
+   drawn by SwiftUI with the "wardrobeslip" switch on and KWardrobeSlipView in
+   the binary (SlipNative: Portable/Today/KWardrobeSlip.swift, in a Host of its
+   own sized to it), else by React Native (SlipRN, exactly as it was). Either
+   way this decides everything: when it goes, the flag, and the sheet it opens
+   (WardrobeSheet below stays React Native: the rack and the bird trying
+   things on are React Native pieces). The slip's way out (.16s) is the
+   renderer's own; this keeps the Swift Host up until it has faded. */
+
+/** how long the Swift slip takes to fade out after either tap (KWardrobeSlip.outDuration), and a frame */
+const SLIP_OUT_MS = 200;
+
 /** The slip itself, and the sheet it opens. `onSeen`: it was opened or put away (clear the flag). */
 export function WardrobeSlip({ bottom, onSeen, demo = false }: { bottom: number; onSeen?: () => void; demo?: boolean }) {
   useLang();
   const name = useWrenName();
   const [open, setOpen] = useState(false);
   const [gone, setGone] = useState(false);
-  if (gone && !open) return null;
+  // the slip has finished going (the Swift one fades out first; the React Native one has its own exiting)
+  const [faded, setFaded] = useState(false);
+  useEffect(() => {
+    if (!gone) return;
+    const id = setTimeout(() => setFaded(true), SLIP_OUT_MS);
+    return () => clearTimeout(id);
+  }, [gone]);
+  if (gone && faded && !open) return null;
+  const take = () => {
+    setGone(true);
+    setOpen(true);
+    onSeen?.();
+  };
+  const away = () => {
+    setGone(true);
+    onSeen?.();
+  };
+  return (
+    <>
+      {gone && faded ? null : (
+        <NativeSurface
+          surface="wardrobeslip"
+          view="KWardrobeSlipView"
+          mode="mount"
+          native={(host) => <SlipNative bottom={bottom} name={name} shown={!gone} onTake={take} onAway={away} onLayoutContent={host.onLayoutContent} />}
+          fallback={() => <SlipRN bottom={bottom} name={name} gone={gone} onTake={take} onAway={away} />}
+          pending={() => null}
+        />
+      )}
+      <WardrobeSheet open={open} name={name} demo={demo} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
+/** The slip in SwiftUI, in a Host that matches its height (its depth hangs right and below: the Host leaves it room). */
+function SlipNative({
+  bottom,
+  name,
+  shown,
+  onTake,
+  onAway,
+  onLayoutContent,
+}: {
+  bottom: number;
+  name: string;
+  shown: boolean;
+  onTake: () => void;
+  onAway: () => void;
+  onLayoutContent: (e: { nativeEvent: { width: number; height: number } }) => void;
+}) {
+  const { key: theme, dark } = useTheme();
+  const bird = useBirdImageRef("content");
+  return (
+    <Host
+      matchContents={{ vertical: true }}
+      ignoreSafeArea="all"
+      colorScheme={dark ? "dark" : "light"}
+      onLayoutContent={onLayoutContent}
+      style={{ position: "absolute", left: 16, right: 16 - KWARDROBE_SLIP_DEPTH, bottom: bottom - KWARDROBE_SLIP_DEPTH }}
+    >
+      <KWardrobeSlipView
+        theme={theme}
+        title={t("ob2.slip.title", { name })}
+        sub={t("ob2.slip.sub")}
+        close={t("ob2.slip.close")}
+        bird={bird}
+        shown={shown}
+        onOpen={onTake}
+        onClose={onAway}
+      />
+    </Host>
+  );
+}
+
+/** The React Native slip (the "wardrobeslip" switch's fallback), exactly as it was. */
+function SlipRN({ bottom, name, gone, onTake, onAway }: { bottom: number; name: string; gone: boolean; onTake: () => void; onAway: () => void }) {
   return (
     <>
       {!gone && (
@@ -85,11 +177,7 @@ export function WardrobeSlip({ bottom, onSeen, demo = false }: { bottom: number;
           <View style={{ position: "absolute", left: SHADOW, top: SHADOW, right: -SHADOW, bottom: -SHADOW, borderRadius: 18, backgroundColor: OB.ink }} />
           <View style={{ borderRadius: 18, borderWidth: EDGE, borderColor: OB.ink, backgroundColor: "#FFF3D6", flexDirection: "row", alignItems: "center", paddingLeft: 10, paddingRight: 4, minHeight: 64 }}>
             <Pressable
-              onPress={() => {
-                setGone(true);
-                setOpen(true);
-                onSeen?.();
-              }}
+              onPress={onTake}
               accessibilityRole="button"
               accessibilityLabel={`${t("ob2.slip.title", { name })} ${t("ob2.slip.sub")}`}
               style={({ pressed }) => ({ flex: 1, flexDirection: "row", alignItems: "center", paddingVertical: 8, opacity: pressed ? 0.7 : 1 })}
@@ -107,10 +195,7 @@ export function WardrobeSlip({ bottom, onSeen, demo = false }: { bottom: number;
               </View>
             </Pressable>
             <Pressable
-              onPress={() => {
-                setGone(true);
-                onSeen?.();
-              }}
+              onPress={onAway}
               hitSlop={6}
               accessibilityRole="button"
               accessibilityLabel={t("ob2.slip.close")}
@@ -123,7 +208,6 @@ export function WardrobeSlip({ bottom, onSeen, demo = false }: { bottom: number;
           </View>
         </Animated.View>
       )}
-      <WardrobeSheet open={open} name={name} demo={demo} onClose={() => setOpen(false)} />
     </>
   );
 }
