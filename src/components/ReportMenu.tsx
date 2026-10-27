@@ -1,14 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
 import { AccessibilityInfo, Modal, PixelRatio, Pressable, Text, View, findNodeHandle, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Line, Path } from "react-native-svg";
+import { Host } from "@expo/ui/swift-ui";
 import { t, useLang } from "../lib/i18n";
 import { P as STATIC_P, PF, PFM } from "../theme/post";
 import { scrimColor, useTheme } from "../lib/theme";
 import { dangerInk } from "../screens/settings/settings-model";
 import { useWrenName } from "../lib/wren-name";
-import { useReportFlow, type ReportContext, type ReportFlow, type ReportTarget } from "../lib/report-flow";
+import { useReportFlow, type ReportContext, type ReportFlow, type ReportTarget, type ReportStage } from "../lib/report-flow";
+import { KReportMenuView, type KReportMenuAction } from "../../modules/kindredly-ui";
 import { LeaveSheet } from "./LeaveSheet";
+import { NativeSurface, useSurfaceHost } from "./NativeSurface";
+import { REPORT_CARD_ROOM, reportCardHeight } from "./shared-sheets-model";
 import "../data/strings-step5-platform"; // rp.menu.a11y
 
 /* Report / block (App Store requirement for anonymous UGC). Wired to the
@@ -74,10 +78,13 @@ export function ReportSheet({ flow, top, reportLabel, onDismiss }: { flow: Repor
   const cardTop = Math.max(insets.top + 8, Math.min(wantTop, win.height - (cardH ?? estH) - insets.bottom - 8));
   const answer = stage === "sent" ? t("rp.reported", { wren }) : stage === "failed" ? t("rp.failed") : stage === "blockFailed" ? t("rp.blockFailed") : null;
   const answerRef = useRef<Text>(null);
+  // the Swift card is drawn: it moves VoiceOver to its own answer line (KReportMenuCard)
+  const swiftCard = useRef(false);
   useEffect(() => {
     if (!answer) return;
     // the line itself takes the focus (it is read out, and Done is the next swipe)
     const id = setTimeout(() => {
+      if (swiftCard.current) return;
       const node = answerRef.current ? findNodeHandle(answerRef.current) : null;
       if (node) AccessibilityInfo.setAccessibilityFocus(node);
       else AccessibilityInfo.announceForAccessibility(answer);
@@ -119,49 +126,82 @@ export function ReportSheet({ flow, top, reportLabel, onDismiss }: { flow: Repor
     </Pressable>
   );
 
+  /* The card, Swift or React Native (2026-10-27): SwiftUI's KReportMenuView
+     when the "reportsheet" switch is on and the binary has the view, else
+     the React Native card below, exactly as before. Each showing of the card
+     decides once (NativeSurface in mount mode, mounted while the card
+     shows) and arms the crash breadcrumb first. Either way the Modal, the
+     dim, the block question and the whole flow (lib/report-flow: what is
+     sent, when, and what happens after) are this component's, unchanged:
+     the Swift card only draws the stage and reports which row was pressed,
+     and each row calls the same flow function its React Native row calls. */
+  const rnCard = () => (
+    <View
+      accessibilityViewIsModal
+      onAccessibilityEscape={flow.close}
+      onLayout={(e) => setCardH(e.nativeEvent.layout.height)}
+      style={{
+        position: "absolute",
+        top: cardTop,
+        right: 16,
+        width: cardW,
+        backgroundColor: tk.sf,
+        // (owner, 2026-10-20: no black frame) the live app's look — a plain card, large
+        // continuous corners, a soft shadow
+        borderRadius: 22,
+        borderCurve: "continuous",
+        paddingVertical: 4,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: dark ? 0.45 : 0.14,
+        shadowRadius: 22,
+      }}
+    >
+      {stage !== "menu" ? (
+        <>
+          {/* the confirmation lives in the same card — no second sheet */}
+          <Text ref={answerRef} accessible accessibilityLiveRegion="polite" maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: tk.ink, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10 }}>
+            {answer ?? t("rp.blockFailed")}
+          </Text>
+          <View style={{ height: 1, backgroundColor: tk.line, marginVertical: 2 }} />
+          <Row label={t("wu.done")} icon="none" onPress={flow.close} />
+        </>
+      ) : (
+        <>
+          <Row label={reportLabel ?? t("rp.menu.report")} working icon="flag" onPress={() => void flow.report()} />
+          <Row label={t("rp.menu.block")} icon="ban" tone="red" onPress={() => flow.askBlock()} />
+          <View style={{ height: 1, backgroundColor: tk.line, marginVertical: 4 }} />
+          <Row label={t("rp.menu.never")} icon="none" onPress={flow.close} />
+        </>
+      )}
+    </View>
+  );
+
   return (
     <Modal visible={stage !== null} transparent animationType="fade" onRequestClose={flow.close} onDismiss={onDismiss}>
       <Pressable onPress={flow.close} accessible={false} style={{ flex: 1, backgroundColor: scrimColor(dark, 0.14) }}>
         {stage !== null && stage !== "block" && (
-          <View
-            accessibilityViewIsModal
-            onAccessibilityEscape={flow.close}
-            onLayout={(e) => setCardH(e.nativeEvent.layout.height)}
-            style={{
-              position: "absolute",
-              top: cardTop,
-              right: 16,
-              width: cardW,
-              backgroundColor: tk.sf,
-              // (owner, 2026-10-20: no black frame) the live app's look — a plain card, large
-              // continuous corners, a soft shadow
-              borderRadius: 22,
-              borderCurve: "continuous",
-              paddingVertical: 4,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: dark ? 0.45 : 0.14,
-              shadowRadius: 22,
-            }}
-          >
-            {stage !== "menu" ? (
-              <>
-                {/* the confirmation lives in the same card — no second sheet */}
-                <Text ref={answerRef} accessible accessibilityLiveRegion="polite" maxFontSizeMultiplier={1.6} style={{ fontFamily: PF.letter, fontSize: 14.5, lineHeight: 21, color: tk.ink, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10 }}>
-                  {answer ?? t("rp.blockFailed")}
-                </Text>
-                <View style={{ height: 1, backgroundColor: tk.line, marginVertical: 2 }} />
-                <Row label={t("wu.done")} icon="none" onPress={flow.close} />
-              </>
-            ) : (
-              <>
-                <Row label={reportLabel ?? t("rp.menu.report")} working icon="flag" onPress={() => void flow.report()} />
-                <Row label={t("rp.menu.block")} icon="ban" tone="red" onPress={() => flow.askBlock()} />
-                <View style={{ height: 1, backgroundColor: tk.line, marginVertical: 4 }} />
-                <Row label={t("rp.menu.never")} icon="none" onPress={flow.close} />
-              </>
+          <NativeSurface
+            surface="reportsheet"
+            view="KReportMenuView"
+            mode="mount"
+            native={() => (
+              <ReportCardSwift
+                flow={flow}
+                stage={stage}
+                answer={answer ?? t("rp.blockFailed")}
+                reportLabel={reportLabel ?? t("rp.menu.report")}
+                blockInk={red}
+                top={cardTop}
+                width={cardW}
+                onHeight={setCardH}
+                drawn={swiftCard}
+              />
             )}
-          </View>
+            fallback={rnCard}
+            // a frame or two while the breadcrumb is written: the dim alone, as the Modal fades in
+            pending={() => null}
+          />
         )}
       </Pressable>
 
@@ -174,6 +214,90 @@ export function ReportSheet({ flow, top, reportLabel, onDismiss }: { flow: Repor
         onCancel={flow.close}
       />
     </Modal>
+  );
+}
+
+/* The Swift card, where the React Native card would be: the same top,
+   right 16 and width (ReportSheet's own numbers), its height measured back
+   into the same state, so the same arithmetic keeps it on screen. Its Host
+   has REPORT_CARD_ROOM all round for the shadow; a tap there, or on the
+   card's own ground, is the dim's, as on the React Native card, which lies
+   inside the dim. The wrapper takes the touch from the dim (the deepest
+   responder wins), so a row pressed in Swift isn't also a tap on the dim.
+   VoiceOver stays in the card and its escape closes, as before. */
+function ReportCardSwift({
+  flow,
+  stage,
+  answer,
+  reportLabel,
+  blockInk,
+  top,
+  width,
+  onHeight,
+  drawn,
+}: {
+  flow: ReportFlow;
+  stage: Exclude<ReportStage, null | "block">;
+  answer: string;
+  reportLabel: string;
+  blockInk: string;
+  top: number;
+  width: number;
+  onHeight: (h: number) => void;
+  drawn: MutableRefObject<boolean>;
+}) {
+  useLang();
+  const { key: theme, dark } = useTheme();
+  const host = useSurfaceHost();
+  const room = REPORT_CARD_ROOM;
+
+  useEffect(() => {
+    drawn.current = true;
+    return () => {
+      drawn.current = false;
+    };
+  }, [drawn]);
+
+  const hostLayout = host?.onLayoutContent;
+  const onLayoutContent = useCallback(
+    (e: { nativeEvent: { width: number; height: number } }) => {
+      hostLayout?.(e);
+      onHeight(reportCardHeight(e.nativeEvent.height, room));
+    },
+    [hostLayout, onHeight, room],
+  );
+
+  // each row calls exactly what its React Native row calls
+  const onAction = (a: KReportMenuAction) => {
+    if (a === "report") void flow.report();
+    else if (a === "block") flow.askBlock();
+    else flow.close();
+  };
+
+  return (
+    <View
+      onStartShouldSetResponder={() => true}
+      accessibilityViewIsModal
+      onAccessibilityEscape={flow.close}
+      style={{ position: "absolute", top: top - room, right: 16 - room, width: width + 2 * room }}
+    >
+      <Host matchContents={{ vertical: true }} ignoreSafeArea="all" colorScheme={dark ? "dark" : "light"} style={{ width: width + 2 * room }} onLayoutContent={onLayoutContent}>
+        <KReportMenuView
+          theme={theme}
+          menu={stage === "menu"}
+          report={reportLabel}
+          block={t("rp.menu.block")}
+          never={t("rp.menu.never")}
+          answer={answer}
+          done={t("wu.done")}
+          busy={flow.busy}
+          blockInk={blockInk}
+          banInk={STATIC_P.post}
+          room={room}
+          onAction={onAction}
+        />
+      </Host>
+    </View>
   );
 }
 

@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { Alert, Modal, Pressable, Text, View } from "react-native";
+import { Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { t, useLang } from "../lib/i18n";
 import { SheetBody, SheetHeader, sheetWords, sheetCard, sheetKey, sheetKeyLabel } from "./sheet-chrome";
+import { NativeSurface, SurfaceHost } from "./NativeSurface";
+import { rgbaParts, signUpBottomMargin } from "./shared-sheets-model";
+import { KSignUpSheetView } from "../../modules/kindredly-ui";
 import { useP, useTheme } from "../lib/theme";
 import { useAuth } from "../lib/auth";
 import { KEYBOARD_OUT_MS, blurThen, type CommandTarget } from "../lib/keyboard";
@@ -39,27 +42,54 @@ const DIM = "rgba(30,27,53,0.3)";
    email key, the 10a dim), and like LeaveSheet it can sit in a
    window-level Modal (`modal`) so the floating tab bar can't cover its
    bottom row when it is raised inside a tab. */
-export function SignUpSheet({
-  open,
-  reason,
-  modal = false,
-  onClose,
-  onSignedIn,
-}: {
+export type SignUpSheetProps = {
   open: boolean;
   reason: string;
   /** draw it in a transparent window-level Modal, above the floating tab bar */
   modal?: boolean;
   onClose: () => void;
   onSignedIn: () => void;
-}) {
-  useLang();
-  const P = useP();
-  const { t: tk, dark } = useTheme();
-  const insets = useSafeAreaInsets();
+};
+
+/* SWIFT OR REACT NATIVE (2026-10-27). The sheet is drawn by SwiftUI
+   (modules/kindredly-ui KSignUpSheetView, Portable/Sheets) when the
+   "signupsheet" switch is on and the binary has the view; otherwise — the
+   switch off (the default until its simulator pass), an older binary, a JS
+   error on the Swift path, a crash there on the last two launches — it is
+   SignUpSheetRN below, exactly as before. Each showing decides once, as it
+   opens (NativeSurface in mount mode). Both faces run the same sign-ins
+   (useSignUpActions, kept here so a sheet closed while one is on its way
+   finds it still on its way when it opens again, as it always did): Sign in
+   with Apple and the email link stay lib/auth's, and the Swift face only
+   reports which key was pressed. Same props, so no call site changes. */
+export function SignUpSheet(props: SignUpSheetProps) {
+  const actions = useSignUpActions(props.onSignedIn);
+  if (!props.open) return null;
+  return (
+    <NativeSurface
+      surface="signupsheet"
+      view="KSignUpSheetView"
+      mode="mount"
+      native={() => <SignUpSheetSwift {...props} actions={actions} />}
+      fallback={() => <SignUpSheetRN {...props} actions={actions} />}
+      // a frame or two while the breadcrumb is written: nothing yet, as before the sheet rises
+      pending={() => null}
+    />
+  );
+}
+
+/** a sign-in on its way, and the two ways to start one */
+type SignUpActions = {
+  busy: null | "apple" | "email";
+  appleAvailable: boolean;
+  doApple: () => Promise<void>;
+  doEmail: () => void;
+};
+
+/* the React Native sheet's sign-ins, moved out of it unchanged */
+function useSignUpActions(onSignedIn: () => void): SignUpActions {
   const auth = useAuth();
   const [busy, setBusy] = useState<null | "apple" | "email">(null);
-  if (!open) return null;
 
   const done = () => {
     setBusy(null);
@@ -95,6 +125,62 @@ export function SignUpSheet({
     );
   };
 
+  return { busy, appleAvailable: auth.appleAvailable, doApple, doEmail };
+}
+
+/* The Swift sheet: a Host over the whole of what the React Native sheet
+   would cover, the dim and the card inside it; the Apple key is the
+   system's own (ASAuthorizationAppleIDButton, as expo-apple-authentication
+   draws it). VoiceOver stays in it and the escape closes, as the React
+   Native sheet's container does. */
+function SignUpSheetSwift({ reason, modal = false, onClose, actions }: SignUpSheetProps & { actions: SignUpActions }) {
+  useLang();
+  const { key: theme, dark } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { busy, doApple, doEmail } = actions;
+
+  const sheet = (
+    <View accessibilityViewIsModal onAccessibilityEscape={onClose} style={StyleSheet.absoluteFill}>
+      <SurfaceHost>
+        <KSignUpSheetView
+          theme={theme}
+          title={sheetWords(t("su.title"))}
+          reason={reason}
+          email={sheetWords(t("ob.continueEmail"))}
+          notYet={sheetWords(t("su.notYet"))}
+          closeLabel={t("wren.trackClose")}
+          apple={actions.appleAvailable}
+          appleWhite={dark}
+          busy={busy ?? ""}
+          dim={rgbaParts(DIM)}
+          bottomMargin={signUpBottomMargin(insets.bottom)}
+          onApple={() => void doApple()}
+          // the email key is off while anything is signing in, as the React Native key is disabled
+          onEmail={() => {
+            if (!busy) doEmail();
+          }}
+          onClose={onClose}
+        />
+      </SurfaceHost>
+    </View>
+  );
+
+  if (!modal) return sheet;
+  return (
+    <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
+      {sheet}
+    </Modal>
+  );
+}
+
+/* the React Native sheet, unchanged but for its sign-ins, which it now gets from SignUpSheet */
+function SignUpSheetRN({ reason, modal = false, onClose, actions }: SignUpSheetProps & { actions: SignUpActions }) {
+  useLang();
+  const P = useP();
+  const { t: tk, dark } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { busy, doApple, doEmail } = actions;
+
   const sheet = (
     <View accessibilityViewIsModal onAccessibilityEscape={onClose} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, justifyContent: "flex-end" }}>
       <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(120)} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
@@ -106,7 +192,7 @@ export function SignUpSheet({
         <SheetBody P={P}>{reason}</SheetBody>
 
         <View style={{ paddingHorizontal: 16, gap: 10 }}>
-          {auth.appleAvailable ? (
+          {actions.appleAvailable ? (
             <AppleAuthentication.AppleAuthenticationButton
               buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
               buttonStyle={dark ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}

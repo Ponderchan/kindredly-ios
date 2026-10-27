@@ -299,3 +299,19 @@ export {
   type KPhotoRollStrings,
   type KPhotoRollViewProps,
 } from "./src/NotePages";
+// the sheets every screen shares (2026-10-27), each behind its own switch, off by default: the
+// leave sheet ("leavesheet"), the report card ("reportsheet"), the sign-up sheet
+// ("signupsheet") and the toast ("toast")
+export {
+  KLeaveSheetView,
+  KReportMenuView,
+  KSignUpSheetView,
+  KToastView,
+  type KLeaveSheetKey,
+  type KLeaveSheetViewProps,
+  type KReportMenuAction,
+  type KReportMenuViewProps,
+  type KSheetDim,
+  type KSignUpSheetViewProps,
+  type KToastViewProps,
+} from "./src/SharedSheets";

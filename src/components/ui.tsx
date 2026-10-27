@@ -14,6 +14,9 @@ import { t, useLang } from "../lib/i18n";
 import { SLOW_MS } from "../lib/net";
 import { useTheme } from "../lib/theme";
 import { toastColors } from "./10a/kit";
+import { Host } from "@expo/ui/swift-ui";
+import { KToastView } from "../../modules/kindredly-ui";
+import { NativeSurface, useSurfaceHost } from "./NativeSurface";
 
 /* Small shared UI atoms ported from kindredly-v20.jsx (Dots/Skip/TopBar/Toast
    + the navy CTA + caps labels + cards). */
@@ -172,6 +175,44 @@ export function ProgressBar({ pct, color = C.purple, track = C.lineSoft, height 
    VoiceOver hears the line once when it appears, so a confirmation isn't
    something only sighted readers get. */
 export function Toast({ msg, bottom = 110 }: { msg: string; bottom?: number }) {
+  /* SWIFT OR REACT NATIVE (2026-10-27): SwiftUI's KToastView when the
+     "toast" switch is on and the binary has the view, else ToastRN below,
+     exactly as before. Each showing decides once (NativeSurface in mount
+     mode, mounted while the toast is up). Either way TS places it, times
+     it and says it to VoiceOver; Swift only draws the pill. */
+  return (
+    <NativeSurface
+      surface="toast"
+      view="KToastView"
+      mode="mount"
+      native={() => <ToastSwift msg={msg} bottom={bottom} />}
+      fallback={() => <ToastRN msg={msg} bottom={bottom} />}
+      // a frame or two while the breadcrumb is written: nothing, as before it appears
+      pending={() => null}
+    />
+  );
+}
+
+/* The Swift pill, in a Host as wide as the React Native toast's row and as
+   tall as the pill; neither takes a touch. */
+function ToastSwift({ msg, bottom }: { msg: string; bottom: number }) {
+  const { t: tk, key: theme, dark } = useTheme();
+  const host = useSurfaceHost();
+  const c = toastColors(tk);
+  React.useEffect(() => {
+    if (msg) AccessibilityInfo.announceForAccessibility(msg);
+  }, [msg]);
+  return (
+    <View style={{ position: "absolute", left: 16, right: 16, bottom }} pointerEvents="none">
+      <Host matchContents={{ vertical: true }} ignoreSafeArea="all" colorScheme={dark ? "dark" : "light"} pointerEvents="none" style={{ alignSelf: "stretch" }} onLayoutContent={host?.onLayoutContent}>
+        <KToastView theme={theme} message={msg} fill={c.fill} ink={c.text} />
+      </Host>
+    </View>
+  );
+}
+
+/* the React Native toast, unchanged */
+function ToastRN({ msg, bottom }: { msg: string; bottom: number }) {
   const { t: tk } = useTheme();
   const c = toastColors(tk);
   React.useEffect(() => {
