@@ -4,91 +4,69 @@
 import SwiftUI
 
 /*
- THE 10a TAB BAR (H:117-119, 445, 486; tokens-10a.md §7.3 and §11 item 6). A float: a solid sf
- face, corners of 34, 62 tall, 16 in from each side, the soft two-layer shadow and no glass
- (in Midnight a black shadow and a 1pt line edge, see KFloat).
- Five equal columns: two tabs, the round + (KPrimaryRound), two tabs. No words under the icons
- (the mock's showLabels is false); each tab's name is still there for VoiceOver and for the
- large content viewer.
+ THE TAB BAR, G1: LIQUID GLASS WITH THE M2 ICONS (owner's design, 2026-10-28:
+ ~/Desktop/export/tab-bar-glass-g1, CLAUDE-CODE-PROMPTS-TAB-BAR-GLASS.md, "G" below). It replaces
+ the 10a solid float. The five columns stay as they were, Today / Notes / + / Kindreds / Me in
+ one capsule, 62 tall, 16 in from each side. No words under the icons; each tab's name is still
+ there for VoiceOver and the large content viewer.
 
- Where the selection is, the mock does not light up the icon's own capsule (it stays
- transparent, H:445). A LENS slides behind it instead (H:118):
- - 5 in from the bar's top and bottom, the column's width less 10, corners of 26, lav fill,
-   a 1.5 ring of sf inside its edge and a glow under it, 0 3 10 -3 in ind at .35 (the mock's
-   rgba(58,52,214,.35) in the light themes; Midnight's own ind there, see KSoftShadow.lensGlow);
- - it slides on .5s cubic-bezier(.3,1.45,.4,1), which runs well past the new column and comes
-   back, and for the first half-second it is stretched sideways to 1.22 (scaleX on .25s
-   ease-out, both ways), so it reads as something soft being pulled across;
- - 4 from the column's left and 6 from its right, as the mock has it (left: i·20% + 4, width:
-   20% - 10). The 1pt lean is probably a slip in the mock's arithmetic, but it is kept: the bar
-   matches 10a to the point, and a change from the mock is the owner's to make.
+ G Prompt 0 prefers the system's own TabView on iOS 26. This bar is a strip the React Native
+ navigator holds (src/components/NativeTabBar.tsx), and the + in the middle opens our own panel,
+ so it is drawn here on every iOS the app runs on (G Prompt 1), the same on 18 as on 26.
 
- The newly selected icon also pops (the tabpop keyframes, H:13 and 445): 1, then 1.24 turned
- -7°, then .95 turned 3°, then 1, over .5s, each step on cubic-bezier(.3,1.4,.5,1). It is drawn
- in ind with a stroke of 2.4 and a small solid accent (the dot in the envelope, the bar on the
- note, the two dots in the bubble, the dot under the head); the others are ink at 1.9, and the
- colour and stroke change on CSS's ease over .25s.
+ THE GLASS (G Prompt 1), bottom up: a thin material with a white tint over whatever scrolls
+ behind (the screens run under the bar), a white fade over its top half, a .5 white ring, a
+ bright line along the top edge and a faint dark one along the bottom, and a soft shadow, two
+ layers, drawn outside the capsule only, as CSS's box-shadow is, so it never greys the glass. In
+ Midnight the same layers on the dark material, the lines dimmed and the shadow black.
 
- The icons are the mock's own drawings (P:70-75), drawn 27 across, rather than SF Symbols: they
- are a handful of lines and arcs and the mock's accent fills belong to them. They live with the
- other line icons in Kit/KLineGlyph.swift (envelope, ruledCard, bubbles, person and their
- accents), moved there from this file onto the shared 24 grid; the mock's strokes of 1.9 and 2.4
- are in its 28 units, so they are scaled by 24/28 here and land on screen exactly as before.
+ THE LENS (G Prompts 1-2): a brighter glass capsule, 62 x 50, corners of 25, centred on the
+ selected column. Three layers so the motions never fight: the outer one is its place (it slides
+ on .5s cubic-bezier(.3,1.25,.4,1)), the middle its press (1.12 while a finger is down, 1.22 x .9
+ while it is dragged, on .22s cubic-bezier(.3,1.3,.4,1)), the inner the stretch each new pick
+ plays once (1, then 1.5 x .8 at 30%, .94 x 1.06 at 65%, 1, over .5s).
+ Holding and dragging (past 4pt) takes the lens along under the finger, clamped 4 inside the
+ ends; the tab nearest the finger lights up as it passes, and letting go settles on that tab,
+ stretches and selects it. The + column takes no part: a drag passes it by, a tap on it is the +.
 
- A tab can carry a count: an ind pill with the number in bg (mono 600 11, 18 tall, the mock's
- chip badge, H:62), set above and right of the icon with a 1.6 ring of the bar's own face so it
- reads cut out of the glyph. A number, never a dot (owner, 2026-09-20). It shows "9+" past nine
- and is hidden while its tab is the one selected, as the React Native bar's is (PostTabBar): the
- reader is already looking at what it counts.
+ THE ICONS (G Prompt 3, M2), 30 across on a 28 grid, round caps and joins: a pillar box, a
+ sticky note, a speech bubble, a person. Resting, a 2 stroke in #9C98B3 (Midnight: mute) with
+ the accent in the same grey; selected, 2.4 in ink with the accent in ind, and the accent moves
+ once (.55s cubic-bezier(.3,1.3,.4,1)): the pillar box's slot rocks -14 and 10 degrees, the
+ note's corner pops 0 to 1.35 to 1, the bubble's eyes blink, the person's smile draws in.
 
- Selection belongs to whoever holds the bar. Tapping a tab only reports it (onSelect); the lens
- moves when selectedIndex changes, so a tab that refuses the press or a route changed from
- elsewhere both come out right. Pressing the tab that is already selected replays the pop and the
- stretch in place, as every pick does in the mock (H:445, 486), so the press is felt.
+ A tab can carry a count: an ind pill, white 11 bold, 18 tall, ringed 2 in white, top right of
+ the icon. A number, never a dot (owner, 2026-09-20); "9+" past nine, and hidden while its tab
+ is selected, as the React Native bar's is (PostTabBar): the reader is already looking at it.
 
- The bar is fixed at 62 tall, so its one piece of text, the count, is held at the default
- Dynamic Type size, and each tab and the + show the large content viewer instead, as UIKit's
- own tab bar does. With Reduce Motion on, the lens slides on a plain ease without the stretch
- and the icons don't pop.
+ THE + (G Prompt 3): a 46 ind disc with a white + 22 across at 2.6 and an ind glow; open, it
+ turns 45 degrees into an x and the disc goes ink. The holder still passes the turn's curve.
 
- THE PUBLISH ENTRY (Today 3d × 25b, Prompt 8; KPlusPanel.swift). The + is where a reader writes,
- and the holder can give it the design's turn, .35s cubic-bezier(.3,1.3,.4,1) (plusTurn,
- KMotion.plusTurnPublish), instead of the 10a sheet's. For a new reader the + opens a bottom
- sheet that takes the bar's place: hidden drops the whole bar 160 on that same curve, out of
- sight and out of reach, and brings it back up when the sheet goes. With Reduce Motion it fades
- out and in instead.
+ Selection belongs to whoever holds the bar. A tap or a drag only reports the tab (onSelect);
+ the lens settles where selectedIndex says, so a tab that refuses the press or a route changed
+ from elsewhere both come out right. A released drag holds its tab for a moment while the holder
+ catches up, so the lens doesn't run back to the old tab first.
+
+ The bar is fixed at 62 tall, so its one piece of text, the count, stays at the default Dynamic
+ Type size, and each tab and the + show the large content viewer. With Reduce Motion the lens
+ moves on a plain ease, nothing stretches and the accents stay still; a drag still follows the
+ finger.
+
+ THE PUBLISH ENTRY (Today 3d x 25b, Prompt 8; KPlusPanel.swift). hidden drops the whole bar 160
+ on the publish turn's curve, out of sight and out of reach, for the new reader's sheet and for
+ Today's reply; with Reduce Motion it fades instead.
  */
 
-/// The four tabs' drawings (P:70-75). The order on the bar is the caller's.
+/// The four tabs' drawings. The order on the bar is the caller's.
 public enum KTabGlyph: String, CaseIterable, Sendable {
-  /// Today: an envelope; selected, a dot inside it
+  /// Today: a pillar box; selected, its slot rocks
   case today
-  /// Notes: a ruled card; selected, a bar over its middle line
+  /// Notes: a sticky note; selected, its folded corner pops
   case notes
-  /// Kindreds: a speech bubble with another answering it; selected, two dots in the first
+  /// Kindreds: a speech bubble; selected, its two eyes blink
   case kindreds
-  /// Me: a head and shoulders; selected, a dot under the head
+  /// Me: a person; selected, a smile draws in
   case me
-
-  /// the line drawing (KLineGlyph.swift)
-  public var outline: KLineGlyph {
-    switch self {
-    case .today: return .envelope
-    case .notes: return .ruledCard
-    case .kindreds: return .bubbles
-    case .me: return .person
-    }
-  }
-
-  /// the solid accent drawn over it while the tab is selected
-  public var accent: KLineGlyph {
-    switch self {
-    case .today: return .envelopeDot
-    case .notes: return .ruledCardBar
-    case .kindreds: return .bubblesDots
-    case .me: return .personDot
-    }
-  }
 
   /// The nearest SF Symbol, for the large content viewer only: it shows an Image and a title,
   /// not a drawing of our own.
@@ -96,7 +74,7 @@ public enum KTabGlyph: String, CaseIterable, Sendable {
     switch self {
     case .today: return "envelope"
     case .notes: return "note.text"
-    case .kindreds: return "bubble.left.and.bubble.right"
+    case .kindreds: return "bubble.left"
     case .me: return "person"
     }
   }
@@ -119,16 +97,15 @@ public struct KTabItem: Equatable, Sendable {
 
 /// The bar's numbers, for whoever places it and leaves room for it.
 public enum KTabBarMetrics {
-  /// the bar's height (H:117)
+  /// the bar's height (G Prompt 1)
   public static let height: CGFloat = 62
-  /// in from the screen's left and right edges (H:117)
+  /// in from the screen's left and right edges (G Prompt 1)
   public static let sideInset: CGFloat = 16
 
   /*
-   How far the bar's bottom edge sits above the screen's. The mock's phone puts it 30 up
-   (H:117), on a screen whose home indicator inset is 34, so it sits 4 inside the inset. Read as
-   "4 inside the safe area, and never closer than 16 to the edge", which gives the mock's 30 on
-   every Face ID iPhone and 16 on a phone with a home button (inset 0).
+   How far the bar's bottom edge sits above the screen's: 4 inside the safe area, never closer
+   than 16 to the edge, which is 30 on every Face ID iPhone (G draws it 28 up; the 2 is kept so
+   the screens' room below their content doesn't move) and 16 on a phone with a home button.
 
    The React Native side sizes the Host by the same rule (src/components/NativeTabBar.tsx,
    barBottomGap); change them together.
@@ -140,25 +117,83 @@ public enum KTabBarMetrics {
   /// How far the bar drops when hidden (Today 3d Prompt 8: translateY(160)), enough to clear the
   /// screen's bottom edge from any gap.
   public static let hiddenDrop: CGFloat = 160
+
+  /// the lens (G Prompt 1)
+  static let lensSize = CGSize(width: 62, height: 50)
+  /// a drag starts once the finger has moved this far (G Prompt 2)
+  static let dragSlop: CGFloat = 4
 }
 
 public extension KMotion {
-  /// The lens sliding to a new tab: left .5s cubic-bezier(.3,1.45,.4,1), well past and back (H:118).
-  static let lensSlide = Animation.timingCurve(0.3, 1.45, 0.4, 1, duration: 0.5)
+  /// The lens settling on a tab: .5s cubic-bezier(.3,1.25,.4,1), a little past and back (G Prompt 2).
+  static let lensSlide = Animation.timingCurve(0.3, 1.25, 0.4, 1, duration: 0.5)
   /// The same move with Reduce Motion on: no overshoot.
   static let lensSlideReduced = Animation.easeInOut(duration: 0.25)
-  /// A tab's colour and stroke changing: CSS's default ease over .25s (H:119).
-  static let tabTint = Animation.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.25)
-  /// Each step of the tabpop keyframes: cubic-bezier(.3,1.4,.5,1) (H:445).
-  static let tabPopStep = UnitCurve.bezier(startControlPoint: UnitPoint(x: 0.3, y: 1.4), endControlPoint: UnitPoint(x: 0.5, y: 1))
+  /// The lens swelling under a finger: .22s cubic-bezier(.3,1.3,.4,1).
+  static let lensPress = Animation.timingCurve(0.3, 1.3, 0.4, 1, duration: 0.22)
+  /// A tab's colour and stroke changing: .2s.
+  static let tabTint = Animation.easeOut(duration: 0.2)
+  /// Each step of the lens's stretch: cubic-bezier(.3,1,.4,1).
+  static let lensStretchStep = UnitCurve.bezier(startControlPoint: UnitPoint(x: 0.3, y: 1), endControlPoint: UnitPoint(x: 0.4, y: 1))
+  /// Each step of an accent's move: cubic-bezier(.3,1.3,.4,1).
+  static let tabAccentStep = UnitCurve.bezier(startControlPoint: UnitPoint(x: 0.3, y: 1.3), endControlPoint: UnitPoint(x: 0.4, y: 1))
 }
 
-public extension KSoftShadow {
-  /// The lens's glow: 0 3 10 -3 in the theme's ind at .35 (H:118: rgba(58,52,214,.35), the light
-  /// themes' ind). The mock's fixed indigo glowed darker than Midnight's lens and bar; the
-  /// theme's ind reads as light there too.
-  static func lensGlow(for theme: KTheme) -> [KSoftShadow] {
-    [KSoftShadow(y: 3, blur: 10, spread: -3, color: theme.ind.opacity(0.35))]
+/// The glass's colours, light and Midnight (G Prompt 1; the dark side is ours, the mock is light).
+struct KGlassTone {
+  let tint: Color
+  let topFade: Color
+  let ring: Color
+  let topLine: Color
+  let bottomLine: Color
+  let shadow: [KSoftShadow]
+  let lens: Color
+  let lensPressed: Color
+  let lensRing: Color
+  let lensShadow: [KSoftShadow]
+  /// a resting icon
+  let rest: Color
+  /// the count's ring
+  let badgeRing: Color
+
+  static func of(_ theme: KTheme) -> KGlassTone {
+    let ink = Color(.sRGB, red: 30 / 255, green: 27 / 255, blue: 53 / 255, opacity: 1)
+    if theme.isDark {
+      return KGlassTone(
+        tint: theme.sf.opacity(0.35),
+        topFade: Color.white.opacity(0.08),
+        ring: Color.white.opacity(0.16),
+        topLine: Color.white.opacity(0.22),
+        bottomLine: Color.black.opacity(0.3),
+        shadow: [
+          KSoftShadow(y: 12, blur: 32, spread: -12, color: Color.black.opacity(0.6)),
+          KSoftShadow(y: 2, blur: 6, spread: -2, color: Color.black.opacity(0.35)),
+        ],
+        lens: Color.white.opacity(0.1),
+        lensPressed: Color.white.opacity(0.22),
+        lensRing: Color.white.opacity(0.22),
+        lensShadow: [KSoftShadow(y: 3, blur: 10, spread: -4, color: Color.black.opacity(0.45))],
+        rest: theme.mute,
+        badgeRing: theme.sf
+      )
+    }
+    return KGlassTone(
+      tint: Color.white.opacity(0.22),
+      topFade: Color.white.opacity(0.55),
+      ring: Color.white.opacity(0.85),
+      topLine: Color.white.opacity(0.95),
+      bottomLine: ink.opacity(0.08),
+      shadow: [
+        KSoftShadow(y: 12, blur: 32, spread: -12, color: ink.opacity(0.38)),
+        KSoftShadow(y: 2, blur: 6, spread: -2, color: ink.opacity(0.12)),
+      ],
+      lens: ink.opacity(0.06),
+      lensPressed: Color.white.opacity(0.92),
+      lensRing: Color.white.opacity(0.95),
+      lensShadow: [KSoftShadow(y: 3, blur: 10, spread: -4, color: ink.opacity(0.25))],
+      rest: Color(hex: "#9C98B3"),
+      badgeRing: Color.white.opacity(0.95)
+    )
   }
 }
 
@@ -174,22 +209,31 @@ public struct KTabBar: View {
   private let onSelect: (Int) -> Void
   private let onPlus: () -> Void
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  /// bumped by a press on the tab that is already selected, to replay its pop and the stretch
-  @State private var repress = 0
+
+  /// where the finger went down, while it is down
+  @State private var downX: CGFloat?
+  /// the finger's x once it has moved past the slop: the bar is being dragged
+  @State private var dragX: CGFloat?
+  /// a finger is down somewhere other than the +
+  @State private var pressed = false
+  /// the tab a released drag or tap chose, held until the holder's selectedIndex catches up
+  @State private var pending: Int?
+  /// bumped by each new pick: replays the lens's stretch and the chosen icon's accent
+  @State private var pick = 0
 
   /// - Parameters:
   ///   - items: the tabs, left to right; the + goes in the middle (after the first half)
   ///   - selectedIndex: the selected tab, an index into items; nil shows no lens
-  ///   - isPanelOpen: true turns the + into an × (what it opens is showing)
+  ///   - isPanelOpen: true turns the + into an x (what it opens is showing)
   ///   - plusLabel: what VoiceOver says for the + while closed, already translated
-  ///   - closeLabel: what it says for the × while open, already translated
-  ///   - plusTurn: the curve the + turns to an × on: the 10a sheet's (KMotion.plusTurn) unless the
-  ///     holder says otherwise; the publish entry passes KMotion.plusTurnPublish
+  ///   - closeLabel: what it says for the x while open, already translated
+  ///   - plusTurn: the curve the + turns to an x on: KMotion.plusTurn unless the holder says
+  ///     otherwise; the publish entry passes KMotion.plusTurnPublish
   ///   - hidden: the bar slides 160 down out of sight (the new reader's publish sheet takes its
   ///     place, or Today's reply has the keyboard: KTabStage barHidden), on the publish turn's
   ///     curve; with Reduce Motion it fades instead
-  ///   - onSelect: a tab was tapped, with its index; selected or not
-  ///   - onPlus: the + (or ×) was tapped
+  ///   - onSelect: a tab was chosen (tapped, or a drag let go over it), with its index; selected or not
+  ///   - onPlus: the + (or x) was tapped
   public init(
     theme: KTheme,
     items: [KTabItem],
@@ -223,27 +267,65 @@ public struct KTabBar: View {
     index < leading ? index : index + 1
   }
 
-  private var selectedColumn: Int? {
+  private var dragging: Bool { dragX != nil }
+
+  /// the tab drawn as selected: the one under a dragging finger, else the one just chosen, else the holder's
+  private func shownTab(slot: CGFloat) -> Int? {
+    if let dragX { return nearestTab(to: dragX, slot: slot) }
+    if let pending { return pending }
     guard let selectedIndex, items.indices.contains(selectedIndex) else { return nil }
-    return column(of: selectedIndex)
+    return selectedIndex
+  }
+
+  private func nearestTab(to x: CGFloat, slot: CGFloat) -> Int {
+    var best = 0
+    var bestDistance = CGFloat.infinity
+    for i in items.indices {
+      let centre = (CGFloat(column(of: i)) + 0.5) * slot
+      if abs(centre - x) < bestDistance {
+        bestDistance = abs(centre - x)
+        best = i
+      }
+    }
+    return best
+  }
+
+  private func onPlusColumn(_ x: CGFloat, slot: CGFloat) -> Bool {
+    Int(floor(x / slot)) == leading
   }
 
   public var body: some View {
-    KFloat(theme: theme, corner: .bar) {
-      HStack(spacing: 0) {
-        ForEach(0..<columnCount, id: \.self) { c in
-          if c == leading {
-            plus
-          } else {
-            let i = c < leading ? c : c - 1
-            tab(i, items[i])
+    let tone = KGlassTone.of(theme)
+    let shape = Capsule(style: .circular)
+    return GeometryReader { geo in
+      let width = geo.size.width
+      let slot = width / CGFloat(max(1, columnCount))
+      let shown = shownTab(slot: slot)
+      ZStack(alignment: .topLeading) {
+        lens(tone: tone, width: width, slot: slot, shown: shown)
+        HStack(spacing: 0) {
+          ForEach(0..<columnCount, id: \.self) { c in
+            if c == leading {
+              plus
+            } else {
+              let i = c < leading ? c : c - 1
+              tab(i, items[i], on: i == shown, tone: tone)
+            }
           }
         }
+        .frame(width: width, height: KTabBarMetrics.height)
       }
-      .frame(height: KTabBarMetrics.height)
-      .frame(maxWidth: .infinity)
-      .background { lens }
+      .frame(width: width, height: KTabBarMetrics.height)
+      .contentShape(shape)
+      .gesture(barGesture(slot: slot))
     }
+    .frame(height: KTabBarMetrics.height)
+    .frame(maxWidth: .infinity)
+    .background { KGlassFace(tone: tone) }
+    .clipShape(shape)
+    .background { KOuterShadow(shadows: tone.shadow, shape: shape) }
+    .environment(\.colorScheme, theme.isDark ? .dark : .light)
+    .onChange(of: selectedIndex) { _, _ in pending = nil }
     // the bar never grows; its count is the only text (see the note at the top)
     .dynamicTypeSize(...DynamicTypeSize.large)
     // out of the way for the publish sheet: down 160, or with Reduce Motion a fade
@@ -258,32 +340,99 @@ public struct KTabBar: View {
     .accessibilityHidden(hidden)
   }
 
-  // ── the lens (H:118) ──
-  private var lens: some View {
+  // ── touch: one gesture for the whole bar, so a press can turn into a drag (G Prompt 2) ──
+  private func barGesture(slot: CGFloat) -> some Gesture {
+    DragGesture(minimumDistance: 0, coordinateSpace: .local)
+      .onChanged { value in
+        let x = value.location.x
+        if downX == nil {
+          downX = x
+          pressed = !onPlusColumn(x, slot: slot)
+        }
+        if dragX != nil || abs(x - (downX ?? x)) > KTabBarMetrics.dragSlop {
+          dragX = x
+          pressed = true
+        }
+      }
+      .onEnded { value in
+        let x = dragX ?? value.location.x
+        let dragged = dragX != nil
+        let wasShown = shownTab(slot: slot)
+        downX = nil
+        dragX = nil
+        pressed = false
+        if !dragged && onPlusColumn(x, slot: slot) {
+          onPlus()
+          return
+        }
+        let k = nearestTab(to: x, slot: slot)
+        if dragged || k != wasShown {
+          pick &+= 1
+          pending = k
+          // if the holder refuses the tab, the lens goes back to where selectedIndex is
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            if pending == k { pending = nil }
+          }
+        }
+        onSelect(k)
+      }
+  }
+
+  // ── the lens (G Prompts 1-2) ──
+  private func lens(tone: KGlassTone, width: CGFloat, slot: CGFloat, shown: Int?) -> some View {
     // read here, not inside the animator's closures, which run off the main actor
     let stretches = !reduceMotion
-    return GeometryReader { geo in
-      if let col = selectedColumn {
-        let colW = geo.size.width / CGFloat(columnCount)
-        let shape = RoundedRectangle(cornerRadius: 26, style: .circular)
+    let isDragging = dragging
+    let size = KTabBarMetrics.lensSize
+    let shape = RoundedRectangle(cornerRadius: size.height / 2, style: .circular)
+    let x: CGFloat = {
+      if let dragX { return min(max(KTabBarMetrics.dragSlop, dragX - size.width / 2), width - size.width - KTabBarMetrics.dragSlop) }
+      guard let shown else { return 0 }
+      return (CGFloat(column(of: shown)) + 0.5) * slot - size.width / 2
+    }()
+    let press: CGSize = dragging ? CGSize(width: 1.22, height: 0.9) : pressed ? CGSize(width: 1.12, height: 1.12) : CGSize(width: 1, height: 1)
+    return Group {
+      if shown != nil {
+        // inner: the stretch each new pick plays once
         shape
-          .fill(theme.lav)
-          // inset 0 0 0 1.5px sf: a ring of the bar's face just inside the lens's edge
-          .overlay(shape.strokeBorder(theme.sf, lineWidth: 1.5))
-          .kSoftShadows(KSoftShadow.lensGlow(for: theme), in: shape)
-          .frame(width: max(0, colW - 10), height: max(0, geo.size.height - 10))
-          // pulled sideways while it travels: 1.22 on .25s ease-out, held to .52s, back on .25s
-          .keyframeAnimator(initialValue: CGFloat(1), trigger: [col, repress]) { content, stretch in
-            content.scaleEffect(x: stretches ? stretch : 1, y: 1)
+          .fill(pressed ? tone.lensPressed : tone.lens)
+          .overlay(shape.strokeBorder(tone.lensRing, lineWidth: 0.5))
+          // inset 0 1 0 white: a bright line along the lens's top edge
+          .overlay(
+            shape.strokeBorder(
+              LinearGradient(colors: [tone.lensRing, tone.lensRing.opacity(0)], startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.3)),
+              lineWidth: 1
+            )
+          )
+          .overlay(
+            shape.strokeBorder(
+              LinearGradient(colors: [tone.bottomLine.opacity(0), tone.bottomLine], startPoint: UnitPoint(x: 0.5, y: 0.6), endPoint: .bottom),
+              lineWidth: 1
+            )
+          )
+          .background { KOuterShadow(shadows: tone.lensShadow, shape: shape) }
+          .animation(.easeOut(duration: 0.18), value: pressed)
+          .keyframeAnimator(initialValue: CGSize(width: 1, height: 1), trigger: pick) { content, s in
+            content.scaleEffect(x: stretches && !isDragging ? s.width : 1, y: stretches && !isDragging ? s.height : 1)
           } keyframes: { _ in
-            KeyframeTrack {
-              LinearKeyframe(1.22, duration: 0.25, timingCurve: .easeOut)
-              LinearKeyframe(1.22, duration: 0.27)
-              LinearKeyframe(1, duration: 0.25, timingCurve: .easeOut)
+            KeyframeTrack(\.width) {
+              LinearKeyframe(1.5, duration: 0.15, timingCurve: KMotion.lensStretchStep)
+              LinearKeyframe(0.94, duration: 0.175, timingCurve: KMotion.lensStretchStep)
+              LinearKeyframe(1, duration: 0.175, timingCurve: KMotion.lensStretchStep)
+            }
+            KeyframeTrack(\.height) {
+              LinearKeyframe(0.8, duration: 0.15, timingCurve: KMotion.lensStretchStep)
+              LinearKeyframe(1.06, duration: 0.175, timingCurve: KMotion.lensStretchStep)
+              LinearKeyframe(1, duration: 0.175, timingCurve: KMotion.lensStretchStep)
             }
           }
-          .offset(x: colW * CGFloat(col) + 4, y: 5)
-          .animation(stretches ? KMotion.lensSlide : KMotion.lensSlideReduced, value: col)
+          // middle: the press and the drag
+          .scaleEffect(x: press.width, y: press.height)
+          .animation(KMotion.lensPress, value: press)
+          .frame(width: size.width, height: size.height)
+          // outer: the place; it follows a dragging finger at once
+          .offset(x: x, y: (KTabBarMetrics.height - size.height) / 2)
+          .animation(dragging ? nil : (stretches ? KMotion.lensSlide : KMotion.lensSlideReduced), value: x)
       }
     }
     .allowsHitTesting(false)
@@ -291,120 +440,291 @@ public struct KTabBar: View {
   }
 
   // ── a tab ──
-  private func tab(_ i: Int, _ item: KTabItem) -> some View {
-    let on = i == selectedIndex
-    let color = on ? theme.ind : theme.ink
+  private func tab(_ i: Int, _ item: KTabItem, on: Bool, tone: KGlassTone) -> some View {
     let count = on ? 0 : max(0, item.badge)
-    let pops = on && !reduceMotion
-    return Button {
-      // only the selected tab counts a re-press; any other waits for selectedIndex to move
-      if on { repress &+= 1 }
-      onSelect(i)
-    } label: {
-      KTabIcon(glyph: item.glyph, on: on, color: color)
-        // the pop runs on every change of tab and every re-press; only the selected one takes it
-        .keyframeAnimator(initialValue: KTabPop(), trigger: [selectedIndex ?? -1, repress]) { content, pop in
-          content
-            .scaleEffect(pops ? pop.scale : 1)
-            .rotationEffect(pops ? pop.angle : .zero)
-        } keyframes: { _ in
-          KeyframeTrack(\.scale) {
-            LinearKeyframe(1.24, duration: 0.2, timingCurve: KMotion.tabPopStep)
-            LinearKeyframe(0.95, duration: 0.15, timingCurve: KMotion.tabPopStep)
-            LinearKeyframe(1, duration: 0.15, timingCurve: KMotion.tabPopStep)
-          }
-          KeyframeTrack(\.angle) {
-            LinearKeyframe(.degrees(-7), duration: 0.2, timingCurve: KMotion.tabPopStep)
-            LinearKeyframe(.degrees(3), duration: 0.15, timingCurve: KMotion.tabPopStep)
-            LinearKeyframe(.zero, duration: 0.15, timingCurve: KMotion.tabPopStep)
-          }
+    return KTabIcon(glyph: item.glyph, on: on, lineColor: on ? theme.ink : tone.rest, accentColor: on ? theme.ind : tone.rest, pick: pick, moves: on && !reduceMotion)
+      .animation(KMotion.tabTint, value: on)
+      .frame(width: KTabBarMetrics.lensSize.width, height: KTabBarMetrics.lensSize.height)
+      .overlay(alignment: .topTrailing) {
+        if count > 0 {
+          KTabBadge(theme: theme, ring: tone.badgeRing, count: count)
+            .padding(.top, 3)
+            .padding(.trailing, 9)
         }
-        .overlay(alignment: .topTrailing) {
-          if count > 0 {
-            KTabBadge(theme: theme, count: count)
-              // above and right of the glyph, where the React Native bar puts its count
-              .alignmentGuide(.top) { $0[.top] + 7 }
-              .alignmentGuide(.trailing) { $0[.trailing] - 11 }
-          }
-        }
-        // the icon's 50 × 40 capsule (H:119), and then the whole column is the target
-        .frame(width: 50, height: 40)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .contentShape(Rectangle())
-    }
-    .buttonStyle(KAsIsButtonStyle())
-    .animation(KMotion.tabTint, value: on)
-    .accessibilityLabel(item.label)
-    .accessibilityValue(count > 0 ? Text(count > 9 ? "9+" : String(count)) : Text(verbatim: ""))
-    .accessibilityAddTraits(on ? .isSelected : [])
-    .accessibilityShowsLargeContentViewer {
-      Label(item.label, systemImage: item.glyph.systemImage)
-    }
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .contentShape(Rectangle())
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(item.label)
+      .accessibilityValue(count > 0 ? Text(count > 9 ? "9+" : String(count)) : Text(verbatim: ""))
+      .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
+      .accessibilityAction { onSelect(i) }
+      .accessibilityShowsLargeContentViewer {
+        Label(item.label, systemImage: item.glyph.systemImage)
+      }
   }
 
-  // ── the + (H:119) ──
+  // ── the + (G Prompt 3) ──
   private var plus: some View {
-    KPrimaryRound(theme: theme, isOpen: isPanelOpen, accessibilityLabel: isPanelOpen ? closeLabel : plusLabel, turn: plusTurn, action: onPlus)
+    KGlassPlus(theme: theme, isOpen: isPanelOpen, turn: reduceMotion ? .easeInOut(duration: 0.25) : plusTurn)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
-      // the whole column takes the tap, as the mock's cell and PostTabBar's column do; the disc
-      // keeps its own press (a child's gesture wins inside the circle)
       .contentShape(Rectangle())
-      .onTapGesture(perform: onPlus)
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(isPanelOpen ? closeLabel : plusLabel)
+      .accessibilityAddTraits(.isButton)
+      .accessibilityAction { onPlus() }
       .accessibilityShowsLargeContentViewer {
         Label(isPanelOpen ? closeLabel : plusLabel, systemImage: isPanelOpen ? "xmark" : "plus")
       }
   }
 }
 
-/// The tabpop keyframes' two values.
-struct KTabPop {
-  var scale: CGFloat = 1
-  var angle: Angle = .zero
-}
-
-/// A tab's glyph, 27 across: the outline at the mock's 1.9 (2.4 selected) of its 28 units, plus
-/// the solid accent when selected. The accent appears at once, as in the mock; the colour and the
-/// stroke follow whatever animation the caller's transaction carries.
-struct KTabIcon: View {
-  /// the mock's 28-unit strokes on the shared 24 grid (KLineGlyph)
-  static let restingStroke: CGFloat = 1.9 * 24 / 28
-  static let selectedStroke: CGFloat = 2.4 * 24 / 28
-
-  let glyph: KTabGlyph
-  let on: Bool
-  let color: Color
+/// The capsule's glass, inside its edge (G Prompt 1). The caller clips it to the capsule.
+struct KGlassFace: View {
+  let tone: KGlassTone
 
   var body: some View {
+    let shape = Capsule(style: .circular)
     ZStack {
-      KLineGlyphShape(glyph.outline, lineWidth: on ? Self.selectedStroke : Self.restingStroke)
-        .fill(color)
-      if on {
-        KLineGlyphShape(glyph.accent, lineWidth: 0)
-          .fill(color)
-          .transition(.identity)
-      }
+      Rectangle().fill(.ultraThinMaterial)
+      Rectangle().fill(tone.tint)
+      // linear-gradient(180deg, white .55 0%, transparent 55%)
+      LinearGradient(colors: [tone.topFade, tone.topFade.opacity(0)], startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.55))
+      shape.strokeBorder(tone.ring, lineWidth: 0.5)
+      // inset 0 1.5 1 white: the bright line along the top edge
+      shape
+        .strokeBorder(LinearGradient(colors: [tone.topLine, tone.topLine.opacity(0)], startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.25)), lineWidth: 1.5)
+        .blur(radius: 0.5)
+      // inset 0 -1.5 2 ink .08: the faint dark line along the bottom
+      shape
+        .strokeBorder(LinearGradient(colors: [tone.bottomLine.opacity(0), tone.bottomLine], startPoint: UnitPoint(x: 0.5, y: 0.7), endPoint: .bottom), lineWidth: 1.5)
+        .blur(radius: 1)
     }
-    .frame(width: 27, height: 27)
+    .allowsHitTesting(false)
     .accessibilityHidden(true)
   }
 }
 
-/// A tab's count: an 18-tall ind pill, the number in bg in mono 600 11 (H:62), ringed in sf.
+/// Soft shadows of a shape drawn outside it only, as CSS's box-shadow is: under a glass face a
+/// shadow behind would show through and grey it.
+struct KOuterShadow<S: InsettableShape>: View {
+  let shadows: [KSoftShadow]
+  let shape: S
+
+  var body: some View {
+    ZStack {
+      Color.clear.kSoftShadows(shadows, in: shape)
+      // cut the shape itself out of its shadows
+      shape.fill(Color.black).blendMode(.destinationOut)
+    }
+    .compositingGroup()
+    .allowsHitTesting(false)
+      .accessibilityHidden(true)
+  }
+}
+
+/// The + (G Prompt 3): a 46 ind disc, a white + 22 across at 2.6, an ind glow and a bright line
+/// along its top; open, it turns 45 degrees into an x and the disc goes ink. In Midnight the mark
+/// is drawn in bg, as KPrimaryRound's is (white on its pale ind is under 3:1).
+struct KGlassPlus: View {
+  let theme: KTheme
+  let isOpen: Bool
+  let turn: Animation
+
+  var body: some View {
+    let disc = Circle()
+    KPlusGlyph()
+      .stroke(theme.isDark ? theme.bg : Color.white, style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
+      .frame(width: 22, height: 22)
+      .frame(width: 46, height: 46)
+      .background(disc.fill(isOpen ? theme.ink : theme.ind))
+      .overlay(
+        disc.strokeBorder(
+          LinearGradient(colors: [Color.white.opacity(0.35), Color.white.opacity(0)], startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.2)),
+          lineWidth: 1
+        )
+      )
+      .rotationEffect(.degrees(isOpen ? 45 : 0))
+      .animation(turn, value: isOpen)
+      .kSoftShadows([KSoftShadow(y: 6, blur: 16, spread: -6, color: theme.ind.opacity(0.7))], in: disc)
+      .accessibilityHidden(true)
+  }
+}
+
+/// The M2 drawings on their 28 grid (G Prompt 3), read once.
+enum KTabArt {
+  static let grid: CGFloat = 28
+
+  static func outline(_ g: KTabGlyph) -> Path {
+    switch g {
+    case .today: return todayOutline
+    case .notes: return notesOutline
+    case .kindreds: return kindredsOutline
+    case .me: return meOutline
+    }
+  }
+
+  static func accent(_ g: KTabGlyph) -> Path {
+    switch g {
+    case .today: return todayAccent
+    case .notes: return notesAccent
+    case .kindreds: return kindredsAccent
+    case .me: return meAccent
+    }
+  }
+
+  /// The point each accent moves about: the centre of its own box, as CSS's transform-box: fill-box does.
+  static func anchor(_ g: KTabGlyph) -> UnitPoint {
+    let r = accent(g).boundingRect
+    return UnitPoint(x: r.midX / grid, y: r.midY / grid)
+  }
+
+  static let todayOutline = KSVGPath.path("M14 3.8L4.2 10.6h2.6V21c0 .9-.9 1.6-1.6 2.4h17.6c-.7-.8-1.6-1.5-1.6-2.4V10.6h2.6z")
+  /// the slot, solid
+  static let todayAccent = KSVGPath.path("M10 13.2h8v2.6h-8z")
+  static let notesOutline = KSVGPath.path("M6.5 5h15v12l-6 6.5h-9z M15.5 23.5V17h6")
+  /// the folded corner, solid
+  static let notesAccent = KSVGPath.path("M15.5 17h6l-6 6.5z")
+  static let kindredsOutline = KSVGPath.path("M5 6h18v12H11l-6 5z")
+  /// the two eyes, solid
+  static let kindredsAccent: Path = {
+    var p = Path()
+    p.addEllipse(in: CGRect(x: 10.5 - 1.6, y: 10.6 - 1.6, width: 3.2, height: 3.2))
+    p.addEllipse(in: CGRect(x: 17.5 - 1.6, y: 10.6 - 1.6, width: 3.2, height: 3.2))
+    return p
+  }()
+  static let meOutline = KSVGPath.path("M14 4.5c2.9 0 5 2.4 5 5.5s-2.1 5.5-5 5.5-5-2.4-5-5.5 2.1-5.5 5-5.5z M5 24c.8-4.4 4.4-6.5 9-6.5s8.2 2.1 9 6.5")
+  /// the smile, a stroke
+  static let meAccent = KSVGPath.path("M11.8 11.6c1.2 1.1 3.2 1.1 4.4 0")
+}
+
+/// A path on the 28 grid, drawn to whatever frame it is given.
+struct KTabArtShape: Shape {
+  let art: Path
+
+  func path(in rect: CGRect) -> Path {
+    art.applying(CGAffineTransform(scaleX: rect.width / KTabArt.grid, y: rect.height / KTabArt.grid))
+  }
+}
+
+/// An accent's move (G Prompt 3): one value per kind of move, so one animator serves all four.
+struct KTabAccentMove {
+  var angle: Double = 0
+  var scale: CGFloat = 1
+  var scaleY: CGFloat = 1
+  var draw: CGFloat = 1
+}
+
+/// A tab's icon, 30 across: the outline at 2 (2.4 selected) of its 28 units and the accent,
+/// which moves once on each new pick while the tab is selected.
+struct KTabIcon: View {
+  static let side: CGFloat = 30
+
+  let glyph: KTabGlyph
+  let on: Bool
+  let lineColor: Color
+  let accentColor: Color
+  /// bumped by each new pick
+  let pick: Int
+  /// the accent moves (selected, and Reduce Motion off)
+  let moves: Bool
+
+  var body: some View {
+    let unit = Self.side / KTabArt.grid
+    let glyph = glyph
+    let moves = moves
+    ZStack {
+      KTabArtShape(art: KTabArt.outline(glyph))
+        .stroke(lineColor, style: StrokeStyle(lineWidth: (on ? 2.4 : 2) * unit, lineCap: .round, lineJoin: .round))
+      accent(unit: unit)
+        .keyframeAnimator(initialValue: KTabAccentMove(), trigger: pick) { content, m in
+          content
+            .rotationEffect(.degrees(moves && glyph == .today ? m.angle : 0), anchor: KTabArt.anchor(glyph))
+            .scaleEffect(moves && glyph == .notes ? m.scale : 1, anchor: KTabArt.anchor(glyph))
+            .scaleEffect(x: 1, y: moves && glyph == .kindreds ? m.scaleY : 1, anchor: KTabArt.anchor(glyph))
+        } keyframes: { _ in
+          // .55s in all; the steps are the mock's keyframe stops
+          KeyframeTrack(\.angle) {
+            LinearKeyframe(-14, duration: 0.1375, timingCurve: KMotion.tabAccentStep)
+            LinearKeyframe(10, duration: 0.1925, timingCurve: KMotion.tabAccentStep)
+            LinearKeyframe(0, duration: 0.22, timingCurve: KMotion.tabAccentStep)
+          }
+          KeyframeTrack(\.scale) {
+            MoveKeyframe(0)
+            LinearKeyframe(1.35, duration: 0.33, timingCurve: KMotion.tabAccentStep)
+            LinearKeyframe(1, duration: 0.22, timingCurve: KMotion.tabAccentStep)
+          }
+          KeyframeTrack(\.scaleY) {
+            LinearKeyframe(0.1, duration: 0.165, timingCurve: KMotion.tabAccentStep)
+            LinearKeyframe(1.2, duration: 0.1375, timingCurve: KMotion.tabAccentStep)
+            LinearKeyframe(1, duration: 0.2475, timingCurve: KMotion.tabAccentStep)
+          }
+        }
+    }
+    .frame(width: Self.side, height: Self.side)
+    .accessibilityHidden(true)
+  }
+
+  @ViewBuilder
+  private func accent(unit: CGFloat) -> some View {
+    let shape = KTabArtShape(art: KTabArt.accent(glyph))
+    if glyph == .me {
+      // the smile is a line; it draws in from its left end on each new pick
+      KTabSmile(color: accentColor, lineWidth: 2.4 * unit, pick: pick, moves: moves)
+    } else {
+      shape.fill(accentColor)
+    }
+  }
+}
+
+/// Me's smile, drawn in on each new pick (the mock's stroke-dashoffset 1 to 0 over .55s).
+struct KTabSmile: View {
+  let color: Color
+  let lineWidth: CGFloat
+  let pick: Int
+  let moves: Bool
+
+  var body: some View {
+    let moves = moves
+    KTabArtShape(art: KTabArt.meAccent)
+      .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+      .keyframeAnimator(initialValue: CGFloat(1), trigger: pick) { content, drawn in
+        content.mask {
+          // a wipe from the left stands in for trimming the stroke
+          GeometryReader { geo in
+            Rectangle()
+              .frame(width: geo.size.width * (moves ? drawn : 1))
+              .frame(maxWidth: .infinity, alignment: .leading)
+          }
+        }
+      } keyframes: { _ in
+        KeyframeTrack {
+          MoveKeyframe(0)
+          LinearKeyframe(1, duration: 0.55, timingCurve: KMotion.tabAccentStep)
+        }
+      }
+  }
+}
+
+/// A tab's count: an 18-tall ind pill, white 11 bold, ringed 2 in white (G Prompt 3).
 struct KTabBadge: View {
   let theme: KTheme
+  let ring: Color
   let count: Int
 
   var body: some View {
     Text(count > 9 ? "9+" : String(count))
-      .kText(.mono(11, .semibold))
-      .foregroundStyle(theme.bg)
+      .font(.system(size: 11, weight: .bold))
+      .monospacedDigit()
+      .foregroundStyle(theme.isDark ? theme.bg : Color.white)
       .lineLimit(1)
       .fixedSize()
-      .padding(.horizontal, 4)
+      .padding(.horizontal, 5)
       .frame(minWidth: 18, minHeight: 18, maxHeight: 18)
       .background(Capsule().fill(theme.ind))
-      .padding(1.6)
-      .background(Capsule().fill(theme.sf))
+      .padding(2)
+      .background(Capsule().fill(ring))
+      .padding(-2)
       .accessibilityHidden(true)
   }
 }

@@ -25,7 +25,7 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 | App Store | Binary | Builds | Code | Dates |
 |---|---|---|---|---|
-| 1.0.7 | 1.2.6 | 36 | `ios-1.2.3` at a2f2159 | built locally 10-28 (Xcode 27, scene manifest, supabase/appl_ counted in the ipa) |
+| 1.0.7 | 1.2.6 | 36–37 | `ios-1.2.3` | b36 built and uploaded 10-28 from a2f2159, not submitted; b37 adds the glass tab bar and the guest stamps fix |
 | 1.0.6 | 1.2.5 | 35 | `ios-1.2.3` at b355ff6 | uploaded 10-25, expedited review, **live 10-25 03:03 Beijing** (Apple lookup) |
 | 1.0.5 | 1.2.4 | 29–34 | `ios-1.2.3` up to b710f2f | b34 rejected for a launch crash, then approved and **released automatically 10-25** — it crashes at launch on every iOS 27 phone (built with Xcode 27 without the scene life cycle); 1.0.6 fixes it. Web launch-day deploy and 0035 the same day |
 | 1.0.4 | 1.2.3 | 28 | `hotfix-1.0.4` (worktree `../kindredly-ios-hotfix`) | submitted 10-15, approved about 10-16 |
@@ -38,7 +38,7 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 ---
 
-## 1.0.7 (binary 1.2.6, build 36), 2026-10-28
+## 1.0.7 (binary 1.2.6, builds 36–37), 2026-10-28
 
 Store What's New (owner, short): "Notes got a glow-up: photos, voice, moods, seals. Letters now tell you how close you are to sending. Wren throws a party every time she grows up. Skipped a letter by accident? She'll fetch it back. And till Nov 2 she's wearing a witch hat. Don't make it weird." Not told there on purpose: My kindreds, the report sample, the native redraws, and the features behind switches that are off (make your own face, the Swift onboarding).
 
@@ -52,6 +52,7 @@ New
 - The first-run onboarding can be drawn natively in SwiftUI: the same thirteen screens, words and steps, with flat keys and soft purple shadows under the cards instead of black edges; while it is off, people see the onboarding exactly as before. [binary] [switch: onboarding, off by default]
 
 Changed
+- The tab bar is glass (owner's G1, 10-28): a frosted capsule the screens show through, a lens that slides to the tab and stretches like a drop, swells under a finger and can be dragged along the bar; new icons (a pillar box, a sticky note, a speech bubble, a person) whose accent moves once when picked; the + is a 46 ind disc that turns into an ink ×. [binary]
 - The Letter font now starts on System for everyone who never picked one, and System is the first tile in Settings → Font, before Newsreader. A font you chose stays.
 - Writing a Notes page has a new bar: ＋ opens Photo, Video and Audio cards, a round mood capsule opens the four moods and their faces, and Seal it here turns ink as soon as there is something on the page (no counter). The page opens with the keyboard down and a blinking caret; sealing folds the page into a little note and presses the mood's face onto it as a seal (with a tap of haptics, "KEPT · OCT 26" under it), then goes back to Notes, where the new page pops in at the top. Nine languages. [binary] [switch: journalentry]
 - The letter composer's bottom bar is new ("Let it travel"): + · paper · a dashed stamp slot · one capsule on the right that fills with lav as you write toward 20 (with "n/20" beside it), then says "Pick a stamp" (the slot hops; Wren says "Now pick a stamp for it."), then turns ink with a paper plane to send. A chosen stamp shows as its #topic capsule in the bar and as the stamp itself in the top-right corner; with a long topic the send capsule becomes just the plane. Stamps are picked from the full stamp tray where the keyboard was, as before (your own stamps in their tab): Halloween stamps first in their season under a SEASONAL tag, then FOR THIS LETTER, RECENTLY USED and each category, labelled, in rows of six. Nine languages. [binary]
@@ -79,6 +80,7 @@ Changed
 - The courier card on Me (Wren's sky at this hour, the globe, the route, her line and the Open or Play button) and the Aura card's picture (on Me and in the aura room) can be drawn natively, looking and moving as before; Wren on the card is her own picture, and the card holds still under Reduce Motion. While they are off, both are exactly as before. [binary] [switch: couriercard, auraart]
 
 Fixed
+- Me → Stamps no longer stands empty for a guest: MADE BY YOU and Make One show (the server refuses the stamp quota to an account-less caller; the phone now reads that as "needs an account"). [OTA]
 - Allowing photos for the first time on the Notes photo roll shows the roll at once; it used to say "No photos yet." until the app was opened again.
 - The Writing Aura card counts toward its first reading with three boxes, matching "0 of 3 letters"; it used to draw five under that line.
 - In the Writing Aura room, a dimension still being read says "Still reading." once, with "A few more letters and this one fills in." under it; the line under it used to start with "Still reading." again.

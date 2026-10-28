@@ -63,11 +63,18 @@ async function bearer(): Promise<string | null> {
 
 let quotaWarned = false;
 
+/** What my_stamp_quota() answers an account-less caller, as 0039 means it to (why "account"). */
+const GUEST_QUOTA: StampQuota = { plan: "free", made: 0, cap: 3, remaining: 3, canMake: false, why: "account", gold: false };
+
 /** my_stamp_quota(), or null when it can't be asked (0038 not run, offline, signed out). */
 export async function fetchStampQuota(): Promise<StampQuota | null> {
   if (!supabaseReady || !supabase) return null;
   try {
     const { data, error } = await supabase.rpc("my_stamp_quota");
+    // a guest has no account, and 0039 grants the function to accounts only, so the server
+    // refuses instead of answering why "account". Answer it here: MADE BY YOU still shows, and
+    // MAKE ONE leads to sign-up (stamp-collection), rather than the whole card standing empty.
+    if (error && (error as { code?: string }).code === "42501") return GUEST_QUOTA;
     if (error) throw error;
     const q = parseQuota(data);
     if (!q && !quotaWarned) {
