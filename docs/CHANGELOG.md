@@ -25,6 +25,7 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 | App Store | Binary | Builds | Code | Dates |
 |---|---|---|---|---|
+| 1.0.7 | 1.2.6 | 36 | `ios-1.2.3` at a2f2159 | built locally 10-28 (Xcode 27, scene manifest, supabase/appl_ counted in the ipa) |
 | 1.0.6 | 1.2.5 | 35 | `ios-1.2.3` at b355ff6 | uploaded 10-25, expedited review, **live 10-25 03:03 Beijing** (Apple lookup) |
 | 1.0.5 | 1.2.4 | 29–34 | `ios-1.2.3` up to b710f2f | b34 rejected for a launch crash, then approved and **released automatically 10-25** — it crashes at launch on every iOS 27 phone (built with Xcode 27 without the scene life cycle); 1.0.6 fixes it. Web launch-day deploy and 0035 the same day |
 | 1.0.4 | 1.2.3 | 28 | `hotfix-1.0.4` (worktree `../kindredly-ios-hotfix`) | submitted 10-15, approved about 10-16 |
@@ -34,6 +35,12 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 ---
 
 ## Unreleased
+
+---
+
+## 1.0.7 (binary 1.2.6, build 36), 2026-10-28
+
+Store What's New (owner, short): "Notes got a glow-up: photos, voice, moods, seals. Letters now tell you how close you are to sending. Wren throws a party every time she grows up. Skipped a letter by accident? She'll fetch it back. And till Nov 2 she's wearing a witch hat. Don't make it weird." Not told there on purpose: My kindreds, the report sample, the native redraws, and the features behind switches that are off (make your own face, the Swift onboarding).
 
 New
 - What's new: Wren's post for this release carries a big card (the reel, a paragraph and a "Press your first stamp" button), like the guide cards, in all nine languages. [OTA]
