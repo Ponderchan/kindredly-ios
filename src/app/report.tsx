@@ -19,6 +19,7 @@ import { getWrenType } from "../lib/wren-type";
 import { useAuth } from "../lib/auth";
 import "../data/strings-me4a"; // m4.rt.*, m4.pw.close
 import { NativeSurface } from "../components/NativeSurface";
+import { useNativeSurface } from "../lib/surfaces";
 import { VoiceReportNative } from "../screens/report/VoiceReportNative";
 import { WrappedReportNative } from "../screens/report/WrappedReportNative";
 import { isKindredlyUIViewAvailable } from "../../modules/kindredly-ui";
@@ -55,7 +56,11 @@ export default function VoiceReport() {
      (before the first report is due) stays the Voice report's. A dev build opens it whatever the
      switch says with /report?demo=1 (the prototypes' October) or /report?wrapped=1 (your own
      month, which spends it), for the design pass. */
-  if (__DEV__ && (demo === "1" || wrapped === "1") && isKindredlyUIViewAvailable("KWrappedReportView")) {
+  /* TestFlight (owner, 2026-10-31: "can't test it" with fewer than ten pieces): wherever the switch
+     is on, /report?demo=1 opens the prototypes' October too. Demo data only: nothing of the
+     reader's is read or spent. Your own month (?wrapped=1) stays dev-only. */
+  const wrappedOn = useNativeSurface("reportwrapped");
+  if (((__DEV__ && (demo === "1" || wrapped === "1")) || (wrappedOn && demo === "1")) && isKindredlyUIViewAvailable("KWrappedReportView")) {
     return (
       <View style={{ flex: 1, backgroundColor: "#5B55FF" }}>
         <WrappedReportNative />

@@ -14,6 +14,7 @@ import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
 import { useAssetImageRef } from "../../lib/images";
 import { markReportRead } from "../../lib/report";
+import { useNativeSurface } from "../../lib/surfaces";
 import { demoWrappedFacts, keepThisMonth, readWrappedFacts, saveStyleChoice, wrappedTemplate } from "../../lib/report-wrapped";
 import { REPORT_STAMPS, REPORT_WREN } from "../../data/report-art";
 import { wrappedView, type WrappedFacts, type WrappedTemplate, type WrappedView } from "./wrapped-core";
@@ -51,7 +52,9 @@ export function WrappedReportNative() {
   const { profile } = useAuth();
   const { premium } = useEntitlement();
   const params = useLocalSearchParams<{ demo?: string; member?: string; style?: string; card?: string }>();
-  const demo = __DEV__ && params.demo === "1";
+  // the demo month: in a dev build, and (TestFlight, owner 2026-10-31) wherever the switch is on
+  const wrappedOn = useNativeSurface("reportwrapped");
+  const demo = (__DEV__ || wrappedOn) && params.demo === "1";
 
   const [facts, setFacts] = useState<WrappedFacts | null>(null);
   const [template, setTemplate] = useState<WrappedTemplate>("B");
