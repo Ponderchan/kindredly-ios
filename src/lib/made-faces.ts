@@ -1,4 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Application from "expo-application";
+import Constants from "expo-constants";
+import { newerVersion } from "./update-prompt-core";
 import { Directory, File, Paths } from "expo-file-system";
 import { API_BASE, supabase } from "./supabase";
 import { fetchWithin } from "./net";
@@ -48,8 +51,12 @@ const GUEST_KEY = "kindredly_face_guest";
 const CLAIM_KEY = "kindredly_face_claim"; // raw: the guest token has faces waiting for an account
 /** the drawing takes 15–25 s; the request is let go at 95 (the server's own limit is ~90) */
 export const DRAW_MS = 95_000;
-/** how many drawings a request asks for, to choose from (web face.js MAX_CHOICES) */
-export const DRAW_CHOICES = 3;
+/** How many drawings a request asks for, to choose from (web face.js MAX_CHOICES): three from the
+    binary whose Swift page shows them (1.2.7), one before it, so a JS update on an older binary
+    never pays for drawings its page can't offer. */
+const CHOICES_FROM = "1.2.7";
+const BINARY: string | null = Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? null;
+export const DRAW_CHOICES = BINARY && /^\d+(\.\d+)*$/.test(BINARY) && !newerVersion(CHOICES_FROM, BINARY) ? 3 : 1;
 const QUICK_MS = 15_000;
 const SIGN_S = 3600;
 
