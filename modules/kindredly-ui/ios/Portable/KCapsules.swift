@@ -6,7 +6,8 @@ import SwiftUI
  THE 10a STICKER CAPSULES (tokens-10a.md §9): small rounded labels, corners of 20 (more than
  half their height, so they read as capsules) and padding 6 12 (plus the 2 the mock's outline
  took). Owner's rule B (2026-10-26): controls and chips are flat, so only the topic tag, which
- belongs to the letter, keeps the mock's ln outline and hard shadow. Every word on them is
+ belongs to the letter, keeps the mock's ln outline and hard shadow (in the light themes; flat in
+ Midnight, owner 2026-10-31). Every word on them is
  passed in already translated.
  */
 
@@ -66,13 +67,15 @@ public struct KTopicTag: View {
       .padding(.vertical, 6 + 2)
       .padding(.horizontal, 12 + 2)
       .background {
+        // Midnight: flat (owner, 2026-10-31: the pale outline and shadow looked wrong at night;
+        // there ln is a light lilac, so the sticker read as a glowing cut-out). Same size either way.
         KStickerBackground(
           shape: RoundedRectangle(cornerRadius: 20, style: .circular),
           fill: fill,
-          stroke: theme.ln,
+          stroke: theme.isDark ? nil : theme.ln,
           lineWidth: 2,
-          shadow: theme.ln,
-          shadowOffset: 3
+          shadow: theme.isDark ? nil : theme.ln,
+          shadowOffset: theme.isDark ? 0 : 3
         )
       }
   }
