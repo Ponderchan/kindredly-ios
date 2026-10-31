@@ -38,7 +38,8 @@ export type EventName =
   | "purchase_done"
   | "purchase_failed"
   // the walls, counted separately from the paywall they open
-  | "gate_hit";
+  | "gate_hit"
+  | "send_failed";
 
 /** where a paywall was opened FROM — every entry point, named once */
 export type PaywallSource =

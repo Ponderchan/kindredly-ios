@@ -10,6 +10,7 @@ import { isMissingRpc } from "./identity-core";
 import { penFaceOrNull, penOrNull, simplifyPen, validatePen, type PenSig } from "./pen-signature";
 import { scoped } from "./scoped-store";
 import { isOffline } from "./net";
+import { track } from "./track";
 import { t } from "./i18n";
 import { paperForDb } from "../data/papers";
 import type { Sky } from "../data/sparkle-deck";
@@ -1214,7 +1215,40 @@ export async function fetchThreadRevealed(threadId: string): Promise<boolean | n
    event, and a lost count silently costs the 5/5 signing gate and the
    face's develop. Names and reveal don't move here either — since 0010
    a name is written only by the act of SIGNING (signThread). */
+/* A SEND NEVER HANGS (owner, 2026-10-31: readers wrote that in a kindred room the key "just greys
+   out and stops responding" for a week). Whatever the cause, twenty seconds without an answer is a
+   failed send: the composer gets its words back and says so, instead of waiting forever; and the
+   moment is recorded (events: send_failed) so the cause can be found. */
+export const SEND_TIMEOUT_MS = 20_000;
+
 export async function sendThreadMessage(
+  threadId: string,
+  body: string,
+  extra?: Parameters<typeof sendThreadMessageNow>[2],
+): Promise<{ ok: true; id?: string; createdAt?: string } | null> {
+  const started = Date.now();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<"timeout">((done) => {
+    timer = setTimeout(() => done("timeout"), SEND_TIMEOUT_MS);
+  });
+  try {
+    const r = await Promise.race([sendThreadMessageNow(threadId, body, extra), timeout]);
+    if (r === "timeout") {
+      setFail("offline");
+      track("send_failed", { why: "timeout", kind: extra?.kind ?? "text" });
+      return null;
+    }
+    if (!r) track("send_failed", { why: lastFailKind ?? "unknown", kind: extra?.kind ?? "text", ms: Date.now() - started });
+    return r;
+  } catch (e) {
+    track("send_failed", { why: "threw", msg: String((e as Error)?.message ?? e).slice(0, 120), kind: extra?.kind ?? "text" });
+    return null;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function sendThreadMessageNow(
   threadId: string,
   body: string,
   extra?: {

@@ -89,6 +89,7 @@ Changed
 - The courier card on Me (Wren's sky at this hour, the globe, the route, her line and the Open or Play button) and the Aura card's picture (on Me and in the aura room) can be drawn natively, looking and moving as before; Wren on the card is her own picture, and the card holds still under Reduce Motion. While they are off, both are exactly as before. [binary] [switch: couriercard, auraart]
 
 Fixed
+- A kindred room's send never hangs: after twenty seconds without an answer, or if anything in the send goes wrong, the key comes back, the words return to the field and the reader is told it didn't go; each such failure is recorded (events: send_failed) so the cause can be found (readers wrote the key "just greys out" for a week). [OTA]
 - Me → Stamps no longer stands empty for a guest: MADE BY YOU and Make One show (the server refuses the stamp quota to an account-less caller; the phone now reads that as "needs an account"). [OTA]
 - Allowing photos for the first time on the Notes photo roll shows the roll at once; it used to say "No photos yet." until the app was opened again.
 - The Writing Aura card counts toward its first reading with three boxes, matching "0 of 3 letters"; it used to draw five under that line.

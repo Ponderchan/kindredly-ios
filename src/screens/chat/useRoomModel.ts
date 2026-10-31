@@ -18,6 +18,7 @@ import { markNoticeSeen, readNoticesSeen } from "../../lib/notice-seen";
 import { useEntitlement } from "../../lib/entitlement";
 import { closingSoon, daysLeft as daysLeftOf, isExpired, quietDays as quietDaysOf } from "../../lib/kindred-expiry";
 import { markWork } from "../../lib/stall-probe";
+import { track } from "../../lib/track";
 import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
 import { refreshFingerprint } from "../../lib/aura";
 import { noteWrote } from "../../lib/local-push";
@@ -787,6 +788,9 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
         if (cleared) putText(rawText);
       };
       if (!id || sendingRef.current) return refuse();
+      /* whatever goes wrong below, the key never stays grey: sending ends, the words come back, the
+         reader is told (owner, 2026-10-31; readers wrote the room's key "just greys out") */
+      try {
 
       if (curMode && curMode.kind !== "song") {
         const prompt = curMode.kind === "question" ? (typedPrompt ?? curMode.prompt).trim() : "";
@@ -909,6 +913,13 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
       void refreshFingerprint();
       void noteWrote("letter");
       // the realtime echo of our own INSERT reloads and reconciles
+      } catch (e) {
+        console.warn("[room] send threw:", e);
+        track("send_failed", { why: "room_threw", msg: String((e as Error)?.message ?? e).slice(0, 120) });
+        setSending(false);
+        refuse();
+        failAlert();
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [id, isDemo, ui, putText, reload, mutateFolds, lines.add, lines.drop, lines.settle],
