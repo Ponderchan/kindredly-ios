@@ -1,3 +1,4 @@
+import { FaceReadyBanner } from "../../components/FaceReadyBanner";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { Tabs } from "expo-router";
@@ -94,6 +95,8 @@ export default function TabsLayout() {
       <IdentityNote />
       {/* Wren fledged or grew up since last time: the moment, once per stage */}
       <GrowthMoment />
+      {/* a face Wren finished while the reader was elsewhere in the app (make-face) */}
+      <FaceReadyBanner />
     </View>
     </TabBarAway.Provider>
     </PlusSheetOpen.Provider>

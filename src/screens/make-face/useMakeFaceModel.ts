@@ -3,7 +3,7 @@ import { Alert, AppState } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as Notifications from "expo-notifications";
-import { File } from "expo-file-system";
+import { File, Paths } from "expo-file-system";
 import { prepareFacePhoto, type KMakeFaceScreen, type KMakeFaceStrings, type KMakeFaceChipGroup } from "../../../modules/kindredly-ui/src/MakeFace";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
@@ -11,6 +11,7 @@ import { clearAvatarPhoto } from "../../lib/avatar-photo";
 import { t, useLang } from "../../lib/i18n";
 import { checkPending, drawFace, loadMadeFaces, madeFaceFileUri, madeFaceKey, madeFaceRefNow, madeFacesNow, pickFace, readFaceQuota, setMadeFaceWorn, syncMadeFaces, type DrawInput } from "../../lib/made-faces";
 import { useMadeFaceStore } from "../../lib/make-face";
+import { setNotifyOn } from "../../lib/notify";
 import {
   anotherScreen,
   cleanWords,
@@ -62,6 +63,21 @@ const KNOCK_ID = "make-face-knock";
 type Job = { from: MakeFaceFrom; mode: DrawMode; startedAt: number; promise: Promise<FaceAnswer>; answer: FaceAnswer | null };
 let job: Job | null = null;
 let watching = false;
+/** how many make-face pages are open: none open when a drawing lands = the in-app knock */
+let pagesOpen = 0;
+
+/* THE IN-APP KNOCK (owner's design, 2026-10-31). A drawing that lands while the reader is still in
+   the app but has left the page used to say nothing; now FaceReadyBanner (the tabs) drops a banner
+   with the new face and "See it", which opens the page on the result (the job keeps its answer,
+   choices and all, until a page applies it). */
+export type FaceReady = { from: MakeFaceFrom; avatarId: string };
+const readyListeners = new Set<(r: FaceReady) => void>();
+export function subscribeFaceReady(fn: (r: FaceReady) => void): () => void {
+  readyListeners.add(fn);
+  return () => {
+    readyListeners.delete(fn);
+  };
+}
 
 async function cancelKnock(): Promise<void> {
   try {
@@ -71,11 +87,31 @@ async function cancelKnock(): Promise<void> {
   }
 }
 
-async function knock(from: MakeFaceFrom, afterS: number | null): Promise<void> {
+/** A copy of the new face for the lock-screen knock (owner's design, board 4): iOS moves an
+    attachment's file into its own store, so it gets a copy in the cache, never the kept file. */
+function knockPicture(avatarId: string | null): { identifier: string; url: string; type: string; typeHint: string }[] | undefined {
+  if (!avatarId) return undefined;
   try {
+    const rec = madeFacesNow().faces.find((f) => f.avatarId === avatarId);
+    const uri = rec ? madeFaceFileUri(rec) : null;
+    if (!uri) return undefined;
+    const src = new File(uri);
+    const copy = new File(Paths.cache, `knock-${Date.now()}.${src.extension.replace(".", "") || "png"}`);
+    src.copy(copy);
+    const uti = copy.extension === ".jpg" ? "public.jpeg" : "public.png";
+    return [{ identifier: "face", url: copy.uri, type: uti, typeHint: uti }];
+  } catch (e) {
+    console.log("[make-face] the knock goes without the face:", e);
+    return undefined;
+  }
+}
+
+async function knock(from: MakeFaceFrom, afterS: number | null, avatarId: string | null = null): Promise<void> {
+  try {
+    const attachments = afterS == null ? knockPicture(avatarId) : undefined;
     await Notifications.scheduleNotificationAsync({
       identifier: KNOCK_ID,
-      content: { body: t("mf.notif"), sound: false, data: { face: 1, from } },
+      content: { body: t("mf.notif"), sound: false, data: { face: 1, from }, ...(attachments ? { attachments } : {}) },
       trigger: afterS == null ? null : { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: afterS, repeats: false },
     });
   } catch (e) {
@@ -98,10 +134,14 @@ function startJob(input: DrawInput, from: MakeFaceFrom): Job {
   const j: Job = { from, mode: input.mode, startedAt: Date.now(), answer: null, promise: Promise.resolve({ kind: "unavailable" }) };
   j.promise = drawFace(input, from).then(async (answer) => {
     j.answer = answer;
+    if (AppState.currentState === "active" && answer.kind === "made" && pagesOpen === 0) {
+      const r: FaceReady = { from, avatarId: answer.face.avatarId };
+      readyListeners.forEach((fn) => fn(r));
+    }
     if (AppState.currentState !== "active" && answer.kind === "made") {
       // still away: the knock goes now (any timed one first)
       await cancelKnock();
-      await knock(from, null);
+      await knock(from, null, answer.face.avatarId);
     } else {
       await cancelKnock();
     }
@@ -147,7 +187,16 @@ export type MakeFaceActions = {
   later: () => void;
   /** one of the drawings to choose from was tapped */
   choose: (index: number) => void;
+  /** while Wren paints: allow notifications (iOS asks), wait here instead, or back to the ask */
+  knockAllow: () => void;
+  knockWatch: () => void;
+  knockAsk: () => void;
 };
+
+/** While Wren paints (owner's design, 2026-10-31): ask = the card offering a knock; watch = they
+    chose to wait (with a way back to the ask); on = notifications allowed, Leave is the button;
+    off = iOS won't let us ask again, Leave is still there and the face waits in Edit profile. */
+export type KnockState = "ask" | "watch" | "on" | "off";
 
 export type MakeFaceModel = {
   /** null until the phone's store is read (the page waits: no first screen flickers) */
@@ -165,6 +214,7 @@ export type MakeFaceModel = {
   /** the drawings to choose from (empty: just the one), and the one chosen */
   choices: { uri: string; key: string }[];
   choice: number;
+  knock: KnockState;
   quotaFace: { uri: string; key: string } | null;
   act: MakeFaceActions;
 };
@@ -196,6 +246,13 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
   // three to choose from (owner, 2026-10-31): the face is the first until another is picked
   const [choices, setChoices] = useState<FaceChoice[]>([]);
   const [choice, setChoice] = useState(0);
+  const [knockState, setKnockState] = useState<KnockState>("on");
+  // what iOS says now: allowed → on; never asked → the ask; refused for good → off
+  useEffect(() => {
+    void Notifications.getPermissionsAsync()
+      .then((p) => alive.current && setKnockState(p.status === "granted" ? "on" : p.canAskAgain ? "ask" : "off"))
+      .catch((e) => console.log("[make-face] notification permission unreadable:", e));
+  }, []);
   const [busy, setBusy] = useState(false);
   const last = useRef<DrawInput | null>(null);
   const alive = useRef(true);
@@ -204,8 +261,10 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
 
   useEffect(() => {
     alive.current = true;
+    pagesOpen += 1;
     return () => {
       alive.current = false;
+      pagesOpen -= 1;
       // a photo that was never sent goes with the screen
       remove(photoRef.current);
     };
@@ -227,6 +286,8 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
     (j: Job) => {
       setScreen("generating");
       void j.promise.then((a) => {
+        // a page that has gone leaves the answer on the job for the next one (the knock opens it)
+        if (!alive.current) return;
         apply(a, j.mode);
         if (job === j) job = null;
       });
@@ -454,6 +515,18 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
       google: () => void signIn("google"),
       later: close,
       choose: (i) => setChoice(Math.max(0, Math.min(choices.length - 1, i))),
+      // the app's own Notifications switch on, iOS asked if it still can; the face knock then
+      // comes with the reply knocks the rest of the app sends
+      knockAllow: () => {
+        void setNotifyOn(true)
+          .then((ok) => alive.current && setKnockState(ok ? "on" : "off"))
+          .catch((e) => {
+            console.warn("[make-face] notifications:", e);
+            if (alive.current) setKnockState("off");
+          });
+      },
+      knockWatch: () => setKnockState("watch"),
+      knockAsk: () => setKnockState("ask"),
     }),
     [close, minor, pick, run, result, from, guest, auth, firstClass, reason, mode, router, signIn, choices, choice],
   );
@@ -485,6 +558,7 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
     result: choices.length > 1 && choices[choice] ? { uri: choices[choice].url, key: "faces:" + choices[choice].path } : refOf(result),
     choices: choices.length > 1 ? choices.map((c) => ({ uri: c.url, key: "faces:" + c.path })) : [],
     choice,
+    knock: knockState,
     quotaFace: refOf(shownFace(store, avatar)),
     act,
   };

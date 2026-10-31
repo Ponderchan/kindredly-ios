@@ -82,6 +82,9 @@ export function MakeFaceNative({ model }: { model: MakeFaceModel }) {
       google: () => live.current.google(),
       later: () => live.current.later(),
       choose: (i) => live.current.choose(i),
+      knockAllow: () => live.current.knockAllow(),
+      knockWatch: () => live.current.knockWatch(),
+      knockAsk: () => live.current.knockAsk(),
     }),
     [],
   );
@@ -119,6 +122,7 @@ export function MakeFaceNative({ model }: { model: MakeFaceModel }) {
       quotaFace={quotaFace}
       choices={choices}
       choice={model.choice}
+      knock={model.knock}
       act={act}
     />
   );
@@ -144,6 +148,7 @@ type SurfaceProps = {
   quotaFace: KImageRefProps | null;
   choices: KImageRefProps[];
   choice: number;
+  knock: "ask" | "watch" | "on" | "off";
   act: MakeFaceActions;
 };
 
@@ -176,6 +181,10 @@ const FaceSurface = memo(function FaceSurface(p: SurfaceProps) {
         choices={p.choices}
         choice={p.choice}
         onChoose={act.choose}
+        knock={p.knock}
+        onKnockAllow={act.knockAllow}
+        onKnockWatch={act.knockWatch}
+        onKnockAsk={act.knockAsk}
         onClose={act.close}
         onStart={act.start}
         onMethod={act.method}

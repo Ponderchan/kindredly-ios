@@ -125,6 +125,16 @@ public struct KMakeFaceStrings: Equatable, Sendable {
   public var draw = ""
   public var wordsLabel = ""
   public var genLeave = ""
+  public var knockTitle = ""
+  public var knockBody = ""
+  public var knockWatch = ""
+  public var knockAllow = ""
+  public var knockInstead = ""
+  public var knockWatching = ""
+  public var knockOn = ""
+  public var knockOff = ""
+  public var knockLeave = ""
+  public var knockLeaveQuiet = ""
   public var genLabel = ""
   public var resultLine = ""
   public var resultSub = ""
@@ -176,6 +186,8 @@ public struct KMakeFaceContent: Equatable, Sendable {
   public var choices: [KImageRef] = []
   /// the one chosen, an index into choices; the reveal shows it
   public var choice = 0
+  /// while Wren paints: offer the knock, or Leave (see KMakeFaceKnock)
+  public var knock: KMakeFaceKnock = .on
   public var chips: [KMakeFaceChipGroup] = []
   /// Wren's lines while she paints, in order (the last one stays)
   public var genLines: [String] = []
@@ -205,6 +217,46 @@ public final class KMakeFaceDriver: ObservableObject {
 }
 
 /// What the page tells its owner. One object for the life of the page; set the closures once.
+/// While Wren paints: what the foot of the page offers (KMakeFacePage.knockFoot).
+public enum KMakeFaceKnock: String, Equatable, Sendable {
+  /// never asked: the card offering the knock
+  case ask
+  /// they chose to wait here
+  case watch
+  /// notifications allowed: Leave — I'll knock
+  case on
+  /// iOS won't ask again: Leave, and the face waits in Edit profile
+  case off
+}
+
+/// The bell on the knock card: rings now and then (a still bell under Reduce Motion).
+struct KKnockBell: View {
+  let color: Color
+  let ring: Bool
+
+  var body: some View {
+    ZStack {
+      KFacePath(d: "M6 10a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 15 6 10z")
+        .stroke(color, style: StrokeStyle(lineWidth: 1.9, lineCap: .round, lineJoin: .round))
+      KFacePath(d: "M10 19.5a2 2 0 0 0 4 0")
+        .stroke(color, style: StrokeStyle(lineWidth: 1.9, lineCap: .round, lineJoin: .round))
+    }
+    .frame(width: 24, height: 24)
+    .keyframeAnimator(initialValue: 0.0, repeating: ring) { content, angle in
+      content.rotationEffect(.degrees(angle), anchor: UnitPoint(x: 0.5, y: 0.1))
+    } keyframes: { _ in
+      KeyframeTrack {
+        LinearKeyframe(0, duration: 1.6)
+        LinearKeyframe(-14, duration: 0.12)
+        LinearKeyframe(10, duration: 0.12)
+        LinearKeyframe(-6, duration: 0.12)
+        LinearKeyframe(3, duration: 0.12)
+        LinearKeyframe(0, duration: 0.12)
+      }
+    }
+  }
+}
+
 public final class KMakeFaceActions {
   /// the dim, a swipe down, the escape (not while painting: that is onLeave)
   public var onClose: () -> Void = {}
@@ -230,6 +282,10 @@ public final class KMakeFaceActions {
   public var onLater: () -> Void = {}
   /// one of the drawings to choose from, by index
   public var onChoose: (Int) -> Void = { _ in }
+  /// while Wren paints: allow the knock (iOS asks), wait here instead, back to the offer
+  public var onKnockAllow: () -> Void = {}
+  public var onKnockWatch: () -> Void = {}
+  public var onKnockAsk: () -> Void = {}
 
   public init() {}
 }
@@ -549,17 +605,101 @@ public struct KMakeFacePage<Wren: View>: View {
         KMakeFaceLines(theme: theme, lines: content.genLines)
       }
       .frame(maxHeight: .infinity)
-      SwiftUI.Button(action: actions.onLeave) {
-        Text(content.strings.genLeave)
+      knockFoot
+        .animation(.easeOut(duration: 0.22), value: content.knock)
+    }
+  }
+
+  /*
+   THE KNOCK (owner's design, 2026-10-31: the painting is a good moment to ask for notifications,
+   because there is something real to be told about). Never asked: a soft card offering the knock,
+   Knock when done (iOS asks then) or I'll watch. Watching: a line, and Knock me instead. Allowed:
+   Leave — I'll knock, a full-width ink key, the swipe down still works too. iOS won't ask again:
+   Leave, plain, and the face waits in Edit profile.
+   */
+  @ViewBuilder
+  private var knockFoot: some View {
+    switch content.knock {
+    case .ask:
+      VStack(alignment: .leading, spacing: 14) {
+        HStack(alignment: .top, spacing: 14) {
+          ZStack {
+            Circle().fill(theme.sf)
+            KKnockBell(color: theme.ind, ring: !reduceMotion)
+          }
+          .frame(width: 44, height: 44)
+          .accessibilityHidden(true)
+          VStack(alignment: .leading, spacing: 3) {
+            Text(content.strings.knockTitle)
+              .kText(.system(16, .semibold))
+              .foregroundStyle(theme.ink)
+            Text(content.strings.knockBody)
+              .kText(.system(14, lineHeight: 1.4))
+              .foregroundStyle(theme.sub)
+              .fixedSize(horizontal: false, vertical: true)
+          }
+          .accessibilityElement(children: .combine)
+        }
+        KFlexRow(weights: [1, 1.4], spacing: 10) {
+          smallKey(content.strings.knockWatch, fill: theme.lav, ink: theme.ind, action: actions.onKnockWatch)
+          smallKey(content.strings.knockAllow, fill: theme.ind, ink: theme.isDark ? theme.bg : Color.white, action: actions.onKnockAllow)
+        }
+      }
+      .padding(18)
+      .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(theme.lav2))
+      .transition(.opacity)
+    case .watch:
+      VStack(spacing: 4) {
+        Text(content.strings.knockWatching)
           .kText(.system(13))
           .foregroundStyle(theme.mute)
           .multilineTextAlignment(.center)
           .fixedSize(horizontal: false, vertical: true)
-          .frame(maxWidth: .infinity, minHeight: 44)
-          .contentShape(Rectangle())
+        SwiftUI.Button(action: actions.onKnockAsk) {
+          Text(content.strings.knockInstead)
+            .kText(.system(14, .semibold))
+            .foregroundStyle(theme.ind)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(KFadePressStyle())
       }
-      .buttonStyle(KFadePressStyle())
+      .frame(maxWidth: .infinity)
+      .transition(.opacity)
+    case .on, .off:
+      VStack(spacing: 12) {
+        Text(content.knock == .on ? content.strings.knockOn : content.strings.knockOff)
+          .kText(.system(13))
+          .foregroundStyle(theme.sub)
+          .multilineTextAlignment(.center)
+          .fixedSize(horizontal: false, vertical: true)
+        SwiftUI.Button(action: actions.onLeave) {
+          Text(content.knock == .on ? content.strings.knockLeave : content.strings.knockLeaveQuiet)
+            .kText(.system(16, .semibold))
+            .foregroundStyle(theme.isDark ? theme.bg : Color.white)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, minHeight: 52)
+        }
+        .buttonStyle(KStickerButtonStyle(shape: Capsule(), fill: theme.ink))
+      }
+      .transition(.opacity)
     }
+  }
+
+  private func smallKey(_ text: String, fill: Color, ink: Color, action: @escaping () -> Void) -> some View {
+    SwiftUI.Button(action: action) {
+      Text(text)
+        .kText(.system(15, .semibold))
+        .foregroundStyle(ink)
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, minHeight: 46)
+    }
+    .buttonStyle(KStickerButtonStyle(shape: Capsule(), fill: fill))
   }
 
   // ── result ──

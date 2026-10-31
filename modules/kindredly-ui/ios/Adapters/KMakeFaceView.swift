@@ -63,6 +63,16 @@ struct KMakeFaceStringsRecord: Record {
   @Field var draw: String = ""
   @Field var wordsLabel: String = ""
   @Field var genLeave: String = ""
+  @Field var knockTitle: String = ""
+  @Field var knockBody: String = ""
+  @Field var knockWatch: String = ""
+  @Field var knockAllow: String = ""
+  @Field var knockInstead: String = ""
+  @Field var knockWatching: String = ""
+  @Field var knockOn: String = ""
+  @Field var knockOff: String = ""
+  @Field var knockLeave: String = ""
+  @Field var knockLeaveQuiet: String = ""
   @Field var genLabel: String = ""
   @Field var resultLine: String = ""
   @Field var resultSub: String = ""
@@ -118,6 +128,16 @@ struct KMakeFaceStringsRecord: Record {
     s.draw = draw
     s.wordsLabel = wordsLabel
     s.genLeave = genLeave
+    s.knockTitle = knockTitle
+    s.knockBody = knockBody
+    s.knockWatch = knockWatch
+    s.knockAllow = knockAllow
+    s.knockInstead = knockInstead
+    s.knockWatching = knockWatching
+    s.knockOn = knockOn
+    s.knockOff = knockOff
+    s.knockLeave = knockLeave
+    s.knockLeaveQuiet = knockLeaveQuiet
     s.genLabel = genLabel
     s.resultLine = resultLine
     s.resultSub = resultSub
@@ -176,6 +196,7 @@ final class KMakeFaceViewProps: KScreenProps {
   @Field var quotaFace: KImageRefRecord = KImageRefRecord()
   @Field var choices: [KImageRefRecord] = []
   @Field var choice: Int = 0
+  @Field var knock: String = "on"
   @Field var chips: [KMakeFaceChipGroupRecord] = []
   @Field var genLines: [String] = []
 
@@ -199,6 +220,9 @@ final class KMakeFaceViewProps: KScreenProps {
   var onFaceGoogle = EventDispatcher()
   var onFaceLater = EventDispatcher()
   var onFaceChoose = EventDispatcher()
+  var onFaceKnockAllow = EventDispatcher()
+  var onFaceKnockWatch = EventDispatcher()
+  var onFaceKnockAsk = EventDispatcher()
 
   /// The words field: as long-lived as the view, like `commands`.
   let driver = KMakeFaceDriver()
@@ -226,6 +250,9 @@ final class KMakeFaceViewProps: KScreenProps {
     a.onGoogle = { [weak self] in self?.onFaceGoogle() }
     a.onLater = { [weak self] in self?.onFaceLater() }
     a.onChoose = { [weak self] i in self?.onFaceChoose(["index": i]) }
+    a.onKnockAllow = { [weak self] in self?.onFaceKnockAllow() }
+    a.onKnockWatch = { [weak self] in self?.onFaceKnockWatch() }
+    a.onKnockAsk = { [weak self] in self?.onFaceKnockAsk() }
     return a
   }()
 
@@ -259,6 +286,7 @@ final class KMakeFaceViewProps: KScreenProps {
     c.quotaFace = quotaFace.ref
     c.choices = choices.compactMap { $0.ref }
     c.choice = choice
+    c.knock = KMakeFaceKnock(rawValue: knock) ?? .on
     c.chips = cached("chips") {
       chips.map { g in
         KMakeFaceChipGroup(id: g.id, title: g.title, chips: g.chips.filter { !$0.id.isEmpty }.map { KMakeFaceChip(id: $0.id, label: $0.label) })

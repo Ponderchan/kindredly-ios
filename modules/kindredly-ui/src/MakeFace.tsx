@@ -64,6 +64,16 @@ export type KMakeFaceStrings = {
   draw: string;
   wordsLabel: string;
   genLeave: string;
+  knockTitle: string;
+  knockBody: string;
+  knockWatch: string;
+  knockAllow: string;
+  knockInstead: string;
+  knockWatching: string;
+  knockOn: string;
+  knockOff: string;
+  knockLeave: string;
+  knockLeaveQuiet: string;
   genLabel: string;
   resultLine: string;
   resultSub: string;
@@ -121,6 +131,8 @@ export type KMakeFaceViewProps = CommonViewModifierProps &
     /** the drawings to choose from on the result (empty: just the one) and the one chosen */
     choices?: KImageRefProps[];
     choice?: number;
+    /** while Wren paints: the knock offer (ask), waiting (watch), allowed (on), or not possible (off) */
+    knock?: "ask" | "watch" | "on" | "off";
     /** the chip groups (memoised, with a rev) */
     chips: KMakeFaceChipGroup[];
     genLines: string[];
@@ -144,6 +156,9 @@ export type KMakeFaceViewProps = CommonViewModifierProps &
     onGoogle?: () => void;
     onLater?: () => void;
     onChoose?: (index: number) => void;
+    onKnockAllow?: () => void;
+    onKnockWatch?: () => void;
+    onKnockAsk?: () => void;
     /** the one <KIsland name="wren">, every render (Slot.tsx) */
     children?: ReactNode;
   };
@@ -163,6 +178,10 @@ type NativeProps = Omit<
   | "choices"
   | "choice"
   | "onChoose"
+  | "knock"
+  | "onKnockAllow"
+  | "onKnockWatch"
+  | "onKnockAsk"
   | "onClose"
   | "onStart"
   | "onMethod"
@@ -191,6 +210,10 @@ type NativeProps = Omit<
     choices: NativeImage[];
     choice: number;
     onFaceChoose?: Ev<{ index: number }>;
+    knock: string;
+    onFaceKnockAllow?: None;
+    onFaceKnockWatch?: None;
+    onFaceKnockAsk?: None;
     onFaceClose?: None;
     onFaceStart?: None;
     onFaceMethod?: Ev<{ kind: KMakeFaceMethod }>;
@@ -238,6 +261,10 @@ export const KMakeFaceView = forwardRef<KScreenHandle, KMakeFaceViewProps>(funct
     choice,
     chips,
     onChoose,
+    knock,
+    onKnockAllow,
+    onKnockWatch,
+    onKnockAsk,
     onClose,
     onStart,
     onMethod,
@@ -282,6 +309,10 @@ export const KMakeFaceView = forwardRef<KScreenHandle, KMakeFaceViewProps>(funct
       choices={choicesSent}
       choice={choice ?? 0}
       onFaceChoose={onChoose ? (e) => onChoose(e.nativeEvent.index ?? 0) : undefined}
+      knock={knock ?? "on"}
+      onFaceKnockAllow={onKnockAllow ? () => onKnockAllow() : undefined}
+      onFaceKnockWatch={onKnockWatch ? () => onKnockWatch() : undefined}
+      onFaceKnockAsk={onKnockAsk ? () => onKnockAsk() : undefined}
       onFaceClose={onClose ? () => onClose() : undefined}
       onFaceStart={onStart ? () => onStart() : undefined}
       onFaceMethod={onMethod ? (e) => onMethod(e.nativeEvent.kind) : undefined}
