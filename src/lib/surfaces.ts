@@ -180,6 +180,14 @@ import {
                   KStampBookView
      lore         Lore, the kept lines (lore) — KLoreView
 
+   The wrapped monthly report (owner, 2026-10-31; design/report-v2): a new
+   report in front of the Voice report, not a port. OFF until a row turns it
+   on (the pairing table waits for the owner's approval); off, /report is
+   the Voice report above, unchanged:
+
+     reportwrapped  the monthly report, both templates (report) —
+                  KWrappedReportView (screens/report/WrappedReportNative)
+
    Three Notes pages (2026-10-27), each keeping its React Native page the
    same way, on since their simulator pass too (the roll walked from the ＋
    four times: picks, Next, albums, Text note, Voice note, Camera's alert).
@@ -367,10 +375,12 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   // two pieces of Me (2026-10-27): on after their simulator pass
   couriercard: true,
   auraart: true,
+  // the wrapped monthly report (2026-10-31): OFF until the owner approves the pairing table
+  reportwrapped: false,
 };
 
 /** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages, a kindred's page, Wren's room, the five small pages and three Notes pages (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "kindredpage" | "wrenroom" | "report" | "voice" | "drafts" | "stampbook" | "lore" | "noteentry" | "noteday" | "photoroll" | "introritual" | "lightbox" | "songshelf" | "signsheet" | "leavesheet" | "reportsheet" | "signupsheet" | "toast" | "letterreader" | "wardrobeslip" | "parcel" | "growthmoment" | "identitynote" | "firstflight" | "recorder" | "audiocard" | "lettertravel" | "couriercard" | "auraart";
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "kindredpage" | "wrenroom" | "report" | "voice" | "drafts" | "stampbook" | "lore" | "noteentry" | "noteday" | "photoroll" | "introritual" | "lightbox" | "songshelf" | "signsheet" | "leavesheet" | "reportsheet" | "signupsheet" | "toast" | "letterreader" | "wardrobeslip" | "parcel" | "growthmoment" | "identitynote" | "firstflight" | "recorder" | "audiocard" | "lettertravel" | "couriercard" | "auraart" | "reportwrapped";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */

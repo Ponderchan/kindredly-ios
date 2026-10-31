@@ -203,6 +203,8 @@ export const KSCREEN_VIEWS = [
   "KWrenRoomView",
   // five small pages (2026-10-27), off by default: the Voice report, Your Voice, Unsent, the stamp album, Lore
   "KVoiceReportView",
+  // the wrapped monthly report (2026-10-31; behind the "reportwrapped" switch, off by default)
+  "KWrappedReportView",
   "KVoiceDetailView",
   "KDraftsView",
   "KStampBookView",

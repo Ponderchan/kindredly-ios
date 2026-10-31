@@ -36,6 +36,9 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 ## Unreleased
 
+### New
+- The monthly writing report is new: eight cards about your month (your writing type, how many strangers' desks your letters reached, who wrote back, a line from your own letters that only you see, three #stickers about how you write, the hours you write at, the type you'd click with, and what's next), in two styles you can switch between, with a 9:16 story card to share and a link that lets friends compare. First Class members also see how they changed since last month. [switch: reportwrapped]
+
 ---
 
 ## 1.0.7 (binary 1.2.6, builds 36–37), 2026-10-28
