@@ -125,12 +125,14 @@ public struct InkCard<Content: View>: View {
         shape.fill(theme.sf).kObjectDepth(shape, theme: theme)
       } else {
       // back to front: the shadow, the face, the outline (drawn inside the edge, as a CSS border is)
+      // Midnight: flat, a hairline in line and no hard shadow (owner, 2026-10-31: ln is a light lilac
+      // there, so the edge and its shadow glowed); the light themes keep the ink edge and shadow
       KStickerBackground(
         shape: RoundedRectangle(cornerRadius: variant.cornerRadius, style: .circular),
         fill: theme.sf,
-        stroke: theme.ln,
+        stroke: theme.isDark ? theme.line : theme.ln,
         lineWidth: InkCardMetrics.borderWidth,
-        shadow: theme.ln,
+        shadow: theme.isDark ? nil : theme.ln,
         shadowOffset: variant.shadowOffset
       )
       }
@@ -574,9 +576,9 @@ public struct KPaperSurface: View {
       KStickerBackground(
         shape: RoundedRectangle(cornerRadius: radius, style: .circular),
         fill: theme.sf,
-        stroke: theme.ln,
+        stroke: theme.isDark ? theme.line : theme.ln,
         lineWidth: mini ? 1.5 : InkCardMetrics.borderWidth,
-        shadow: mini ? nil : theme.ln,
+        shadow: mini || theme.isDark ? nil : theme.ln,
         shadowOffset: mini ? 0 : InkCardVariant.me.shadowOffset
       )
       .allowsHitTesting(false)

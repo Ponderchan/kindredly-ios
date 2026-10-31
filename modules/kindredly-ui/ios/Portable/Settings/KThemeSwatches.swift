@@ -180,9 +180,9 @@ struct KMiniPhone: View {
         KStickerBackground(
           shape: RoundedRectangle(cornerRadius: 7, style: .circular),
           fill: theme.sf,
-          stroke: theme.ln,
+          stroke: theme.isDark ? theme.line : theme.ln,
           lineWidth: 1.5,
-          shadow: theme.ln,
+          shadow: theme.isDark ? nil : theme.ln,
           shadowOffset: 2
         )
         .padding(.trailing, 2) // the shadow's room inside the tile

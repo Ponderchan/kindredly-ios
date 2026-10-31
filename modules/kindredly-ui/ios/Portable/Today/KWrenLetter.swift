@@ -191,9 +191,9 @@ struct KWrenLetter: View {
       KStickerBackground(
         shape: RoundedRectangle(cornerRadius: Self.radius, style: .circular),
         fill: theme.sf,
-        stroke: theme.ln,
+        stroke: theme.isDark ? theme.line : theme.ln,
         lineWidth: Self.border,
-        shadow: theme.ln,
+        shadow: theme.isDark ? nil : theme.ln,
         shadowOffset: Self.shadow
       )
     }
@@ -369,7 +369,7 @@ struct KWrenLetter: View {
         .padding(.horizontal, 12 + 2.5)
         .frame(minHeight: 28)
         .background {
-          KStickerBackground(shape: Capsule(style: .circular), fill: theme.sf, stroke: theme.ln, lineWidth: 2.5)
+          KStickerBackground(shape: Capsule(style: .circular), fill: theme.sf, stroke: theme.isDark ? theme.line : theme.ln, lineWidth: 2.5)
         }
         .offset(y: -15)
     }

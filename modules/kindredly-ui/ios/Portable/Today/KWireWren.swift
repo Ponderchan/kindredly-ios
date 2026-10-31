@@ -727,9 +727,9 @@ private struct KArrivalBubble: View {
         KStickerBackground(
           shape: KBubbleShape(tipX: tipX, tail: Self.tail, tailWidth: Self.tailWidth, radius: Self.radius),
           fill: theme.sf,
-          stroke: theme.ln,
+          stroke: theme.isDark ? theme.line : theme.ln,
           lineWidth: Self.outline,
-          shadow: theme.ln,
+          shadow: theme.isDark ? nil : theme.ln,
           shadowOffset: 3
         )
       }
