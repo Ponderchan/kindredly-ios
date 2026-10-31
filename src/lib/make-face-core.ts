@@ -136,8 +136,11 @@ const REASONS: readonly RefuseReason[] = ["no_face", "many_faces", "minor", "uns
 
 export type ServerFace = { id: string; avatarId: string; url: string | null; path: string | null; createdAt: string };
 
+/** One of the drawings to choose from (the server's `choices`, the face's own first). */
+export type FaceChoice = { path: string; url: string };
+
 export type FaceAnswer =
-  | { kind: "made"; face: ServerFace }
+  | { kind: "made"; face: ServerFace; choices?: FaceChoice[] }
   | { kind: "refused"; reason: RefuseReason }
   | { kind: "quota" }
   | { kind: "cap" }
@@ -162,13 +165,25 @@ export function readServerFace(o: unknown): ServerFace | null {
   };
 }
 
+/** The drawings to choose from: each a stored path and a signed https URL; anything else dropped. */
+export function readChoices(v: unknown): FaceChoice[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((c) => (c && typeof c === "object" ? (c as Record<string, unknown>) : {}))
+    .filter((c) => typeof c.path === "string" && c.path !== "" && typeof c.url === "string" && /^https:\/\//.test(c.url))
+    .slice(0, 3)
+    .map((c) => ({ path: c.path as string, url: c.url as string }));
+}
+
 /** status + body → what happened. Anything unreadable is "unavailable" (said as the line
     dropping: nothing was counted). */
 export function readFaceAnswer(status: number, body: unknown): FaceAnswer {
   const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
   if (status === 200 && b.ok === true) {
     const face = readServerFace(b.face);
-    return face ? { kind: "made", face } : { kind: "unavailable" };
+    if (!face) return { kind: "unavailable" };
+    const choices = readChoices(b.choices);
+    return choices.length > 1 ? { kind: "made", face, choices } : { kind: "made", face };
   }
   if (status === 200 && b.ok === false) {
     const reason = REASONS.includes(b.reason as RefuseReason) ? (b.reason as RefuseReason) : "unsafe";

@@ -172,6 +172,10 @@ public struct KMakeFaceContent: Equatable, Sendable {
   public var result: KImageRef?
   /// the quota card's face (the one made); nil draws the + disc
   public var quotaFace: KImageRef?
+  /// the drawings to choose from on the result (owner, 2026-10-31: three); empty or one: no choice
+  public var choices: [KImageRef] = []
+  /// the one chosen, an index into choices; the reveal shows it
+  public var choice = 0
   public var chips: [KMakeFaceChipGroup] = []
   /// Wren's lines while she paints, in order (the last one stays)
   public var genLines: [String] = []
@@ -224,6 +228,8 @@ public final class KMakeFaceActions {
   public var onApple: () -> Void = {}
   public var onGoogle: () -> Void = {}
   public var onLater: () -> Void = {}
+  /// one of the drawings to choose from, by index
+  public var onChoose: (Int) -> Void = { _ in }
 
   public init() {}
 }
@@ -508,11 +514,8 @@ public struct KMakeFacePage<Wren: View>: View {
         .padding(.top, 18)
       ZStack(alignment: .bottom) {
         KImage(content.photo, size: CGSize(width: 220, height: 260), contentMode: .fill, placeholder: theme.soft2)
-        Ellipse()
-          .fill(Color.white.opacity(0.18))
-          .overlay(Ellipse().strokeBorder(Color.white.opacity(0.7), style: StrokeStyle(lineWidth: 2, dash: [6, 5])))
-          .frame(width: 120, height: 140)
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // round the face the photo has (KFaceGuide.swift), not a fixed oval in the middle
+        KFaceGuideOval(photo: content.photo?.url, size: CGSize(width: 220, height: 260))
         Text(content.strings.confirmGuide)
           .kText(.mono(9, .medium, tracking: 0.14))
           .foregroundStyle(Color.white.opacity(0.85))
@@ -565,6 +568,9 @@ public struct KMakeFacePage<Wren: View>: View {
     VStack(spacing: 0) {
       VStack(spacing: 20) {
         KMakeFaceReveal(theme: theme, face: content.result, label: content.strings.resultLabel)
+        if content.choices.count > 1 {
+          KMakeFaceChoices(theme: theme, faces: content.choices, chosen: content.choice, label: content.strings.resultLabel, onChoose: actions.onChoose)
+        }
         wrenLine(content.strings.resultLine, size: 22)
         Text(content.strings.resultSub)
           .kText(.system(13))
@@ -1295,7 +1301,8 @@ struct KMakeFaceReveal: View {
       .clipShape(Circle())
       .padding(8)
       .background(Circle().fill(Color.white))
-      .kObjectDepth(Circle(), theme: theme)
+      // no hard shadow under the face (owner, 2026-10-31): a hairline keeps the white ring off a white page
+      .overlay(Circle().strokeBorder(theme.line, lineWidth: 1))
       .scaleEffect(shown || reduceMotion ? 1 : 0.92)
       .opacity(shown ? 1 : 0)
       .onAppear {
@@ -1304,6 +1311,40 @@ struct KMakeFaceReveal: View {
       .accessibilityElement(children: .ignore)
       .accessibilityLabel(label)
       .accessibilityAddTraits(.isImage)
+  }
+}
+
+/// The drawings to choose from, under the reveal (owner, 2026-10-31): three small faces, the chosen
+/// one ringed in ind; a tap shows it above. The face is the first until "This is me" takes another.
+struct KMakeFaceChoices: View {
+  let theme: KTheme
+  let faces: [KImageRef]
+  let chosen: Int
+  let label: String
+  let onChoose: (Int) -> Void
+
+  var body: some View {
+    HStack(spacing: 14) {
+      ForEach(Array(faces.enumerated()), id: \.offset) { i, face in
+        let on = i == chosen
+        SwiftUI.Button {
+          onChoose(i)
+        } label: {
+          KImage(face, size: CGSize(width: 60, height: 60), contentMode: .fill, placeholder: theme.soft2)
+            .clipShape(Circle())
+            .padding(3)
+            .overlay(Circle().strokeBorder(on ? theme.ind : theme.line, lineWidth: on ? 3 : 1))
+            .scaleEffect(on ? 1 : 0.92)
+            .animation(.easeOut(duration: 0.18), value: on)
+            .frame(width: 72, height: 72)
+            .contentShape(Circle())
+        }
+        .buttonStyle(KFadePressStyle())
+        .accessibilityLabel("\(label), \(i + 1)/\(faces.count)")
+        .accessibilityAddTraits(on ? [.isSelected] : [])
+      }
+    }
+    .padding(.top, -6)
   }
 }
 

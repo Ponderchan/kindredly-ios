@@ -125,5 +125,14 @@ ok("knock: when the drawing should be done", knockAfterS(0, 5000) === 17);
 ok("knock: never under 4 s away", knockAfterS(0, 60_000) === 4);
 ok("pending: alive for 15 minutes", pendingAlive({ since: new Date(0).toISOString(), from: "me" }, 14 * 60_000) && !pendingAlive({ since: new Date(0).toISOString(), from: "me" }, 16 * 60_000) && !pendingAlive(null, 0));
 
+{
+  const face = { id: U1, url: "https://x.supabase.co/s", image_path: "u/a.png", created_at: "t" };
+  const three = readFaceAnswer(200, { ok: true, face, choices: [{ path: "u/a.png", url: "https://x/1" }, { path: "u/a-c1.png", url: "https://x/2" }, { path: "u/a-c2.png", url: "http://x/3" }] });
+  ok("choices: kept when https and pathed (an http one dropped)", three.kind === "made" && three.choices?.length === 2);
+  const one = readFaceAnswer(200, { ok: true, face, choices: [{ path: "u/a.png", url: "https://x/1" }] });
+  ok("choices: a single one is no choice", one.kind === "made" && one.choices === undefined);
+  ok("choices: none from an older server", (() => { const a = readFaceAnswer(200, { ok: true, face }); return a.kind === "made" && a.choices === undefined; })());
+}
+
 console.log(fails ? `\n${fails} failed` : "\nall passed");
 if (fails) process.exit(1);

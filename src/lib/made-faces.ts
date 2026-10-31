@@ -48,6 +48,8 @@ const GUEST_KEY = "kindredly_face_guest";
 const CLAIM_KEY = "kindredly_face_claim"; // raw: the guest token has faces waiting for an account
 /** the drawing takes 15–25 s; the request is let go at 95 (the server's own limit is ~90) */
 export const DRAW_MS = 95_000;
+/** how many drawings a request asks for, to choose from (web face.js MAX_CHOICES) */
+export const DRAW_CHOICES = 3;
 const QUICK_MS = 15_000;
 const SIGN_S = 3600;
 
@@ -217,7 +219,8 @@ export async function drawFace(input: DrawInput, from: MakeFaceFrom): Promise<Fa
   await update((s) => ({ ...s, pending: s.pending && pendingAlive(s.pending, Date.now()) ? s.pending : { since, from } }));
   let answer: FaceAnswer;
   try {
-    const { status, json } = await post(input as unknown as Record<string, unknown>, DRAW_MS);
+    // three drawings to choose from (owner, 2026-10-31); a server from before answers with one
+    const { status, json } = await post({ ...(input as unknown as Record<string, unknown>), choices: DRAW_CHOICES }, DRAW_MS);
     answer = readFaceAnswer(status, json);
     if (answer.kind === "bad" || answer.kind === "unavailable" || answer.kind === "auth") console.log("[made-faces] /api/face", status, json);
   } catch (e) {
@@ -235,6 +238,37 @@ export async function drawFace(input: DrawInput, from: MakeFaceFrom): Promise<Fa
   else if (answer.kind === "quota") await update((s) => ({ ...s, used: true }));
   await update((s) => ({ ...s, pending: null }));
   return answer;
+}
+
+/** The person chose another of the drawings: the face becomes it on the server (the others go),
+    and here (the new picture downloaded over the old). false when that didn't happen: the face
+    stays the first drawing. */
+export async function pickFace(faceId: string, path: string): Promise<boolean> {
+  try {
+    const { status, json } = await post({ mode: "pick", face: faceId, path }, QUICK_MS);
+    const face = status === 200 && json && typeof json === "object" && (json as { ok?: unknown }).ok === true ? readServerFace((json as { face?: unknown }).face) : null;
+    if (!face) {
+      console.log("[made-faces] pick", status, json);
+      return false;
+    }
+    const old = store.faces.find((f) => f.id === face.id);
+    if (old?.file) {
+      try {
+        const f = new File(dir(), old.file);
+        if (f.exists) f.delete();
+      } catch (e) {
+        console.warn("[made-faces] the first drawing's file wasn't removed:", e);
+      }
+    }
+    await update((s) => ({ ...s, faces: s.faces.map((f) => (f.id === face.id ? { ...f, path: face.path, file: null } : f)) }));
+    if (face.url) remember(face.avatarId, face.url, face.path);
+    const rec = store.faces.find((f) => f.id === face.id);
+    if (rec) await ensureMadeFaceFile(rec, face.url);
+    return true;
+  } catch (e) {
+    console.log("[made-faces] pick didn't answer:", e);
+    return false;
+  }
 }
 
 async function keepServerFace(face: ServerFace): Promise<void> {
@@ -372,11 +406,15 @@ async function signFacePath(path: string): Promise<string | null> {
 
 /** What draws a made face right now: { uri, key } (your own downloaded file, or a signed link to
     a kindred's), or null while it is unknown or not yours to see. Starts nothing. */
+/** The picture's cache key: the face and its stored drawing, so a face that became another of
+    its drawings (pickFace) is never served from the first one's cache. */
+export const madeFaceKey = (rec: Pick<MadeFaceRecord, "avatarId" | "path">): string => "made:" + rec.avatarId + (rec.path ? ":" + rec.path : "");
+
 export function madeFaceRefNow(avatarId: string | null | undefined): { uri: string; key: string } | null {
   if (!isMadeFaceId(avatarId)) return null;
   const own = store.faces.find((f) => f.avatarId === avatarId);
   const file = madeFaceFileUri(own);
-  if (file) return { uri: file, key: "made:" + avatarId };
+  if (file) return { uri: file, key: madeFaceKey(own!) };
   const r = remote.get(avatarId);
   return r && r.uri && r.until > Date.now() ? { uri: r.uri, key: r.key } : null;
 }

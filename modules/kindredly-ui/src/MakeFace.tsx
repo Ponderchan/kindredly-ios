@@ -118,6 +118,9 @@ export type KMakeFaceViewProps = CommonViewModifierProps &
     photo: KImageRefProps | null;
     result: KImageRefProps | null;
     quotaFace: KImageRefProps | null;
+    /** the drawings to choose from on the result (empty: just the one) and the one chosen */
+    choices?: KImageRefProps[];
+    choice?: number;
     /** the chip groups (memoised, with a rev) */
     chips: KMakeFaceChipGroup[];
     genLines: string[];
@@ -140,6 +143,7 @@ export type KMakeFaceViewProps = CommonViewModifierProps &
     onApple?: () => void;
     onGoogle?: () => void;
     onLater?: () => void;
+    onChoose?: (index: number) => void;
     /** the one <KIsland name="wren">, every render (Slot.tsx) */
     children?: ReactNode;
   };
@@ -156,6 +160,9 @@ type NativeProps = Omit<
   | "photo"
   | "result"
   | "quotaFace"
+  | "choices"
+  | "choice"
+  | "onChoose"
   | "onClose"
   | "onStart"
   | "onMethod"
@@ -181,6 +188,9 @@ type NativeProps = Omit<
     photo: NativeImage;
     result: NativeImage;
     quotaFace: NativeImage;
+    choices: NativeImage[];
+    choice: number;
+    onFaceChoose?: Ev<{ index: number }>;
     onFaceClose?: None;
     onFaceStart?: None;
     onFaceMethod?: Ev<{ kind: KMakeFaceMethod }>;
@@ -224,7 +234,10 @@ export const KMakeFaceView = forwardRef<KScreenHandle, KMakeFaceViewProps>(funct
     photo,
     result,
     quotaFace,
+    choices,
+    choice,
     chips,
+    onChoose,
     onClose,
     onStart,
     onMethod,
@@ -252,6 +265,7 @@ export const KMakeFaceView = forwardRef<KScreenHandle, KMakeFaceViewProps>(funct
   const photoSent = useMemo(() => image(photo), [photo]);
   const resultSent = useMemo(() => image(result), [result]);
   const quotaSent = useMemo(() => image(quotaFace), [quotaFace]);
+  const choicesSent = useMemo(() => (choices ?? []).map(image), [choices]);
   return (
     <NativeKMakeFaceView
       ref={ref}
@@ -265,6 +279,9 @@ export const KMakeFaceView = forwardRef<KScreenHandle, KMakeFaceViewProps>(funct
       photo={photoSent}
       result={resultSent}
       quotaFace={quotaSent}
+      choices={choicesSent}
+      choice={choice ?? 0}
+      onFaceChoose={onChoose ? (e) => onChoose(e.nativeEvent.index ?? 0) : undefined}
       onFaceClose={onClose ? () => onClose() : undefined}
       onFaceStart={onStart ? () => onStart() : undefined}
       onFaceMethod={onMethod ? (e) => onMethod(e.nativeEvent.kind) : undefined}

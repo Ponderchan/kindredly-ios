@@ -174,6 +174,8 @@ final class KMakeFaceViewProps: KScreenProps {
   @Field var photo: KImageRefRecord = KImageRefRecord()
   @Field var result: KImageRefRecord = KImageRefRecord()
   @Field var quotaFace: KImageRefRecord = KImageRefRecord()
+  @Field var choices: [KImageRefRecord] = []
+  @Field var choice: Int = 0
   @Field var chips: [KMakeFaceChipGroupRecord] = []
   @Field var genLines: [String] = []
 
@@ -196,6 +198,7 @@ final class KMakeFaceViewProps: KScreenProps {
   var onFaceApple = EventDispatcher()
   var onFaceGoogle = EventDispatcher()
   var onFaceLater = EventDispatcher()
+  var onFaceChoose = EventDispatcher()
 
   /// The words field: as long-lived as the view, like `commands`.
   let driver = KMakeFaceDriver()
@@ -222,6 +225,7 @@ final class KMakeFaceViewProps: KScreenProps {
     a.onApple = { [weak self] in self?.onFaceApple() }
     a.onGoogle = { [weak self] in self?.onFaceGoogle() }
     a.onLater = { [weak self] in self?.onFaceLater() }
+    a.onChoose = { [weak self] i in self?.onFaceChoose(["index": i]) }
     return a
   }()
 
@@ -253,6 +257,8 @@ final class KMakeFaceViewProps: KScreenProps {
     c.photo = photo.ref
     c.result = result.ref
     c.quotaFace = quotaFace.ref
+    c.choices = choices.compactMap { $0.ref }
+    c.choice = choice
     c.chips = cached("chips") {
       chips.map { g in
         KMakeFaceChipGroup(id: g.id, title: g.title, chips: g.chips.filter { !$0.id.isEmpty }.map { KMakeFaceChip(id: $0.id, label: $0.label) })

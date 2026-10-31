@@ -81,6 +81,7 @@ export function MakeFaceNative({ model }: { model: MakeFaceModel }) {
       apple: () => live.current.apple(),
       google: () => live.current.google(),
       later: () => live.current.later(),
+      choose: (i) => live.current.choose(i),
     }),
     [],
   );
@@ -91,6 +92,7 @@ export function MakeFaceNative({ model }: { model: MakeFaceModel }) {
   const photo = useSameContent(model.photo);
   const result = useSameContent(model.result);
   const quotaFace = useSameContent(model.quotaFace);
+  const choices = useSameContent(model.choices);
   const rev = useRev(chips);
 
   // nothing until the first screen is known: the route's own ground is clear, so the screen below shows
@@ -115,6 +117,8 @@ export function MakeFaceNative({ model }: { model: MakeFaceModel }) {
       photo={photo}
       result={result}
       quotaFace={quotaFace}
+      choices={choices}
+      choice={model.choice}
       act={act}
     />
   );
@@ -138,6 +142,8 @@ type SurfaceProps = {
   photo: KImageRefProps | null;
   result: KImageRefProps | null;
   quotaFace: KImageRefProps | null;
+  choices: KImageRefProps[];
+  choice: number;
   act: MakeFaceActions;
 };
 
@@ -167,6 +173,9 @@ const FaceSurface = memo(function FaceSurface(p: SurfaceProps) {
         photo={p.photo}
         result={p.result}
         quotaFace={p.quotaFace}
+        choices={p.choices}
+        choice={p.choice}
+        onChoose={act.choose}
         onClose={act.close}
         onStart={act.start}
         onMethod={act.method}

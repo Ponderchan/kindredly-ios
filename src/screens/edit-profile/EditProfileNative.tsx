@@ -15,7 +15,7 @@ import { AvatarImage } from "../../components/AvatarImage";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
 import { useAssetImageRefs } from "../../lib/images";
-import { madeFaceFileUri, madeFaceRefNow, madeFacesVersion, prepareMadeFace, subscribeMadeFaces } from "../../lib/made-faces";
+import { madeFaceFileUri, madeFaceKey, madeFaceRefNow, madeFacesVersion, prepareMadeFace, subscribeMadeFaces } from "../../lib/made-faces";
 import type { EditView } from "./edit-profile-model";
 import type { EditProfileModel } from "./useEditProfileModel";
 
@@ -87,7 +87,7 @@ export function EditProfileNative({ model }: { model: EditProfileModel }) {
   const madeRefs: Record<string, { uri: string; key: string }> = {};
   for (const f of made) {
     const file = madeFaceFileUri(f);
-    const ref = file ? { uri: file, key: "made:" + f.avatarId } : madeFaceRefNow(f.avatarId);
+    const ref = file ? { uri: file, key: madeFaceKey(f) } : madeFaceRefNow(f.avatarId);
     if (ref) madeRefs[f.avatarId] = ref;
   }
   const missing = made.filter((f) => !madeRefs[f.avatarId]).map((f) => f.avatarId).join("|");

@@ -9,7 +9,7 @@ import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
 import { clearAvatarPhoto } from "../../lib/avatar-photo";
 import { t, useLang } from "../../lib/i18n";
-import { checkPending, drawFace, loadMadeFaces, madeFaceFileUri, madeFaceRefNow, madeFacesNow, readFaceQuota, setMadeFaceWorn, syncMadeFaces, type DrawInput } from "../../lib/made-faces";
+import { checkPending, drawFace, loadMadeFaces, madeFaceFileUri, madeFaceKey, madeFaceRefNow, madeFacesNow, pickFace, readFaceQuota, setMadeFaceWorn, syncMadeFaces, type DrawInput } from "../../lib/made-faces";
 import { useMadeFaceStore } from "../../lib/make-face";
 import {
   anotherScreen,
@@ -24,6 +24,7 @@ import {
   shownFace,
   type DrawMode,
   type FaceAnswer,
+  type FaceChoice,
   type MadeFaceRecord,
   type MakeFaceFrom,
   type RefuseReason,
@@ -144,6 +145,8 @@ export type MakeFaceActions = {
   apple: () => void;
   google: () => void;
   later: () => void;
+  /** one of the drawings to choose from was tapped */
+  choose: (index: number) => void;
 };
 
 export type MakeFaceModel = {
@@ -159,6 +162,9 @@ export type MakeFaceModel = {
   busy: boolean;
   photo: { uri: string; key: string } | null;
   result: { uri: string; key: string } | null;
+  /** the drawings to choose from (empty: just the one), and the one chosen */
+  choices: { uri: string; key: string }[];
+  choice: number;
   quotaFace: { uri: string; key: string } | null;
   act: MakeFaceActions;
 };
@@ -166,7 +172,7 @@ export type MakeFaceModel = {
 const refOf = (rec: MadeFaceRecord | null | undefined): { uri: string; key: string } | null => {
   if (!rec) return null;
   const file = madeFaceFileUri(rec);
-  if (file) return { uri: file, key: "made:" + rec.avatarId };
+  if (file) return { uri: file, key: madeFaceKey(rec) };
   return madeFaceRefNow(rec.avatarId);
 };
 
@@ -187,6 +193,9 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
   const [mode, setMode] = useState<DrawMode>("photo");
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [resultId, setResultId] = useState<string | null>(null);
+  // three to choose from (owner, 2026-10-31): the face is the first until another is picked
+  const [choices, setChoices] = useState<FaceChoice[]>([]);
+  const [choice, setChoice] = useState(0);
   const [busy, setBusy] = useState(false);
   const last = useRef<DrawInput | null>(null);
   const alive = useRef(true);
@@ -204,7 +213,11 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
 
   const apply = useCallback((answer: FaceAnswer, m: DrawMode) => {
     if (!alive.current) return;
-    if (answer.kind === "made") setResultId(answer.face.id);
+    if (answer.kind === "made") {
+      setResultId(answer.face.id);
+      setChoices(answer.choices ?? []);
+      setChoice(0);
+    }
     if (answer.kind === "refused") setReason(answer.reason);
     setMode(m);
     setScreen(screenFor(answer));
@@ -391,6 +404,18 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
       accept: () => {
         if (!result) return;
         void (async () => {
+          // another of the drawings: the face becomes it first; if that fails it stays the first
+          if (choices.length > 1 && choice > 0 && choices[choice]) {
+            setBusy(true);
+            const ok = await pickFace(result.id, choices[choice].path);
+            if (!alive.current) return;
+            setBusy(false);
+            if (!ok) {
+              Alert.alert(t("mf.failed.line"));
+              return;
+            }
+          }
+          setChoices([]);
           await setMadeFaceWorn(result.avatarId);
           if (from === "me" && !guest) {
             const r = await auth.saveProfile({ avatarId: result.avatarId });
@@ -428,8 +453,9 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
       apple: () => void signIn("apple"),
       google: () => void signIn("google"),
       later: close,
+      choose: (i) => setChoice(Math.max(0, Math.min(choices.length - 1, i))),
     }),
-    [close, minor, pick, run, result, from, guest, auth, firstClass, reason, mode, router, signIn],
+    [close, minor, pick, run, result, from, guest, auth, firstClass, reason, mode, router, signIn, choices, choice],
   );
 
   const quota: QuotaLine = firstClass ? "member" : madeFaceState(store, avatar) === "free" ? "free" : "used";
@@ -455,7 +481,10 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
     appleAvailable: auth.appleAvailable,
     busy,
     photo: photoUri ? { uri: photoUri, key: photoUri } : null,
-    result: refOf(result),
+    // the chosen drawing while there's a choice (signed URLs, keyed by their stored paths)
+    result: choices.length > 1 && choices[choice] ? { uri: choices[choice].url, key: "faces:" + choices[choice].path } : refOf(result),
+    choices: choices.length > 1 ? choices.map((c) => ({ uri: c.url, key: "faces:" + c.path })) : [],
+    choice,
     quotaFace: refOf(shownFace(store, avatar)),
     act,
   };

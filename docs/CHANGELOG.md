@@ -36,6 +36,10 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 ## Unreleased
 
+Changed
+- Make your own face: Wren draws three faces to choose from (each on its own background and top); tap one under the big face to see it, and "This is me" keeps that one (the other two are deleted). The face no longer stands on a hard purple shadow, just a hairline ring. [binary] [server: face.js choices + pick]
+- Make your own face: the dashed oval on "Use this photo?" is drawn round the face the photo actually has (found on the phone), not a fixed small oval in the middle; with no single face found there is no oval. [binary]
+
 ---
 
 ## 1.0.7 (binary 1.2.6, builds 36–37), 2026-10-28
