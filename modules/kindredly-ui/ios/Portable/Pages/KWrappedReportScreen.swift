@@ -229,6 +229,10 @@ public struct KWrappedReportScreen: View {
   private var card: KWrappedCard? { cards.indices.contains(shown) ? cards[shown] : nil }
   private var ground: KWGround { card.map { kwGround(content.template, $0) } ?? KWGround(color: KW.blue, dark: true) }
   private var chrome: Color { ground.dark ? .white : KW.ink }
+  /// Japanese or Korean copy (kana, CJK ideographs, hangul in the type's name): no poster leading
+  private var looseLines: Bool {
+    content["typeName"].unicodeScalars.contains { (0x3040...0x30FF).contains($0.value) || (0x3400...0x9FFF).contains($0.value) || (0xAC00...0xD7AF).contains($0.value) }
+  }
 
   public var body: some View {
     GeometryReader { geo in
@@ -275,6 +279,7 @@ public struct KWrappedReportScreen: View {
       }
     }
     .ignoresSafeArea()
+    .environment(\.kwLooseLines, looseLines)
     .task(id: content.images) { await loadPics(content.images) }
     .onAppear {
       idx = content.startCard
@@ -316,6 +321,7 @@ public struct KWrappedReportScreen: View {
       .frame(width: 360, height: 640)
       .environment(\.dynamicTypeSize, .large)
       .environment(\.colorScheme, .light)
+      .environment(\.kwLooseLines, looseLines)
     let renderer = ImageRenderer(content: view)
     renderer.scale = 3
     renderer.isOpaque = true

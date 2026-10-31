@@ -120,16 +120,36 @@ private struct KWInkOutline: ViewModifier {
   }
 }
 
+private struct KWLooseLinesKey: EnvironmentKey {
+  static let defaultValue = false
+}
+
+extension EnvironmentValues {
+  /// The report's words are Japanese or Korean: their glyphs are taller than the Latin line box, so
+  /// the poster leading stays the font's own (set by KWrappedReportScreen from the copy)
+  var kwLooseLines: Bool {
+    get { self[KWLooseLinesKey.self] }
+    set { self[KWLooseLinesKey.self] = newValue }
+  }
+}
+
+private struct KWTightLines: ViewModifier {
+  @Environment(\.kwLooseLines) private var loose
+
+  func body(content: Content) -> some View {
+    if #available(iOS 26.0, *), !loose {
+      content.lineHeight(.multiple(factor: 0.94))
+    } else {
+      content
+    }
+  }
+}
+
 extension View {
   /// Poster leading for the giant condensed words: the lines close up (close to A's .9) where the system
   /// can set a line height (iOS 26), at .94 so descenders and the outline still clear; before that, the font's own leading.
-  @ViewBuilder
   func kwTightLines() -> some View {
-    if #available(iOS 26.0, *) {
-      lineHeight(.multiple(factor: 0.94))
-    } else {
-      self
-    }
+    modifier(KWTightLines())
   }
 }
 

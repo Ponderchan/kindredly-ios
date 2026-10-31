@@ -81,6 +81,7 @@ struct KWrappedCardsA: View {
         }
       }
       KWLabel(text: ctx["readFrom"] + "  ·  " + ctx["tapToOpen"], size: 10, color: .white.opacity(0.9))
+        .padding(.top, 12)
     }
     .overlay(alignment: .topTrailing) {
       pic("stamp", width: 190, height: 228)
@@ -155,13 +156,14 @@ struct KWrappedCardsA: View {
           .rotationEffect(.degrees(-2))
           .padding(.top, 26)
           .modifier(ctx.drop(0.2))
-          Text(ctx["lineOutOf"]).kw(.body, 14).foregroundStyle(KW.ink).multilineTextAlignment(.trailing).frame(maxWidth: .infinity, alignment: .trailing).padding(.leading, 130).padding(.top, 40).modifier(ctx.rise(0.7))
+          Text(ctx["lineOutOf"]).kw(.body, 14).foregroundStyle(KW.ink).multilineTextAlignment(.trailing).frame(maxWidth: .infinity, alignment: .trailing).padding(.leading, 96).padding(.top, 40).modifier(ctx.rise(0.7))
         }
       }
       Text(ctx["lineOnly"]).kw(.body, 12).foregroundStyle(KW.ink).frame(maxWidth: .infinity).multilineTextAlignment(.center)
     }
     .overlay(alignment: .bottomLeading) {
-      pic("standing", width: 130).offset(x: -40, y: -26).modifier(ctx.drop(0.6, from: 30, turn: 0))
+      // low in the corner, above the footer note and left of the "out of everything" line
+      pic("standing", width: 104).offset(x: -34, y: -54).modifier(ctx.drop(0.6, from: 30, turn: 0))
     }
   }
 
