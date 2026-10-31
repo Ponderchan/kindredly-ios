@@ -37,6 +37,7 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 ## Unreleased
 
 Changed
+- Tapping a reply's notification opens the chat over the Kindreds list (Back goes to your chats); it used to open over whichever tab was last in front, often Me. [OTA]
 - In Midnight the letter's #topic tag (Today, the unfolded letter, rooms, stamps) is flat: no pale outline or hard shadow. The light themes keep theirs. [binary]
 - Make your own face: Wren draws three faces to choose from (each on its own background and top); tap one under the big face to see it, and "This is me" keeps that one (the other two are deleted). The face no longer stands on a hard purple shadow, just a hairline ring. [binary] [server: face.js choices + pick]
 - Make your own face: while Wren paints, a reader who has never been asked gets a small card offering a knock ("Don't wait on me" · I'll watch · Knock when done, which turns the app's Notifications on and lets iOS ask); once allowed the foot is a clear "Leave — I'll knock" key (refused for good: Leave, and the face waits in Edit profile). A drawing that lands while the reader is elsewhere in the app drops a banner with the new face and See it; the lock-screen knock carries the face. Nine languages. [binary for the card; OTA for the banner]

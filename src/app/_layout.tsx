@@ -108,6 +108,10 @@ function KnockRouting() {
           console.log("[knock] couldn't read the thread, using the phone's copy:", e);
         }
       }
+      /* from Kindreds (owner, 2026-10-31): the correspondence opens over the Kindreds list, so
+         Back lands among the chats; it used to open over whichever tab was last in front (often
+         Me), which read as a letter page of Me's */
+      router.navigate("/(tabs)/kindreds" as never);
       router.push(revealed ? `/room/${id}` : `/chat/${id}`);
     };
     /* the cold-start tap, once: cleared after it is read, so a React tree started again in the same
