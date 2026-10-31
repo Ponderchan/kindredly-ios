@@ -45,6 +45,8 @@ Changed
 - Make your own face: Wren draws three faces to choose from (each on its own background and top); tap one under the big face to see it, and "This is me" keeps that one (the other two are deleted). The face no longer stands on a hard purple shadow, just a hairline ring. [binary] [server: face.js choices + pick]
 - Make your own face: while Wren paints, a reader who has never been asked gets a small card offering a knock ("Don't wait on me" · I'll watch · Knock when done, which turns the app's Notifications on and lets iOS ask); once allowed the foot is a clear "Leave — I'll knock" key (refused for good: Leave, and the face waits in Edit profile). A drawing that lands while the reader is elsewhere in the app drops a banner with the new face and See it; the lock-screen knock carries the face. Nine languages. [binary for the card; OTA for the banner]
 - Make your own face: the dashed oval on "Use this photo?" is drawn round the face the photo actually has (found on the phone), not a fixed small oval in the middle; with no single face found there is no oval. [binary]
+### New
+- The monthly writing report is new: eight cards about your month (your writing type, how many strangers' desks your letters reached, who wrote back, a line from your own letters that only you see, three #stickers about how you write, the hours you write at, the type you'd click with, and what's next), in two styles you can switch between, with a 9:16 story card to share and a link that lets friends compare. First Class members also see how they changed since last month. [switch: reportwrapped]
 
 ---
 

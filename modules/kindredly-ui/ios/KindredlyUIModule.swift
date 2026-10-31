@@ -269,6 +269,14 @@ public class KindredlyUIModule: Module {
         view.props.commands.send(name, args)
       }
     }
+    // The wrapped monthly report (owner, 2026-10-31), behind "reportwrapped" (off by default) with
+    // the Voice report above as its fallback. Adapter in Adapters/KWrappedReportView.swift, screen in
+    // Portable/Pages/KWrappedReportScreen.swift (and KWrapped*.swift). New files: a pod install first.
+    ExpoUIView(KWrappedReportView.self) {
+      AsyncFunction("command") { (view: KWrappedReportView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
     ExpoUIView(KVoiceDetailView.self) {
       AsyncFunction("command") { (view: KVoiceDetailView, name: String, args: [String: Any]) in
         view.props.commands.send(name, args)

@@ -274,6 +274,13 @@ export {
   type KVoiceReportStrings,
   type KVoiceReportViewProps,
 } from "./src/VoiceReport";
+export {
+  KWrappedReportView,
+  type KWrappedCard,
+  type KWrappedImages,
+  type KWrappedTag,
+  type KWrappedReportViewProps,
+} from "./src/WrappedReport";
 export { KVoiceDetailView, type KVoiceDetailGate, type KVoiceDetailRow, type KVoiceDetailStrings, type KVoiceDetailViewProps } from "./src/VoiceDetail";
 export { KDraftsView, type KDraftsCard, type KDraftsStrings, type KDraftsViewProps } from "./src/Drafts";
 export { KStampBookView, type KStampBookStrings, type KStampBookTile, type KStampBookViewProps } from "./src/StampBook";

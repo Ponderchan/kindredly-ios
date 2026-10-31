@@ -20,6 +20,8 @@ import { useAuth } from "../lib/auth";
 import "../data/strings-me4a"; // m4.rt.*, m4.pw.close
 import { NativeSurface } from "../components/NativeSurface";
 import { VoiceReportNative } from "../screens/report/VoiceReportNative";
+import { WrappedReportNative } from "../screens/report/WrappedReportNative";
+import { isKindredlyUIViewAvailable } from "../../modules/kindredly-ui";
 
 /* The Voice report — Wren's night letter about how you write. One fact per
    screen, tap to move; the last card is yours to share. Deliberately dark:
@@ -47,6 +49,38 @@ type Screen = { key: string; render: () => React.ReactNode };
    the simulator pass; NativeSurface in mount mode). Both wait on the
    night's own ground. */
 export default function VoiceReport() {
+  const { sample, demo, wrapped } = useLocalSearchParams<{ sample?: string; demo?: string; wrapped?: string }>();
+  /* 2026-10-31: the wrapped monthly report (screens/report/WrappedReportNative) stands in front,
+     behind its own switch ("reportwrapped", off), with everything below as its fallback. A sample
+     (before the first report is due) stays the Voice report's. A dev build opens it whatever the
+     switch says with /report?demo=1 (the prototypes' October) or /report?wrapped=1 (your own
+     month, which spends it), for the design pass. */
+  if (__DEV__ && (demo === "1" || wrapped === "1") && isKindredlyUIViewAvailable("KWrappedReportView")) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#5B55FF" }}>
+        <WrappedReportNative />
+      </View>
+    );
+  }
+  if (sample !== "1") {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#5B55FF" }}>
+        <NativeSurface
+          surface="reportwrapped"
+          view="KWrappedReportView"
+          mode="mount"
+          native={() => <WrappedReportNative />}
+          fallback={() => <VoiceReportAny />}
+          pending={() => <View style={{ flex: 1, backgroundColor: NIGHT }} />}
+        />
+      </View>
+    );
+  }
+  return <VoiceReportAny />;
+}
+
+/* the Voice report: Swift behind "report", React Native as its fallback */
+function VoiceReportAny() {
   return (
     <View style={{ flex: 1, backgroundColor: NIGHT }}>
       <NativeSurface
