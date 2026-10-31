@@ -15,7 +15,7 @@ import ExpoUI
  - strings: { [field]: String } — every word, by wrapped-core WrappedView's field names, plus
    "eyebrow.<card>", "lineSt1", "lineSt2", and the four counts as text (letters, desks, replies,
    kindreds)
- - loaded: Bool; failed, retry: String; template: "A" | "B"; busy: Bool
+ - loaded: Bool; failed, retry: String; template: "A" | "B"; busy: Bool; startCard: Int (dev)
  - cards: [cover | far | line | vibe | hour | click | share | next]
  - tags: [{ id, tag, sub, rank }]; changes: [String]; buckets: [Int] (24); hourStart: Int;
    hourNight: Bool; locked: Bool
@@ -38,6 +38,7 @@ final class KWrappedReportViewProps: KScreenProps {
   @Field var retry: String = ""
   @Field var template: String = "B"
   @Field var busy: Bool = false
+  @Field var startCard: Int = 0
   @Field var cards: [String] = []
   @Field var tags: [KWrappedTagRecord] = []
   @Field var changes: [String] = []
@@ -85,6 +86,7 @@ final class KWrappedReportViewProps: KScreenProps {
       c.retry = retry
       c.template = KWrappedTemplate(rawValue: template) ?? .b
       c.busy = busy
+      c.startCard = max(0, startCard)
       var seen = Set<KWrappedCard>()
       c.cards = cards.compactMap { KWrappedCard(rawValue: $0) }.filter { seen.insert($0).inserted }
       c.s = strings

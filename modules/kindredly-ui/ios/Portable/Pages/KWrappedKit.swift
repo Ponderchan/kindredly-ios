@@ -65,9 +65,9 @@ private struct KWFont: ViewModifier {
   func body(content: Content) -> some View {
     switch face {
     case .hero:
-      content.font(.system(size: size, weight: .black).width(.condensed)).tracking(-size * 0.02)
+      content.font(.system(size: size, weight: .black).width(.condensed)).tracking(-size * 0.02).kwTightLines()
     case .title:
-      content.font(.system(size: size, weight: .black)).tracking(-size * 0.035)
+      content.font(.system(size: size, weight: .black)).tracking(-size * 0.035).kwTightLines()
     case .heavy:
       content.font(.system(size: size, weight: .heavy).width(.condensed)).tracking(-size * 0.01)
     case .label:
@@ -120,6 +120,19 @@ private struct KWInkOutline: ViewModifier {
   }
 }
 
+extension View {
+  /// Poster leading for the giant condensed words: the lines close up (close to A's .9) where the system
+  /// can set a line height (iOS 26), at .94 so descenders and the outline still clear; before that, the font's own leading.
+  @ViewBuilder
+  func kwTightLines() -> some View {
+    if #available(iOS 26.0, *) {
+      lineHeight(.multiple(factor: 0.94))
+    } else {
+      self
+    }
+  }
+}
+
 /// Hero words: white (or `fill`) condensed black, a 3pt ink outline and a hard shadow (A's type,
 /// grafted onto B by the verdict).
 struct KWHeroText: View {
@@ -137,9 +150,12 @@ struct KWHeroText: View {
     t.kw(.hero, size)
       .foregroundStyle(fill)
       .lineSpacing(lineSpacing)
+      .kwTightLines()
       .multilineTextAlignment(align)
       .fixedSize(horizontal: false, vertical: true)
       .minimumScaleFactor(0.5)
+      // the outline and shadow sit outside the closed-up line box: room for them below
+      .padding(.bottom, outline + shadow)
       .kwInk(outline, shadow: shadow, shadowColor: shadowColor)
   }
 }
@@ -217,21 +233,22 @@ struct KWPerforated: Shape {
   var pitch: CGFloat = 18
 
   func path(in r: CGRect) -> Path {
-    var p = Path(r)
+    var holes = Path()
     func bites(_ from: CGPoint, _ to: CGPoint) {
       let len = hypot(to.x - from.x, to.y - from.y)
       let n = max(1, Int((len / pitch).rounded()))
       for i in 0...n {
         let f = CGFloat(i) / CGFloat(n)
         let c = CGPoint(x: from.x + (to.x - from.x) * f, y: from.y + (to.y - from.y) * f)
-        p.addEllipse(in: CGRect(x: c.x - bite, y: c.y - bite, width: bite * 2, height: bite * 2))
+        holes.addEllipse(in: CGRect(x: c.x - bite, y: c.y - bite, width: bite * 2, height: bite * 2))
       }
     }
     bites(CGPoint(x: r.minX, y: r.minY), CGPoint(x: r.maxX, y: r.minY))
     bites(CGPoint(x: r.minX, y: r.maxY), CGPoint(x: r.maxX, y: r.maxY))
     bites(CGPoint(x: r.minX, y: r.minY), CGPoint(x: r.minX, y: r.maxY))
     bites(CGPoint(x: r.maxX, y: r.minY), CGPoint(x: r.maxX, y: r.maxY))
-    return p
+    // the bites are cut out of the edge, never added to it
+    return Path(r).subtracting(holes)
   }
 }
 
@@ -263,11 +280,11 @@ struct KWTicket: Shape {
   var radius: CGFloat = 14
 
   func path(in r: CGRect) -> Path {
-    var p = Path(roundedRect: r, cornerRadius: radius, style: .continuous)
     let x = r.minX + r.width * split
-    p.addEllipse(in: CGRect(x: x - notch, y: r.minY - notch, width: notch * 2, height: notch * 2))
-    p.addEllipse(in: CGRect(x: x - notch, y: r.maxY - notch, width: notch * 2, height: notch * 2))
-    return p
+    var holes = Path()
+    holes.addEllipse(in: CGRect(x: x - notch, y: r.minY - notch, width: notch * 2, height: notch * 2))
+    holes.addEllipse(in: CGRect(x: x - notch, y: r.maxY - notch, width: notch * 2, height: notch * 2))
+    return Path(roundedRect: r, cornerRadius: radius, style: .continuous).subtracting(holes)
   }
 }
 
@@ -326,14 +343,14 @@ struct KWPostmark: View {
         Circle().strokeBorder(color, lineWidth: 2.5)
         Circle().strokeBorder(color, lineWidth: 1.5).padding(7)
         VStack(spacing: 2) {
-          Text(top).font(.system(size: size * 0.14, weight: .heavy, design: .monospaced))
-          Rectangle().fill(color).frame(width: size * 0.5, height: 1.5)
-          Text(bottom).font(.system(size: size * 0.12, weight: .bold, design: .monospaced))
+          Text(top).font(.system(size: size * 0.1, weight: .heavy, design: .monospaced))
+          Rectangle().fill(color).frame(width: size * 0.42, height: 1.5)
+          Text(bottom).font(.system(size: size * 0.085, weight: .bold, design: .monospaced))
         }
         .foregroundStyle(color)
         .lineLimit(1)
-        .minimumScaleFactor(0.5)
-        .padding(.horizontal, 14)
+        .minimumScaleFactor(0.4)
+        .frame(width: size * 0.48)
       }
       .frame(width: size * 0.72, height: size * 0.72)
       VStack(spacing: size * 0.08) {
@@ -433,10 +450,7 @@ struct KWGlyph: View {
       func circle(_ x: CGFloat, _ y: CGFloat, _ r: CGFloat) -> Path { Path(ellipseIn: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)) }
       switch id {
       case "night":
-        var moon = Path()
-        moon.addArc(center: CGPoint(x: w * 0.45, y: w * 0.52), radius: w * 0.36, startAngle: .degrees(-60), endAngle: .degrees(240), clockwise: false)
-        moon.addArc(center: CGPoint(x: w * 0.6, y: w * 0.38), radius: w * 0.28, startAngle: .degrees(200), endAngle: .degrees(-20), clockwise: true)
-        moon.closeSubpath()
+        let moon = circle(w * 0.45, w * 0.55, w * 0.36).subtracting(circle(w * 0.66, w * 0.38, w * 0.3))
         ctx.fill(moon, with: .color(KW.butter))
         ctx.stroke(moon, with: ink, style: line)
         let star = KWStar().path(in: CGRect(x: w * 0.68, y: w * 0.08, width: w * 0.26, height: w * 0.26))
@@ -533,7 +547,7 @@ struct KWGlyph: View {
 // MARK: - Fitting a card to its space
 
 /// Lays the card out at its natural height for this width (bigger with Dynamic Type), and scales
-/// it down from the top when that is taller than the space (an iPhone SE, XXXL). Never up. The
+/// it down from the top left (in line with the card's footer) when that is taller than the space (an iPhone SE, XXXL). Never up. The
 /// width stays the space's (measuring at a wider one would change the height it measures), so a
 /// card scaled down gains side margins.
 struct KWrappedFit<Content: View>: View {
@@ -544,11 +558,11 @@ struct KWrappedFit<Content: View>: View {
     GeometryReader { g in
       let s = natural > g.size.height && natural > 0 ? max(0.55, g.size.height / natural) : 1
       content()
-        .frame(width: g.size.width)
+        .frame(width: g.size.width, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { natural = $0 }
-        .scaleEffect(s, anchor: .top)
-        .frame(width: g.size.width, height: g.size.height, alignment: .top)
+        .scaleEffect(s, anchor: .topLeading)
+        .frame(width: g.size.width, height: g.size.height, alignment: .topLeading)
     }
   }
 }

@@ -77,10 +77,10 @@ struct KWrappedCardsB: View {
               .offset(x: 190, y: 160)
               .modifier(ctx.slap(0.8))
           }
-          .frame(height: 300, alignment: .topLeading)
+          .frame(height: 280, alignment: .topLeading)
           .padding(.top, 10)
           Text(ctx["youre"]).kw(.title, 26).foregroundStyle(Color.white).modifier(ctx.rise(0.5)).padding(.top, 8)
-          KWHeroText(text: ctx["typeName"], size: 68)
+          KWHeroText(text: ctx["typeName"], size: 64)
             .modifier(ctx.rise(0.6))
             .padding(.top, 2)
           Text(ctx["typeLine"])
@@ -157,7 +157,7 @@ struct KWrappedCardsB: View {
             .padding(.top, 44)
             .padding(.horizontal, 4)
             .overlay(alignment: .topTrailing) {
-              wren("curious", width: 110).rotationEffect(.degrees(8)).offset(x: 14, y: -26).modifier(ctx.drop(0.65, from: 0, turn: 10))
+              wren("curious", width: 104).rotationEffect(.degrees(8)).offset(x: 30, y: -70).modifier(ctx.drop(0.65, from: 0, turn: 10))
             }
             .modifier(ctx.drop(0.2))
           Spacer(minLength: 40)
@@ -224,7 +224,15 @@ struct KWrappedCardsB: View {
             .rotationEffect(.degrees(-4))
             .padding(.top, 96)
             .overlay(alignment: .topTrailing) {
-              wren(ctx.c.hourNight ? "sleepy" : "standing", width: 130).offset(x: -6, y: 6).modifier(ctx.rise(0.9))
+              wren(ctx.c.hourNight ? "sleepy" : "standing", width: 130)
+                .overlay(alignment: .topTrailing) {
+                  // the art's own grey z's vanish on the night: two white ones beside them
+                  if ctx.c.hourNight {
+                    Text("z z").font(.system(size: 18, weight: .black, design: .rounded)).foregroundStyle(Color.white).rotationEffect(.degrees(-12)).offset(x: 10, y: 4).accessibilityHidden(true)
+                  }
+                }
+                .offset(x: -6, y: 6)
+                .modifier(ctx.rise(0.9))
             }
             .modifier(ctx.drop(0.45))
         }
@@ -472,7 +480,7 @@ struct KWVibeStamp: View {
       Text(tag.rank).font(.system(size: 12, weight: .heavy, design: .monospaced)).foregroundStyle(ink).padding(.top, 8).padding(.trailing, 10)
     }
     .padding(12)
-    .background(KWPerforated(bite: 6, pitch: 18).fill(Color.white, style: FillStyle(eoFill: true)))
+    .background(KWPerforated(bite: 6, pitch: 18).fill(Color.white))
     .kwInk(2, shadow: 4)
     .accessibilityElement(children: .combine)
   }
@@ -501,17 +509,20 @@ struct KWNightTicket: View {
       .overlay(alignment: .trailing) {
         KWReceiptView.VLine().stroke(KW.ink, style: StrokeStyle(lineWidth: 3, dash: [6, 5])).frame(width: 3)
       }
+      // the stub's words run up the stub, in two lines when they need them
       Text(ctx["hourStub"].uppercased())
-        .font(.system(size: 14, weight: .heavy, design: .monospaced))
-        .tracking(2)
+        .font(.system(size: 13, weight: .heavy, design: .monospaced))
+        .tracking(1.6)
         .multilineTextAlignment(.center)
         .foregroundStyle(KW.ink)
-        .fixedSize()
+        .lineLimit(2)
+        .minimumScaleFactor(0.6)
+        .frame(width: 180, height: 60)
         .rotationEffect(.degrees(-90))
-        .frame(width: 74)
+        .frame(width: 66, height: 180)
     }
     .frame(minHeight: 214)
-    .background(KWTicket(split: 0.76).fill(KW.butter, style: FillStyle(eoFill: true)))
+    .background(KWTicket(split: 0.76).fill(KW.butter))
     .kwInk(3, shadow: 6, shadowColor: KW.blue)
     .accessibilityElement(children: .combine)
   }

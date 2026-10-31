@@ -141,8 +141,8 @@ struct KWrappedCardsA: View {
                 }
                 .padding(.top, 52)
                 .frame(maxHeight: .infinity, alignment: .top)
-                .clipped()
               }
+              .clipShape(RoundedRectangle(cornerRadius: 4))
           )
           .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(KW.ink, lineWidth: 3))
           .background(RoundedRectangle(cornerRadius: 4).fill(KW.ink).offset(x: 6, y: 6))
@@ -224,7 +224,14 @@ struct KWrappedCardsA: View {
       KWMoon(size: 200).offset(x: 70, y: 10).modifier(ctx.rise(0))
     }
     .overlay(alignment: .topLeading) {
-      pic(ctx.c.hourNight ? "sleepy" : "standing", width: 150).offset(x: 10, y: 70).modifier(ctx.drop(0.4, from: -20, turn: 0))
+      pic(ctx.c.hourNight ? "sleepy" : "standing", width: 150)
+        .overlay(alignment: .topTrailing) {
+          // the art's own grey z's vanish on the night: two white ones beside them
+          if ctx.c.hourNight {
+            Text("z z").font(.system(size: 20, weight: .black, design: .rounded)).foregroundStyle(Color.white).rotationEffect(.degrees(-12)).offset(x: 6, y: 8).accessibilityHidden(true)
+          }
+        }
+        .offset(x: 10, y: 70).modifier(ctx.drop(0.4, from: -20, turn: 0))
     }
   }
 

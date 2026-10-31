@@ -36,6 +36,8 @@ export type KWrappedReportViewProps = CommonViewModifierProps &
     template: "A" | "B";
     /** the share picture is being handed over */
     busy: boolean;
+    /** the card to open at (a dev build's design pass); 0 otherwise */
+    startCard?: number;
     cards: KWrappedCard[];
     tags: KWrappedTag[];
     changes: string[];

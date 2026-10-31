@@ -77,6 +77,8 @@ public struct KWrappedContent: Equatable, Sendable {
   public var images: [String: KImageRef] = [:]
   /// working on the share picture
   public var busy = false
+  /// the card to open at (a dev build's /report?demo=1&card=N; 0 otherwise)
+  public var startCard = 0
 
   public init() {}
 
@@ -274,8 +276,14 @@ public struct KWrappedReportScreen: View {
     }
     .ignoresSafeArea()
     .task(id: content.images) { await loadPics(content.images) }
-    .onAppear { land() }
-    .onChange(of: content.loaded) { _, _ in land() }
+    .onAppear {
+      idx = content.startCard
+      land()
+    }
+    .onChange(of: content.loaded) { _, _ in
+      idx = content.startCard
+      land()
+    }
     .onChange(of: cards.count) { _, n in
       if idx >= n { idx = max(0, n - 1) }
     }

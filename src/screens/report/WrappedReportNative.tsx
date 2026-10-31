@@ -28,8 +28,9 @@ import "../../data/strings-wrapped"; // rw.*
    did) and this month's snapshot is kept for next month's "how you changed". A read that fails
    says so with a retry key and spends nothing.
 
-   In a dev build, /report?demo=1 draws October as the prototypes drew it (lib/report-wrapped
-   demoWrappedFacts) and spends nothing; &member=1 opens "how you changed", &style=A|B picks one.
+   In a dev build, /report?demo=1 draws last month as the prototypes drew it (lib/report-wrapped
+   demoWrappedFacts) and spends nothing; &member=1 opens "how you changed", &style=A|B picks one,
+   &card=N opens at card N.
 
    Share makes the picture in Swift and hands its file to the share sheet with the card's own line
    (never card 3's). Compare shares kindredly.io/aura?vs=… . Read their letters goes to Today,
@@ -49,7 +50,7 @@ export function WrappedReportNative() {
   const wren = useWrenName();
   const { profile } = useAuth();
   const { premium } = useEntitlement();
-  const params = useLocalSearchParams<{ demo?: string; member?: string; style?: string }>();
+  const params = useLocalSearchParams<{ demo?: string; member?: string; style?: string; card?: string }>();
   const demo = __DEV__ && params.demo === "1";
 
   const [facts, setFacts] = useState<WrappedFacts | null>(null);
@@ -176,6 +177,7 @@ export function WrappedReportNative() {
         retry={t("rw.retry")}
         template={template}
         busy={busy}
+        startCard={demo ? Math.max(0, parseInt(params.card || "0", 10) || 0) : 0}
         cards={cards}
         tags={tags}
         changes={changes}
