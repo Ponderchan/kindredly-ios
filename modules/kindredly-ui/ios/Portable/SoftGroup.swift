@@ -212,12 +212,12 @@ public struct SoftRow<Icon: View, Accessory: View>: View {
           }
           if let subtitle, !subtitle.isEmpty {
             Text(subtitle)
-              .kText(.subtext)
+              .kText(.system(14, .regular, lineHeight: 1.35))
               .foregroundStyle(theme.mute)
               .fixedSize(horizontal: false, vertical: true)
           }
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
         if divider {
           SoftDivider(theme: theme)
         }
@@ -381,7 +381,7 @@ public struct SoftToggleRow: View {
               .fixedSize(horizontal: false, vertical: true)
             if let subtitle, !subtitle.isEmpty {
               Text(subtitle)
-                .kText(.subtext)
+                .kText(.system(14, .regular, lineHeight: 1.35))
                 .foregroundStyle(theme.mute)
                 .fixedSize(horizontal: false, vertical: true)
                 // shown, but read once, as the hint below
@@ -391,7 +391,7 @@ public struct SoftToggleRow: View {
           .frame(maxWidth: .infinity, alignment: .leading)
         }
         .toggleStyle(KToggleStyle(theme: theme))
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
         .accessibilityLabel(Text(label))
         .accessibilityHint(subtitle ?? "")
         if divider {

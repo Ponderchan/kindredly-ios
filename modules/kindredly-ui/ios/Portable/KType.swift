@@ -281,7 +281,7 @@ public extension KTextStyle {
   /// 600 14: buttons, "See your labels" (H:78)
   static let button = system(14, .semibold)
   /// 400 15: row labels, the write-back placeholder (H:92, 101, 115)
-  static let rowLabel = system(15, .regular)
+  static let rowLabel = system(17, .regular)   // 17 (owner, 2026-10-31: settings read too small; iOS body size)
   /// 500 15: Kindreds filter chips (H:62)
   static let filterChip = system(15, .medium)
   /// 600 15: a pen pal's name in a list (H:65)

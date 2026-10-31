@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, Linking } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
+import { STORE_OF_BINARY } from "../../lib/update-prompt-core";
 import * as Application from "expo-application";
 import Constants from "expo-constants";
 import { useAuth } from "../../lib/auth";
@@ -67,9 +69,12 @@ import "../../data/strings-fc2"; // fc2.ap.*: System, Light, Dark
 
 /** The binary's own version (expo-application), the store's label beside it (owner question 7). */
 export function versionFacts(): VersionFacts {
+  const binary = Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? null;
+  // the store's label read off the binary (update-prompt-core's table), so no release forgets it:
+  // 1.2.7 (38) said "1.0.5 (38)" (owner, 2026-10-31)
   return {
-    store: STORE_VERSION,
-    binary: Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? null,
+    store: (binary && STORE_OF_BINARY[binary]) || STORE_VERSION,
+    binary,
     build: Application.nativeBuildVersion ?? Constants.expoConfig?.ios?.buildNumber ?? null,
   };
 }
@@ -243,10 +248,25 @@ export function useSettingsModel(): SettingsModel {
     [checkPerm, wren],
   );
 
+  /* SIGN OUT ASKS FIRST AND SAYS IT WENT (owner, 2026-10-31: "no feedback, I couldn't tell if I
+     had signed out"): the system's confirm, what stays with the account, and a success tap as it
+     goes; a guest has no account to keep anything, so only the question */
   const onSignOut = useCallback(async () => {
-    await signOut();
-    router.replace("/onboarding");
-  }, [signOut, router]);
+    Alert.alert(t("set.signOut.ask"), auth.isGuest ? undefined : t("set.signOut.body"), [
+      { text: t("set.signOut.stay"), style: "cancel" },
+      {
+        text: t("set.signOut"),
+        style: "destructive",
+        onPress: () => {
+          void (async () => {
+            await signOut();
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+            router.replace("/onboarding");
+          })();
+        },
+      },
+    ]);
+  }, [signOut, router, auth.isGuest]);
 
   /* Account deletion (5.1.1(v)) — a real, in-app, no-email-required exit.
      The confirm is a sheet, not an Alert: the body is where the product
