@@ -436,8 +436,9 @@ const rowOf = (v: ReturnType<typeof M.buildKindredsView>, id: string) => {
     const v = M.buildKindredsView(base([fresh, old, ghost]), { ...fmt, who: onBook });
     const kn = rowOf(v, "kn")!;
     const courier = onBook.name("u-kn");
-    ok("Phase 2: a kindred made two days ago says was {courier}", kn.was === `id2.kd.was(name=${courier})` && kn.name === "Juniper");
-    ok("Phase 2: VoiceOver says the was line after the name", kn.a11yLabel.startsWith(`Juniper, id2.kd.was(name=${courier})`));
+    // owner, 2026-10-31: no "was …" on the list; the kindred's page keeps it as FIRST MET AS
+    ok("a new kindred's row has no was line", kn.was === "" && kn.name === "Juniper");
+    ok("VoiceOver says no was line either", kn.a11yLabel.startsWith("Juniper") && !kn.a11yLabel.includes("id2.kd.was"));
     ok("Phase 2: after seven days the courier name is gone", rowOf(v, "ko")!.was === "");
     ok("Phase 2: a gone kindred has no was line", rowOf(v, "kg")!.was === "");
     const offV = M.buildKindredsView(base([fresh]), { ...fmt, who: offBook });

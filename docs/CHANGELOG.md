@@ -37,6 +37,7 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 ## Unreleased
 
 Changed
+- Kindreds: a new kindred's row no longer says "was Sunday Kite" under their name; their page keeps it as First met as. [OTA]
 - In Midnight the cards with an ink edge are flat too: Today's letter card, Wren's letter, her speech bubble, Me's cards and the theme swatches get a hairline instead of the pale outline and hard shadow. The light themes keep theirs. [binary]
 - Tapping a reply's notification opens the chat over the Kindreds list (Back goes to your chats); it used to open over whichever tab was last in front, often Me. [OTA]
 - In Midnight the letter's #topic tag (Today, the unfolded letter, rooms, stamps) is flat: no pale outline or hard shadow. The light themes keep theirs. [binary]
