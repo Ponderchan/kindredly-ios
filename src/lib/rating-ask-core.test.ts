@@ -15,7 +15,7 @@ registerHooks({
   },
 });
 
-const { emptyRating, parseRating, withVariant, arm, ratingDue, markShown, markTapped, markLater, ratingAskOn, MAX_ASKS, ARMED_FOR_MS, SNOOZE_DAYS } = await import(
+const { forcedVariant, emptyRating, parseRating, withVariant, arm, ratingDue, markShown, markTapped, markLater, ratingAskOn, MAX_ASKS, ARMED_FOR_MS, SNOOZE_DAYS } = await import(
   "./rating-ask-core.ts"
 );
 
@@ -30,6 +30,11 @@ const T = 1_800_000_000_000;
 ok("switch on with no table", ratingAskOn(null) === true);
 ok("switch off by a row", ratingAskOn({ ratingask: false }) === false);
 
+ok("no row: no forced ask", forcedVariant(null) === null && forcedVariant({ ratingask: true }) === null);
+ok("letter row forces the letter", forcedVariant({ ratingask_letter: true }) === "letter");
+ok("review row forces the review", forcedVariant({ ratingask_review: true }) === "review");
+ok("both: the letter", forcedVariant({ ratingask_letter: true, ratingask_review: true }) === "letter");
+ok("false rows force nothing", forcedVariant({ ratingask_letter: false, ratingask_review: false }) === null);
 ok("torn record is fresh", JSON.stringify(parseRating("{oops")) === JSON.stringify(emptyRating()));
 ok("round trip", JSON.stringify(parseRating(JSON.stringify(markShown(arm(withVariant(emptyRating(), 0.2), "reply", T), T)))) === JSON.stringify(markShown(arm(withVariant(emptyRating(), 0.2), "reply", T), T)));
 

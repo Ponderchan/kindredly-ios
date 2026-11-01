@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchWithin } from "./net";
 import { track } from "./track";
 import { readSurfaces, remoteSurfaces, subscribeSurfaces, surfacesReady } from "./surfaces";
-import { arm, markLater, markShown, markTapped, parseRating, ratingAskOn, ratingDue, withVariant, type RatingMoment, type RatingState, type RatingVariant } from "./rating-ask-core";
+import { arm, forcedVariant, markLater, markShown, markTapped, parseRating, ratingAskOn, ratingDue, withVariant, type RatingMoment, type RatingState, type RatingVariant } from "./rating-ask-core";
 
 /* THE RATING ASK, FOR THE SCREENS (owner, 2026-11-01). The React Native glue over
    lib/rating-ask-core (which decides, and is node-tested). The record lives on this phone (raw
@@ -12,7 +12,8 @@ import { arm, markLater, markShown, markTapped, parseRating, ratingAskOn, rating
    A good moment calls armRatingAsk (lib/waiting: a reply came; chat: a kindred made; report: a
    real month read); screens/today/TodayRatingAsk shows it at Today's next calm. Every step is an
    event with { variant, moment }, so which ask works is read from the events table.
-   The remote switch: app_surfaces 'ratingask', ON unless a row says false. */
+   The remote switch: app_surfaces 'ratingask', ON unless a row says false; 'ratingask_letter' or
+   'ratingask_review' true puts every reader on that one ask (core forcedVariant). */
 
 const KEY = "kindredly_rating_ask";
 /* the write-a-review page, the one settings-model's SETTINGS_LINKS.rate opens */
@@ -65,7 +66,7 @@ function snapshot(): RatingAsk {
   snapRemote = remote;
   snap = {
     due: ratingAskOn(remote) && ratingDue(state, Date.now()),
-    variant: state.variant ?? "letter",
+    variant: forcedVariant(remote) ?? state.variant ?? "letter",
     moment: state.armed?.moment ?? null,
     ratings,
   };
@@ -118,9 +119,9 @@ export function useRatingAsk(): RatingAsk {
 let shownFor: string = "none";
 
 /** it reached the screen */
-export function ratingShown(): void {
+export function ratingShown(variant: RatingVariant): void {
   shownFor = state.armed?.moment ?? "none";
-  track("rating_ask_shown", { variant: state.variant ?? "letter", moment: shownFor });
+  track("rating_ask_shown", { variant, moment: shownFor });
   save(markShown(state, Date.now()));
 }
 /** the key: the App Store's write-a-review page */

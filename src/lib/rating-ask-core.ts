@@ -44,6 +44,15 @@ export function ratingAskOn(remote: SurfaceMap | null): boolean {
   return surfaceOn(remote, RATING_DEFAULT, RATING_SURFACE);
 }
 
+/* AFTER THE TEST (owner, 2026-11-01): a row turns every reader onto one ask, whatever they drew.
+   app_surfaces carries booleans, so one key per ask: ratingask_letter / ratingask_review set true.
+   No row: each keeps the one drawn. Both true: the letter. */
+export function forcedVariant(remote: SurfaceMap | null): RatingVariant | null {
+  if (remote?.ratingask_letter === true) return "letter";
+  if (remote?.ratingask_review === true) return "review";
+  return null;
+}
+
 export const emptyRating = (): RatingState => ({ variant: null, shown: [], done: false, quietUntil: 0, armed: null });
 
 /** the kept record, or a fresh one for anything torn */

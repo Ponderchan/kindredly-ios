@@ -170,7 +170,7 @@ export function TodayUpdate({ model, children }: { model: TodayModel; children: 
         onShown={() => {
           if (rateShown.current) return;
           rateShown.current = true;
-          ratingShown();
+          ratingShown(rateVariant.current);
         }}
         onTap={() => {
           setRating(false);
