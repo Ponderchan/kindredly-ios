@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchThreads, type ThreadSummary } from "./db";
 import { scoped as AsyncStorage } from "./scoped-store";
 import { track } from "./track";
+import { armRatingAsk } from "./rating-ask";
 import { readRoomSeen } from "./room-seen";
 import { fetchWrenPosts, readPostsCache, wrenUnread } from "./wren-desk";
 import { countOnYou } from "../screens/kindreds/kindreds-model";
@@ -111,6 +112,7 @@ async function countNewReplies(threads: Awaited<ReturnType<typeof fetchThreads>>
     const fresh = threads.filter((t) => t.theirs > 0 && !have.has(t.id));
     if (!fresh.length) return;
     for (const t of fresh) track("reply_received", { theirs: t.theirs });
+    armRatingAsk("reply"); // someone wrote back: a good moment to ask for a rating (lib/rating-ask)
     await AsyncStorage.setItem(SEEN_REPLIES, JSON.stringify([...have, ...fresh.map((t) => t.id)].slice(-300)));
   } catch {
     /* a miscount is better than a crash on a background refresh */

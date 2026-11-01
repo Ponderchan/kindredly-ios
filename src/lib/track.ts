@@ -39,7 +39,11 @@ export type EventName =
   | "purchase_failed"
   // the walls, counted separately from the paywall they open
   | "gate_hit"
-  | "send_failed";
+  | "send_failed"
+  // the rating ask (lib/rating-ask, 2026-11-01): { variant, moment } on each, to read which ask works
+  | "rating_ask_shown"
+  | "rating_ask_tapped"
+  | "rating_ask_later";
 
 /** where a paywall was opened FROM — every entry point, named once */
 export type PaywallSource =

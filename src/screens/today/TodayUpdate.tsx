@@ -9,6 +9,8 @@ import { bannerShows, localDay, sheetDue } from "../../lib/update-prompt-core";
 import { UPDATE_BANNER_ROOM, UpdateBanner, UpdateSheet, useParcelBirds } from "../../components/UpdatePrompt";
 import { useNativeSurface } from "../../lib/surfaces";
 import { useIdentityNoteUp } from "../edit-profile/IdentityNote";
+import { ratingLater, ratingShown, ratingTapped, useRatingAsk } from "../../lib/rating-ask";
+import { RatingAskSheet } from "../../components/RatingAsk";
 import type { TodayModel } from "./useTodayDesk";
 
 /* THE UPDATE PROMPT ON TODAY (OTA, 2026-10-25). Wraps Today's renderers and their overlays.
@@ -133,9 +135,52 @@ export function TodayUpdate({ model, children }: { model: TodayModel; children: 
   const insets = useMemo(() => (room ? { ...real, top: real.top + room } : real), [real, room]);
   const force = up.force;
 
+  /* THE RATING ASK (lib/rating-ask, 2026-11-01): after a good moment armed it, at the same calm
+     the update sheet waits for, and never while an update is due or its sheet is up. Shown once
+     per arming: the record is written when it reaches the screen. */
+  const rate = useRatingAsk();
+  const [rating, setRating] = useState(false);
+  useEffect(() => {
+    if (rating || !calm || !rate.due || due || sheet) return;
+    const id = setTimeout(() => blurThen(() => setRating(true), viewRef), SETTLE_MS);
+    return () => clearTimeout(id);
+  }, [rating, calm, rate.due, due, sheet, viewRef]);
+  const rateVariant = useRef(rate.variant);
+  if (!rating) rateVariant.current = rate.variant;
+  // a sheet UIKit refused (another Modal up) never reaches the screen: down, and the next calm tries again
+  const rateShown = useRef(false);
+  useEffect(() => {
+    if (!rating) {
+      rateShown.current = false;
+      return;
+    }
+    const id = setTimeout(() => {
+      if (!rateShown.current) setRating(false);
+    }, SHOWN_WITHIN_MS);
+    return () => clearTimeout(id);
+  }, [rating]);
+
   return (
     <>
       <SafeAreaInsetsContext.Provider value={insets}>{children}</SafeAreaInsetsContext.Provider>
+      <RatingAskSheet
+        open={rating}
+        variant={rateVariant.current}
+        ratings={rate.ratings}
+        onShown={() => {
+          if (rateShown.current) return;
+          rateShown.current = true;
+          ratingShown();
+        }}
+        onTap={() => {
+          setRating(false);
+          ratingTapped(rateVariant.current);
+        }}
+        onLater={() => {
+          setRating(false);
+          ratingLater(rateVariant.current);
+        }}
+      />
       {banner ? <UpdateBanner top={real.top} onPress={openAppStore} /> : null}
       <UpdateSheet
         open={open}

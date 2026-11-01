@@ -10,6 +10,7 @@ import { chatSeenRule, useThreadDetail } from "../../lib/thread-detail";
 import { copyText } from "../../lib/clipboard";
 import { offerTranslate } from "../../lib/lang-guess";
 import { track } from "../../lib/track";
+import { armRatingAsk } from "../../lib/rating-ask";
 import { refreshFingerprint } from "../../lib/aura";
 import { noteWrote } from "../../lib/local-push";
 import { threadState } from "../../lib/thread-state";
@@ -216,6 +217,7 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
     await reload();
     if (res.revealed) {
       track("kindred_made");
+      if (!isDemo) armRatingAsk("kindred");
       await introduceOnce(id, () => setCeremony(true));
     }
   }, [id, isDemo, signing, reload, setCeremony]);
@@ -267,7 +269,10 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
       await reload();
       if (next.ceremony) {
         // a demo's reveal is not a kindred made: never counted in the real events table
-        if (!isDemo) track("kindred_made");
+        if (!isDemo) {
+          track("kindred_made");
+          armRatingAsk("kindred");
+        }
         // the sheet's window is dismissed before the ceremony's rises (two at once can drop the second)
         await new Promise((r) => setTimeout(r, SHEET_GONE_MS));
         // a demo plays it every time (the dev pages are run again and again); a real thread once

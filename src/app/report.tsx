@@ -1,5 +1,5 @@
 import { useWrenName } from "../lib/wren-name";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, Share, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn } from "react-native-reanimated";
@@ -9,6 +9,7 @@ import { BlurView } from "expo-blur";
 import { PFM } from "../theme/post";
 import { useLetterFamily } from "../lib/theme";
 import { t, useLang } from "../lib/i18n";
+import { armRatingAsk } from "../lib/rating-ask";
 import { Constellation } from "../components/VoiceCard";
 import { WrenBird } from "../components/WrenBird";
 import { DEMO_JOURNAL } from "../data/demo";
@@ -60,6 +61,11 @@ export default function VoiceReport() {
      is on, /report?demo=1 opens the prototypes' October too. Demo data only: nothing of the
      reader's is read or spent. Your own month (?wrapped=1) stays dev-only. */
   const wrappedOn = useNativeSurface("reportwrapped");
+  // a real month read (not a sample, not the demo): a good moment to ask for a rating (lib/rating-ask)
+  const real = sample !== "1" && demo !== "1" && wrapped !== "1";
+  useEffect(() => {
+    if (real) armRatingAsk("report");
+  }, [real]);
   if (((__DEV__ && (demo === "1" || wrapped === "1")) || (wrappedOn && demo === "1")) && isKindredlyUIViewAvailable("KWrappedReportView")) {
     return (
       <View style={{ flex: 1, backgroundColor: "#5B55FF" }}>
