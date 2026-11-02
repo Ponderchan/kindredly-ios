@@ -8,6 +8,7 @@ import { SurfaceHost } from "../../components/NativeSurface";
 import { SignUpSheet, openSignUpSheet } from "../../components/SignUpSheet";
 import { PhotoLightbox } from "../../components/PhotoLightbox";
 import { ReelSquare } from "../../components/ReelSquare";
+import { PostMediaSquare } from "../../components/PostMediaSquare";
 import type { Reel } from "../../components/guide-reel/kit";
 import { GUIDE_HREF, reelOf } from "../../components/guide-reel";
 import { newsCardOf, newsIdOf, newsReelOf } from "../../components/news-reel";
@@ -20,7 +21,7 @@ import { blurThen } from "../../lib/keyboard";
 import { useWrenName } from "../../lib/wren-name";
 import { useBirdImageRef } from "../../lib/bird-images";
 import { useSignedImageRefs } from "../../lib/images";
-import { OFFICIAL_NAME, postText } from "../../lib/wren-desk";
+import { OFFICIAL_NAME, postText, type WrenPostMedia } from "../../lib/wren-desk";
 import "../../data/strings-step5-kitrn"; // a11y.back
 import { FIRST_CHIPS, wrenItemKey, wrenRoomRows, type WrenSpeakerWords } from "./wren-room-model";
 import { useWrenRoom, type WrenRoomUi } from "./useWrenRoom";
@@ -54,6 +55,8 @@ const CARD_MAX = 360;
 const GUTTERS = 44;
 
 type ReelSlot = { slot: string; reel: Reel; label: string };
+/** a post's picture or short film (0050), drawn in the card's square as a React Native island */
+type MediaSlot = { slot: string; media: WrenPostMedia };
 /** what a row's taps need: the guide or the release behind its card, its picture, its link, the question she guessed from */
 type RowTarget = { href: string | null; photo: string | null; link: string | null; question: string | null };
 
@@ -128,6 +131,7 @@ export function WrenRoomNative() {
   const built = useMemo(() => {
     const rows: KWrenRoomRow[] = [];
     const reels: ReelSlot[] = [];
+    const medias: MediaSlot[] = [];
     const targets = new Map<string, RowTarget>();
     const guideBody = (g: GuideId) => GUIDE_BY_ID[g].frames.map((_, n) => t(`gd.${g}.f${n + 1}`, { wren })).join(" ");
     for (const f of facts) {
@@ -170,6 +174,16 @@ export function WrenRoomNative() {
       const newsReel = newsId ? newsReelOf(newsId) : null;
       if (news && newsReel) reels.push({ slot, reel: newsReel, label: body.split("\n")[0] });
       const link = it.type === "post" && !newsId && it.post.link ? it.post.link : null;
+      /* a post with a picture or a film (0050) and no release reel: a card like a release's, the
+         media in the square, the first line its title, Open going to the link or the full file */
+      const media = it.type === "post" && !(news && newsReel) ? it.post.media : null;
+      if (media) {
+        medias.push({ slot, media });
+        const [head, ...rest] = body.split("\n");
+        rows.push({ ...base, body: "", hasPhoto: false, photo: null, link: "", card: { slot, title: head, body: rest.join("\n").trim(), cta: `${t("wo.open")} ›`, notIt: "", sendOn: "" } });
+        targets.set(f.key, { href: null, photo: null, link: link || media.url, question: null });
+        continue;
+      }
       rows.push({
         ...base,
         body,
@@ -180,7 +194,7 @@ export function WrenRoomNative() {
       });
       targets.set(f.key, { href: news ? news.href : null, photo, link, question: null });
     }
-    return { rows, reels, targets };
+    return { rows, reels, medias, targets };
     // lang: every word is t()'s
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facts, photos, wren, lang]);
@@ -230,8 +244,9 @@ export function WrenRoomNative() {
   const target = (key: string) => built.targets.get(key) ?? null;
   const back = () => blurThen(() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds")), ref, { delayMs: 0 });
   const onCardCta = (key: string) => {
-    const href = target(key)?.href;
-    if (href) blurThen(() => router.push(href as never), ref, { delayMs: 0 });
+    const tg = target(key);
+    if (tg?.href) blurThen(() => router.push(tg.href as never), ref, { delayMs: 0 });
+    else if (tg?.link) m.openLink(tg.link);
   };
   const onPhoto = (key: string) => {
     const path = target(key)?.photo;
@@ -278,6 +293,11 @@ export function WrenRoomNative() {
           onMore={() => m.setAllChips(true)}
         >
           {/* every reel on every render, in the transcript's order; a tap starts it over */}
+          {built.medias.map((r) => (
+            <KIsland key={r.slot} name={r.slot} interactive style={{ width: reelSide, height: reelSide, borderTopLeftRadius: 17, borderTopRightRadius: 17, overflow: "hidden" }}>
+              <PostMediaSquare media={r.media} />
+            </KIsland>
+          ))}
           {built.reels.map((r) => (
             <KIsland key={r.slot} name={r.slot} interactive style={{ width: reelSide, height: reelSide, borderTopLeftRadius: 17, borderTopRightRadius: 17, overflow: "hidden" }}>
               <ReelSquare reel={r.reel} label={r.label} />

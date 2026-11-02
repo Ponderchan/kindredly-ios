@@ -23,7 +23,9 @@ export const WREN_ROOM = "wren";
 export const OFFICIAL_NAME = DEFAULT_WREN;
 
 export type WrenPostKind = "update" | "event" | "note";
-export type WrenPost = { id: number; kind: WrenPostKind; body: string; i18n: Record<string, string> | null; link: string | null; at: string };
+/** a post's picture or short film (0050): an https address, drawn under the words */
+export type WrenPostMedia = { url: string; kind: "image" | "video"; ratio: number };
+export type WrenPost = { id: number; kind: WrenPostKind; body: string; i18n: Record<string, string> | null; link: string | null; at: string; media: WrenPostMedia | null };
 export type WrenMailKind = "note" | "bug" | "idea" | "photo";
 export type WrenMail = { id: number; kind: WrenMailKind; body: string; mediaPath: string | null; at: string; reply: string | null; repliedAt: string | null };
 /** a question she answered herself, kept on this phone so the room
@@ -46,6 +48,10 @@ const toPost = (r: any): WrenPost => ({
      Until 1.0.5 only http links got through, so the in-app ones were dropped. */
   link: typeof r.link === "string" && (/^https?:\/\//.test(r.link) || /^kindredly:\/\/\/?(guide\/[a-z]+|news\/[0-9][0-9.]*)$/.test(r.link)) ? r.link : null,
   at: String(r.published_at || r.at || ""),
+  media:
+    typeof r.media_url === "string" && /^https:\/\//.test(r.media_url)
+      ? { url: r.media_url, kind: r.media_kind === "video" ? "video" : "image", ratio: typeof r.media_ratio === "number" && r.media_ratio > 0 ? r.media_ratio : 1 }
+      : null,
 });
 
 export async function readPostsCache(): Promise<WrenPost[]> {
@@ -68,11 +74,10 @@ export async function fetchWrenPosts(): Promise<WrenPost[] | null> {
   if (!supabaseReady) return null;
   if (postsMem && Date.now() - postsAt < 60_000) return postsMem;
   try {
-    const { data, error } = await supabase!
-      .from("wren_posts")
-      .select("id,kind,body,body_i18n,link,published_at")
-      .order("published_at", { ascending: true })
-      .limit(200);
+    /* the picture or film (0050); before 0050 is run the columns are missing: read the old list */
+    const read = (cols: string) => supabase!.from("wren_posts").select(cols).order("published_at", { ascending: true }).limit(200);
+    let { data, error } = await read("id,kind,body,body_i18n,link,published_at,media_url,media_kind,media_ratio");
+    if (error && (error.code === "42703" || /media_/.test(String(error.message ?? "")))) ({ data, error } = await read("id,kind,body,body_i18n,link,published_at"));
     if (error || !data) return null;
     const posts = data.map(toPost);
     postsMem = posts;
