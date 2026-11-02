@@ -37,6 +37,7 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 ## Unreleased
 
 Changed
+- Wren's desk shows a post's picture or short film under it (animated pictures play, films loop silently, still with Reduce Motion), with Open to the full file or the post's link. [OTA] [server: 0050]
 - Settings reads larger: row names at 17 (iOS body size), sublines at 14, rows a little taller. [binary]
 - Sign out asks first (what stays with your account; Stay / Sign out) and taps as it goes. Nine languages. [OTA]
 - Settings' footer reads the App Store version off the binary (it said 1.0.5 on every build since). [OTA]
