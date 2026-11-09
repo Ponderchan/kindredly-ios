@@ -86,6 +86,9 @@ export type BirdPose =
   | "plush128"
   | TryPose;
 
+  // batch 3, slice 4: Wren in the compose toolbar, the Notes composer, Make your own face and the face-ready banner
+  | Slice4Pose;
+
 /* THE COURIER PAGE (/courier in Swift, 2026-10-26). Her perch draws her at the
    React Native perch's 186 in every face she can make there (her whereabouts'
    face, and the faces a tap, a pick-up, a drop and a doze give her), in her own
@@ -191,6 +194,31 @@ const CARD_POSES = Object.fromEntries(
   ]),
 ) as Record<CardPose, BirdPoseSpec>;
 
+/* BATCH 3, SLICE 4 (2026-11-09): the last WrenBirds React Native drew inside Swift pages, each
+   behind its own switch (lib/surfaces). Sizes and moods are the React Native call sites' own; her
+   look and stage are hers (nothing pinned, as those WrenBirds pinned nothing). None is base:
+   captured only while a page asks.
+   - "composewren": the compose toolbar's Wren (screens/compose/ComposeNative WrenIsland), 38, in
+     every face her read of the letter can give her (lib/wren-read readMood goes through the
+     courier's read, so any mood); Swift breathes and zooms the picture.
+   - "notewren": the Notes composer's Wren (screens/journal-entry/NoteComposeNative), 30, content.
+   - "facewren": Make your own face's Wren (screens/make-face/MakeFaceNative), curious at 72 and
+     content at 64; delighted at 56 is the base "delight" pose, the same drawing.
+   - "faceready": the face-ready banner's Wren (components/FaceReadyBanner), 30, delighted. */
+export type ComposeWrenPose = `compose-${WrenMood}`;
+export type Slice4Pose = ComposeWrenPose | "note30" | "faceCurious72" | "faceContent64" | "faceReady30";
+/** The compose toolbar's picture for a mood. */
+export const composeWrenPose = (mood: WrenMood): ComposeWrenPose => `compose-${mood}`;
+/** Every face the compose toolbar can show, in WrenBird's order. */
+export const COMPOSE_WREN_MOODS: readonly WrenMood[] = HERO_MOODS;
+const SLICE4_POSES = {
+  ...Object.fromEntries(HERO_MOODS.map((mood) => [composeWrenPose(mood), { size: 38, mood }])),
+  note30: { size: 30, mood: "content" },
+  faceCurious72: { size: 72, mood: "curious" },
+  faceContent64: { size: 64, mood: "content" },
+  faceReady30: { size: 30, mood: "delight" },
+} as Record<Slice4Pose, BirdPoseSpec>;
+
 /* sizes are the RN call sites' own, so the Swift picture is the same drawing */
 export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
   content: { size: 56, mood: "content", base: true },
@@ -285,6 +313,9 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
   curious40: { size: 40, mood: "curious" },
   plush128: { size: 128, mood: "happy", skin: "plush" },
   ...TRY_POSES,
+
+  // batch 3, slice 4 (see SLICE4_POSES above)
+  ...SLICE4_POSES,
 };
 
 /** The user's look, as BirdSnapshots reads it from the Wren contexts. */
@@ -506,3 +537,4 @@ export type GrowPose = `grow-${"hatch" | "fledge"}` | `grown-${"fledge" | "wren"
 export const growFromPose = (stage: WrenStage): GrowPose | null => (stage === "hatch" || stage === "fledge" ? `grow-${stage}` : null);
 /** Her new form's picture for a moment to `stage`. */
 export const growToPose = (stage: "fledge" | "wren"): GrowPose => `grown-${stage}`;
+

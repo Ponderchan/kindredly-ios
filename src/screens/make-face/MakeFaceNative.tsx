@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useRef } from "react";
 import { View } from "react-native";
-import { KIsland, useKCommands, useRev, type KInsets, type KScreenHandle, type KThemeKey, type LetterFontKey } from "../../../modules/kindredly-ui";
+import { KIsland, useKCommands, useRev, type KInsets, type KScreenHandle, type KThemeKey, type KWrenPictureData, type LetterFontKey } from "../../../modules/kindredly-ui";
 import {
   KMakeFaceView,
   makeFaceWrenSize,
@@ -14,6 +14,9 @@ import { SurfaceHost } from "../../components/NativeSurface";
 import { WrenBird, type WrenMood } from "../../components/WrenBird";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
+import { useBirdImageRefs } from "../../lib/bird-images";
+import { FACE_WREN_POSES, faceWrenPose } from "../../lib/last-islands";
+import { useSwiftIsland } from "../../lib/swift-island";
 import type { MakeFaceActions, MakeFaceModel } from "./useMakeFaceModel";
 
 /* MAKE YOUR OWN FACE IN SWIFTUI (owner, 2026-10-26). One Host for the whole flow (SurfaceHost
@@ -24,7 +27,11 @@ import type { MakeFaceActions, MakeFaceModel } from "./useMakeFaceModel";
 
    This file only turns useMakeFaceModel into the Swift view's props:
    - props kept by content, so a re-render that changes nothing sends nothing native;
-   - the words live in the Swift field; the words screen asks for the keyboard once it shows. */
+   - the words live in the Swift field; the words screen asks for the keyboard once it shows;
+   - Wren herself in Swift (batch 3, "facewren", off by default): her snapshot for the screen
+     (lib/last-islands faceWrenPose: curious 72, content 64, delighted 56; all three captured while
+     the page is up, so a new screen never waits) goes as the `wren` prop, and Swift draws it at
+     the island's size and bobs it as it bobbed the island; the island stays, empty. */
 
 function useSameContent<T>(value: T): T {
   const kept = useRef<{ json: string; value: T } | null>(null);
@@ -98,6 +105,12 @@ export function MakeFaceNative({ model }: { model: MakeFaceModel }) {
   const choices = useSameContent(model.choices);
   const rev = useRev(chips);
 
+  // Wren drawn by Swift ("facewren"): the screen's picture
+  const wrenSwift = useSwiftIsland("facewren", "KWrenPictureView", true);
+  const wrenBirds = useBirdImageRefs(wrenSwift ? FACE_WREN_POSES : []);
+  const wrenPose = faceWrenPose(screen);
+  const wren = useSameContent<KWrenPictureData | null>(wrenSwift ? { image: (wrenPose && wrenBirds[wrenPose]) || null } : null);
+
   // nothing until the first screen is known: the route's own ground is clear, so the screen below shows
   if (!model.screen) return <View style={{ flex: 1 }} />;
 
@@ -124,6 +137,7 @@ export function MakeFaceNative({ model }: { model: MakeFaceModel }) {
       choice={model.choice}
       knock={model.knock}
       act={act}
+      wren={wren}
     />
   );
 }
@@ -150,6 +164,8 @@ type SurfaceProps = {
   choice: number;
   knock: "ask" | "watch" | "on" | "off";
   act: MakeFaceActions;
+  /** Wren drawn by Swift ("facewren"); null: the island */
+  wren: KWrenPictureData | null;
 };
 
 /* The Host, the view and its island, redrawn only when a prop changes. */
@@ -204,10 +220,11 @@ const FaceSurface = memo(function FaceSurface(p: SurfaceProps) {
         onApple={act.apple}
         onGoogle={act.google}
         onLater={act.later}
+        wren={p.wren}
       >
         {/* every island on every render (Slot.tsx); empty on the screens without her */}
         <KIsland name="wren" style={{ width: size, height: size }}>
-          {size > 0 ? (
+          {size > 0 && !p.wren ? (
             <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
               <WrenBird size={size} mood={mood} />
             </View>

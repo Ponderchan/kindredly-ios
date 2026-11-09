@@ -4,6 +4,7 @@ import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
 import type { KInsets, KScreenBaseProps, KScreenHandle, KStandardCommands } from "./types";
 import type { KVoiceSlotAction, KVoiceSlotCommand } from "./VoicePieces";
+import { nativeWrenMoods, type KWrenMoodsData } from "./LastIslands";
 
 /* THE COMPOSE PAGE, drawn by SwiftUI (ios/Portable/Compose/KComposePage.swift, adapter
    ios/Adapters/KComposeView.swift), for src/screens/compose/ComposeNative.tsx. Every word, the
@@ -188,6 +189,8 @@ export type KComposeCommands = Omit<KStandardCommands, "setText" | "focus" | "co
   composer: KComposeLive;
   /** the voice slot: what Swift draws itself of the recorder and the take (VoicePieces.tsx) */
   recorder: KVoiceSlotCommand;
+  /** batch 3 ("composewren"): her face as the letter reads, for the Swift-drawn Wren (`wren`) */
+  wrenMood: { mood: string };
 };
 
 export type KComposeViewProps = CommonViewModifierProps &
@@ -246,6 +249,9 @@ export type KComposeViewProps = CommonViewModifierProps &
     onFullCta?: () => void;
     /** a tap in the voice slot's Swift recording bar or take card (the `recorder` command) */
     onVoice?: (action: KVoiceSlotAction) => void;
+    /** batch 3 ("composewren", LastIslands.tsx): her pictures in every mood; Swift draws her (the
+        mood by the `wrenMood` command) and leaves the "wren" island out. null keeps the island */
+    wren?: KWrenMoodsData | null;
     /** the two <KIsland>s, "wren" then "recorder", every render (Slot.tsx) */
     children?: ReactNode;
   };
@@ -273,10 +279,12 @@ type NativeKComposeViewProps = Omit<
   | "onPickPaper"
   | "onPaperUpgrade"
   | "onVoice"
+  | "wren"
 > &
   Required<Pick<KComposeViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
     sections: KComposeSection[];
+    wren: ReturnType<typeof nativeWrenMoods>;
     onComposeClose?: Ev<Record<string, never>>;
     onComposeTextChange?: Ev<{ target: "body" | "ask"; text: string }>;
     onComposeTray?: Ev<{ which: "stamps" | "more" | "paper" }>;
@@ -336,11 +344,13 @@ export const KComposeView = forwardRef<KScreenHandle, KComposeViewProps>(functio
     customStamps,
     papers,
     paperHead,
+    wren,
     ...rest
   },
   ref,
 ) {
   const sent = useMemo(() => nativeComposeSections(sections), [sections]);
+  const wrenSent = useMemo(() => nativeWrenMoods(wren), [wren]);
   // every field present (a Swift @Field record can't take null or undefined)
   const customSent = useMemo(
     () => (customStamps ?? []).map((c) => ({ id: c.id ?? "", topic: c.topic ?? "", hex: c.hex ?? "", a11yLabel: c.a11yLabel ?? "" })),
@@ -369,6 +379,7 @@ export const KComposeView = forwardRef<KScreenHandle, KComposeViewProps>(functio
       customStamps={customSent}
       papers={papersSent}
       paperHead={headSent}
+      wren={wrenSent}
       onComposeClose={onClose ? () => onClose() : undefined}
       onComposeTextChange={onTextChange ? (e) => onTextChange(e.nativeEvent.target, e.nativeEvent.text) : undefined}
       onComposeTray={onTray ? (e) => onTray(e.nativeEvent.which) : undefined}

@@ -135,6 +135,9 @@ final class KNoteComposeViewProps: KScreenProps {
   @Field var busy: Bool = false
   @Field var sealed: Bool = false
   @Field var needsMood: Bool = false
+  /// batch 3 ("notewren"; Adapters/KLastIslandsView.swift): her content snapshot at 30, drawn
+  /// still in place of the "wren" island while `on`
+  @Field var wren: KWrenPictureRecord = KWrenPictureRecord()
 
   var onNoteClose = EventDispatcher()
   var onNoteTextChange = EventDispatcher()
@@ -249,7 +252,12 @@ struct KNoteComposeView: ExpoSwiftUI.View {
       driver: props.driver,
       actions: props.actions
     ) {
-      props.children?.kSlot("wren")
+      if props.wren.on {
+        // NoteComposeNative's island: 30, still and content
+        KWrenPicture(props.wren.ref, size: 30)
+      } else {
+        props.children?.kSlot("wren")
+      }
     } recorder: {
       // the island's gap (NoteComposeNative's RecorderIsland): 10
       KVoiceSlot(model: props.voiceSlot, theme: props.kTheme, spacing: 10, island: props.children?.kSlot("recorder")) { action in

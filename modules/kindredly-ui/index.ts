@@ -441,3 +441,23 @@ export {
 export { KKindredsEmptyView, type KKindredsEmptyDesk, type KKindredsEmptyStrings, type KKindredsEmptyViewProps } from "./src/KindredsEmpty";
 export { KWardrobeSheetView, type KWardrobeSheetStrings, type KWardrobeSheetViewProps, type KWardrobeTile } from "./src/WardrobeSheet";
 export { KPlushView, type KPlushStrings, type KPlushViewProps } from "./src/Plush";
+
+// batch 3: slice 4 (2026-11-09), each behind its own switch, off by default: Wren drawn by Swift in the
+// compose toolbar ("composewren"), the Notes composer ("notewren") and Make your own face ("facewren"),
+// your own face on Me and Edit profile ("myavatar") — records on those pages' views, with the two marker
+// views below — and the face-ready banner ("faceready")
+export {
+  KFACE_READY_OUT_MS,
+  KFaceReadyView,
+  KMyFaceView,
+  KWrenPictureView,
+  nativeMyFace,
+  nativeWrenMoods,
+  nativeWrenPicture,
+  type KFaceReadyViewProps,
+  type KMyFaceData,
+  type KMyFaceViewProps,
+  type KWrenMoodsData,
+  type KWrenPictureData,
+  type KWrenPictureViewProps,
+} from "./src/LastIslands";

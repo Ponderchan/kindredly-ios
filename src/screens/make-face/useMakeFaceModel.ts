@@ -78,6 +78,10 @@ export function subscribeFaceReady(fn: (r: FaceReady) => void): () => void {
     readyListeners.delete(fn);
   };
 }
+/** DEV ONLY (src/app/dev/face-ready.tsx): drop the banner as a finished drawing would, no drawing made. */
+export function devFaceReady(r: FaceReady): void {
+  if (__DEV__) readyListeners.forEach((fn) => fn(r));
+}
 
 async function cancelKnock(): Promise<void> {
   try {

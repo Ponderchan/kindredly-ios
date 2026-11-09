@@ -3,6 +3,7 @@ import { forwardRef, useMemo, type ReactNode, type Ref } from "react";
 import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
 import type { KImageRefProps, KInsets, KScreenBaseProps, KScreenHandle, KStandardCommands } from "./types";
+import { nativeWrenPicture, type KWrenPictureData } from "./LastIslands";
 
 /* MAKE YOUR OWN FACE, drawn by SwiftUI (ios/Portable/MakeFace/KMakeFacePage.swift, adapter
    ios/Adapters/KMakeFaceView.swift), for src/screens/make-face/MakeFaceNative.tsx. Every word, the
@@ -159,6 +160,9 @@ export type KMakeFaceViewProps = CommonViewModifierProps &
     onKnockAllow?: () => void;
     onKnockWatch?: () => void;
     onKnockAsk?: () => void;
+    /** batch 3 ("facewren", LastIslands.tsx): her picture for this screen; Swift draws it at
+        makeFaceWrenSize(screen) and leaves the "wren" island out. null keeps the island */
+    wren?: KWrenPictureData | null;
     /** the one <KIsland name="wren">, every render (Slot.tsx) */
     children?: ReactNode;
   };
@@ -201,9 +205,11 @@ type NativeProps = Omit<
   | "onApple"
   | "onGoogle"
   | "onLater"
+  | "wren"
 > &
   Required<Pick<KMakeFaceViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
+    wren: ReturnType<typeof nativeWrenPicture>;
     photo: NativeImage;
     result: NativeImage;
     quotaFace: NativeImage;
@@ -284,10 +290,12 @@ export const KMakeFaceView = forwardRef<KScreenHandle, KMakeFaceViewProps>(funct
     onApple,
     onGoogle,
     onLater,
+    wren,
     ...rest
   },
   ref,
 ) {
+  const wrenSent = useMemo(() => nativeWrenPicture(wren), [wren]);
   const chipsSent = useMemo(() => nativeFaceChips(chips), [chips]);
   const photoSent = useMemo(() => image(photo), [photo]);
   const resultSent = useMemo(() => image(result), [result]);
@@ -307,6 +315,7 @@ export const KMakeFaceView = forwardRef<KScreenHandle, KMakeFaceViewProps>(funct
       result={resultSent}
       quotaFace={quotaSent}
       choices={choicesSent}
+      wren={wrenSent}
       choice={choice ?? 0}
       onFaceChoose={onChoose ? (e) => onChoose(e.nativeEvent.index ?? 0) : undefined}
       knock={knock ?? "on"}

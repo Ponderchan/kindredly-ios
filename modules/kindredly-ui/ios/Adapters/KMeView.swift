@@ -45,6 +45,9 @@ import ExpoUI
  - courierCard, auraArt (KMePiecesView.swift): with `on`, Swift draws the courier's card
    (KCourierCard) or the Aura card's picture (KAuraArt) itself and leaves that island out; TS
    then leaves the island empty ("couriercard" and "auraart" switches, off by default).
+ - myFace (batch 3, "myavatar"; Adapters/KLastIslandsView.swift): { on, kind, uri, key, overscan },
+   your face as faces.ts resolves it; with `on`, Swift draws it (KMyFace, 72, square inside your
+   stamp) where the "avatar" island was, and TS leaves the island empty.
 
  Commands (KCommandBus): scrollTo { key: "top", animated } (Me pressed again while showing), and
  segment { index }, which shows a card as its chip would and sends onMeSegment as a chip does, so
@@ -477,6 +480,8 @@ final class KMeViewProps: KScreenProps {
   // instead of the "auraArt" island
   @Field var courierCard: KCourierCardRecord = KCourierCardRecord()
   @Field var auraArt: KAuraArtRecord = KAuraArtRecord()
+  /// batch 3 ("myavatar"): your face, drawn instead of the "avatar" island while `on`
+  @Field var myFace: KMyFaceRecord = KMyFaceRecord()
 
   var onMeSettings = EventDispatcher()
   var onMeEdit = EventDispatcher()
@@ -581,7 +586,12 @@ struct KMeView: ExpoSwiftUI.View {
       driver: props.driver,
       actions: props.actions
     ) {
-      props.children?.kSlot("avatar")
+      if props.myFace.on {
+        // the island's 72; square inside your stamp, which the header draws and scales it into
+        KMyFace(theme: props.kTheme, source: props.myFace.source, size: 72, square: KMemberStamp(props.profile.stamp) != nil)
+      } else {
+        props.children?.kSlot("avatar")
+      }
     } courier: {
       if props.courierCard.on {
         KCourierCard(card: props.courierCard.model)

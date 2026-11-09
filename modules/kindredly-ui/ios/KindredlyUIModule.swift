@@ -441,5 +441,17 @@ public class KindredlyUIModule: Module {
     ExpoUIView(KWardrobeSheetView.self)
     ExpoUIView(KPlushView.self)
 
+    // batch 3: slice 4 (2026-11-09), each behind its own switch (off by default) with React Native
+    // kept for when it is off. KWrenPictureView is the binary's marker for Wren drawn by Swift in
+    // the compose toolbar ("composewren"), the Notes composer ("notewren") and Make your own face
+    // ("facewren"); KMyFaceView for your own face on Me and Edit profile ("myavatar"); both also
+    // draw one piece on their own for a dev page. KFaceReadyView is the face-ready banner
+    // ("faceready"), in a Host of its own. Adapters/KLastIslandsView.swift; Portable/Kit/
+    // KWrenPicture.swift, Portable/Me/KMyFace.swift, Portable/MakeFace/KFaceReadyBanner.swift. No
+    // commands. New files: a pod install before the build.
+    ExpoUIView(KWrenPictureView.self)
+    ExpoUIView(KMyFaceView.self)
+    ExpoUIView(KFaceReadyView.self)
+
   }
 }

@@ -4,6 +4,7 @@ import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
 import type { KImageRefProps, KInsets, KScreenBaseProps, KScreenHandle, KStandardCommands } from "./types";
 import type { KVoiceSlotAction, KVoiceSlotCommand } from "./VoicePieces";
+import { nativeWrenPicture, type KWrenPictureData } from "./LastIslands";
 
 /* THE NOTES COMPOSER, drawn by SwiftUI (ios/Portable/Notes/KNoteComposePage.swift, adapter
    ios/Adapters/KNoteComposeView.swift), for src/screens/journal-entry/NoteComposeNative.tsx. Every
@@ -99,6 +100,9 @@ export type KNoteComposeViewProps = CommonViewModifierProps &
     onSealEnd?: () => void;
     /** a tap in the voice slot's Swift recording bar or take card (the `recorder` command) */
     onVoice?: (action: KVoiceSlotAction) => void;
+    /** batch 3 ("notewren", LastIslands.tsx): her content picture at 30; Swift draws it and
+        leaves the "wren" island out. null keeps the island */
+    wren?: KWrenPictureData | null;
     /** the two <KIsland>s, "wren" then "recorder", every render (Slot.tsx) */
     children?: ReactNode;
   };
@@ -123,9 +127,11 @@ type NativeProps = Omit<
   | "onWren"
   | "onSealEnd"
   | "onVoice"
+  | "wren"
 > &
   Required<Pick<KNoteComposeViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
+    wren: ReturnType<typeof nativeWrenPicture>;
     onNoteClose?: Ev<Record<string, never>>;
     onNoteTextChange?: Ev<{ text: string }>;
     onNoteFieldFocus?: Ev<{ focused: boolean }>;
@@ -157,10 +163,11 @@ const NativeKNoteComposeView = requireNativeView<NativeProps>("KindredlyUI", "KN
 
 /** The bare SwiftUI page. Only inside an @expo/ui <Host>; its ref takes commands. */
 export const KNoteComposeView = forwardRef<KScreenHandle, KNoteComposeViewProps>(function KNoteComposeView(
-  { modifiers, letterFont, insets, rev, groups, thumbs, onClose, onTextChange, onFieldFocus, onPanel, onPickGroup, onPickFace, onCard, onThumb, onRemoveMedia, onSeal, onWren, onSealEnd, onVoice, ...rest },
+  { modifiers, letterFont, insets, rev, groups, thumbs, onClose, onTextChange, onFieldFocus, onPanel, onPickGroup, onPickFace, onCard, onThumb, onRemoveMedia, onSeal, onWren, onSealEnd, onVoice, wren, ...rest },
   ref,
 ) {
   const groupsSent = useMemo(() => nativeNoteGroups(groups), [groups]);
+  const wrenSent = useMemo(() => nativeWrenPicture(wren), [wren]);
   const thumbsSent = useMemo(
     () =>
       thumbs.map((t) => ({
@@ -183,6 +190,7 @@ export const KNoteComposeView = forwardRef<KScreenHandle, KNoteComposeViewProps>
       rev={rev ?? 0}
       groups={groupsSent}
       thumbs={thumbsSent}
+      wren={wrenSent}
       onNoteClose={onClose ? () => onClose() : undefined}
       onNoteTextChange={onTextChange ? (e) => onTextChange(e.nativeEvent.text) : undefined}
       onNoteFieldFocus={onFieldFocus ? (e) => onFieldFocus(e.nativeEvent.focused) : undefined}

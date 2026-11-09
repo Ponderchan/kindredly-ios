@@ -32,6 +32,7 @@ import { FIRST_CLASS_SEGMENT, type AuraCardVM, type LookPose, type LookTileId, t
 import type { MeModel } from "./useMeModel";
 import { useStampCollection } from "./useStampCollection";
 import { useAuraArtData, useCourierCardData } from "./me-pieces";
+import { useMyFace } from "../../lib/my-face";
 
 /* THE ME TAB IN SWIFTUI (4a, 2026-10-19): one Host for the whole screen
    (SurfaceHost: flex 1, every safe area ignored, light or dark from the
@@ -63,7 +64,9 @@ import { useAuraArtData, useCourierCardData } from "./me-pieces";
    - pressing Me again goes to the top (the model's scroll serial);
    - two of the islands can be drawn by Swift instead (me-pieces, 2026-10-27, behind
      "couriercard" and "auraart", off by default): then the record goes to KMeView and the island
-     stays in its place, empty. */
+     stays in its place, empty;
+   - so can your face (batch 3, "myavatar", off by default; lib/my-face): KMeView's `myFace`,
+     drawn by Swift at the island's 72 (square inside your stamp), the island left empty. */
 
 /** The same value back while its content is the same (JSON), so a rebuilt but unchanged record
     keeps its identity and isn't re-sent to Swift. */
@@ -283,6 +286,8 @@ export function MeNative({ model }: { model: MeModel }) {
   const showsAura = segment === 1 && !!view.aura && !!aura;
   const courierCard = useCourierCardData(courier, { showing: segment === 0, live: focused });
   const auraArt = useAuraArtData(showsAura && view.aura ? view.aura.art : null, showsAura);
+  // your face in Swift, when "myavatar" is on (null: the island, as before); armed once Me is seen
+  const myFace = useMyFace(avatar, focused);
 
   return (
     <SurfaceHost>
@@ -325,11 +330,12 @@ export function MeNative({ model }: { model: MeModel }) {
         onFcOpen={fcOpen}
         courierCard={courierCard}
         auraArt={auraArt}
+        myFace={myFace}
       >
         <KIsland name="avatar" style={{ width: AVATAR, height: AVATAR }}>
           {/* stamped (C2), the island is drawn square: Swift scales it to the stamp's inner side
               (65 of 72), so 3.3 here lands as the stamp's 3pt inner corner */}
-          <AvatarImage id={avatar.id} photoUri={avatar.photo} seed={avatar.seed} size={AVATAR} radius={myStamp ? 3.3 : undefined} />
+          {myFace ? null : <AvatarImage id={avatar.id} photoUri={avatar.photo} seed={avatar.seed} size={AVATAR} radius={myStamp ? 3.3 : undefined} />}
         </KIsland>
         <KIsland name="courier" style={{ width: courierW, height: COURIER_H }}>
           {segment === 0 && !courierCard ? (

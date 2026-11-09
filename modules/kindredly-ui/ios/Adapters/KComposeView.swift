@@ -31,6 +31,9 @@ import ExpoUI
    unknown id draws plain), papers [{ id, name, badge: "" | "1st" | "lock", a11yLabel, a11yValue }]
    (the strip's seven, in order), paperHead { title, tag, tagTone: gold | ind | none }
  - children: <KIsland name="wren">, <KIsland name="recorder">
+ - wren (batch 3, "composewren"; Adapters/KLastIslandsView.swift): { on, moods: [{ mood, image }] },
+   her snapshot at 38 in every mood; with `on` the page draws her itself (KBreathingWren: breathing,
+   a ZoomIn on each new mood) in place of the "wren" island, the mood from the `wrenMood` command
 
  The recorder slot (KVoiceSlot, Portable/Voice): the island alone, as it always was, until the
  `recorder` command says Swift draws the recording bar and/or the take's card itself (the
@@ -47,6 +50,8 @@ import ExpoUI
  - reset {}                                     blurs (nothing else to put back)
  - recorder { showBar, bar, showCard, card: { look, playing, label }, island }   the voice slot
               (KVoiceSlotState(args:), Adapters/KVoicePiecesView.swift), sent when it changes
+ - wrenMood { mood }                            her face as the letter reads (a WrenMood), sent
+              when it changes and on attach; drawn only while `wren.on`
 
  Events, with what nativeEvent carries:
  - onComposeClose {}
@@ -240,6 +245,8 @@ final class KComposeViewProps: KScreenProps {
   @Field var paper: String = "plain"
   @Field var papers: [KComposePaperRecord] = []
   @Field var paperHead: KComposePaperHeadRecord = KComposePaperHeadRecord()
+  /// batch 3 ("composewren"): her pictures, drawn instead of the "wren" island while `on`
+  @Field var wren: KWrenMoodsRecord = KWrenMoodsRecord()
 
   var onComposeClose = EventDispatcher()
   var onComposeTextChange = EventDispatcher()
@@ -264,6 +271,8 @@ final class KComposeViewProps: KScreenProps {
   let keySpeech = KComposeKeySpeech()
   /// The voice slot's state, from the `recorder` command (as long-lived as the view).
   let voiceSlot = KVoiceSlotModel()
+  /// Her mood, from the `wrenMood` command (as long-lived as the view; watched by her slot alone).
+  let wrenMood = KWrenMoodModel()
 
   /// The page's taps and edits, made once: each closure reaches this props object's events.
   private(set) lazy var actions: KComposeActions = {
@@ -306,6 +315,8 @@ final class KComposeViewProps: KScreenProps {
       if driver.live != live { driver.live = live }
     case "recorder":
       voiceSlot.update(KVoiceSlotState(args: args))
+    case "wrenMood":
+      wrenMood.set(args.kString("mood") ?? "")
     default:
       break
     }
@@ -403,7 +414,11 @@ struct KComposeView: ExpoSwiftUI.View {
       driver: props.driver,
       actions: props.actions
     ) {
-      props.children?.kSlot("wren")
+      if props.wren.on {
+        KComposeWrenSlot(model: props.wrenMood, moods: props.wren)
+      } else {
+        props.children?.kSlot("wren")
+      }
     } recorder: {
       // the island's gap (ComposeNative's RecorderIsland): 12
       KVoiceSlot(model: props.voiceSlot, theme: props.kTheme, spacing: 12, island: props.children?.kSlot("recorder")) { action in

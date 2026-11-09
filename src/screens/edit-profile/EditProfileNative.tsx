@@ -16,6 +16,7 @@ import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
 import { useAssetImageRefs } from "../../lib/images";
 import { madeFaceFileUri, madeFaceKey, madeFaceRefNow, madeFacesVersion, prepareMadeFace, subscribeMadeFaces } from "../../lib/made-faces";
+import { useMyFace } from "../../lib/my-face";
 import type { EditView } from "./edit-profile-model";
 import type { EditProfileModel } from "./useEditProfileModel";
 
@@ -36,7 +37,8 @@ import type { EditProfileModel } from "./useEditProfileModel";
    to the model, which saves them to the account at once. With the
    "makeface" switch on, the strip starts with Make your own face's ＋ cell
    (`make`, onMake) and the faces Wren made, their pictures the files
-   lib/made-faces downloaded (keyed made:<id>). */
+   lib/made-faces downloaded (keyed made:<id>). With the "myavatar" switch on (batch 3, off by
+   default; lib/my-face), your face goes to Swift as `myFace` and the island stays empty. */
 
 /** The same value back while its content is the same (JSON), so a rebuilt but unchanged record
     keeps its identity and isn't re-sent to Swift. */
@@ -111,6 +113,8 @@ export function EditProfileNative({ model }: { model: EditProfileModel }) {
   const selectedFace = view.selectedFace;
   const letters = useSameContent<KEditProfileLetters | null>(view.letters);
   const make = useSameContent<KEditProfileMake | null>(view.make);
+  // your face in Swift, when "myavatar" is on (null: the island, as before)
+  const myFace = useMyFace(avatar);
   // over every record AND the small values: Swift converts the whole page once per rev
   const rev = useRev(strings, rows, faces, note, pronounOptions, pronounSelected, selectedFace, letters, make);
 
@@ -131,6 +135,7 @@ export function EditProfileNative({ model }: { model: EditProfileModel }) {
         note={note}
         letters={letters}
         make={make}
+        myFace={myFace}
         onMake={act.make}
         onBack={act.back}
         onPhoto={act.photo}
@@ -145,7 +150,7 @@ export function EditProfileNative({ model }: { model: EditProfileModel }) {
         onNoteKeep={act.noteKeep}
       >
         <KIsland name="avatar" style={{ width: AVATAR, height: AVATAR }}>
-          <AvatarImage id={avatar.id} photoUri={avatar.photo} seed={avatar.seed} size={AVATAR} />
+          {myFace ? null : <AvatarImage id={avatar.id} photoUri={avatar.photo} seed={avatar.seed} size={AVATAR} />}
         </KIsland>
       </KEditProfileView>
     </SurfaceHost>

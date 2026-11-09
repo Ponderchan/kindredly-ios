@@ -1,7 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useSyncExternalStore, type RefObject } from "react";
 import { View, useWindowDimensions } from "react-native";
 import Animated, { ZoomIn } from "react-native-reanimated";
-import { KIsland, useKCommands, useRev, type KScreenHandle, type KInsets, type KThemeKey, type LetterFontKey } from "../../../modules/kindredly-ui";
+import { KIsland, useKCommands, useRev, type KScreenHandle, type KInsets, type KThemeKey, type KWrenMoodsData, type LetterFontKey } from "../../../modules/kindredly-ui";
 import {
   KComposeView,
   type KComposeCommands,
@@ -22,6 +22,8 @@ import { AudioCard } from "../../components/AudioCard";
 import { VoiceBarDriver, VoiceTakeDriver, createVoiceSlot, useVoicePieces, type VoiceSlot } from "../../components/VoiceSlot";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
+import { COMPOSE_WREN_MOODS, composeWrenPose, useBirdImageRefs } from "../../lib/bird-images";
+import { useSwiftIsland } from "../../lib/swift-island";
 import { t } from "../../lib/i18n";
 import "../../data/strings-stamps2";
 import type { ComposeActions, ComposeState } from "./useComposeState";
@@ -55,7 +57,11 @@ import type { ComposeActions, ComposeState } from "./useComposeState";
      "audiocard" switch on, the page draws the recording bar or the take's
      card itself, told by the `recorder` command (VoiceBarDriver and
      VoiceTakeDriver hold the recording and the player, beside the Host),
-     and the island keeps only what is still React Native. */
+     and the island keeps only what is still React Native;
+   - Wren herself in Swift (batch 3, "composewren", off by default): her snapshot in every mood
+     goes as the `wren` prop (lib/bird-images compose-<mood>, 38, captured while the page is up),
+     her mood as the `wrenMood` command (on change and on attach, like `composer`), and Swift
+     breathes and zooms the picture (KBreathingWren); the island stays, empty. */
 
 /** A value outside React's render, for an island that must update without its parents. */
 function createValueStore<T>(initial: T) {
@@ -113,6 +119,8 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
       commands.send("setText", { target: "body", value: words.text });
       commands.send("setText", { target: "ask", value: words.ask });
       if (sentLive.current) commands.send("composer", sentLive.current.live);
+      // her face, for the Swift-drawn Wren (an older binary ignores the command)
+      commands.send("wrenMood", { mood: moodStore.get() });
       slot.resend();
       // (owner, 2026-10-20) the page opens with the keyboard down: the page, Wren and the paper are
       // seen first, and a tap on the placeholder brings the keyboard up
@@ -154,6 +162,16 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const moodStore = useMemo(() => createValueStore<WrenMood>(state.wrenMood), []);
   useEffect(() => moodStore.set(state.wrenMood), [state.wrenMood, moodStore]);
+
+  // Wren drawn by Swift ("composewren"): every mood's picture, and the mood as a command
+  const wrenSwift = useSwiftIsland("composewren", "KWrenPictureView", true);
+  const wrenBirds = useBirdImageRefs(wrenSwift ? COMPOSE_WREN_MOODS.map(composeWrenPose) : []);
+  const wren = useSameContent<KWrenMoodsData | null>(
+    wrenSwift ? { moods: COMPOSE_WREN_MOODS.map((mood) => ({ mood, image: wrenBirds[composeWrenPose(mood)] ?? null })) } : null,
+  );
+  useEffect(() => {
+    if (wrenSwift) commands.send("wrenMood", { mood: state.wrenMood });
+  }, [wrenSwift, state.wrenMood, commands]);
 
   const strings = useSameContent<KComposeStrings>({
     title: t("cp.header"),
@@ -233,6 +251,7 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
         islandWidth={Math.max(0, width - 44)}
         pieces={pieces}
         slot={slot}
+        wren={wren}
       />
       {/* the recording and the take's player for the page's own Swift pieces (nothing drawn here) */}
       {speaking && pieces.bar ? (
@@ -275,6 +294,8 @@ type SurfaceProps = {
   /** which of the voice slot's pieces the page draws itself (fixed for the page) */
   pieces: { bar: boolean; card: boolean };
   slot: VoiceSlot;
+  /** Wren drawn by Swift ("composewren"); null: the island */
+  wren: KWrenMoodsData | null;
 };
 
 /* The Host, the view and its islands, redrawn only when a slow prop changes
@@ -323,10 +344,11 @@ const ComposeSurface = memo(function ComposeSurface(p: SurfaceProps) {
         onPickPaper={act.pickPaper}
         onPaperUpgrade={act.paperUpgrade}
         onVoice={p.slot.action}
+        wren={p.wren}
       >
-        {/* every island on every render, in this order (Slot.tsx) */}
+        {/* every island on every render, in this order (Slot.tsx); Wren's is empty while Swift draws her */}
         <KIsland name="wren" style={{ width: 46, height: 46 }}>
-          <WrenIsland store={p.moodStore} />
+          {p.wren ? null : <WrenIsland store={p.moodStore} />}
         </KIsland>
         <KIsland name="recorder" interactive style={{ width: p.islandWidth }}>
           {p.mode === "speak" ? <RecorderIsland recUri={p.recUri} recDur={p.recDur} act={act} pieces={p.pieces} /> : null}

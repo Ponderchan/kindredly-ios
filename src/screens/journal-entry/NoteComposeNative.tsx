@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, type RefObject } from "react";
 import { View, useWindowDimensions } from "react-native";
-import { KIsland, useKCommands, useRev, type KInsets, type KScreenHandle, type KThemeKey, type LetterFontKey } from "../../../modules/kindredly-ui";
+import { KIsland, useKCommands, useRev, type KInsets, type KScreenHandle, type KThemeKey, type KWrenPictureData, type LetterFontKey } from "../../../modules/kindredly-ui";
 import {
   KNoteComposeView,
   type KNoteComposeCommands,
@@ -19,6 +19,8 @@ import { VoiceBarDriver, VoiceTakeDriver, createVoiceSlot, useVoicePieces, type 
 import { FrameViewer, type SelfComposeState } from "../../components/SelfCompose";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
+import { useBirdImageRefs } from "../../lib/bird-images";
+import { useSwiftIsland } from "../../lib/swift-island";
 import { localeTag } from "../../lib/format";
 import { t, useLang } from "../../lib/i18n";
 import { MOOD_GROUP_KEY, moodArtKey, moodGroup, moodLabel, moodName } from "../../data/moods";
@@ -43,7 +45,10 @@ import { useNoteComposeState, type NoteComposeState } from "./useNoteComposeStat
    - the voice slot (components/VoiceSlot): with the "recorder" or "audiocard" switch on, the page
      draws the recording bar or the take's card itself, told by the `recorder` command
      (VoiceBarDriver and VoiceTakeDriver hold the recording and the player, beside the Host), and
-     the island keeps only what is still React Native. */
+     the island keeps only what is still React Native;
+   - Wren herself in Swift (batch 3, "notewren", off by default): her content snapshot at 30
+     (lib/bird-images note30) goes as the `wren` prop and Swift draws it, still, as the island
+     drew her; the island stays, empty. */
 
 function useSameContent<T>(value: T): T {
   const kept = useRef<{ json: string; value: T } | null>(null);
@@ -197,6 +202,11 @@ export function NoteComposeNative({
 
   const seal = sealAction({ hasSomething: state.hasSomething, busy: state.busy, sealed: state.sealed, mood: state.mood });
 
+  // Wren drawn by Swift ("notewren"): her content picture at 30, captured while the page is up
+  const wrenSwift = useSwiftIsland("notewren", "KWrenPictureView", true);
+  const wrenBird = useBirdImageRefs(wrenSwift ? ["note30"] : []).note30 ?? null;
+  const wren = useSameContent<KWrenPictureData | null>(wrenSwift ? { image: wrenBird } : null);
+
   return (
     <View style={{ flex: 1 }}>
       <NoteSurface
@@ -227,6 +237,7 @@ export function NoteComposeNative({
         islandWidth={Math.max(0, width - 44)}
         pieces={pieces}
         slot={slot}
+        wren={wren}
       />
       {/* the recording and the take's player for the page's own Swift pieces (nothing drawn here) */}
       {voice && pieces.bar ? <VoiceBarDriver slot={slot} recUri={recUri} recDur={state.dur} onRecorded={act.recorded} onClear={act.clearRecording} /> : null}
@@ -288,6 +299,8 @@ type SurfaceProps = {
   /** which of the voice slot's pieces the page draws itself (fixed for the page) */
   pieces: { bar: boolean; card: boolean };
   slot: VoiceSlot;
+  /** Wren drawn by Swift ("notewren"); null: the island */
+  wren: KWrenPictureData | null;
 };
 
 /* The Host, the view and its islands, redrawn only when a prop changes (every prop is kept by
@@ -331,10 +344,11 @@ const NoteSurface = memo(function NoteSurface(p: SurfaceProps) {
         onWren={act.wren}
         onSealEnd={act.sealEnd}
         onVoice={p.slot.action}
+        wren={p.wren}
       >
-        {/* every island on every render, in this order (Slot.tsx) */}
+        {/* every island on every render, in this order (Slot.tsx); Wren's is empty while Swift draws her */}
         <KIsland name="wren" style={{ width: 30, height: 30 }}>
-          <WrenIsland />
+          {p.wren ? null : <WrenIsland />}
         </KIsland>
         <KIsland name="recorder" interactive style={{ width: p.islandWidth }}>
           {p.voice ? <RecorderIsland recUri={p.recUri} recDur={p.recDur} act={act} pieces={p.pieces} /> : null}

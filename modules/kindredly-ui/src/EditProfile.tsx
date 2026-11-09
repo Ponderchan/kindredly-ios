@@ -3,6 +3,7 @@ import { forwardRef, useMemo, type ReactNode, type Ref } from "react";
 import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
 import type { KImageRefProps, KInsets, KScreenBaseProps, KScreenHandle } from "./types";
+import { nativeMyFace, type KMyFaceData } from "./LastIslands";
 
 /* EDIT PROFILE, drawn by SwiftUI (ios/Portable/Profile/KEditProfileScreen.swift, adapter
    ios/Adapters/KEditProfileView.swift), for src/screens/edit-profile/EditProfileNative.tsx. Every
@@ -107,6 +108,9 @@ export type KEditProfileViewProps = CommonViewModifierProps &
     onCourierName?: () => void;
     onNoteSee?: () => void;
     onNoteKeep?: () => void;
+    /** batch 3 ("myavatar", LastIslands.tsx): your face; Swift draws it (112, round) and leaves
+        the "avatar" island out. null keeps the island */
+    myFace?: KMyFaceData | null;
     /** the one <KIsland name="avatar"> */
     children?: ReactNode;
   };
@@ -149,9 +153,11 @@ type NativeKEditProfileViewProps = Omit<
   | "onCourierName"
   | "onNoteSee"
   | "onNoteKeep"
+  | "myFace"
 > &
   Required<Pick<KEditProfileViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
+    myFace: ReturnType<typeof nativeMyFace>;
     faces: { id: string; image: NativeImage; a11y: string }[];
     note: NativeNote;
     letters: NativeLetters;
@@ -207,7 +213,7 @@ const NativeKEditProfileView = requireNativeView<NativeKEditProfileViewProps>("K
 /** The bare SwiftUI screen. Only inside an @expo/ui <Host>; its ref takes commands. Pass the
     records memoised with a rev from useRev over all of them, and the avatar island as a child. */
 export const KEditProfileView = forwardRef<KScreenHandle, KEditProfileViewProps>(function KEditProfileView(
-  { modifiers, letterFont, insets, rev, faces, note, letters, make, onMake, onBack, onPhoto, onRandom, onFace, onPen, onPronoun, onShowMark, onShowSign, onCourierName, onNoteSee, onNoteKeep, ...rest },
+  { modifiers, letterFont, insets, rev, faces, note, letters, make, onMake, onBack, onPhoto, onRandom, onFace, onPen, onPronoun, onShowMark, onShowSign, onCourierName, onNoteSee, onNoteKeep, myFace, ...rest },
   ref,
 ) {
   // the converted records follow their source's identity
@@ -215,6 +221,7 @@ export const KEditProfileView = forwardRef<KScreenHandle, KEditProfileViewProps>
   const sentNote = useMemo(() => nativeEditNote(note), [note]);
   const sentLetters = useMemo(() => nativeEditLetters(letters), [letters]);
   const sentMake = useMemo(() => nativeMake(make), [make]);
+  const sentMyFace = useMemo(() => nativeMyFace(myFace), [myFace]);
   return (
     <NativeKEditProfileView
       ref={ref}
@@ -230,6 +237,7 @@ export const KEditProfileView = forwardRef<KScreenHandle, KEditProfileViewProps>
       note={sentNote}
       letters={sentLetters}
       make={sentMake}
+      myFace={sentMyFace}
       onEditMake={onMake ? () => onMake() : undefined}
       onEditBack={onBack ? () => onBack() : undefined}
       onEditPhoto={onPhoto ? () => onPhoto() : undefined}

@@ -32,6 +32,9 @@ import ExpoUI
 
  Children: one <KIsland name="avatar"> (112 × 112): AvatarImage, which draws every kind of face
  (a photo, a portrait, an old drawn face, the mosaic) that SwiftUI can't all draw.
+ - myFace (batch 3, "myavatar"; Adapters/KLastIslandsView.swift): { on, kind, uri, key, overscan },
+   your face as faces.ts resolves it; with `on`, Swift draws it (KMyFace, 112, round) where the
+   island was, and TS leaves the island empty.
 
  Commands (KCommandBus): scrollTo { key: "top" | "faces", animated }.
 
@@ -158,6 +161,8 @@ final class KEditProfileViewProps: KScreenProps {
   @Field var note: KEditNoteRecord = KEditNoteRecord()
   @Field var letters: KEditLettersRecord = KEditLettersRecord()
   @Field var make: KEditMakeRecord = KEditMakeRecord()
+  /// batch 3 ("myavatar"): your face, drawn instead of the "avatar" island while `on`
+  @Field var myFace: KMyFaceRecord = KMyFaceRecord()
 
   var onEditBack = EventDispatcher()
   var onEditPhoto = EventDispatcher()
@@ -249,7 +254,11 @@ struct KEditProfileView: ExpoSwiftUI.View {
       driver: props.driver,
       actions: props.actions
     ) {
-      props.children?.kSlot("avatar")
+      if props.myFace.on {
+        KMyFace(theme: props.kTheme, source: props.myFace.source, size: KEditProfileScreen<EmptyView>.avatarSize)
+      } else {
+        props.children?.kSlot("avatar")
+      }
     }
     .kScreenEnvironment(props)
     .onKCommand(props.commands) { name, args in

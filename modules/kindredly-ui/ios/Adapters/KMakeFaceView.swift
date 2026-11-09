@@ -24,6 +24,9 @@ import ExpoUI
  - chips: [{ id, title, chips: [{ id, label }] }], converted once per rev
  - genLines: [String]
  - children: <KIsland name="wren"> (WrenBird, sized by TS to KMakeFacePage.wrenSize(screen))
+ - wren (batch 3, "facewren"; Adapters/KLastIslandsView.swift): { on, image }, her snapshot for
+   this screen (curious 72, content 64, delighted 56); with `on` the page draws it in place of the
+   island, at KMakeFacePage.wrenSize(screen) (the page bobs it as it bobbed the island)
 
  Commands (KCommandBus): setText { target: "words", value } · focus { target: "words" } ·
  blur {} · reset {} (blurs).
@@ -199,6 +202,8 @@ final class KMakeFaceViewProps: KScreenProps {
   @Field var knock: String = "on"
   @Field var chips: [KMakeFaceChipGroupRecord] = []
   @Field var genLines: [String] = []
+  /// batch 3 ("facewren"): her picture for this screen, drawn instead of the "wren" island while `on`
+  @Field var wren: KWrenPictureRecord = KWrenPictureRecord()
 
   var onFaceClose = EventDispatcher()
   var onFaceStart = EventDispatcher()
@@ -309,7 +314,12 @@ struct KMakeFaceView: ExpoSwiftUI.View {
       driver: props.driver,
       actions: props.actions
     ) {
-      props.children?.kSlot("wren")
+      if props.wren.on {
+        let size = KMakeFacePage<EmptyView>.wrenSize(KMakeFaceScreen(rawValue: props.screen) ?? .intro)
+        if size > 0 { KWrenPicture(props.wren.ref, size: size) }
+      } else {
+        props.children?.kSlot("wren")
+      }
     }
     .kScreenEnvironment(props)
     .onKCommand(props.commands) { name, args in
