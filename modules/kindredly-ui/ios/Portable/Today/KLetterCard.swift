@@ -66,8 +66,8 @@ import SwiftUI
  one in the compose screen (card.paper, KPaper). Plain is everything above, the letter sheet. Any
  other paper draws the same column on its own sheet (KPaperSurface, letter: its fill, stripes, the
  airmail border, the receipt's teeth, the sticky note's fold; its own shadow and solid line give way
- to the letter's frame, a 1pt edge in a darker tone of that paper and the theme's 6/6 depth, so no
- paper keeps a black frame either), inset by its edge and 16, and
+ to the letter's frame — superseded 2026-11-09: only Plain takes the new frame; the other papers keep
+ their own edge and shadow as before), inset by its edge and 16, and
  every piece inside is drawn in the paper's own colours whatever the theme (cardTheme(over:): light
  even on Midnight, so the stamp draws light too). The letter keeps the reader's Letter font and takes
  the paper's size (KPaper.cardSize / cardLine / letterStyle: the serif sheets keep the tiers, the
@@ -326,8 +326,9 @@ struct KLetterCard: View, Equatable {
           fill: KStampFrame.rgb(hex: card.topicWash).map { KStampFrame.color($0) } ?? KStampFrame.color(KStampFrame.v3TagNeutral),
           text: KStampFrame.color(KStampFrame.v3Ink)
         ),
-        // a flat capsule in its own colour: the black outline and shadow went with the card's (2026-11-09)
-        flat: true
+        // on Plain a flat capsule in its own colour: the black outline and shadow went with the card's
+        // (2026-11-09); on the other papers the tag is drawn as before, like their sheets
+        flat: card.paper.themed
       )
     }
   }

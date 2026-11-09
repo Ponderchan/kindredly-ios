@@ -626,10 +626,11 @@ public struct KLetterSheet: View {
  leaves the receipt's teeth off (the compose body). The content's inset is paper.edge.width +
  KPaper.padding (border-box); a caller with its own padding adds the edge's width.
 
- `letter` is the Today letter (owner, 2026-11-09; KLetterSheet above): no black frame on any paper.
- Plain is the letter sheet at the .me corners. Every other paper keeps its fill, its stripes, the
+ `letter` is the Today letter (owner, 2026-11-09; KLetterSheet above): Plain loses its black frame
+ for the letter sheet at the .me corners. Every other paper is drawn exactly as before (owner,
+ 2026-11-09: only Plain changes, the others "保持"), so the branch below no longer applies to them. Every other paper keeps its fill, its stripes, the
  airmail border, the receipt's teeth and the sticky note's fold, but loses its own shadow and its
- solid line (grid's ink outline among them) for the same frame as Plain (kraft and riso keep their own shadow, owner 2026-11-09): a 1pt edge in the paper's
+ solid line (grid's ink outline among them) for the same frame as Plain: a 1pt edge in the paper's
  ink at 11% (a darker tone of that paper: brown on kraft, indigo on riso, ink on the rest) and the
  theme's hard 6/6 depth, cut to the sheet's outline (the receipt's teeth included). The inset stays
  paper.edge.width + KPaper.padding, so nothing inside moves. The compose body, the chat hero and the
@@ -649,7 +650,8 @@ public struct KPaperSurface: View {
     self.theme = theme
     self.mini = mini
     self.teeth = teeth
-    self.letter = letter && !mini
+    // only Plain takes the letter frame (owner, 2026-11-09: "除了 plain 别的就不动了"); every other paper as before
+    self.letter = letter && !mini && paper.themed
   }
 
   public var body: some View {
@@ -674,10 +676,6 @@ public struct KPaperSurface: View {
     }
   }
 
-  /* Kraft's soft brown lift and riso's indigo 6/6 are part of what those papers are, so the Today
-     letter keeps them (owner, 2026-11-09: "保留吧"); every other paper takes the theme's depth. */
-  private var keepsOwnShadow: Bool { paper.id == .kraft || paper.id == .riso }
-
   private var sheet: some View {
     let radius = mini ? paper.miniRadius : paper.radius
     let edge = mini ? paper.miniEdge : paper.edge
@@ -697,7 +695,7 @@ public struct KPaperSurface: View {
       }
     }
     .background {
-      if letter && !keepsOwnShadow {
+      if letter {
         // the theme's hard depth in the sheet's outline, its teeth included
         silhouette(shape: shape, color: KLetterSheet.depth(for: theme))
           .offset(x: KLetterSheet.depthOffset, y: KLetterSheet.depthOffset)
