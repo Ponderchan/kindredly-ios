@@ -4,7 +4,11 @@ import { t } from "../../lib/i18n";
 import { clockTime, localeTag } from "../../lib/format";
 import { MORNING_HOUR } from "../../lib/day";
 import { OPENING_MIN } from "../../lib/weighted-count";
-import { STARTER_STAMPS } from "../../data/stamps";
+import { STAMPS, STAMP_CATEGORIES, STARTER_STAMPS, getStamp, sname } from "../../data/stamps";
+import { PHOTO_STAMP, STAMP_FALLBACK_HEX } from "../../lib/stamp-frame";
+import { DEFAULT_CATEGORY, filtersFor } from "../../lib/stamp-press-core";
+import { TOPIC_TAG_NEUTRAL } from "../10a/kit";
+import "../../data/strings-stamps2"; // the press's own words (cs2.cam.*, cs2.ed.*)
 import { GUIDE_REEL_WIDTHS } from "../Stamp";
 import { DIMENSION_INK, stickerLook, stickerName, titleName } from "../../lib/sticker-copy";
 import { dimLabel } from "../../lib/aura-copy";
@@ -116,8 +120,44 @@ const AURA: ReelBuild = {
   },
 };
 
+/* ── the mood stamps (guide-reel/stamps) ── */
+const STAMPS_CHOSEN = "made-my-day";
+const STAMPS_SUGGESTED = ["tiny-win", STAMPS_CHOSEN, "growing"];
+const STAMPS_REEL: ReelBuild = {
+  data: () => {
+    const row = filtersFor("free");
+    const chosen = getStamp(STAMPS_CHOSEN);
+    return {
+      words: {
+        ...wordsOf(["cp.travel", "cp.needStamp", "cp.forThisLetter", "cs2.ed.topicPh", "gd.stamps.pressTopic", "cs2.cam.hint", "cs2.ed.fcBadge", "gd.stamps.title"]),
+        ...Object.fromEntries(row.map((f) => [`cs2.ed.f.${f.id}`, t(`cs2.ed.f.${f.id}`)])),
+        // the fanned stamps' names as Suggest sets them, and the chosen one's pill as Land sets it
+        ...Object.fromEntries(STAMPS_SUGGESTED.map((id) => [`fan.${id}`, sname(getStamp(id)?.name).toUpperCase()])),
+        tag: `#${sname(chosen?.name).toLowerCase()}`,
+        // the photo stamp's cut on its 100 × 120 box (lib/stamp-frame PHOTO_STAMP.d)
+        "photo.d": PHOTO_STAMP.d,
+      },
+      nums: { openingMin: OPENING_MIN },
+      lists: {
+        suggested: STAMPS_SUGGESTED,
+        all: STAMPS.slice(0, 36).map((x) => x.id),
+        row: row.map((f) => f.id),
+        locked: row.filter((f) => f.locked).map((f) => f.id),
+        reelWidths: REEL_WIDTHS,
+        bites: PHOTO_STAMP.bites.map(([x, y]) => `${x},${y}`),
+      },
+      colors: {
+        ...Object.fromEntries(STAMPS_SUGGESTED.map((id) => [`nameLight.${id}`, getStamp(id)?.nameLight ?? "#111113"])),
+        chosen: chosen?.color ?? TOPIC_TAG_NEUTRAL,
+        topic: STAMP_CATEGORIES.find((c) => c.id === DEFAULT_CATEGORY)?.color ?? STAMP_FALLBACK_HEX,
+      },
+    };
+  },
+};
+
 export const REEL_BUILDS: Record<string, ReelBuild> = {
   sealed: SEALED,
   letters: LETTERS,
   aura: AURA,
+  stamps: STAMPS_REEL,
 };
