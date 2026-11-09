@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import Animated, { FadeInDown, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,8 +8,10 @@ import { WrenBird, type WrenAccessory, type WrenSkin } from "../../components/Wr
 import { FirstClassPaywall } from "../../app/paywall";
 import { NativeSurface } from "../../components/NativeSurface";
 import { Host } from "@expo/ui/swift-ui";
-import { KWARDROBE_SLIP_DEPTH, KWardrobeSlipView } from "../../../modules/kindredly-ui";
-import { useBirdImageRef } from "../../lib/bird-images";
+import { KWARDROBE_SLIP_DEPTH, KWardrobeSheetView, KWardrobeSlipView } from "../../../modules/kindredly-ui";
+import { tryPose, tryTilePose, useBirdImageRef, useBirdImageRefs } from "../../lib/bird-images";
+import type { ImageRefRecord } from "../../lib/images";
+import { useSeason } from "../../lib/season";
 import { useTheme } from "../../lib/theme";
 import { useEntitlement } from "../../lib/entitlement";
 import { WARDROBE_SLIP, getFlags, unsetFlag } from "../../lib/flags";
@@ -18,7 +20,7 @@ import { useScreenInsets } from "../../lib/screen-insets";
 import { EMPTY_STATS } from "../../lib/stats";
 import { useWrenName } from "../../lib/wren-name";
 import { useWrenSkinControl } from "../../lib/wren-skin";
-import { ACCESSORY_META, skinUnlocked } from "../../lib/wren-style";
+import { ACCESSORY_META, SKINS, offeredAccessories, skinName, skinUnlocked, useHatchSkin } from "../../lib/wren-style";
 import { AcidKey } from "../onboarding/parts/keys";
 import { EDGE, FONT, OB, SHADOW, TYPE } from "../onboarding/parts/tokens";
 import { deskGeometry } from "./today-cards";
@@ -69,8 +71,11 @@ export function TodayWardrobeSlip({ model }: { model: TodayModel }) {
     };
   }, []);
   if (!want || model.view.readerId != null) return null;
+  /* the flag goes the moment the slip is opened or put away; the slip itself stays mounted and
+     goes on its own (WardrobeSlip returns nothing once the slip has faded and the sheet is down).
+     It used to unmount here as well, which took the sheet away in the same tap that opened it
+     (batch 3, 2026-11-09: on the real Today the sheet never showed; the dev page has no onSeen). */
   const done = () => {
-    setWant(false);
     void unsetFlag(WARDROBE_SLIP);
   };
   return <WardrobeSlip bottom={hostH - controlTop + 10} onSeen={done} />;
@@ -81,9 +86,9 @@ export function TodayWardrobeSlip({ model }: { model: TodayModel }) {
    the binary (SlipNative: Portable/Today/KWardrobeSlip.swift, in a Host of its
    own sized to it), else by React Native (SlipRN, exactly as it was). Either
    way this decides everything: when it goes, the flag, and the sheet it opens
-   (WardrobeSheet below stays React Native: the rack and the bird trying
-   things on are React Native pieces). The slip's way out (.16s) is the
-   renderer's own; this keeps the Swift Host up until it has faded. */
+   (WardrobeSheet below has a switch of its own, "wardrobesheet"). The slip's
+   way out (.16s) is the renderer's own; this keeps the Swift Host up until it
+   has faded. */
 
 /** how long the Swift slip takes to fade out after either tap (KWardrobeSlip.outDuration), and a frame */
 const SLIP_OUT_MS = 200;
@@ -101,10 +106,13 @@ export function WardrobeSlip({ bottom, onSeen, demo = false }: { bottom: number;
     const id = setTimeout(() => setFaded(true), SLIP_OUT_MS);
     return () => clearTimeout(id);
   }, [gone]);
-  if (gone && faded && !open) return null;
+  // the sheet is all the way down (a Swift sheet takes its going's time; it needs its Host until then)
+  const [sheetAway, setSheetAway] = useState(true);
+  if (gone && faded && !open && sheetAway) return null;
   const take = () => {
     setGone(true);
     setOpen(true);
+    setSheetAway(false);
     onSeen?.();
   };
   const away = () => {
@@ -123,7 +131,7 @@ export function WardrobeSlip({ bottom, onSeen, demo = false }: { bottom: number;
           pending={() => null}
         />
       )}
-      <WardrobeSheet open={open} name={name} demo={demo} onClose={() => setOpen(false)} />
+      <WardrobeSheet open={open} name={name} demo={demo} onClose={() => setOpen(false)} onAway={() => setSheetAway(true)} />
     </>
   );
 }
@@ -213,19 +221,53 @@ function SlipRN({ bottom, name, gone, onTake, onAway }: { bottom: number; name: 
 }
 
 /** The rack in a page sheet: everything tries on; Keep (through the fare when First Class is on). */
-function WardrobeSheet({ open, name, demo, onClose }: { open: boolean; name: string; demo: boolean; onClose: () => void }) {
+function WardrobeSheet({
+  open,
+  name,
+  demo,
+  onClose,
+  onAway,
+}: {
+  open: boolean;
+  name: string;
+  demo: boolean;
+  onClose: () => void;
+  /** the sheet is all the way down (at once for React Native, whose Modal goes on its own; once a Swift sheet has finished going) */
+  onAway: () => void;
+}) {
   const insets = useSafeAreaInsets();
   const ctl = useWrenSkinControl();
   const { premium } = useEntitlement();
   const [look, setLook] = useState<WrenSkin>(ctl.skin);
   const [dress, setDress] = useState<WrenAccessory>(ctl.accessory);
   const [fare, setFare] = useState(false);
+  // the Swift sheet has finished going down (the fare waits for it)
+  const [down, setDown] = useState(false);
+  // it has opened in this mount: from then on the switch has chosen (see below)
+  const [opened, setOpened] = useState(false);
+  if (open && !opened) setOpened(true);
+  // a Swift sheet is up, or on its way down (set as it is presented, cleared once it has gone)
+  const swiftUp = useRef(false);
+  const openNow = useRef(open);
+  openNow.current = open;
+  const gone = () => {
+    swiftUp.current = false;
+    setDown(true);
+    if (!openNow.current) onAway();
+  };
   // each opening starts from the bird as it is now
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      // (only the Swift path reads it: a reopening must not find the last fare's "down")
+      setDown(false);
+      // React Native's Modal goes on its own; a Swift sheet still going says so when it has gone
+      if (!swiftUp.current) onAway();
+      return;
+    }
     setLook(ctl.skin);
     setDress(ctl.accessory);
     setFare(false);
+    setDown(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -242,20 +284,74 @@ function WardrobeSheet({ open, name, demo, onClose }: { open: boolean; name: str
     onClose();
   };
   const what = !lookOpen && !dressOpen ? t("ob.fare.both") : !lookOpen ? t("ob.fare.look") : t("ob.fare.dress");
+  const fareSheet = () => (
+    <FirstClassPaywall
+      sheet
+      source="onboarding_dress"
+      courier={name}
+      head={t("ob.fare.head", { what })}
+      lead={t("ob2.slip.fareLead", { name })}
+      // × : the bird goes back the way it was when the sheet opened (as it hatched)
+      onClose={onClose}
+      onDone={() => keep(look, dress)}
+    />
+  );
+  const onKeep = () => {
+    if (!firstClass) return keep(look, dress);
+    setDown(false); // the Swift sheet's going starts now: the fare waits for this one
+    setFare(true);
+  };
 
+  /* SWIFT OR REACT NATIVE (batch 3, 2026-11-09). With the "wardrobesheet" switch on and
+     KWardrobeSheetView in the binary, the sheet is an iOS sheet drawn by SwiftUI (WardrobeSheetSwift
+     below: modules/kindredly-ui Portable/Today/KWardrobeSheet.swift), presented from a 1pt Host;
+     otherwise the React Native page sheet below, exactly as it was. The trial (look, dress), the
+     fare and Keep stay here either way. The one difference: Keep with something First Class on
+     takes the Swift sheet down first, and the fare (the same FirstClassPaywall) rises in the
+     React Native page sheet once it is gone, where React Native swaps it in in place.
+     NativeSurface in mount mode, mounted from the first opening on (nothing shows before it
+     either way), so the crash breadcrumb is armed as the sheet first opens. */
+  if (!opened) return null;
   return (
+    <NativeSurface
+      surface="wardrobesheet"
+      view="KWardrobeSheetView"
+      mode="mount"
+      native={(host) => (
+        <>
+          <WardrobeSheetSwift
+            presented={open && !fare}
+            name={name}
+            look={look}
+            dress={dress}
+            premium={premium}
+            onLayoutContent={host.onLayoutContent}
+            onLook={setLook}
+            onDress={setDress}
+            onKeep={onKeep}
+            onClose={onClose}
+            onUp={() => {
+              swiftUp.current = true;
+            }}
+            onGone={gone}
+          />
+          <Modal visible={open && fare && down} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+            {fareSheet()}
+          </Modal>
+        </>
+      )}
+      fallback={() => sheetRN()}
+      // a frame or two while the breadcrumb is written: nothing yet, as before the sheet rises
+      pending={() => null}
+    />
+  );
+
+  /* the React Native page sheet (the "wardrobesheet" switch's fallback), exactly as it was */
+  function sheetRN() {
+    return (
     <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       {fare ? (
-        <FirstClassPaywall
-          sheet
-          source="onboarding_dress"
-          courier={name}
-          head={t("ob.fare.head", { what })}
-          lead={t("ob2.slip.fareLead", { name })}
-          // × : the bird goes back the way it was when the sheet opened (as it hatched)
-          onClose={onClose}
-          onDone={() => keep(look, dress)}
-        />
+        fareSheet()
       ) : (
         <View style={{ flex: 1, backgroundColor: OB.shell }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingLeft: 22, paddingRight: 8, paddingTop: 14 }}>
@@ -276,10 +372,121 @@ function WardrobeSheet({ open, name, demo, onClose }: { open: boolean; name: str
             <WardrobeRack tone="post" skin={look} accessory={dress} stats={EMPTY_STATS} premium={premium} onLook={(id) => setLook(id)} onDress={(id) => setDress(id)} />
           </ScrollView>
           <View style={{ paddingHorizontal: 22, paddingTop: 8, paddingBottom: Math.max(insets.bottom, 16) }}>
-            <AcidKey label={t("ob2.slip.keep")} onPress={() => (firstClass ? setFare(true) : keep(look, dress))} />
+            <AcidKey label={t("ob2.slip.keep")} onPress={onKeep} />
           </View>
         </View>
       )}
     </Modal>
+    );
+  }
+}
+
+/** The Swift sheet's 1pt Host, and everything it shows: the words, the rack's tiles and her
+    pictures (lib/bird-images "try-…", "trytile-…"), each the WardrobeRack's own rule. */
+function WardrobeSheetSwift({
+  presented,
+  name,
+  look,
+  dress,
+  premium,
+  onLayoutContent,
+  onLook,
+  onDress,
+  onKeep,
+  onClose,
+  onUp,
+  onGone,
+}: {
+  presented: boolean;
+  name: string;
+  look: WrenSkin;
+  dress: WrenAccessory;
+  premium: boolean;
+  onLayoutContent: (e: { nativeEvent: { width: number; height: number } }) => void;
+  onLook: (id: WrenSkin) => void;
+  onDress: (id: WrenAccessory) => void;
+  onKeep: () => void;
+  onClose: () => void;
+  /** it is being presented (it will report onGone once it has gone) */
+  onUp: () => void;
+  onGone: () => void;
+}) {
+  useLang();
+  const { key: theme, dark } = useTheme();
+  const up = useRef(onUp);
+  up.current = onUp;
+  useEffect(() => {
+    if (presented) up.current();
+  }, [presented]);
+  const hatch = useHatchSkin(); // the coat she hatched in on /aura: hers (WardrobeRack)
+  const season = useSeason();
+  const offered = offeredAccessories(season.looks);
+  const pieces = offered.filter((a) => a.id !== "none");
+  const looksOwned = SKINS.filter((s) => skinUnlocked(s.id, EMPTY_STATS, premium, hatch)).length;
+  const piecesOwned = pieces.filter((a) => a.free || premium).length;
+
+  /* her pictures, while the sheet is up: big in the trial first, then the tiles (each coat in the
+     trial piece, each piece on the trial coat), then the big ones a tap away */
+  const big = tryPose(look, dress);
+  const near = [...SKINS.map((sk) => tryPose(sk.id, dress)), ...offered.map((a) => tryPose(look, a.id))].filter((p) => p !== big);
+  const birds = useBirdImageRefs(presented ? [big, ...SKINS.map((sk) => tryTilePose(sk.id, dress)), ...offered.map((a) => tryTilePose(look, a.id)), ...near] : []);
+  // while a new picture is being captured the last one in its place stays, rather than an empty frame
+  const last = useRef<Record<string, ImageRefRecord>>({});
+  const held = (slot: string, ref: ImageRefRecord | undefined): ImageRefRecord | null => {
+    if (ref) last.current[slot] = ref;
+    return last.current[slot] ?? null;
+  };
+
+  return (
+    <Host
+      ignoreSafeArea="all"
+      colorScheme={dark ? "dark" : "light"}
+      onLayoutContent={onLayoutContent}
+      style={{ position: "absolute", left: 0, top: 0, width: 1, height: 1 }}
+    >
+      <KWardrobeSheetView
+        theme={theme}
+        presented={presented}
+        strings={{
+          head: t("ob2.slip.head", { name }),
+          line: t("ob2.slip.line"),
+          close: t("ob2.slip.close"),
+          keep: t("ob2.slip.keep"),
+          looksLabel: t("wren.looks"),
+          looksCount: `${looksOwned}/${SKINS.length}`,
+          dressLabel: t("wren.dress"),
+          dressCount: `${piecesOwned}/${pieces.length}`,
+        }}
+        bird={held("big", birds[big])}
+        near={near.flatMap((p) => (birds[p] ? [birds[p]] : []))}
+        looks={SKINS.map((sk) => {
+          const unlocked = skinUnlocked(sk.id, EMPTY_STATS, premium, hatch);
+          return {
+            id: sk.id,
+            label: skinName(sk.id),
+            lock: unlocked ? "" : sk.lock === "plus" ? t("wren.lock.plus") : t("wren.lock.kindred"),
+            hint: "",
+            on: look === sk.id,
+            bird: held(`look:${sk.id}`, birds[tryTilePose(sk.id, dress)]),
+          };
+        })}
+        dress={offered.map((a) => {
+          const unlocked = a.free || premium;
+          return {
+            id: a.id,
+            label: t(`ws.acc.${a.id}`),
+            lock: unlocked ? "" : t("wren.lock.plus"),
+            hint: "",
+            on: dress === a.id,
+            bird: held(`dress:${a.id}`, birds[tryTilePose(look, a.id)]),
+          };
+        })}
+        onLook={(id) => onLook(id as WrenSkin)}
+        onDress={(id) => onDress(id as WrenAccessory)}
+        onKeep={onKeep}
+        onClose={onClose}
+        onGone={onGone}
+      />
+    </Host>
   );
 }

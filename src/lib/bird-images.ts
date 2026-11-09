@@ -81,6 +81,11 @@ export type BirdPose =
   // batch 3: the Swift onboarding's doorstep, slide 2 (behind "obroutebird"): Wren flying the route
   | "obRoute";
 
+  // batch 3 (2026-11-09): the empty Kindreds tab's curious bird, the Plush moment, the wardrobe sheet
+  | "curious40"
+  | "plush128"
+  | TryPose;
+
 /* THE COURIER PAGE (/courier in Swift, 2026-10-26). Her perch draws her at the
    React Native perch's 186 in every face she can make there (her whereabouts'
    face, and the faces a tap, a pick-up, a drop and a doze give her), in her own
@@ -128,6 +133,27 @@ const COURIER_POSES = Object.fromEntries([
   ...RACK_ACCESSORIES.map((accessory) => [rackAccessoryPose(accessory), { size: RACK_SIZE, mood: "happy", accessory }]),
   ...(["hatch", "fledge", "wren"] as const).map((stage) => [stagePose(stage), { size: STAGE_SIZE[stage], mood: "content", stage, accessory: "none" }]),
 ]) as Record<HeroPose | RackPose | StagePose, BirdPoseSpec>;
+
+/* THE WARDROBE SHEET IN SWIFT (batch 3, behind "wardrobesheet", screens/today/WardrobeSlip). The
+   sheet tries looks on before they are kept, so every picture pins BOTH the coat and the piece
+   (the sheet's trial, not what she has on): the big bird at the sheet's 150 (happy), and the
+   rack's tiles at 46 (happy) — the looks row each coat in the trial piece, the dress row each
+   piece on the trial coat. Her stage, shape and mark are hers. Not base: captured only while
+   the sheet asks. */
+export type TryPose = `try-${WrenSkin}-${WrenAccessory}` | `trytile-${WrenSkin}-${WrenAccessory}`;
+/** The wardrobe sheet's big bird in this coat and piece. */
+export const tryPose = (skin: WrenSkin, accessory: WrenAccessory): TryPose => `try-${skin}-${accessory}`;
+/** A wardrobe-sheet rack tile in this coat and piece. */
+export const tryTilePose = (skin: WrenSkin, accessory: WrenAccessory): TryPose => `trytile-${skin}-${accessory}`;
+const TRY_SIZE = 150;
+const TRY_POSES = Object.fromEntries(
+  RACK_SKINS.flatMap((skin) =>
+    RACK_ACCESSORIES.flatMap((accessory) => [
+      [tryPose(skin, accessory), { size: TRY_SIZE, mood: "happy", skin, accessory }],
+      [tryTilePose(skin, accessory), { size: RACK_SIZE, mood: "happy", skin, accessory }],
+    ]),
+  ),
+) as Record<TryPose, BirdPoseSpec>;
 
 /** What a pose draws. Anything pinned overrides the user's look; the rest is hers. */
 export type BirdPoseSpec = {
@@ -250,6 +276,15 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
      every part pinned, never the account's look (no one has one yet). KObSlide2 flies and turns
      the picture. Not base: captured only while the doorstep asks. */
   obRoute: { size: 50, mood: "content", fly: true, stage: "wren", skin: "sticker", accessory: "none", mark: null },
+
+  /* batch 3 (2026-11-09). The empty Kindreds tab in Swift ("kindredsempty"): KindredsEmpty's
+     WrenBird at the edge of the empty sky (40, curious, her look and stage). The Plush moment in
+     Swift ("plush"): PlushCelebration's WrenBird (128, happy, the Plush coat pinned, the rest
+     hers). The wardrobe sheet's pictures (see TRY_POSES above). Not base: captured only while
+     each asks. */
+  curious40: { size: 40, mood: "curious" },
+  plush128: { size: 128, mood: "happy", skin: "plush" },
+  ...TRY_POSES,
 };
 
 /** The user's look, as BirdSnapshots reads it from the Wren contexts. */

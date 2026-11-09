@@ -435,3 +435,9 @@ export {
   type KObPic,
   type KObPieces,
 } from "./src/ObPieces";
+
+// batch 3: slice 3 (2026-11-09), each behind its own switch, off by default: the empty Kindreds tab
+// ("kindredsempty"), the wardrobe slip's sheet ("wardrobesheet") and the Plush moment ("plush")
+export { KKindredsEmptyView, type KKindredsEmptyDesk, type KKindredsEmptyStrings, type KKindredsEmptyViewProps } from "./src/KindredsEmpty";
+export { KWardrobeSheetView, type KWardrobeSheetStrings, type KWardrobeSheetViewProps, type KWardrobeTile } from "./src/WardrobeSheet";
+export { KPlushView, type KPlushStrings, type KPlushViewProps } from "./src/Plush";

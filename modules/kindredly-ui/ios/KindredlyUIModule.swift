@@ -431,5 +431,15 @@ public class KindredlyUIModule: Module {
     // (Adapters/KObPiecesView.swift). New files: a pod install before the build.
     ExpoUIView(KObPiecesView.self)
 
+    // batch 3: slice 3 (2026-11-09), each behind its own switch (off by default) with its React
+    // Native piece as the fallback: the empty Kindreds tab ("kindredsempty": Adapters/
+    // KKindredsEmptyView.swift, Portable/Kindreds/KKindredsEmpty.swift), the wardrobe slip's sheet
+    // ("wardrobesheet": Adapters/KWardrobeSheetView.swift, Portable/Today/KWardrobeSheet.swift) and
+    // the Plush moment ("plush": Adapters/KPlushView.swift, Portable/Moments/KPlushCelebration.swift).
+    // No commands: they draw and report taps as events. New files: a pod install before the build.
+    ExpoUIView(KKindredsEmptyView.self)
+    ExpoUIView(KWardrobeSheetView.self)
+    ExpoUIView(KPlushView.self)
+
   }
 }
