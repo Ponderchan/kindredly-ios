@@ -178,6 +178,7 @@ enum KReels {
     switch id {
     case "sealed": return KReelSealed.def
     case "letters": return KReelLetters.def
+    case "aura": return KReelAura.def
     // REELS-MORE
     default: return nil
     }

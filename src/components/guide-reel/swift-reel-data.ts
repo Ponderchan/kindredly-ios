@@ -6,6 +6,10 @@ import { MORNING_HOUR } from "../../lib/day";
 import { OPENING_MIN } from "../../lib/weighted-count";
 import { STARTER_STAMPS } from "../../data/stamps";
 import { GUIDE_REEL_WIDTHS } from "../Stamp";
+import { DIMENSION_INK, stickerLook, stickerName, titleName } from "../../lib/sticker-copy";
+import { dimLabel } from "../../lib/aura-copy";
+import type { DimKey } from "../../lib/hatch-engine";
+import { AURA_SCENES, AURA_SKETCHES } from "../../data/aura-scenes";
 import "../../data/strings-reel-guides";
 import "../../data/strings-today3d"; // pub.popLetter / pub.popNote, bag.opens
 
@@ -78,7 +82,42 @@ const LETTERS: ReelBuild = {
   },
 };
 
+/* ── the writing aura (guide-reel/aura) ── */
+const AURA_SCENE = "quick-storyteller";
+const AURA_DIMS: DimKey[] = ["sentence", "structure", "perspective", "rhythm", "function", "vocabulary", "punctuation", "emotion", "quirks"];
+/** the stickers the scenes draw, each at its place in its row (the tilt is the place's) */
+const AURA_STICKERS: [string, number][] = [
+  ["straight_shooter", 0],
+  ["repeat_offender", 1],
+  ["laugh_tracker", 2],
+  ["scene_setter", 1],
+  ["laugh_tracker", 1],
+];
+const AURA: ReelBuild = {
+  assets: { scene: AURA_SCENES[AURA_SCENE], sketch: AURA_SKETCHES[AURA_SCENE] },
+  data: () => {
+    const stickers: NonNullable<ReelData["stickers"]> = {};
+    for (const [id, i] of AURA_STICKERS) {
+      const look = stickerLook(id, i);
+      stickers[`${id}#${i}`] = { name: stickerName(id), bg: look.bg, fg: look.fg, border: look.border, tilt: parseFloat(look.tilt) || 0, pill: look.radius === 999 };
+    }
+    return {
+      words: {
+        ...wordsOf(["cp.travel", "ga.phoneOnly", "gd.aura.title"]),
+        // the laugh in this language's own spelling, cut from the laugh sticker's line as Read cuts it
+        laugh: t("st.laugh_tracker.line").split(/[,、:：]/)[0].trim(),
+        // one name the engine can really give: short lines + opening on a scene
+        name: titleName({ state: "formed", noun: "storyteller", adjective: "quick", basis: [] }),
+        ...Object.fromEntries(AURA_DIMS.map((k) => [`dim.${k}`, dimLabel(k)])),
+      },
+      colors: Object.fromEntries(AURA_DIMS.map((k) => [`dim.${k}`, DIMENSION_INK[k].bg])),
+      stickers,
+    };
+  },
+};
+
 export const REEL_BUILDS: Record<string, ReelBuild> = {
   sealed: SEALED,
   letters: LETTERS,
+  aura: AURA,
 };
