@@ -4,6 +4,8 @@ import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
 import { nativeImage, nativeNotes, type KNotesGroup, type KNotesKind, type KNotesNote } from "./Notes";
 import type { KImageRefProps, KInsets, KScreenBaseProps, KScreenHandle, KStandardCommands } from "./types";
+import { NOTE_FILM_OFF, type KNoteFilmData } from "./MediaPieces";
+import type { KVoiceSlotAction, KVoiceSlotCommand } from "./VoicePieces";
 
 /* THREE NOTES PAGES, drawn by SwiftUI (2026-10-27): one journal page, one day of them, and the
    photo roll the ＋ opens for a new note (ios/Portable/Notes/KNotePageScreen.swift,
@@ -78,6 +80,11 @@ export type KNotePageViewProps = CommonViewModifierProps &
     voice: boolean;
     /** the film island is placed */
     film: boolean;
+    /** batch 3 ("notefilm", off by default): with a url, Swift draws the film itself and the film
+        island stays empty. Only where isKindredlyUIViewAvailable("KNoteFilmView"). */
+    swiftFilm?: KNoteFilmData | null;
+    /** batch 3 ("notevoice"): the disc of the voice card Swift draws (see KNotePageCommands) */
+    onVoice?: (action: KVoiceSlotAction) => void;
     onBack?: () => void;
     onDrift?: () => void;
     onDelete?: () => void;
@@ -87,7 +94,14 @@ export type KNotePageViewProps = CommonViewModifierProps &
     children?: ReactNode;
   };
 
-type NativeKNotePageViewProps = Omit<KNotePageViewProps, "letterFont" | "insets" | "rev" | "photos" | "onBack" | "onDrift" | "onDelete" | "onPhoto" | "onCover"> &
+/** batch 3 ("notevoice", off by default): the voice slot's word, the composers' `recorder` shape. The
+    slot is the island alone until this says Swift draws the card ({ showCard: true, card, island:
+    false }); TS keeps the player (src/screens/note-page/NoteVoiceDriver.tsx). */
+export type KNotePageCommands = KStandardCommands & {
+  voice: Pick<KVoiceSlotCommand, "showCard" | "card" | "island">;
+};
+
+type NativeKNotePageViewProps = Omit<KNotePageViewProps, "letterFont" | "insets" | "rev" | "photos" | "onBack" | "onDrift" | "onDelete" | "onPhoto" | "onCover" | "swiftFilm" | "onVoice"> &
   Required<Pick<KNotePageViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
     photos: (Omit<KNotePagePhoto, "image"> & { image: NativeImage })[];
@@ -96,13 +110,15 @@ type NativeKNotePageViewProps = Omit<KNotePageViewProps, "letterFont" | "insets"
     onNpDelete?: None;
     onNpPhoto?: Ev<{ index: number }>;
     onNpCover?: Ev<{ index: number }>;
+    swiftFilm: KNoteFilmData;
+    onNpVoice?: Ev<{ action: KVoiceSlotAction }>;
   };
 
 const NativeKNotePageView = requireNativeView<NativeKNotePageViewProps>("KindredlyUI", "KNotePageView");
 
 /** The bare SwiftUI journal page. Only inside an @expo/ui <Host>. */
 export const KNotePageView = forwardRef<KScreenHandle, KNotePageViewProps>(function KNotePageView(
-  { modifiers, letterFont, insets, rev, photos, onBack, onDrift, onDelete, onPhoto, onCover, ...rest },
+  { modifiers, letterFont, insets, rev, photos, onBack, onDrift, onDelete, onPhoto, onCover, swiftFilm, onVoice, ...rest },
   ref,
 ) {
   // a Swift record can't take null: no picture is an empty ref
@@ -122,6 +138,8 @@ export const KNotePageView = forwardRef<KScreenHandle, KNotePageViewProps>(funct
       onNpDelete={onDelete ? () => onDelete() : undefined}
       onNpPhoto={onPhoto ? (e) => onPhoto(e.nativeEvent.index) : undefined}
       onNpCover={onCover ? (e) => onCover(e.nativeEvent.index) : undefined}
+      swiftFilm={swiftFilm ?? NOTE_FILM_OFF}
+      onNpVoice={onVoice ? (e) => onVoice(e.nativeEvent.action) : undefined}
     />
   );
 });

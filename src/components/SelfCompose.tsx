@@ -29,6 +29,8 @@ import { todaysMorningLine } from "../lib/local-push";
 import { storeMode, storePhotos } from "../lib/dev-store";
 import { CourierSendOff } from "./CourierSendOff";
 import { Nudge } from "./ComposeTray";
+import { FrameViewerSwift } from "./FrameViewerSwift";
+import { useOverlayRenderer } from "./OverlayNativeSurface";
 
 const LANG = "en";
 
@@ -604,8 +606,17 @@ function MoodKeyFace({ mood }: { mood: MoodId }) {
    can do to it from here: make it the cover. Touching the picture goes
    back to the page. The picture sits on near-black with white controls in
    every theme, the way a photo viewer does, so nothing here follows the
-   theme. */
-export function FrameViewer({ photos, index, onClose, onCover, onRemove }: { photos: Photo[]; index: number | null; onClose: () => void; onCover: (i: number) => void; onRemove: (i: number) => void }) {
+   theme.
+
+   Batch 3 (2026-11-09, the "frameviewer" switch, off by default): the same
+   Modal with its inside drawn by SwiftUI (FrameViewerSwift) where the switch
+   and the binary allow; FrameViewerRN below otherwise, unchanged. */
+export function FrameViewer(props: { photos: Photo[]; index: number | null; onClose: () => void; onCover: (i: number) => void; onRemove: (i: number) => void }) {
+  const { native, toRN } = useOverlayRenderer("frameviewer", "KFrameViewerView", props.index !== null);
+  return native ? <FrameViewerSwift {...props} onFallback={toRN} /> : <FrameViewerRN {...props} />;
+}
+
+function FrameViewerRN({ photos, index, onClose, onCover, onRemove }: { photos: Photo[]; index: number | null; onClose: () => void; onCover: (i: number) => void; onRemove: (i: number) => void }) {
   const insets = useSafeAreaInsets();
   const [page, setPage] = useState(index ?? 0);
   useEffect(() => {

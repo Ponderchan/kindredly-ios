@@ -21,6 +21,13 @@ import ExpoUI
  - canSetCover, coverHint, voice, film
  - children: <KIsland name="voice"> (AudioCard), <KIsland name="film"> (the player)
  Events: onNpBack {}, onNpDrift {}, onNpDelete {}, onNpPhoto { index }, onNpCover { index }
+ Batch 3 (2026-11-09), each behind its own switch, the island kept for when it is off:
+ - the voice card ("notevoice"): the voice slot is KVoiceSlot (Portable/Voice), the island alone
+   until TS sends the `voice` command { showCard, card: { look, playing, label }, island } (the
+   composers' `recorder` shape; TS keeps the player, src/screens/note-page/NoteVoiceDriver.tsx);
+   the disc comes back as onNpVoice { action: "toggle" }
+ - the film ("notefilm"): swiftFilm { url, playLabel, pauseLabel } with a url draws KNoteFilm
+   (Portable/Notes/KNoteFilm.swift) in the film slot instead of the island
 
  KNoteDayView (the same TS file, src/screens/note-page/NoteDayNative.tsx)
  - strings: { title, backLabel, footer, play, pause }
@@ -97,6 +104,15 @@ final class KNotePageViewProps: KScreenProps {
   @Field var coverHint: Bool = false
   @Field var voice: Bool = false
   @Field var film: Bool = false
+  // batch 3: notevoice, notefilm
+  @Field var swiftFilm: KNoteFilmRecord = KNoteFilmRecord()
+  var onNpVoice = EventDispatcher()
+  /// The voice slot's state, from the `voice` command (as long-lived as the view).
+  let voiceSlot = KVoiceSlotModel()
+
+  func handle(_ name: String, _ args: [String: Any]) {
+    if name == "voice" { voiceSlot.update(KVoiceSlotState(args: args)) }
+  }
 
   var onNpBack = EventDispatcher()
   var onNpDrift = EventDispatcher()
@@ -151,12 +167,30 @@ struct KNotePageView: ExpoSwiftUI.View {
       bottomInset: props.insets.bottom,
       actions: props.actions
     ) {
-      props.children?.kSlot("voice")
+      // the island alone until TS says Swift draws the card (batch 3: notevoice)
+      KVoiceSlot(model: props.voiceSlot, theme: props.kTheme, spacing: 0, island: props.children?.kSlot("voice")) { action in
+        props.onNpVoice(["action": action.rawValue])
+      }
     } film: {
-      props.children?.kSlot("film")
+      // batch 3: notefilm
+      if let url = KMediaURL.from(props.swiftFilm.url) {
+        KNoteFilm(url: url, playLabel: props.swiftFilm.playLabel, pauseLabel: props.swiftFilm.pauseLabel)
+      } else {
+        props.children?.kSlot("film")
+      }
     }
     .kScreenEnvironment(props)
+    .onKCommand(props.commands) { name, args in
+      props.handle(name, args)
+    }
   }
+}
+
+/// The film Swift draws (batch 3: notefilm); no url keeps the island.
+struct KNoteFilmRecord: Record {
+  @Field var url: String = ""
+  @Field var playLabel: String = ""
+  @Field var pauseLabel: String = ""
 }
 
 // MARK: - One day of pages

@@ -3,6 +3,7 @@ import { forwardRef, useMemo, type ReactNode, type Ref } from "react";
 import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
 import type { KChatTrace } from "./Conversation";
+import type { KPostMediaSlot } from "./MediaPieces";
 import type { KImageRefProps, KInsets, KScreenBaseProps, KScreenHandle, KStandardCommands } from "./types";
 
 /* WREN'S ROOM, drawn by SwiftUI (2026-10-27; ios/Portable/WrenRoom/KWrenRoomScreen.swift, adapter
@@ -112,6 +113,9 @@ export type KWrenRoomViewProps = CommonViewModifierProps &
     onMore?: () => void;
     /** the reel islands */
     children?: ReactNode;
+    /** batch 3 ("postmedia", off by default): the squares Swift draws itself, by slot; a slot
+        listed here has no island. Only where isKindredlyUIViewAvailable("KPostMediaView"). */
+    media?: KPostMediaSlot[];
   };
 
 type Ev<T> = (e: { nativeEvent: T }) => void;

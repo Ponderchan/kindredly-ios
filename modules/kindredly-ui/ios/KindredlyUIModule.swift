@@ -465,5 +465,16 @@ public class KindredlyUIModule: Module {
     ExpoUIView(KChatHeaderView.self)
     ExpoUIView(KLetterInFlightView.self)
 
+    // batch 3: slice 6 (2026-11-09) — pictures and films, each behind its own switch (off by
+    // default): the frame viewer over the Notes composer ("frameviewer", inside its React Native
+    // Modal), and the markers for a journal page's film and voice card ("notefilm", "notevoice":
+    // KNotePageView draws them) and a Wren post's picture or film ("postmedia": KWrenRoomView
+    // draws it). Adapters/KMediaPiecesView.swift; Portable/Notes/KFrameViewer.swift, KNoteFilm.swift,
+    // Portable/WrenRoom/KPostMediaSquare.swift, Portable/Kit/KVideoLayer.swift. No commands. New
+    // files: a pod install before the build.
+    ExpoUIView(KFrameViewerView.self)
+    ExpoUIView(KNoteFilmView.self)
+    ExpoUIView(KPostMediaView.self)
+
   }
 }

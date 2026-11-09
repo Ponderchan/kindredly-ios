@@ -481,3 +481,20 @@ export {
   type KRatingAskStrings,
   type KRatingAskViewProps,
 } from "./src/FourPieces";
+
+// batch 3: slice 6 (2026-11-09) — pictures and films, each behind its own switch, off by default: the frame
+// viewer over the Notes composer ("frameviewer"), a journal page's film and voice card ("notefilm",
+// "notevoice": drawn by KNotePageView) and a Wren post's picture or film ("postmedia": drawn by KWrenRoomView)
+export {
+  KFrameViewerView,
+  KNoteFilmView,
+  KPostMediaView,
+  NOTE_FILM_OFF,
+  type KFrameViewerPhoto,
+  type KFrameViewerStrings,
+  type KFrameViewerViewProps,
+  type KNoteFilmData,
+  type KNoteFilmViewProps,
+  type KPostMediaSlot,
+  type KPostMediaViewProps,
+} from "./src/MediaPieces";

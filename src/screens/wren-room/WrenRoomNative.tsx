@@ -9,6 +9,8 @@ import { SignUpSheet, openSignUpSheet } from "../../components/SignUpSheet";
 import { PhotoLightbox } from "../../components/PhotoLightbox";
 import { ReelSquare } from "../../components/ReelSquare";
 import { PostMediaSquare } from "../../components/PostMediaSquare";
+import { useSwiftIsland } from "../../components/swift-island";
+import type { KPostMediaSlot } from "../../../modules/kindredly-ui/src/MediaPieces";
 import type { Reel } from "../../components/guide-reel/kit";
 import { GUIDE_HREF, reelOf } from "../../components/guide-reel";
 import { newsCardOf, newsIdOf, newsReelOf } from "../../components/news-reel";
@@ -47,7 +49,12 @@ import { useWrenRoom, type WrenRoomUi } from "./useWrenRoom";
      in. Otherwise Swift follows the end only while at it.
    · the sign-up sheet and the photo lightbox stay React Native beside the
      Host, the keyboard out of the way first (blurThen), as before every
-     alert, the picker and a push. */
+     alert, the picker and a push.
+   · a post's picture or film (0050) is a PostMediaSquare island too, unless
+     the "postmedia" switch says Swift draws it (batch 3, 2026-11-09, off by
+     default; components/swift-island, marker KPostMediaView): then the view
+     gets the square as `media` (KPostMediaSquare: the same fill, animation,
+     muted loop and Reduce Motion rule) and the island isn't rendered. */
 
 /** the React Native card's widest */
 const CARD_MAX = 360;
@@ -241,6 +248,13 @@ export function WrenRoomNative() {
   );
   const rev = useRev(built.rows, chips, traces);
 
+  // batch 3: postmedia — the squares Swift draws itself, once its gate has opened
+  const mediaIn = useSwiftIsland("postmedia", "KPostMediaView", built.medias.length > 0);
+  const swiftMedia = useMemo<KPostMediaSlot[] | undefined>(
+    () => (mediaIn === "swift" ? built.medias.map((r) => ({ slot: r.slot, url: r.media.url, kind: r.media.kind })) : undefined),
+    [mediaIn, built.medias],
+  );
+
   const target = (key: string) => built.targets.get(key) ?? null;
   const back = () => blurThen(() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds")), ref, { delayMs: 0 });
   const onCardCta = (key: string) => {
@@ -291,9 +305,11 @@ export function WrenRoomNative() {
           onNotIt={onNotIt}
           onChip={onChip}
           onMore={() => m.setAllChips(true)}
+          media={swiftMedia}
         >
           {/* every reel on every render, in the transcript's order; a tap starts it over */}
-          {built.medias.map((r) => (
+          {/* batch 3: none while Swift draws them (postmedia), or while its gate is opening */}
+          {(mediaIn === "rn" ? built.medias : []).map((r) => (
             <KIsland key={r.slot} name={r.slot} interactive style={{ width: reelSide, height: reelSide, borderTopLeftRadius: 17, borderTopRightRadius: 17, overflow: "hidden" }}>
               <PostMediaSquare media={r.media} />
             </KIsland>

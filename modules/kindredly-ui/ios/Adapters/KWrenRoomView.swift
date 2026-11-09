@@ -22,6 +22,9 @@ import ExpoUI
  - cardWidth: a card's width, its edge included
  Children: one <KIsland name={card.slot}> per card (the reel square, cardWidth - 2 square), every
  render, in the transcript's order.
+ Batch 3 (2026-11-09, the "postmedia" switch, off by default): media [{ slot, url, kind }] — a
+ card whose slot is listed draws its post's picture or film in Swift (KPostMediaSquare, Portable/
+ WrenRoom) instead of looking for an island of that name.
 
  Commands: setText { target: "body", value }, focus { target: "body" }, blur {},
  composer { canSend }, scrollTo { key: "end", animated }
@@ -111,6 +114,14 @@ final class KWrenRoomViewProps: KScreenProps {
   @Field var chips: [KWrenRoomChipRecord] = []
   @Field var traces: [KChatTraceRecord] = []
   @Field var cardWidth: CGFloat = 0
+  // batch 3: postmedia
+  @Field var media: [KPostMediaRecord] = []
+
+  /// the square Swift draws for a slot, if any (a handful at most: not worth a rev cache, and the
+  /// list changes without the rows when the piece's gate opens)
+  func postMedia(for slot: String) -> KPostMediaRecord? {
+    media.first { $0.slot == slot }
+  }
 
   var onWrBack = EventDispatcher()
   var onWrText = EventDispatcher()
@@ -209,7 +220,12 @@ struct KWrenRoomView: ExpoSwiftUI.View {
       live: props.live,
       actions: props.actions
     ) { slot in
-      props.children?.kSlot(slot)
+      // batch 3: postmedia
+      if let media = props.postMedia(for: slot) {
+        KPostMediaSquare(url: KMediaURL.from(media.url), kind: KPostMediaKind(rawValue: media.kind) ?? .image)
+      } else {
+        props.children?.kSlot(slot)
+      }
     }
     .kScreenEnvironment(props)
     .onKCommand(props.commands) { name, args in
@@ -227,4 +243,12 @@ extension KWrenRoomView: ExpoSwiftUI.FocusableView {
     }
     props.driver.blurAll()
   }
+}
+
+/// A post's picture or film that Swift draws in a card's square (batch 3: postmedia).
+struct KPostMediaRecord: Record {
+  @Field var slot: String = ""
+  @Field var url: String = ""
+  /// "image" | "video"
+  @Field var kind: String = "image"
 }

@@ -2,7 +2,9 @@ import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { Alert, View, useWindowDimensions } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { KIsland, useKCommands, useRev, type KInsets, type KScreenHandle, type KThemeKey, type LetterFontKey } from "../../../modules/kindredly-ui";
-import { KNotePageView, type KNotePagePhoto, type KNotePageState, type KNotePageStrings } from "../../../modules/kindredly-ui/src/NotePages";
+import { KNotePageView, type KNotePageCommands, type KNotePagePhoto, type KNotePageState, type KNotePageStrings } from "../../../modules/kindredly-ui/src/NotePages";
+import type { KNoteFilmData } from "../../../modules/kindredly-ui/src/MediaPieces";
+import type { KVoiceSlotAction } from "../../../modules/kindredly-ui/src/VoicePieces";
 import type { KNotesGroup, KNotesKind } from "../../../modules/kindredly-ui/src/Notes";
 import { SurfaceHost } from "../../components/NativeSurface";
 import { AudioCard } from "../../components/AudioCard";
@@ -17,6 +19,8 @@ import { deleteEntry, hideDemoEntry, loadJournal, setCover, type JournalEntry } 
 import { moodColors } from "../notes/notes-glyphs";
 import { journalImage } from "../notes/NotesNative";
 import { DetailVideo } from "./DetailVideo";
+import { NoteVoiceDriver, type NoteVoiceLink } from "./NoteVoiceDriver";
+import { useSwiftIsland, type IslandRenderer } from "../../components/swift-island";
 import { dateLine, pageView } from "./note-page-model";
 import "../../data/strings-step5-notes";
 import "../../data/strings-step5-kitrn"; // a11y.back
@@ -35,7 +39,13 @@ import "../../data/strings-a11y-compose"; // sc.a11y.photo, sc.a11y.photoHint
      behind its confirmation — a sample is only hidden (hideDemoEntry), a
      real page torn out (deleteEntry; said if it fails) — then back;
    - the voice card (AudioCard, in the mood's ink) and the film (DetailVideo)
-     stay React Native, as islands. */
+     stay React Native, as islands — unless their batch-3 switches say Swift
+     draws them (2026-11-09, off by default; components/swift-island, the
+     marker view KNoteFilmView for both): "notevoice" puts the page's own
+     KAudioCardRow in the voice slot, its player kept here (NoteVoiceDriver,
+     the `voice` command, onVoice back); "notefilm" hands the page the film's
+     url (swiftFilm: KNoteFilm, DetailVideo's rules). While a piece's crash
+     breadcrumb is on its way to the disk neither renderer draws it. */
 
 function useSameContent<T>(value: T): T {
   const kept = useRef<{ json: string; value: T } | null>(null);
@@ -52,7 +62,11 @@ export function NotePageNative({ id }: { id: string }) {
   const insets = useScreenInsets();
   const { width } = useWindowDimensions();
   const ref = useRef<KScreenHandle>(null);
-  const commands = useKCommands(ref);
+  /* the voice card the page draws itself (notevoice): what NoteVoiceDriver last said goes again
+     when the view re-attaches */
+  const voiceLink = useRef<NoteVoiceLink>({ send: () => {}, toggle: null, resend: null }).current;
+  const commands = useKCommands<KNotePageCommands>(ref, { onViewAttach: () => voiceLink.resend?.() });
+  voiceLink.send = (cmd) => commands.send("voice", cmd);
   const [e, setE] = useState<JournalEntry | null>(null);
   // the first read has answered: a page still loading and a page that isn't there look different
   const [read, setRead] = useState(false);
@@ -154,8 +168,11 @@ export function NotePageNative({ id }: { id: string }) {
         if (all[i]) setFull(all[i]);
       },
       cover: (i: number) => void makeCover(i),
+      voice: (a: KVoiceSlotAction) => {
+        if (a === "toggle") voiceLink.toggle?.();
+      },
     }),
-    [goBack, router, confirmDelete, makeCover],
+    [goBack, router, confirmDelete, makeCover, voiceLink],
   );
 
   const view = useMemo(() => (e ? pageView(e, isDemo) : null), [e, isDemo]);
@@ -196,6 +213,14 @@ export function NotePageNative({ id }: { id: string }) {
   const group = moodGroup(e?.mood);
   const tint = moodColors(group).ink;
 
+  const voiceUri = view?.voice && e?.mediaUri ? e.mediaUri : null;
+  const filmUri = view?.film && e?.mediaUri ? e.mediaUri : null;
+  const voiceIn = useSwiftIsland("notevoice", "KNoteFilmView", !!voiceUri);
+  const filmIn = useSwiftIsland("notefilm", "KNoteFilmView", !!filmUri);
+  const swiftFilm = useSameContent<KNoteFilmData | null>(
+    filmIn === "swift" && filmUri ? { url: filmUri, playLabel: t("jt.play"), pauseLabel: t("jt.pause") } : null,
+  );
+
   return (
     <View style={{ flex: 1 }}>
       <PageSurface
@@ -216,13 +241,18 @@ export function NotePageNative({ id }: { id: string }) {
         photos={photos}
         canSetCover={view?.canSetCover ?? false}
         coverHint={view?.coverHint ?? false}
-        voiceUri={view?.voice && e?.mediaUri ? e.mediaUri : null}
+        voiceUri={voiceUri}
+        voiceIn={voiceIn}
         voiceDur={e?.dur}
         tint={tint}
-        filmUri={view?.film && e?.mediaUri ? e.mediaUri : null}
+        filmUri={filmUri}
+        filmIn={filmIn}
+        swiftFilm={swiftFilm}
         islandWidth={Math.max(0, width - 44)}
         act={act}
       />
+      {/* the voice card's player, for the card the page draws itself (nothing drawn here) */}
+      {voiceIn === "swift" && voiceUri ? <NoteVoiceDriver link={voiceLink} url={voiceUri} durationS={e?.dur} tint={tint} /> : null}
       {/* the lightbox: the photo alone on ink, pinch to look closer, tap to put it back */}
       <PhotoLightbox photo={full ? { uri: full } : null} onClose={() => setFull(null)} />
     </View>
@@ -235,6 +265,7 @@ type Act = {
   remove: () => void;
   photo: (i: number) => void;
   cover: (i: number) => void;
+  voice: (a: KVoiceSlotAction) => void;
 };
 
 type SurfaceProps = {
@@ -256,9 +287,14 @@ type SurfaceProps = {
   canSetCover: boolean;
   coverHint: boolean;
   voiceUri: string | null;
+  /** who draws the voice card (notevoice) */
+  voiceIn: IslandRenderer;
   voiceDur: number | undefined;
   tint: string;
   filmUri: string | null;
+  /** who draws the film (notefilm) */
+  filmIn: IslandRenderer;
+  swiftFilm: KNoteFilmData | null;
   islandWidth: number;
   act: Act;
 };
@@ -287,8 +323,10 @@ const PageSurface = memo(function PageSurface(p: SurfaceProps) {
         photos={p.photos}
         canSetCover={p.canSetCover}
         coverHint={p.coverHint}
-        voice={!!p.voiceUri}
-        film={!!p.filmUri}
+        voice={!!p.voiceUri && p.voiceIn !== "pending"}
+        film={!!p.filmUri && p.filmIn !== "pending"}
+        swiftFilm={p.swiftFilm}
+        onVoice={act.voice}
         onBack={act.back}
         onDrift={act.drift}
         onDelete={act.remove}
@@ -297,10 +335,10 @@ const PageSurface = memo(function PageSurface(p: SurfaceProps) {
       >
         {/* every island on every render, in this order (Slot.tsx) */}
         <KIsland name="voice" interactive style={{ width: p.islandWidth }}>
-          {p.voiceUri ? <AudioCard url={p.voiceUri} durationS={p.voiceDur} tint={p.tint} /> : null}
+          {p.voiceUri && p.voiceIn === "rn" ? <AudioCard url={p.voiceUri} durationS={p.voiceDur} tint={p.tint} /> : null}
         </KIsland>
         <KIsland name="film" interactive style={{ width: p.islandWidth }}>
-          {p.filmUri ? <DetailVideo uri={p.filmUri} /> : null}
+          {p.filmUri && p.filmIn === "rn" ? <DetailVideo uri={p.filmUri} /> : null}
         </KIsland>
       </KNotePageView>
     </SurfaceHost>
