@@ -29,6 +29,9 @@ import { buildFirstClass4a } from "../screens/me/me-model";
 import { meFormat } from "../screens/me/me-format";
 import { NativeSurface } from "../components/NativeSurface";
 import { CourierNative } from "../screens/courier/CourierNative";
+import { useNativeSurface } from "../lib/surfaces";
+import { isKindredlyUIViewAvailable } from "../../modules/kindredly-ui/src/available";
+import { useSwiftPiece } from "../screens/me/me-pieces";
 import "../data/strings-me4a";
 
 /* THE COURIER'S ROOM — her own page (owner's call, 2026-09-16).
@@ -49,11 +52,19 @@ const COVER_H = 300;
    behind the "courier" switch (app_surfaces, NativeSurface in mount mode),
    with the React Native page below as its fallback, unchanged.
 
-   FREE FLIGHT STAYS REACT NATIVE. The game is played on the React Native
-   cover (components/FreeFlightGame, inside WrenHome), so Play on the Swift
-   page hands the page to the React Native one with the game already open —
-   the same page ?play=1 opens from her day off on Me — and once she lands
-   (the game closed) the Swift page comes back. */
+   FREE FLIGHT, TWO WAYS. Behind the "freeflight" switch (batch 3,
+   2026-11-09; off by default) and on a binary with KFreeFlightView, the game
+   is Swift's (modules/kindredly-ui Portable/Courier/KFreeFlight.swift, a port
+   of components/FreeFlightGame) and is played on the Swift page's own cover:
+   the page never leaves Swift. Its first showing in a process is armed first
+   (me-pieces useSwiftPiece: a crash in its first seconds counts against the
+   switch; two send it back here), so the game opens a moment after Play, once
+   the mark is down. Otherwise — the switch off, struck out, or an older
+   binary — the game is played on the React Native cover (inside WrenHome), so
+   Play on the Swift page hands the page to the React Native one with the game
+   already open — the same page ?play=1 opens from her day off on Me, Today's
+   flight window and the "dayoff" notification — and once she lands (the game
+   closed) the Swift page comes back. */
 export default function CourierRoom() {
   const P = useP();
   const params = useLocalSearchParams<{ play?: string }>(); // ?play=1 — from her day off on Me
@@ -65,11 +76,13 @@ export default function CourierRoom() {
   );
 }
 
-/* the Swift page, and the React Native one for as long as a game is on */
+/* the Swift page, and the React Native one for as long as a React Native game is on */
 function CourierSwift({ autoPlay }: { autoPlay: boolean }) {
   const [playing, setPlaying] = useState(autoPlay);
-  if (playing) return <CourierRN autoPlay onPlayEnd={() => setPlaying(false)} />;
-  return <CourierNative onPlay={() => setPlaying(true)} />;
+  const swiftGame = useNativeSurface("freeflight") && isKindredlyUIViewAvailable("KFreeFlightView");
+  const armed = useSwiftPiece("freeflight", swiftGame && playing);
+  if (playing && !swiftGame) return <CourierRN autoPlay onPlayEnd={() => setPlaying(false)} />;
+  return <CourierNative onPlay={() => setPlaying(true)} swiftGame={swiftGame} play={playing && armed} onPlayEnd={() => setPlaying(false)} />;
 }
 
 /** The React Native page. `autoPlay` opens Free Flight at once (default: the ?play=1 param);

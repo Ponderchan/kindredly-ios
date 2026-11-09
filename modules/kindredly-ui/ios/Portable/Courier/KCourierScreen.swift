@@ -43,6 +43,15 @@ import SwiftUI
  left alone 25 s she dozes. Under Reduce Motion: no idle, no hop, no drag, only the faces. Starving
  (wilt) she holds still. A drag that starts on her is hers, not the page's.
 
+ FREE FLIGHT (batch 3, 2026-11-09; the "freeflight" switch). With `content.flight` the game is
+ Swift's (KFreeFlight.swift) and is played right here, as WrenHome plays it on the React Native
+ cover: TS opens it (Play, ?play=1 → flightOpen) and it opens once she can play; her log and the
+ tracking slip shut, the page goes to the top and holds still (no scroll, nothing under the
+ course takes a tap, the keyboard rises over it), the cover grows to the course's height and the
+ header keeps riding it (the chevron still leaves; the game's × sits in the header's empty right
+ end). The × and a finished run go to TS (onPlayEnd, onFlightRun); TS closes it. Without
+ `content.flight` Play only reports, and TS hands the page to the React Native game as before.
+
  VoiceOver: the header is the page's header; she is one button (her name, "tap for a face");
  the bubble is a button that opens her flight log (expanded / collapsed); the cover's gesture
  hint is hidden; Play reads "Free Flight"; the journey's stops read their name and date; every
@@ -263,6 +272,11 @@ public struct KCourierContent: Equatable, Sendable {
   public var looks: [KCourierTile] = []
   public var dress: [KCourierTile] = []
   public var firstClass = KMeFirstClass()
+  /// Free Flight in Swift (the "freeflight" switch): the course, or nil when Play hands the page
+  /// to the React Native game as before
+  public var flight: KFreeFlightContent?
+  /// TS says the game is open (Play, ?play=1); it opens once she can play
+  public var flightOpen = false
 
   public init() {}
 }
@@ -281,6 +295,10 @@ public final class KCourierActions {
   public var onRack: (String) -> Void = { _ in }
   /// the cover is under the status bar (true) or has scrolled out from under it
   public var onUnderSky: (Bool) -> Void = { _ in }
+  /// Free Flight in Swift: the × (TS closes it: flightOpen false)
+  public var onPlayEnd: () -> Void = {}
+  /// Free Flight in Swift: a run ended (gates, letters a minute); TS keeps the best
+  public var onFlightRun: (Int, Int) -> Void = { _, _ in }
 
   public init() {}
 }
@@ -325,6 +343,8 @@ public struct KCourierScreen: View {
   @State private var rack: KCourierCell.Key?
   /// the page has scrolled past the cover: the status strip wears the page's colour
   @State private var pastCover = false
+  /// Free Flight is on the cover (Swift's game; see KFreeFlight.swift)
+  @State private var playing = false
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -339,25 +359,45 @@ public struct KCourierScreen: View {
   private var flies: Bool { content.cover.bubbleOpens }
 
   public var body: some View {
+    ScrollViewReader { proxy in
+      scroller
+        .onAppear { syncPlay(proxy) }
+        .onChange(of: content.flightOpen) { _, _ in syncPlay(proxy) }
+        .onChange(of: content.cover.canPlay) { _, _ in syncPlay(proxy) }
+        .onChange(of: content.flight == nil) { _, _ in syncPlay(proxy) }
+    }
+  }
+
+  private var scroller: some View {
     ScrollView(.vertical) {
       VStack(spacing: 0) {
         content.cover.sky0
           .frame(height: topInset)
           .accessibilityHidden(true)
+          .id(Self.topID)
         KCourierCoverView(
           theme: theme,
           content: content,
           logOpen: logOpen,
+          playing: playing,
           onBubble: { toggle { logOpen.toggle() } },
           actions: actions
         )
-        if content.bandShow {
-          band
+        // while she plays the page holds still under the course (the keyboard is up), as the
+        // React Native page's band and cards do (pointerEvents none)
+        Group {
+          if content.bandShow {
+            band
+          }
+          page
         }
-        page
+        .allowsHitTesting(!playing)
       }
     }
     .scrollIndicators(.hidden)
+    .scrollDisabled(playing)
+    // the game's keyboard rises over the page; nothing under it moves
+    .ignoresSafeArea(.keyboard)
     // the status strip: clear over the cover (the sky runs under the clock), the page's colour
     // once the page has scrolled past it, so the band and the cards never slide under the clock
     // (they did, 2026-10-26: "Waiting on your first letter" over 11:57)
@@ -375,6 +415,27 @@ public struct KCourierScreen: View {
     } action: { _, under in
       pastCover = !under
       actions.onUnderSky(under)
+    }
+  }
+
+  private static let topID = "kCourierTop"
+
+  /// FREE FLIGHT IN SWIFT (WrenHome openPlay / closePlay): TS opens it (Play, ?play=1) and it
+  /// opens once she can play (an autoPlay waits for the counts, as React Native's does); once
+  /// open it stays until TS closes it. Opening shuts her log and the tracking slip and brings
+  /// the cover to the top; the cover grows to the course's height.
+  private func syncPlay(_ proxy: ScrollViewProxy) {
+    let open = content.flight != nil && content.flightOpen
+    if open && !playing && content.cover.canPlay {
+      // to the top first, while the page can still scroll (it holds still once she plays)
+      toggle {
+        proxy.scrollTo(Self.topID, anchor: .top)
+        logOpen = false
+        tracking = false
+        playing = true
+      }
+    } else if !open && playing {
+      toggle { playing = false }
     }
   }
 
@@ -580,6 +641,8 @@ struct KCourierCoverView: View {
   let theme: KTheme
   let content: KCourierContent
   let logOpen: Bool
+  /// Free Flight is on: the cover is the course (KFreeFlight), the header still rides it
+  let playing: Bool
   let onBubble: () -> Void
   let actions: KCourierActions
 
@@ -588,30 +651,44 @@ struct KCourierCoverView: View {
 
   private var cover: KCourierCover { content.cover }
 
+  /// the cover's height: the course's while she plays (WrenHome playH), else the perch's 300
+  private var height: CGFloat {
+    if playing, let flight = content.flight { return flight.height }
+    return KCourierScreen.coverHeight
+  }
+
   var body: some View {
     GeometryReader { g in
       let w = g.size.width
       let h = KCourierScreen.coverHeight
       ZStack(alignment: .topLeading) {
         LinearGradient(colors: [cover.sky0, cover.sky1], startPoint: .top, endPoint: .bottom)
-        KCourierSky(cover: cover, width: w, height: h)
-          .offset(x: -drag.width * 0.12, y: -drag.height * 0.08)
-          .accessibilityHidden(true)
-        KCourierPerch(hero: content.hero, tapHint: content.strings.tapHint, width: w, height: h, drag: $drag)
-        furniture(width: w)
+          .frame(height: h)
+        if playing, let flight = content.flight {
+          KFreeFlight(content: flight, width: w, onClose: actions.onPlayEnd, onRun: actions.onFlightRun)
+            .transition(.opacity)
+          header(width: w)
+        } else {
+          KCourierSky(cover: cover, width: w, height: h)
+            .offset(x: -drag.width * 0.12, y: -drag.height * 0.08)
+            .accessibilityHidden(true)
+          KCourierPerch(hero: content.hero, tapHint: content.strings.tapHint, width: w, height: h, drag: $drag)
+          furniture(width: w)
+        }
       }
       // pinned to the top left: a layer bigger than the cover (the sky's parallax bleed) made the
       // stack larger than w × h, and a centred frame pushed its top and left edges out to be
       // clipped (the title cut under the status bar, the bubble off the left edge; 2026-10-26)
-      .frame(width: w, height: h, alignment: .topLeading)
+      .frame(width: w, height: height, alignment: .topLeading)
+      .background(cover.sky1)
       .clipped()
     }
-    .frame(height: KCourierScreen.coverHeight)
+    .frame(height: height)
   }
 
-  @ViewBuilder
-  private func furniture(width w: CGFloat) -> some View {
-    // the header: rides the cover and scrolls away with it
+  /// the room's header (the back chevron and the title), riding the cover; its empty stretch
+  /// lets taps through to what is under it (while she plays, the game's × sits there)
+  private func header(width w: CGFloat) -> some View {
     ZStack {
       Text(content.strings.title)
         .kText(.secondaryTitle)
@@ -619,6 +696,7 @@ struct KCourierCoverView: View {
         .lineLimit(1)
         .minimumScaleFactor(0.75)
         .padding(.horizontal, 56)
+        .allowsHitTesting(false)
         .accessibilityAddTraits(.isHeader)
       HStack(spacing: 0) {
         SwiftUI.Button(action: actions.onBack) {
@@ -637,6 +715,12 @@ struct KCourierCoverView: View {
     .frame(width: w, height: KCourierScreen.headerHeight, alignment: .top)
     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     .accessibilitySortPriority(3)
+  }
+
+  @ViewBuilder
+  private func furniture(width w: CGFloat) -> some View {
+    // the header: rides the cover and scrolls away with it
+    header(width: w)
 
     // DAY 12: top right, 12 down and 14 in, as the React Native cover places it (in the header's
     // empty right end)

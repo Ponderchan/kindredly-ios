@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useWindowDimensions } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useIsFocused } from "expo-router";
 import { useKCommands, useRev, type KScreenHandle } from "../../../modules/kindredly-ui";
@@ -6,12 +7,17 @@ import { KCourierView, type KCourierFace, type KCourierFirstClass, type KCourier
 import { SurfaceHost } from "../../components/NativeSurface";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
-import { heroPose, rackAccessoryPose, rackSkinPose, stagePose, useBirdImageRef, useBirdImageRefs } from "../../lib/bird-images";
+import { flightPose, heroPose, rackAccessoryPose, rackSkinPose, stagePose, useBirdImageRef, useBirdImageRefs } from "../../lib/bird-images";
 import "../../data/strings-journey"; // wren.journey.yours
 import { imageRecord, useAssetImageRefs } from "../../lib/images";
 import type { WrenMood } from "../../components/WrenBird";
 import { DOZE_MOOD, DROP_MOOD, HELD_MOOD, TAP_MOODS } from "./courier-model";
 import { useCourierModel } from "./useCourierModel";
+import { PALETTE, daylight } from "../../components/courier-card-model";
+import { saveRun, useFlightBest } from "../../lib/free-flight";
+import { replanLocal } from "../../lib/local-push";
+import { t } from "../../lib/i18n";
+import { FLIGHT_MOODS, flightStage, flightStrings, freeFlightData } from "./free-flight-model";
 
 /* WREN'S JOURNEY IN SWIFTUI (owner, 2026-10-26; ships in binary 1.2.6,
    App Store 1.0.7): one Host holding KCourierView, behind the "courier"
@@ -30,8 +36,14 @@ import { useCourierModel } from "./useCourierModel";
    the night sky, dark on the day skies), as the React Native page's does;
    Swift says when the cover leaves (onUnderSky).
 
-   Play is the React Native game: `onPlay` hands the page to the React Native
-   one, which opens Free Flight on its cover (app/courier). */
+   Play: with `swiftGame` (batch 3, the "freeflight" switch and a binary with
+   KFreeFlightView) the game is Swift's, played on this page's cover while
+   `play` (Portable/Courier/KFreeFlight.swift; the records in
+   free-flight-model): her three faces at 46 are captured while she can play,
+   a finished run is saved here (lib/free-flight saveRun, then her day-off
+   push re-planned, as the React Native game does) and the × says `onPlayEnd`.
+   Without it Play is the React Native game: `onPlay` hands the page to the
+   React Native one, which opens Free Flight on its cover (app/courier). */
 
 function useSameContent<T>(value: T): T {
   const kept = useRef<{ json: string; value: T } | null>(null);
@@ -40,7 +52,20 @@ function useSameContent<T>(value: T): T {
   return kept.current.value;
 }
 
-export function CourierNative({ onPlay }: { onPlay: () => void }) {
+export function CourierNative({
+  onPlay,
+  swiftGame = false,
+  play = false,
+  onPlayEnd,
+}: {
+  onPlay: () => void;
+  /** Free Flight is Swift's (the "freeflight" switch, the binary has it) */
+  swiftGame?: boolean;
+  /** Swift's game is open */
+  play?: boolean;
+  /** Swift's game was closed (its ×) */
+  onPlayEnd?: () => void;
+}) {
   const { key: theme, dark } = useTheme();
   const letterFont = useLetterFont();
   const insets = useScreenInsets();
@@ -116,7 +141,39 @@ export function CourierNative({ onPlay }: { onPlay: () => void }) {
       [view.firstClass, fcBird],
     ),
   );
-  const rev = useRev(strings, cover, hero, band, slip, log, facts, journey, keepsakes, cells, looks, dress, firstClass);
+  /* FREE FLIGHT IN SWIFT: the hour's course, her three faces (only while she can play) and the best */
+  const { height: winH } = useWindowDimensions();
+  const best = useFlightBest()?.gates ?? 0;
+  const fStage = flightStage(view.hero.stage);
+  const canFly = swiftGame && view.cover.canPlay && fStage != null;
+  const flightPoses = useMemo(() => (canFly && fStage ? FLIGHT_MOODS.map((mood) => flightPose(fStage, mood)) : []), [canFly, fStage]);
+  const flightBirds = useBirdImageRefs(flightPoses);
+  const hour = daylight();
+  const flight = useSameContent(
+    useMemo(
+      () =>
+        swiftGame && fStage
+          ? freeFlightData({
+              hour,
+              palette: PALETTE[hour],
+              winH,
+              best,
+              birds: Object.fromEntries(FLIGHT_MOODS.map((mood) => [mood, flightBirds[flightPose(fStage, mood)] ?? null])),
+              strings: flightStrings(t),
+            })
+          : null,
+      // view.strings: the words follow the language as the page's do
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [swiftGame, fStage, hour, winH, best, flightBirds, view.strings],
+    ),
+  );
+  const onFlightRun = useCallback((gates: number, pace: number) => {
+    // kept once, the best updated; a game played: no day-off race for a week, and the next one carries the new best
+    void saveRun({ gates, pace })
+      .then(() => replanLocal({ force: true }))
+      .catch((e) => console.warn("[free-flight] saving a Swift run:", e));
+  }, []);
+  const rev = useRev(strings, cover, hero, band, slip, log, facts, journey, keepsakes, cells, looks, dress, firstClass, flight, play);
 
   /* the status bar on her sky, while the cover is under it and this page is in front */
   const focused = useIsFocused();
@@ -161,6 +218,10 @@ export function CourierNative({ onPlay }: { onPlay: () => void }) {
           onFirstClass={m.actions.firstClass}
           onRack={onRack}
           onUnderSky={onUnderSky}
+          flight={flight}
+          flightOpen={play}
+          onPlayEnd={onPlayEnd}
+          onFlightRun={onFlightRun}
         />
       </SurfaceHost>
     </>

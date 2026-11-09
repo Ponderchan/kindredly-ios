@@ -98,6 +98,9 @@ export type BirdPose =
   // the guide reels in Swift (behind "reels"): her in the reels' scenes (see REEL_POSES)
   | ReelPose;
 
+  // Free Flight in Swift (batch 3, "freeflight"): her three faces in the game, at 46
+  | FlightPose;
+
 /* THE COURIER PAGE (/courier in Swift, 2026-10-26). Her perch draws her at the
    React Native perch's 186 in every face she can make there (her whereabouts'
    face, and the faces a tap, a pick-up, a drop and a doze give her), in her own
@@ -264,6 +267,30 @@ const REEL_POSES: Record<ReelPose, BirdPoseSpec> = {
   ...(Object.fromEntries(Object.entries(REEL_STAGED).map(([k, v]) => [`${k}-h`, { ...v, stage: "hatch" }])) as Record<`${ReelStaged}-h`, BirdPoseSpec>),
 };
 
+/* FREE FLIGHT IN SWIFT (batch 3, "freeflight"; Portable/Courier/KFreeFlight.swift). The React
+   Native game draws WrenBird at 46 at the courier page's stage: curious before take-off, happy in
+   flight, worried after a crash; the fly drawing without its letter when grown, perched before;
+   wearing her piece only when hatched or grown (WrenHome wearsHere), so a fledgling's is pinned
+   bare. Her look is hers. Not base: captured only while the Swift game may be opened. */
+export type FlightStage = "hatch" | "fledge" | "wren";
+export type FlightMood = "curious" | "happy" | "worry";
+export type FlightPose = `ff-${FlightStage}-${FlightMood}`;
+export const flightPose = (stage: FlightStage, mood: FlightMood): FlightPose => `ff-${stage}-${mood}`;
+const FLIGHT_POSES = Object.fromEntries(
+  (["hatch", "fledge", "wren"] as const).flatMap((stage) =>
+    (["curious", "happy", "worry"] as const).map((mood) => [
+      flightPose(stage, mood),
+      {
+        size: 46,
+        mood,
+        stage,
+        ...(stage === "wren" ? { fly: true, letter: false } : {}),
+        ...(stage === "fledge" ? { accessory: "none" } : {}),
+      },
+    ]),
+  ),
+) as Record<FlightPose, BirdPoseSpec>;
+
 /* sizes are the RN call sites' own, so the Swift picture is the same drawing */
 export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
   content: { size: 56, mood: "content", base: true },
@@ -375,6 +402,9 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
 
   // the guide reels in Swift (see REEL_POSES above)
   ...REEL_POSES,
+
+  // Free Flight in Swift (see FLIGHT_POSES above)
+  ...FLIGHT_POSES,
 };
 
 /** The user's look, as BirdSnapshots reads it from the Wren contexts. */

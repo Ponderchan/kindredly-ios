@@ -48,6 +48,9 @@ const PIECE_VIEW: Record<MePieceKey, string> = {
   inflight: "KLetterInFlightView",
 };
 
+export type MePieceKey = "couriercard" | "auraart" | "freeflight"; // batch 3: Free Flight (app/courier) uses this gate too
+const PIECE_VIEW: Record<MePieceKey, string> = { couriercard: "KCourierCardView", auraart: "KAuraArtView", freeflight: "KFreeFlightView" };
+
 /* ── the gate ──────────────────────────────────────────────────────────── */
 
 /* the breadcrumb's clocks, NativeSurface's */

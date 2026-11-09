@@ -482,5 +482,10 @@ public class KindredlyUIModule: Module {
     // Adapters/KReelView.swift, Portable/Reels. New files: a pod install before the build.
     ExpoUIView(KReelView.self)
 
+    // batch 3: Free Flight — the game on its own (Adapters/KFreeFlightView.swift, Portable/Courier/
+    // KFreeFlight.swift), the binary's marker for the "freeflight" switch; KCourierView draws it on
+    // its cover. New files: a pod install before the build.
+    ExpoUIView(KFreeFlightView.self)
+
   }
 }

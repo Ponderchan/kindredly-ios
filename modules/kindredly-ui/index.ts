@@ -502,3 +502,7 @@ export {
 
 // batch 3: reels — a reel square drawn by SwiftUI (behind "reels"; src/components/guide-reel/swift-reels builds the spec)
 export { KReelView, REEL_OFF, nativeReel, type KReelSpec, type KReelViewProps, type NativeReelSpec } from "./src/Reel";
+
+// batch 3: Free Flight — the game in Swift ("freeflight", off by default), drawn by KCourierView on
+// its cover from its `flight` record; KFreeFlightView is the game alone (the binary's marker)
+export { FREE_FLIGHT_OFF, KFreeFlightView, nativeFreeFlight, type KFreeFlightData, type KFreeFlightStrings, type KFreeFlightViewProps, type NativeFreeFlight } from "./src/FreeFlight";

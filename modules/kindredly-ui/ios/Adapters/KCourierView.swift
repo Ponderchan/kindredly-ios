@@ -11,10 +11,10 @@ import ExpoUI
 
  Built as every step-5 screen is (KScreenProps.swift): the props subclass KScreenProps (theme,
  letterFont, insets, rev, commands), the view is registered with ExpoUIView and the "command"
- AsyncFunction (KindredlyUIModule.swift), and it MUST sit in an @expo/ui <Host>. It has no text
- field and no React Native island. A new file in this module: the next native build needs a pod
- install (not a clean prebuild) so Xcode sees it and Portable/Courier/KCourierScreen.swift and
- Portable/Kit/KObjectDepth.swift.
+ AsyncFunction (KindredlyUIModule.swift), and it MUST sit in an @expo/ui <Host>. It has no React
+ Native island; its one text field is Free Flight's hidden ear (batch 3, below). A new file in
+ this module: the next native build needs a pod install (not a clean prebuild) so Xcode sees it
+ and Portable/Courier/KCourierScreen.swift and Portable/Kit/KObjectDepth.swift.
 
  Props, beyond KScreenProps (insets.top the status bar the cover runs under, insets.bottom the
  home indicator):
@@ -30,13 +30,18 @@ import ExpoUI
  - cells: [{ key (looks | dress), label, value, count, swatch }]
  - looks, dress: [{ id, label, lock, hint, on, bird }]
  - firstClass: Me's 4a card (KMeFirstClassRecord)
+ - flight: Free Flight in Swift (batch 3, the "freeflight" switch; KFreeFlightRecord in
+   Adapters/KFreeFlightView.swift): `on` false (the default, and what an older JS bundle sends by
+   omission) keeps Play handing the page to the React Native game; `open` while TS has it open
  Every record is converted once per rev (useRev in TS).
 
  Commands: none (nothing on the page changes from outside but its props).
 
  Events, with what nativeEvent carries:
  - onCrBack {}              the chevron
- - onCrPlay {}              Play (TS opens Free Flight in React Native)
+ - onCrPlay {}              Play (TS opens Free Flight: in Swift with flight.on, else in React Native)
+ - onCrPlayEnd {}           Free Flight in Swift: the × (TS sets flight.open false)
+ - onCrFlightRun { gates, pace }  Free Flight in Swift: a run ended (TS saves it)
  - onCrSlipGo { id }        "Go to the Door" on the tracking slip (the thread's id)
  - onCrKeepsake { id }      a keepsake tile
  - onCrAllKeepsakes {}      "All n →"
@@ -255,6 +260,8 @@ final class KCourierViewProps: KScreenProps {
   @Field var looks: [KCourierTileRecord] = []
   @Field var dress: [KCourierTileRecord] = []
   @Field var firstClass: KMeFirstClassRecord = KMeFirstClassRecord()
+  // batch 3: Free Flight in Swift
+  @Field var flight: KFreeFlightRecord = KFreeFlightRecord()
 
   var onCrBack = EventDispatcher()
   var onCrPlay = EventDispatcher()
@@ -266,6 +273,8 @@ final class KCourierViewProps: KScreenProps {
   var onCrFirstClass = EventDispatcher()
   var onCrRack = EventDispatcher()
   var onCrUnderSky = EventDispatcher()
+  var onCrPlayEnd = EventDispatcher()
+  var onCrFlightRun = EventDispatcher()
 
   private(set) lazy var actions: KCourierActions = {
     let a = KCourierActions()
@@ -279,6 +288,8 @@ final class KCourierViewProps: KScreenProps {
     a.onFirstClass = { [weak self] in self?.onCrFirstClass() }
     a.onRack = { [weak self] open in self?.onCrRack(["open": open]) }
     a.onUnderSky = { [weak self] under in self?.onCrUnderSky(["under": under]) }
+    a.onPlayEnd = { [weak self] in self?.onCrPlayEnd() }
+    a.onFlightRun = { [weak self] gates, pace in self?.onCrFlightRun(["gates": gates, "pace": pace]) }
     return a
   }()
 
@@ -325,6 +336,8 @@ final class KCourierViewProps: KScreenProps {
       var seenD = Set<String>()
       c.dress = dress.filter { !$0.id.isEmpty && seenD.insert($0.id).inserted }.map(\.tile)
       c.firstClass = firstClass.firstClass
+      c.flight = flight.on ? flight.content : nil
+      c.flightOpen = flight.on && flight.open
       return c
     }
   }

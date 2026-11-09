@@ -3,14 +3,16 @@ import { forwardRef, type Ref } from "react";
 import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
 import type { KImageRefProps, KInsets, KScreenBaseProps, KScreenHandle } from "./types";
+import { nativeFreeFlight, type KFreeFlightData, type NativeFreeFlight } from "./FreeFlight";
 
 /* WREN'S JOURNEY, drawn by SwiftUI (the courier page, owner 2026-10-26; ios/Portable/Courier/
    KCourierScreen.swift, adapter ios/Adapters/KCourierView.swift), for
    src/screens/courier/CourierNative.tsx. TS builds every word and fact (src/screens/courier/
    courier-model.ts) and hands her over as snapshots of her own WrenBird (lib/bird-images);
    Swift owns what opens and shuts on the page (her flight log, the tracking slip, the wardrobe
-   rack), her perch's gestures, and reports taps. Free Flight stays React Native: Play is
-   reported, and TS hands the page to the React Native one for the game.
+   rack), her perch's gestures, and reports taps. Free Flight: with `flight` (batch 3, the
+   "freeflight" switch) Swift plays it on the cover while `flightOpen`; without it Play is
+   reported and TS hands the page to the React Native one for the game, as before.
 
    A whole screen: alone in one @expo/ui <Host style={{flex:1}}> (SurfaceHost), only after
    isKindredlyUIViewAvailable("KCourierView") and the "courier" NativeSurface switch say so. */
@@ -112,6 +114,10 @@ export type KCourierViewProps = CommonViewModifierProps &
     looks: KCourierTile[];
     dress: KCourierTile[];
     firstClass: KCourierFirstClass;
+    /** Free Flight in Swift (src/FreeFlight.tsx), or null to keep the React Native game */
+    flight?: KFreeFlightData | null;
+    /** TS has the game open (Play, ?play=1): Swift shows it once she can play */
+    flightOpen?: boolean;
     onBack?: () => void;
     onPlay?: () => void;
     /** "Go to the Door" on the tracking slip */
@@ -125,6 +131,10 @@ export type KCourierViewProps = CommonViewModifierProps &
     onRack?: (open: "looks" | "dress" | "") => void;
     /** the cover went out from under the status bar, or came back (the bar's style follows) */
     onUnderSky?: (under: boolean) => void;
+    /** Free Flight in Swift: the × (close it: flightOpen false) */
+    onPlayEnd?: () => void;
+    /** Free Flight in Swift: a run ended — save it (lib/free-flight saveRun) */
+    onFlightRun?: (gates: number, pace: number) => void;
   };
 
 type Ev<T> = (e: { nativeEvent: T }) => void;
@@ -132,7 +142,7 @@ type None = Ev<Record<string, never>>;
 
 type NativeKCourierViewProps = Omit<
   KCourierViewProps,
-  "letterFont" | "insets" | "rev" | "onBack" | "onPlay" | "onSlipGo" | "onKeepsake" | "onAllKeepsakes" | "onLook" | "onDress" | "onFirstClass" | "onRack" | "onUnderSky"
+  "letterFont" | "insets" | "rev" | "onBack" | "onPlay" | "onSlipGo" | "onKeepsake" | "onAllKeepsakes" | "onLook" | "onDress" | "onFirstClass" | "onRack" | "onUnderSky" | "flight" | "flightOpen" | "onPlayEnd" | "onFlightRun"
 > &
   Required<Pick<KCourierViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
@@ -146,6 +156,9 @@ type NativeKCourierViewProps = Omit<
     onCrFirstClass?: None;
     onCrRack?: Ev<{ open: string }>;
     onCrUnderSky?: Ev<{ under: boolean }>;
+    flight: NativeFreeFlight;
+    onCrPlayEnd?: None;
+    onCrFlightRun?: Ev<{ gates: number; pace: number }>;
   };
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
@@ -154,7 +167,7 @@ const NativeKCourierView = requireNativeView<NativeKCourierViewProps>("Kindredly
 
 /** The bare SwiftUI page. Only inside an @expo/ui <Host>. Pass the records memoised with a rev. */
 export const KCourierView = forwardRef<KScreenHandle, KCourierViewProps>(function KCourierView(
-  { modifiers, letterFont, insets, rev, onBack, onPlay, onSlipGo, onKeepsake, onAllKeepsakes, onLook, onDress, onFirstClass, onRack, onUnderSky, ...rest },
+  { modifiers, letterFont, insets, rev, onBack, onPlay, onSlipGo, onKeepsake, onAllKeepsakes, onLook, onDress, onFirstClass, onRack, onUnderSky, flight, flightOpen, onPlayEnd, onFlightRun, ...rest },
   ref,
 ) {
   return (
@@ -176,6 +189,9 @@ export const KCourierView = forwardRef<KScreenHandle, KCourierViewProps>(functio
       onCrFirstClass={onFirstClass ? () => onFirstClass() : undefined}
       onCrRack={onRack ? (e) => onRack(e.nativeEvent.open === "looks" || e.nativeEvent.open === "dress" ? e.nativeEvent.open : "") : undefined}
       onCrUnderSky={onUnderSky ? (e) => onUnderSky(!!e.nativeEvent.under) : undefined}
+      flight={nativeFreeFlight(flight, !!flightOpen)}
+      onCrPlayEnd={onPlayEnd ? () => onPlayEnd() : undefined}
+      onCrFlightRun={onFlightRun ? (e) => onFlightRun(Number(e.nativeEvent.gates) || 0, Number(e.nativeEvent.pace) || 0) : undefined}
     />
   );
 });
