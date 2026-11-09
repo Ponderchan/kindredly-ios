@@ -34,7 +34,7 @@ export const GUIDE_HREF: Record<GuideId, string> = {
   letters: "/compose",
   kindreds: "/(tabs)/kindreds",
   aura: "/aura",
-  stamps: "/stamps",
+  stamps: "/album",
   sealed: "/(tabs)/journal",
   courier: "/courier",
 };
