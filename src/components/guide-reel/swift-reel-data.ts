@@ -22,6 +22,17 @@ import { dimLabel } from "../../lib/aura-copy";
 import type { DimKey } from "../../lib/hatch-engine";
 import { AURA_SCENES, AURA_SKETCHES } from "../../data/aura-scenes";
 import { EGG_SHELLS } from "../EggShell";
+import { kindredsTitleParts, paperLook } from "./swift-reel-model";
+import { LETTER_FONT_CHOICES, letterFitSize, type LetterFontKey } from "../../theme/post";
+import { THEMES } from "../../theme/themes";
+import { PAPERS, type Paper } from "../../data/papers";
+import { WAVE_LINES } from "../../data/sparkle-deck";
+import { strangerName } from "../../lib/stranger-name";
+import { fontTiles } from "../../screens/settings/settings-model";
+import { topicTagLook } from "../10a/kit";
+import "../../data/strings-news-1-0-5";
+import "../../data/strings-papers"; // pp.*
+import "../../data/strings-step5-settings"; // set.letterFont
 import { CHICK_FILL } from "../WrenBird";
 import "../../data/strings-reel-guides";
 import "../../data/strings-today3d"; // pub.popLetter / pub.popNote, bag.opens
@@ -47,10 +58,11 @@ export type ReelData = {
   frosts?: Record<string, FrostSpec>;
   sigs?: Record<string, { box: [number, number, number, number]; steps: { d: string; delay: number; duration: number; length: number }[] }>;
   stickers?: Record<string, { name: string; bg: string; fg: string; border: string; tilt: number; pill: boolean }>;
+  papers?: object[];
 };
 
 /** what a reel may draw on beyond t(): her name, the egg she came from, whether she is still in it */
-export type ReelCtx = { wren: string; egg: number; egged: boolean };
+export type ReelCtx = { wren: string; egg: number; egged: boolean; font: LetterFontKey };
 
 export type ReelBuild = {
   /** her snapshots, by the name the Swift scenes ask for */
@@ -186,42 +198,6 @@ const kSig = (sig: PenSig, ms: number, fit: "box" | "ink") => {
   const vb = fit === "ink" ? penViewBox(sig, "ink", { aspect: K_SLOT_ASPECT }) : penViewBox(sig, "box");
   return { box: [vb.x, vb.y, vb.w, vb.h] as [number, number, number, number], steps: (penDrawPlan(sig, ms) ?? []).map((st) => ({ d: st.d, delay: st.delay, duration: st.duration, length: st.length })) };
 };
-/** kindreds.tsx Title: its parts, the one in the pen, and its size against BigType's */
-function kindredsTitle(): { parts: string[]; accent: number; fit: number } {
-  const title = t("gd.kindreds.title");
-  const kin = t("tab.kindreds");
-  const ems = (w: string) => Array.from(w).reduce((a, ch) => a + ((ch.codePointAt(0) ?? 0) >= 0x2e80 ? 1 : 0.6), 0);
-  const fold = (w: string) => w.normalize("NFD").replace(/[̀-ͯ]/g, "").toLocaleLowerCase();
-  let parts: { text: string; accent: boolean }[];
-  if (title.includes(" ")) {
-    const words = title.split(" ").filter(Boolean);
-    const n = words.length;
-    const k = fold(kin);
-    const stem = (w: string) => {
-      const a = fold(w);
-      let i = 0;
-      while (i < a.length && i < k.length && a[i] === k[i]) i++;
-      return i;
-    };
-    let best = -1;
-    let most = 1;
-    words.forEach((w, i) => {
-      const m = stem(w);
-      if (m > most) {
-        best = i;
-        most = m;
-      }
-    });
-    if (best < 0 && n > 1) best = words[n - 2].length > words[n - 1].length ? n - 2 : n - 1;
-    parts = words.map((w, i) => ({ text: w + (i < n - 1 ? " " : ""), accent: i === best }));
-  } else {
-    const at = kin ? title.indexOf(kin) : -1;
-    parts = at < 0 ? [{ text: title, accent: false }] : [{ text: title.slice(0, at), accent: false }, { text: kin, accent: true }, { text: title.slice(at + kin.length), accent: false }].filter((p) => p.text);
-  }
-  // fs = min(.11 s, .82 s / the longest word's ems), as a share of BigType's .11 s
-  const fit = Math.min(1, 0.82 / 0.11 / Math.max(1, ...title.split(/\s+/).map(ems)));
-  return { parts: parts.map((p) => p.text), accent: parts.findIndex((p) => p.accent), fit };
-}
 const KINDREDS: ReelBuild = {
   birds: { fly: "reelFlyEmpty" },
   assets: { palFace: getFace("f-02-tender-thinker")?.src ?? null, myFace: getFace("m-16-pattern-finder")?.src ?? null },
@@ -232,7 +208,7 @@ const KINDREDS: ReelBuild = {
     const palPen = kSentence(t("ga.mira"));
     const myPen = kSentence(t("ga.rowan"));
     const pair = (PICKS[lang as keyof typeof PICKS] ?? PICKS.en)[2];
-    const title = kindredsTitle();
+    const title = kindredsTitleParts(t("gd.kindreds.title"), t("tab.kindreds"));
     const frosts: Record<string, FrostSpec> = {};
     const pal = frostSpec(K_PAL);
     const me = frostSpec(K_ME);
@@ -309,6 +285,112 @@ const COURIER: ReelBuild = {
   },
 };
 
+/* ── what's new in 1.0.5 (news-reel/v1-0-5; 1.0.6 plays it too) ── */
+const N_NAMED = [
+  { seed: "news-105-9288", mark: "she", sign: "gemini" },
+  { seed: "news-105-32", mark: "he", sign: "leo" },
+  { seed: "news-105-13", mark: "", sign: "pisces" },
+] as const;
+const N_THEM = { seed: "news-105-9288", face: "f-02-tender-thinker", sig: penDemo("news-105-mira") };
+const N_ME = { seed: "news-105-37", face: "m-15-curious-mind", sig: penDemo("news-105-theo") };
+const N_SIG_OPTS = { gapMs: 40, minStrokeMs: 60 };
+/** the trade sheet's pad (.68 × .152 of the square) and the ceremony's slots (.34 × .1) */
+const N_PAD_ASPECT = (0.86 - 0.1 - 0.08) / (0.19 * 0.8);
+const N_SLOT_ASPECT = 0.34 / 0.1;
+const N_FONT_RUN = (
+  [
+    { key: "newsreader", at: 0 },
+    { key: "garamond", at: 1300 },
+    { key: "sfmono", at: 2500 },
+  ] as const
+).filter((r) => LETTER_FONT_CHOICES.includes(r.key));
+const nSig = (sig: PenSig, ms: number, aspect: number) => {
+  const vb = penViewBox(sig, "ink", { aspect });
+  return { box: [vb.x, vb.y, vb.w, vb.h] as [number, number, number, number], steps: (penDrawPlan(sig, ms, N_SIG_OPTS) ?? []).map((st) => ({ d: st.d, delay: st.delay, duration: st.duration, length: st.length })) };
+};
+/** a face's size against the size asked (letterFitSize: .85 SF Mono, .92 Garamond, else 1) */
+const fitOf = (key: LetterFontKey) => letterFitSize(key, 100) / 100;
+
+/** a paper as Swift draws it (swift-reel-model paperLook) with its words */
+const paperFacts = (p: Paper) => ({
+  ...paperLook(p),
+  first: p.tier === "first",
+  head: t("pp.strip.head", { name: kUpper(t(p.nameKey)) }),
+  nameLower: t(p.nameKey).toLocaleLowerCase(localeTag()),
+});
+
+const NEWS105: ReelBuild = {
+  birds: { happy: "reelHappy" },
+  assets: { meFace: getFace(N_ME.face)?.src ?? null, themFace: getFace(N_THEM.face)?.src ?? null },
+  data: ({ font }) => {
+    const lang = getLang();
+    const unsigned = t("ld.unsigned");
+    const named = (seed: string) => strangerName(seed, { lang, unsigned });
+    const palPen = kSentence(t("ga.mira"));
+    const pair = (PICKS[lang as keyof typeof PICKS] ?? PICKS.en)[1];
+    const lines = WAVE_LINES[lang as keyof typeof WAVE_LINES] ?? WAVE_LINES.en;
+    const tiles = fontTiles(LETTER_FONT_CHOICES, t);
+    const cat = STAMP_CATEGORIES.find((c) => c.id === DEFAULT_CATEGORY);
+    const frosts: Record<string, FrostSpec> = {};
+    N_NAMED.forEach((n, i) => {
+      const f = frostSpec(n.seed);
+      if (f) frosts[`named${i}`] = f;
+    });
+    const me = frostSpec(N_ME.seed);
+    const them = frostSpec(N_THEM.seed);
+    if (me) frosts.me = me;
+    if (them) frosts.them = them;
+    return {
+      words: {
+        ...wordsOf([
+          "nw105.press", "nw105.papers", "nw105.names", "nw105.trade", "nw105.pick", "nw105.sky", "nw105.font",
+          "cs2.cam.hint", "cs2.ed.fcBadge", "cs2.ed.f.original", "cs2.ed.f.vivid", "cs2.ed.f.warm", "cs2.ed.f.golden",
+          "nw105.press.topic", "nw105.papers.line", "pp.strip.fc", "pp.badge.fc",
+          "id2.sheet.name", "id2.sheet.sign", "id2.sheet.send", "id2.door.waiting",
+          "sp.pick.both", "sp.pick.hint", "sp.pick.same.1", "sp.wave.back",
+          "set.letterFont", "set.letterFont.sub", "nw105.font.line",
+        ]),
+        "photo.d": PHOTO_STAMP.d,
+        ...Object.fromEntries(N_NAMED.map((n, i) => [`name.${i}`, named(n.seed)])),
+        myPen: t("nw105.trade.pen"),
+        palPen,
+        meCourier: kUpper(named(N_ME.seed)),
+        themCourier: kUpper(named(N_THEM.seed)),
+        "pick.label": kUpper(t("sp.pick.label")),
+        "pick.asked": kUpper(t("sp.pick.theyAsked", { name: palPen })),
+        "pick.q": pair.q,
+        "pick.a": pair.a,
+        "pick.b": pair.b,
+        "sky.dusk": kUpper(t("sp.sky.dusk")),
+        "sky.night": kUpper(t("sp.sky.night")),
+        "line.dusk": lines.dusk[0],
+        "line.night": lines.night[0],
+        "wave.yours": kUpper(t("sp.wave.yourSky")),
+        "wave.theirs": kUpper(t("sp.wave.theirSky", { name: palPen })),
+        fontSample: tiles[0]?.sample ?? "",
+      },
+      nums: {
+        "fit.reader": fitOf(font),
+        ...Object.fromEntries(N_FONT_RUN.map((r) => [`fit.${r.key}`, fitOf(r.key)])),
+      },
+      lists: {
+        bites: PHOTO_STAMP.bites.map(([x, y]) => `${x},${y}`),
+        reelWidths: REEL_WIDTHS,
+        marks: N_NAMED.map((n) => n.mark),
+        signs: N_NAMED.map((n) => n.sign),
+        fontKeys: tiles.map((f) => f.key),
+        fontNames: tiles.map((f) => f.name),
+        runKeys: N_FONT_RUN.map((r) => r.key),
+        runAt: N_FONT_RUN.map((r) => String(r.at)),
+      },
+      colors: { topic: topicTagLook(cat?.color, THEMES.classic).fill },
+      frosts,
+      sigs: { "trade.pad": nSig(N_ME.sig, 1000, N_PAD_ASPECT), "trade.me": nSig(N_ME.sig, 900, N_SLOT_ASPECT), "trade.them": nSig(N_THEM.sig, 900, N_SLOT_ASPECT) },
+      papers: PAPERS.map(paperFacts),
+    };
+  },
+};
+
 export const REEL_BUILDS: Record<string, ReelBuild> = {
   sealed: SEALED,
   letters: LETTERS,
@@ -316,4 +398,5 @@ export const REEL_BUILDS: Record<string, ReelBuild> = {
   stamps: STAMPS_REEL,
   kindreds: KINDREDS,
   courier: COURIER,
+  "news-1.0.5": NEWS105,
 };

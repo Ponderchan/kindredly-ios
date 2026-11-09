@@ -17,6 +17,7 @@ import { reel as v105 } from "../news-reel/v1-0-5";
 import { REEL_BUILDS, birdsOf, type ReelCtx } from "./swift-reel-data";
 import { getWrenEgg, useWrenName } from "../../lib/wren-name";
 import { useWrenStage } from "../../lib/wren-stage";
+import { useLetterFont } from "../../lib/theme";
 
 /* THE REELS IN SWIFT, FROM TS (2026-11-09, behind the "reels" switch, off by default).
    ────────────────────────────────────────────────────────────────────────
@@ -174,7 +175,8 @@ export function useReelSpecs(asks: readonly ReelAsk[], live: boolean): Map<strin
       alive = false;
     };
   }, [wantsEgg]);
-  const ctx = useMemo<ReelCtx>(() => ({ wren, egg, egged: stage === "egg" }), [wren, egg, stage]);
+  const font = useLetterFont();
+  const ctx = useMemo<ReelCtx>(() => ({ wren, egg, egged: stage === "egg", font }), [wren, egg, stage, font]);
   // every snapshot and every bundled picture the reels on show draw, asked for once
   const poses = useMemo(() => {
     const out = new Set<BirdPose>();

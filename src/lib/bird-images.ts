@@ -237,7 +237,7 @@ const REEL_COATS = ["sticker", "plush", "peach", "ink"] as const;
 /* the courier reel draws her at her own stage, or hatched while she is still an egg (courier.tsx
    useHatchedStage): each of those pictures comes twice, as she is and hatched ("-h") */
 type ReelStaged = `reelCoat-${(typeof REEL_COATS)[number]}` | "reelCoatBeanie" | "reelCurious" | "reelDelight";
-export type ReelPose = "reelSleepy" | "reelContent" | "reelFlyHappy" | "reelFlyEmpty" | "reelHatchContent" | "reelHatchDelight" | "reelHatchCurious" | ReelStaged | `${ReelStaged}-h`;
+export type ReelPose = "reelSleepy" | "reelContent" | "reelFlyHappy" | "reelFlyEmpty" | "reelHappy" | "reelHatchContent" | "reelHatchDelight" | "reelHatchCurious" | ReelStaged | `${ReelStaged}-h`;
 const REEL_STAGED: Record<ReelStaged, BirdPoseSpec> = {
   // the dressing disc (.52 s): each coat bare and content, then Night with the beanie, delighted
   ...(Object.fromEntries(REEL_COATS.map((skin) => [`reelCoat-${skin}`, { size: 188, mood: "content", skin, accessory: "none" }])) as Record<`reelCoat-${(typeof REEL_COATS)[number]}`, BirdPoseSpec>),
@@ -254,6 +254,8 @@ const REEL_POSES: Record<ReelPose, BirdPoseSpec> = {
   reelFlyHappy: { size: 94, mood: "happy", fly: true },
   // kindreds: bringing the reply (.34 s), flying, happy, the envelope drawn apart from her
   reelFlyEmpty: { size: 123, mood: "happy", fly: true, letter: false },
+  // the 1.0.5 release reel: perched on the list of courier names (.16 s), happy
+  reelHappy: { size: 58, mood: "happy" },
   // courier: the hatchling out of the egg (.56 s) and under her name tag (.46 s), bare
   reelHatchContent: { size: 202, mood: "content", stage: "hatch", accessory: "none" },
   reelHatchDelight: { size: 202, mood: "delight", stage: "hatch", accessory: "none" },

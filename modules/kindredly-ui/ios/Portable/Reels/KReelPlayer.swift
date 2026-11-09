@@ -63,6 +63,7 @@ struct KReelData: Decodable {
   var frosts: [String: KReelFrostJSON] = [:]
   var sigs: [String: KReelSigJSON] = [:]
   var stickers: [String: KReelStickerJSON] = [:]
+  var papers: [KReelPaperJSON] = []
 
   init() {}
 
@@ -75,9 +76,10 @@ struct KReelData: Decodable {
     frosts = (try? c.decodeIfPresent([String: KReelFrostJSON].self, forKey: .frosts)) ?? [:]
     sigs = (try? c.decodeIfPresent([String: KReelSigJSON].self, forKey: .sigs)) ?? [:]
     stickers = (try? c.decodeIfPresent([String: KReelStickerJSON].self, forKey: .stickers)) ?? [:]
+    papers = (try? c.decodeIfPresent([KReelPaperJSON].self, forKey: .papers)) ?? []
   }
 
-  private enum Keys: String, CodingKey { case words, nums, lists, colors, frosts, sigs, stickers }
+  private enum Keys: String, CodingKey { case words, nums, lists, colors, frosts, sigs, stickers, papers }
 
   private static var cache: [String: KReelData] = [:]
 
@@ -182,7 +184,7 @@ enum KReels {
     case "stamps": return KReelStamps.def
     case "kindreds": return KReelKindreds.def
     case "courier": return KReelCourier.def
-    // REELS-MORE
+    case "news-1.0.5": return KReelNews105.def
     default: return nil
     }
   }
