@@ -25,7 +25,7 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 | App Store | Binary | Builds | Code | Dates |
 |---|---|---|---|---|
-| 1.0.8 | 1.2.7 | 38–39 | `ios-1.2.3` up to dd98c4a | b38 uploaded 10-31, b39 11-01; **approved 11-09** |
+| 1.0.8 | 1.2.7 | 38–39 | `ios-1.2.3` up to dd98c4a | b38 uploaded 10-31, b39 11-01; **approved 11-09**; OTA 11-10 (group e4caa912, branch `ota-1.0.8-fixes` = dd98c4a + db822b9 + fdc364d) |
 | 1.0.7 | 1.2.6 | 36–37 | `ios-1.2.3` | b36 built and uploaded 10-28 from a2f2159, not submitted; b37 adds the glass tab bar and the guest stamps fix |
 | 1.0.6 | 1.2.5 | 35 | `ios-1.2.3` at b355ff6 | uploaded 10-25, expedited review, **live 10-25 03:03 Beijing** (Apple lookup) |
 | 1.0.5 | 1.2.4 | 29–34 | `ios-1.2.3` up to b710f2f | b34 rejected for a launch crash, then approved and **released automatically 10-25** — it crashes at launch on every iOS 27 phone (built with Xcode 27 without the scene life cycle); 1.0.6 fixes it. Web launch-day deploy and 0035 the same day |
@@ -51,6 +51,10 @@ Fixed
 ---
 
 ## 1.0.8 (binary 1.2.7, builds 38–39), approved 2026-11-09
+
+Over the air, 2026-11-10 (group e4caa912, from `ota-1.0.8-fixes`: the build's code dd98c4a plus two fixes, nothing else)
+- Signing back in shows your own journal again, and "Meet …" no longer greets you on every sign-in (the storage bucket now switches the moment a session is known; nothing had been deleted). [OTA]
+- The stamps guide's button in Wren's room opens your album instead of bouncing to the launch animation. [OTA]
 
 Changed
 - Settings reads larger: row names at 17 (iOS body size), sublines at 14, rows a little taller. [binary]
