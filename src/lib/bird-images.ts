@@ -232,13 +232,15 @@ const SLICE4_POSES = {
    React Native reels draw WrenBird at a fraction of the square's side; each picture here is her
    at that fraction of the widest square (360), in her own look and stage as the reels leave them,
    so Swift only ever draws her a little smaller. Not base: captured only while a Swift reel asks. */
-export type ReelPose = "reelSleepy" | "reelContent" | "reelFlyHappy";
+export type ReelPose = "reelSleepy" | "reelContent" | "reelFlyHappy" | "reelFlyEmpty";
 const REEL_POSES: Record<ReelPose, BirdPoseSpec> = {
   // sealed: dozing by the cloud (.27 s); letters: by the desk, content then sleepy (.24 s)
   reelSleepy: { size: 98, mood: "sleepy" },
   reelContent: { size: 87, mood: "content" },
   // letters: the courier over the desks (.26 s) and past the title (.22 s), flying, happy
   reelFlyHappy: { size: 94, mood: "happy", fly: true },
+  // kindreds: bringing the reply (.34 s), flying, happy, the envelope drawn apart from her
+  reelFlyEmpty: { size: 123, mood: "happy", fly: true, letter: false },
 };
 
 /* sizes are the RN call sites' own, so the Swift picture is the same drawing */

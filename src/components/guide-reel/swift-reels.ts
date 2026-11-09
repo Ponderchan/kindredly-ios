@@ -164,7 +164,7 @@ export function useReelSpecs(asks: readonly ReelAsk[], live: boolean): Map<strin
   }, [idsKey]);
   const birds = useBirdImageRefs(poses);
   const assetMods = useMemo(() => {
-    const out: Record<string, number> = {};
+    const out: Record<string, number | null> = {};
     for (const id of idsKey ? idsKey.split(",") : []) Object.assign(out, REEL_BUILDS[id].assets ?? {});
     return out;
   }, [idsKey]);

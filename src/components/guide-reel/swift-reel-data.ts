@@ -1,7 +1,14 @@
 import type { BirdPose } from "../../lib/bird-images";
 import { frostSpec, type FrostSpec } from "../../lib/frost";
-import { t } from "../../lib/i18n";
-import { clockTime, localeTag } from "../../lib/format";
+import { getLang, t } from "../../lib/i18n";
+import { defaultName } from "../../lib/default-name";
+import { PEN_BASELINE, PEN_H, PEN_W, penDemo, penDrawPlan, penTypedUpright, penViewBox, type PenSig } from "../../lib/pen-signature";
+import { PICKS } from "../../data/sparkle-deck";
+import { getFace } from "../../data/aura-avatar-lib";
+import "../../data/strings-identity2"; // id2.sheet.*, id2.door.waiting
+import "../../data/strings-sparkle"; // sp.pick.*
+import "../../data/strings-reel-kindreds"; // ga.rowan
+import { clockTime, dShort, localeTag } from "../../lib/format";
 import { MORNING_HOUR } from "../../lib/day";
 import { OPENING_MIN } from "../../lib/weighted-count";
 import { STAMPS, STAMP_CATEGORIES, STARTER_STAMPS, getStamp, sname } from "../../data/stamps";
@@ -44,7 +51,7 @@ export type ReelBuild = {
   /** her snapshots, by the name the Swift scenes ask for */
   birds?: Record<string, BirdPose>;
   /** bundled pictures (require()), by name */
-  assets?: Record<string, number>;
+  assets?: Record<string, number | null>;
   /** the words and facts, now, in the reader's language */
   data: () => ReelData;
 };
@@ -155,9 +162,113 @@ const STAMPS_REEL: ReelBuild = {
   },
 };
 
+/* ── how a kindred forms (guide-reel/kindreds) ── */
+const K_PAL = "guide-pal-5550";
+const K_ME = "guide-you-12688";
+const K_PAL_SIG = penDemo(K_PAL);
+const K_MY_SIG = penDemo(K_ME);
+/** the ceremony's signature slot, .38 × .12 of the square */
+const K_SLOT_ASPECT = 0.38 / 0.12;
+const kUpper = (x: string) => x.toLocaleUpperCase(localeTag());
+const kSentence = (x: string) => {
+  const low = x.toLocaleLowerCase(localeTag());
+  return low.charAt(0).toLocaleUpperCase(localeTag()) + low.slice(1);
+};
+const kSig = (sig: PenSig, ms: number, fit: "box" | "ink") => {
+  const vb = fit === "ink" ? penViewBox(sig, "ink", { aspect: K_SLOT_ASPECT }) : penViewBox(sig, "box");
+  return { box: [vb.x, vb.y, vb.w, vb.h] as [number, number, number, number], steps: (penDrawPlan(sig, ms) ?? []).map((st) => ({ d: st.d, delay: st.delay, duration: st.duration, length: st.length })) };
+};
+/** kindreds.tsx Title: its parts, the one in the pen, and its size against BigType's */
+function kindredsTitle(): { parts: string[]; accent: number; fit: number } {
+  const title = t("gd.kindreds.title");
+  const kin = t("tab.kindreds");
+  const ems = (w: string) => Array.from(w).reduce((a, ch) => a + ((ch.codePointAt(0) ?? 0) >= 0x2e80 ? 1 : 0.6), 0);
+  const fold = (w: string) => w.normalize("NFD").replace(/[̀-ͯ]/g, "").toLocaleLowerCase();
+  let parts: { text: string; accent: boolean }[];
+  if (title.includes(" ")) {
+    const words = title.split(" ").filter(Boolean);
+    const n = words.length;
+    const k = fold(kin);
+    const stem = (w: string) => {
+      const a = fold(w);
+      let i = 0;
+      while (i < a.length && i < k.length && a[i] === k[i]) i++;
+      return i;
+    };
+    let best = -1;
+    let most = 1;
+    words.forEach((w, i) => {
+      const m = stem(w);
+      if (m > most) {
+        best = i;
+        most = m;
+      }
+    });
+    if (best < 0 && n > 1) best = words[n - 2].length > words[n - 1].length ? n - 2 : n - 1;
+    parts = words.map((w, i) => ({ text: w + (i < n - 1 ? " " : ""), accent: i === best }));
+  } else {
+    const at = kin ? title.indexOf(kin) : -1;
+    parts = at < 0 ? [{ text: title, accent: false }] : [{ text: title.slice(0, at), accent: false }, { text: kin, accent: true }, { text: title.slice(at + kin.length), accent: false }].filter((p) => p.text);
+  }
+  // fs = min(.11 s, .82 s / the longest word's ems), as a share of BigType's .11 s
+  const fit = Math.min(1, 0.82 / 0.11 / Math.max(1, ...title.split(/\s+/).map(ems)));
+  return { parts: parts.map((p) => p.text), accent: parts.findIndex((p) => p.accent), fit };
+}
+const KINDREDS: ReelBuild = {
+  birds: { fly: "reelFlyEmpty" },
+  assets: { palFace: getFace("f-02-tender-thinker")?.src ?? null, myFace: getFace("m-16-pattern-finder")?.src ?? null },
+  data: () => {
+    const lang = getLang();
+    const palName = defaultName(K_PAL, lang) ?? "";
+    const myName = defaultName(K_ME, lang) ?? "";
+    const palPen = kSentence(t("ga.mira"));
+    const myPen = kSentence(t("ga.rowan"));
+    const pair = (PICKS[lang as keyof typeof PICKS] ?? PICKS.en)[2];
+    const title = kindredsTitle();
+    const frosts: Record<string, FrostSpec> = {};
+    const pal = frostSpec(K_PAL);
+    const me = frostSpec(K_ME);
+    if (pal) frosts.pal = pal;
+    if (me) frosts.me = me;
+    return {
+      words: {
+        ...wordsOf(["ui.you", "ch.sendYours", "id2.sheet.title", "id2.sheet.trace", "id2.sheet.traceEmpty", "id2.sheet.send", "id2.door.waiting", "sp.pick.both", "sp.pick.same.1"]),
+        // "{n} OF 5": Swift fills {n} as the rows fill
+        "mk.ofFive": t("mk.ofFive"),
+        // the sheet's labels, upper-cased as its label() does
+        "id2.sheet.name": kUpper(t("id2.sheet.name")),
+        "id2.sheet.sign": kUpper(t("id2.sheet.sign")),
+        palName,
+        palNameUp: kUpper(palName),
+        myNameUp: kUpper(myName),
+        palPen,
+        myPen,
+        sinceChip: t("in.sinceChip", { date: kUpper(dShort(new Date())) }),
+        "pick.label": kUpper(t("sp.pick.label")),
+        "pick.asked": kUpper(t("sp.pick.theyAsked", { name: palPen })),
+        "pick.q": pair.q,
+        "pick.a": pair.a,
+        "pick.b": pair.b,
+      },
+      nums: {
+        penAspect: PEN_H / PEN_W,
+        penBaseline: PEN_BASELINE,
+        uprightPen: penTypedUpright(myPen) ? 1 : 0,
+        uprightEmpty: penTypedUpright(t("id2.sheet.traceEmpty")) ? 1 : 0,
+        titleFit: title.fit,
+        titleAccent: title.accent,
+      },
+      lists: { titleParts: title.parts },
+      frosts,
+      sigs: { pad: kSig(K_MY_SIG, 1000, "box"), mine: kSig(K_MY_SIG, 400, "ink"), theirs: kSig(K_PAL_SIG, 650, "ink") },
+    };
+  },
+};
+
 export const REEL_BUILDS: Record<string, ReelBuild> = {
   sealed: SEALED,
   letters: LETTERS,
   aura: AURA,
   stamps: STAMPS_REEL,
+  kindreds: KINDREDS,
 };

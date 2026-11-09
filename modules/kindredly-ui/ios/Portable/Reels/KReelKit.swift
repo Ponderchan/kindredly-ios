@@ -212,8 +212,8 @@ enum KReelInk {
 enum KReelFont {
   static func sys(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font { .system(size: max(1, size), weight: weight) }
   static func mono(_ size: CGFloat, _ weight: Font.Weight = .semibold) -> Font { .system(size: max(1, size), weight: weight, design: .monospaced) }
-  static func letter(_ size: CGFloat, _ face: KLetterFace, weight: Font.Weight? = nil) -> Font {
-    let f = KType.letter(max(1, size), face: face)
+  static func letter(_ size: CGFloat, _ face: KLetterFace, weight: Font.Weight? = nil, italic: Bool = false) -> Font {
+    let f = KType.letter(max(1, size), italic: italic, face: face)
     return weight.map { f.weight($0) } ?? f
   }
 }
@@ -324,6 +324,8 @@ struct KReelBigType: View {
   var fit: CGFloat = 1
   /// the line, as a multiple of the size (BigType: .13 / .11)
   var line: CGFloat = 0.13 / 0.11
+  /// a space after each word but the last (false: the parts carry their own, kindreds' title)
+  var spaced: Bool = true
 
   var body: some View {
     let size = s * 0.11 * fit
@@ -331,7 +333,7 @@ struct KReelBigType: View {
     for (i, w) in words.enumerated() {
       let v = c.once(380, 120 + Double(i) * 170)
       let ink = accent.contains(i) ? accentColor : color
-      text = text + Text(verbatim: w + (i < words.count - 1 ? " " : "")).foregroundColor(ink.opacity(v))
+      text = text + Text(verbatim: w + (spaced && i < words.count - 1 ? " " : "")).foregroundColor(ink.opacity(v))
     }
     return text
       .font(KReelFont.sys(size, .bold))
