@@ -38,6 +38,10 @@ strings(
     // particle after it, or one chosen from its last syllable); lowercase, like ld.writeBackPh, which stays for
     // unsigned letters. Also the pen-pal chat's and the reader's reply bar with the switch on
     "ld.writeBackTo": "write back to {name}…",
+    // the reply box over the keyboard (2026-11-09): who you are answering, and its two buttons' VoiceOver labels
+    "rd.replyingTo": "Replying to {name}",
+    "rd.expandA11y": "Expand to full screen",
+    "rd.collapseA11y": "Back to the small box",
     // the card's ⋯ menu and its VoiceOver action: restore the letter just passed (one step only; offered while it is still on the desk)
     "ld.bringBack": "Bring back the last letter",
     // the card shown when the first load found no connection and nothing was kept (under net.offline.title)
@@ -102,6 +106,10 @@ strings(
     "ld.left.a11y.1": "Carta siguiente. Queda una hoy.",
     "ld.left.a11y": "Carta siguiente. Quedan {n} hoy.",
     "ld.writeBackTo": "responde a {name}…",
+    // the reply box over the keyboard (2026-11-09): who you are answering, and its two buttons' VoiceOver labels
+    "rd.replyingTo": "Respondiendo a {name}",
+    "rd.expandA11y": "Abrir en pantalla completa",
+    "rd.collapseA11y": "Volver al cuadro pequeño",
     "ld.bringBack": "Recuperar la última carta",
     "ld.offlineDesk": "Tus cartas van a estar aquí cuando vuelvas a tener conexión.",
     "ld.loading.a11y": "Las cartas de hoy vienen en camino.",
@@ -138,6 +146,10 @@ strings(
     "ld.left.a11y.1": "Próxima carta. Resta uma hoje.",
     "ld.left.a11y": "Próxima carta. Restam {n} hoje.",
     "ld.writeBackTo": "responda a {name}…",
+    // the reply box over the keyboard (2026-11-09): who you are answering, and its two buttons' VoiceOver labels
+    "rd.replyingTo": "Respondendo a {name}",
+    "rd.expandA11y": "Abrir em tela cheia",
+    "rd.collapseA11y": "Voltar para a caixa pequena",
     "ld.bringBack": "Trazer de volta a última carta",
     "ld.offlineDesk": "Suas cartas vão estar aqui quando você voltar a ficar online.",
     "ld.loading.a11y": "As cartas de hoje estão a caminho.",
@@ -174,6 +186,10 @@ strings(
     "ld.left.a11y.1": "Surat berikutnya. Tinggal satu hari ini.",
     "ld.left.a11y": "Surat berikutnya. Tinggal {n} hari ini.",
     "ld.writeBackTo": "balas {name}…",
+    // the reply box over the keyboard (2026-11-09): who you are answering, and its two buttons' VoiceOver labels
+    "rd.replyingTo": "Membalas {name}",
+    "rd.expandA11y": "Buka layar penuh",
+    "rd.collapseA11y": "Kembali ke kotak kecil",
     "ld.bringBack": "Kembalikan surat terakhir",
     "ld.offlineDesk": "Surat-suratmu bakal ada di sini begitu kamu online lagi.",
     "ld.loading.a11y": "Surat hari ini sedang dalam perjalanan.",
@@ -210,6 +226,10 @@ strings(
     "ld.left.a11y.1": "Lettre suivante. Plus qu'une aujourd'hui.",
     "ld.left.a11y": "Lettre suivante. Encore {n} aujourd'hui.",
     "ld.writeBackTo": "réponds à {name}…",
+    // the reply box over the keyboard (2026-11-09): who you are answering, and its two buttons' VoiceOver labels
+    "rd.replyingTo": "Tu réponds à {name}",
+    "rd.expandA11y": "Passer en plein écran",
+    "rd.collapseA11y": "Revenir au petit format",
     "ld.bringBack": "Ramener la dernière lettre",
     "ld.offlineDesk": "Tes lettres seront là dès que tu seras de nouveau en ligne.",
     "ld.loading.a11y": "Les lettres du jour sont en route.",
@@ -246,6 +266,10 @@ strings(
     "ld.left.a11y.1": "Nächster Brief. Heute noch einer.",
     "ld.left.a11y": "Nächster Brief. Heute noch {n}.",
     "ld.writeBackTo": "schreib {name} zurück…",
+    // the reply box over the keyboard (2026-11-09): who you are answering, and its two buttons' VoiceOver labels
+    "rd.replyingTo": "Antwort an {name}",
+    "rd.expandA11y": "Auf Vollbild vergrößern",
+    "rd.collapseA11y": "Zurück zum kleinen Feld",
     "ld.bringBack": "Letzten Brief zurückholen",
     "ld.offlineDesk": "Deine Briefe sind da, sobald du wieder online bist.",
     "ld.loading.a11y": "Die Briefe von heute sind unterwegs.",
@@ -282,6 +306,10 @@ strings(
     "ld.left.a11y.1": "Lettera successiva. Ne resta una oggi.",
     "ld.left.a11y": "Lettera successiva. Ne restano {n} oggi.",
     "ld.writeBackTo": "rispondi a {name}…",
+    // the reply box over the keyboard (2026-11-09): who you are answering, and its two buttons' VoiceOver labels
+    "rd.replyingTo": "Stai rispondendo a {name}",
+    "rd.expandA11y": "Espandi a schermo intero",
+    "rd.collapseA11y": "Torna al riquadro piccolo",
     "ld.bringBack": "Riprendi l'ultima lettera",
     "ld.offlineDesk": "Le tue lettere saranno qui appena torni online.",
     "ld.loading.a11y": "Le lettere di oggi stanno arrivando.",
@@ -318,6 +346,10 @@ strings(
     "ld.left.a11y.1": "次の手紙。今日はあと1通です。",
     "ld.left.a11y": "次の手紙。今日はあと{n}通です。",
     "ld.writeBackTo": "{name}に返事を書く…",
+    // the reply box over the keyboard (2026-11-09): who you are answering, and its two buttons' VoiceOver labels
+    "rd.replyingTo": "{name}への返事",
+    "rd.expandA11y": "全画面にする",
+    "rd.collapseA11y": "小さい入力欄に戻す",
     "ld.bringBack": "さっきの手紙を戻す",
     "ld.offlineDesk": "オンラインに戻ったら、ここに手紙が届きます。",
     "ld.loading.a11y": "今日の手紙が向かっています。",
@@ -354,6 +386,10 @@ strings(
     "ld.left.a11y.1": "다음 편지. 오늘 1통 남았어요.",
     "ld.left.a11y": "다음 편지. 오늘 {n}통 남았어요.",
     "ld.writeBackTo": "{name}에게 답장 쓰기…",
+    // the reply box over the keyboard (2026-11-09): who you are answering, and its two buttons' VoiceOver labels
+    "rd.replyingTo": "{name}에게 답장 중",
+    "rd.expandA11y": "전체 화면으로 펼치기",
+    "rd.collapseA11y": "작은 입력창으로 돌아가기",
     "ld.bringBack": "방금 넘긴 편지 되돌리기",
     "ld.offlineDesk": "다시 연결되면 편지가 여기 도착해요.",
     "ld.loading.a11y": "오늘의 편지가 오고 있어요.",
