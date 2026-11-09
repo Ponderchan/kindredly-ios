@@ -41,7 +41,10 @@ import { useWrenRoom, type WrenRoomUi } from "./useWrenRoom";
      "reel:<row key>" holding ReelSquare with the guide's or the release's
      reel, sized here to the card's inside (the React Native card's: at
      most 360 wide in the 22 gutters, less its 1pt edge). Swift draws the
-     card around it, its words and its button.
+     card around it, its words and its button. Behind the "reels" switch
+     (batch 3, off by default) a reel the Swift player draws goes on the
+     card's record instead (components/guide-reel/swift-reels) and its
+     island is left out.
    · the field is Swift's: its words come here with every edit; canSend
      goes as the composer command; setText empties it after her answer or
      a mail that went; focus gives it the keyboard for a bug or an idea.

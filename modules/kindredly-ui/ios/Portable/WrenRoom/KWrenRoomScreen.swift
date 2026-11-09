@@ -66,7 +66,9 @@ import SwiftUI
  React Native parts): each card's square is a named island (`reel(slot)`, the adapter's KSlot),
  which TS sizes to the card's inside. The list is a plain VStack, never lazy: islands can't live in
  a LazyVStack row (Adapters/KSlotView.swift). The island is interactive (a tap starts the reel
- over, as before) and VoiceOver reads it as the React Native button it is.
+ over, as before) and VoiceOver reads it as the React Native button it is. Batch 3 (behind the
+ "reels" switch, off by default): a card whose record carries a reel (KWrenRoomCard.reel) draws
+ it here with the Swift player (Portable/Reels KReelSquare) and has no island.
 
  Wren is never drawn here: her faces are TS's snapshots of the official bird (lib/bird-images
  "official" and "officialCurious"), set on the disc as her Kindreds row sets them (KPersonBirdFace).

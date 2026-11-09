@@ -15,7 +15,9 @@ import SwiftUI
    the rest empty; while paused the playing bar sits at 0, as the React Native Seg resets;
  - a tap starts it over from the first scene;
  - it plays only while `live` (React Native: useIsFocused on the room): TS says so in the spec.
-   Paused, the timer stops and the frame holds (the TimelineView stops ticking).
+   Paused, the timer stops and the frame holds (the TimelineView stops ticking). Scrolled out of
+   sight in the room's transcript it stops drawing frames too (nothing to see; React Native's
+   Reanimated keeps animating there), while its scenes keep their time.
  - on Midnight's dark card it gets a hairline edge in the reel's own rule colour just inside the
    square, its corners following the holder's clip (`cornerTop` / `cornerBottom`: GuideCard's
    17 / 0 by default); the light themes draw none.
@@ -211,6 +213,9 @@ public struct KReelSquare: View {
   @State private var prev: Mount?
   /// when the playing scene's timer began (its bar fills from here)
   @State private var segStart = Date()
+  /// on screen in a scroll view (the room's transcript): off it, frames stop being drawn, though
+  /// the scenes keep their time as React Native's do (outside a scroll view it stays true)
+  @State private var visible = true
 
   /// the React Native reel's hairline on a dark card, as its scene bars' track
   static let edge = kReelColor("rgba(17,17,19,0.14)")
@@ -241,7 +246,7 @@ public struct KReelSquare: View {
         SwiftUI.Button {
           restart()
         } label: {
-          TimelineView(.animation(paused: !spec.live)) { tl in
+          TimelineView(.animation(paused: !spec.live || !visible)) { tl in
             frame(def: def, data: data, s: s, now: tl.date)
           }
           .frame(width: s, height: s)
@@ -255,6 +260,7 @@ public struct KReelSquare: View {
           .contentShape(Rectangle())
         }
         .buttonStyle(KReelPlain())
+        .onScrollVisibilityChange(threshold: 0.01) { visible = $0 }
         .accessibilityLabel(spec.label)
         .accessibilityAddTraits(.isButton)
         .task(id: Timer(index: cur.index, run: cur.run, live: spec.live)) {
