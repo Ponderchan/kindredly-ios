@@ -7,6 +7,7 @@ import { MOOD_GROUP_IDS, MOOD_GROUPS, moodLabel, type MoodGroup } from "../../da
 import { demoJournal } from "../../data/demo";
 import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
 import { hiddenDemoIds, loadJournal, type JournalEntry } from "../../lib/journal";
+import { onStorageUserChange } from "../../lib/scoped-store";
 import { leaveMood, leaveSpark } from "../../lib/journal-handoff";
 import { scoped } from "../../lib/scoped-store";
 import { speakAs, useWrenName } from "../../lib/wren-name";
@@ -252,6 +253,10 @@ export function useNotesModel(opts: { demo?: NotesDemo; forceEmpty?: boolean } =
       alive = false;
     };
   }, []);
+
+  /* a sign-in or sign-out while Notes is up (or mounted in the same moment) re-reads the pages
+     from the account they now belong to (2026-11-09: the guest's empty journal stayed on screen) */
+  useEffect(() => onStorageUserChange(() => void refresh()), [refresh]);
 
   /* ── today, re-read on focus and when the app comes back ── */
   const [now, setNow] = useState(() => Date.now());

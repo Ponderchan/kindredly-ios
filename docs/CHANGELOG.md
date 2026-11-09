@@ -43,6 +43,7 @@ Changed
 
 Fixed
 - Wren's room: the mood stamps guide's button opens the album instead of replaying the launch and dropping you on Today. [OTA]
+- Signing in again no longer shows "Meet Mist." every time, and Notes no longer looks empty right after a sign-in: screens that opened in the same moment read the guest's copy on this phone instead of the account's. Nothing was deleted. [OTA]
 - Today: tapping "Otis wants a look" opens the wardrobe; the slip used to take itself away first, so the sheet never opened. [OTA]
 
 - Wren's desk shows a post's picture or short film under it (animated pictures play, films loop silently, still with Reduce Motion), with Open to the full file or the post's link. [OTA] [server: 0050]

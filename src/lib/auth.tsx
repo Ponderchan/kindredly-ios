@@ -256,7 +256,20 @@ const isReviewEmail = (email: string): boolean => email.trim().toLowerCase() ===
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(!supabaseReady);
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSessionState] = useState<Session | null>(null);
+  /* THE BUCKET SWITCHES WITH THE SESSION, NOT AFTER IT (2026-11-09). The storage namespace used to
+     follow the session only in the effect below, and React runs a child's effects before its
+     parent's: a screen that mounted in the same commit as a sign-in — the tabs, straight after
+     signing in from the onboarding — read the GUEST bucket in its first effects. Notes showed no
+     pages ("my journal is gone" — it wasn't: it was the guest's empty one) and the Plush moment
+     found no "celebrated" flag and said "Meet Mist." again on every sign-in (owner, 2026-11-09).
+     So every place a session is learned switches the bucket first, synchronously, outside render;
+     the effect below still runs (same answer, so a no-op there) and does the adopting. */
+  const setSession = useCallback((s: Session | null) => {
+    const owner = ownerOf(s?.user ?? null);
+    setStorageUser(owner === "anon" ? null : owner);
+    setSessionState(s);
+  }, []);
   /* the session as of now, for callbacks made once (deleteAccount's scrub
      read the first render's session — usually none — and so never removed
      the deleted account's bucket) */
