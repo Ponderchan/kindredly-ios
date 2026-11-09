@@ -6,7 +6,7 @@ import SwiftUI
  ONE LETTER ON THE DESK (Today 3d × 25b, design Prompts 1–2), at the height the deck's slot gives
  it (KTodayGeometry.cardHeight: 548 on a 393 × 852 phone, never under 360; shorter while the
  reader writes back, the chat composers' A1, owner 2026-10-18: replyCardHeight, room for the
- keyboard and the reply bar, 272 in the prototype). On the letter sheet (KLetterSheet, owner
+ keyboard and the reply box, 272 in the prototype). On the letter sheet (KLetterSheet, owner
  2026-11-09: the black frame is gone, rule B as on the Aura card): sf, a 1pt edge in the face's ink
  at 11%, corners of 24, a hard 6/6 drop with no blur in the theme's depth colour; the content keeps
  the InkCard .me's insets (16 inside where the 2.5 outline was), so nothing inside moved:
@@ -396,24 +396,29 @@ struct KLetterCardAccessibilityActions: ViewModifier {
 /// the frosted window filling it, or the flat veil tile for a deleted account. It can also hold
 /// the mosaic at 28 in a 2pt ln edge (or the mosaic veil), §9's switch-off slot, though the
 /// switch-off docket draws the old header instead. Decorative: the card's one VoiceOver label
-/// names the writer.
+/// names the writer. The reply box (KReplyDock) draws the same face smaller (`side` 22, and 30 in
+/// its full page's quote): everything in it scales with the side, the corners a quarter of it.
 struct KCardFaceSlot: View {
   let theme: KTheme
   let face: KCardWho.Face
+  var side: CGFloat = KLetterCard.faceSlot
 
   var body: some View {
-    let side = KLetterCard.faceSlot
-    let edge = RoundedRectangle(cornerRadius: KLetterCard.faceCorner, style: .circular)
+    let scale = side / KLetterCard.faceSlot
+    let cell = KLetterCard.mosaicCell * scale
+    let gap = scale
+    let edgeWidth = max(1, KLetterCard.faceEdge * scale)
+    let edge = RoundedRectangle(cornerRadius: KLetterCard.faceCorner * scale, style: .circular)
     Group {
       switch face {
       case let .mosaic(mask):
-        KMosaic(mask: mask, cell: KLetterCard.mosaicCell, gap: 1, color: theme.ink)
+        KMosaic(mask: mask, cell: cell, gap: gap, color: theme.ink)
           .frame(width: side, height: side)
-          .overlay(edge.strokeBorder(theme.ln, lineWidth: KLetterCard.faceEdge))
+          .overlay(edge.strokeBorder(theme.ln, lineWidth: edgeWidth))
       case .veil:
-        KMosaic.veil(theme: theme, cell: KLetterCard.mosaicCell, gap: 1)
+        KMosaic.veil(theme: theme, cell: cell, gap: gap)
           .frame(width: side, height: side)
-          .overlay(edge.strokeBorder(theme.ln, lineWidth: KLetterCard.faceEdge))
+          .overlay(edge.strokeBorder(theme.ln, lineWidth: edgeWidth))
       case let .frost(spec):
         KFrost(theme: theme, spec: spec, size: side)
       case .frostVeil:

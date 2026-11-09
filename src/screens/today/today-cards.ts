@@ -596,6 +596,8 @@ export type CardVM = {
   menu: KMenuAction[];
   /** the reply field's placeholder for this letter: "write back to No. 7273…" (switch on, "write back to Sunday Kite…"), or "write back…" unsigned */
   replyPlaceholder: string;
+  /** the Swift reply box's header for this letter: "Replying to No. 7273" (switch on, "Replying to Sunday Kite"; unsigned, "Replying to UNSIGNED"), who.name as the card's header shows it */
+  replyingTo: string;
   /** the paper the writer picked (letters.paper, src/data/papers.ts): the Swift card is drawn on it; null, missing or unknown is plain, the card as it always was */
   paper: PaperId;
   /** what VoiceOver reads for the whole card: off, "SEP.23 · NO.7273. #topic. …"; on, "Sunday Kite, she, Gemini. SEP.23. #topic. …" */
@@ -735,6 +737,7 @@ export function buildCard(input: CardInput, surfaceHex: string, fmt: TodayFormat
        (English only), else its own "write back…" (the identity copy lives under id.*, so translating it
        never changed a switch-off screen) */
     replyPlaceholder: !letter.author ? fmt.t("ld.writeBackPh") : fmt.who?.identity ? fmt.t("id.writeBackTo", { name: who.name }) : (fmt.has?.("ld.writeBackTo") ?? true) ? fmt.t("ld.writeBackTo", { name: who.name }) : fmt.t("ld.writeBackPh"),
+    replyingTo: fmt.t("rd.replyingTo", { name: who.name }),
     paper,
     a11yLabel: withPaper([...head, topic, why, words].filter(Boolean).join(". "), onPaper),
     demo: letter.id.startsWith("demo"),
@@ -783,6 +786,9 @@ export type ReplyState = {
   hint: string;
   /** the hint in the postmark red (over the limit) */
   hintWarn: boolean;
+  /** the hint is about this send (the headwind, over the limit, the pouch full), not one of the two
+      resting thread lines: the Swift reply box shows only these (it names who you reply to instead) */
+  notice: boolean;
   /** the pouch is full for this letter (a dev letter never counts) */
   pouchFull: boolean;
 };
@@ -817,7 +823,7 @@ export function replyState(
           : ok
             ? t("ld.threadOpensTwo")
             : t("ld.replyThreadOpens");
-  return { ok, sendState, hint, hintWarn: over > 0, pouchFull };
+  return { ok, sendState, hint, hintWarn: over > 0, notice: (sending && slow) || over > 0 || pouchFull, pouchFull };
 }
 
 /** The first line of a draft ("" shows the placeholder). */
@@ -867,13 +873,15 @@ export function deskGeometry({ hostH, safeTop, tabBarRoom }: { hostH: number; sa
   return { cardTop, cardH, controlTop: cardTop + cardH + CARD_AIR };
 }
 
-/* ── writing back (the chat composers' A1, owner 2026-10-18; KTodayGeometry.replyCardHeight
-   and KCardText.compact in Swift: change them together) ──
+/* ── writing back (the chat composers' A1, owner 2026-10-18; KCardText.compact in Swift:
+   change them together) ──
    While the reader writes back, the band fades, the tab bar slides away and the card shrinks
    to make room: its top stays, its foot comes up to CARD_AIR over the hint, which stands 6 over
    the reply bar, which stands REPLY_GAP over the keyboard (or on the tab bar's own line with a
    hardware keyboard). The prototype's 548 → 272 on an 852 phone, from the real keyboard and the
-   bar as drawn. */
+   bar as drawn. This is the React Native fallback's (TodayRN) bar; the SwiftUI desk's reply box
+   (owner, 2026-11-09) stands right on the keyboard with no hint, so Swift measures its card from
+   the box's top instead (KTodayGeometry.replyCardHeight). */
 
 /** the reply bar's air over the keyboard */
 export const REPLY_GAP = 12;

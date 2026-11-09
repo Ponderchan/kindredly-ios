@@ -32,7 +32,7 @@ import SwiftUI
    answers a long press with the desk card's menu (KLetterCardStamp: Keep this stamp / Report this
    stamp / Never mind, or "In your album ✓"), and VoiceOver gets the same two as actions; TS keeps
    or reports it and says so in a toast.
- - WRITE BACK opens the reply bar here (KReplyBar, the desk's: the hint 6 above it in capitals,
+ - WRITE BACK opens the reply bar here (KReplyBar, the desk's before its reply box: the hint 6 above it in capitals,
    Return a new line, the paper plane sends), with the keyboard, under the letter. The field is
    TS's draft for this letter (seeded by setText as the view attaches; every edit goes back), and
    once it has appeared it stays mounted (the expo focus/unmount crash): a send, and only the

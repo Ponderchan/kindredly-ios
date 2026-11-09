@@ -84,6 +84,8 @@ export type KTodayCard = {
   a11yLabel: string;
   /** the reply field's placeholder for this letter: "write back to No. 7273…" (switch on, "write back to Sunday Kite…") */
   replyPlaceholder: string;
+  /** the reply box's header for this letter: "Replying to No. 7273" (switch on, "Replying to Sunday Kite") */
+  replyingTo: string;
   /** the letter's paper id ("plain", "grid", "kraft", "airmail", "receipt", "sticky", "riso"; src/data/papers.ts):
       Swift draws the card on it (KPaper); always present, "plain" (or anything unknown) is the card as it always was */
   paper: string;
@@ -132,8 +134,11 @@ export type KTodayStrings = {
   pause: string;
   send: string;
   placeholder: string;
-  /** VoiceOver: the reply bar's emoji key */
+  /** VoiceOver: the reply box's emoji key */
   emoji: string;
+  /** VoiceOver: the reply box's expand button (to the full page) and the full page's collapse button */
+  expandA11y: string;
+  collapseA11y: string;
   offlineTitle: string;
   offlineBody: string;
   loadingA11y: string;
@@ -175,10 +180,12 @@ export type KTodayBirds = {
   flyIsPerch: boolean;
 };
 
-/** The reply strip's state for the bound letter, sent on every change. */
+/** The reply box's state for the bound letter, sent on every change. */
 export type KTodayComposer = {
   letterId: string;
   sendState: "disabled" | "enabled" | "dimmed";
+  /** the line about this send (the headwind, over the limit, the pouch full); "" while there is
+      none: the box names who you reply to instead of the resting thread lines */
   hint: string;
   hintWarn: boolean;
   preview: string;

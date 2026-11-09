@@ -43,7 +43,7 @@ import SwiftUI
    touches (bandFade);
  - typing (the reply field has the keyboard, or a send it let go of awaits TS): the same, the
    whole band at opacity 0 with no touches (bandFade), and nothing moves (the chat composers' A1,
-   owner 2026-10-18). The tab bar slides away meanwhile, the card shrinks and the reply bar rises
+   owner 2026-10-18). The tab bar slides away meanwhile, the card shrinks and the reply box rises
    (KTodayDesk), and the band fades back in once the keyboard goes and TS has answered a send;
  - done (flow.bandShown false): the buttons and their labels fade and drop 12;
  - not enabled (loading, offline): the buttons at .4 with no touches.

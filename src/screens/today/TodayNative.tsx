@@ -58,9 +58,10 @@ import type { TodayModel } from "./useTodayDesk";
    - and the field's focus to the tab bar: writing back (the chat composers'
      A1, owner 2026-10-18) is the field having the keyboard, and while it
      does the floating tab bar slides away (useTabBarAway), since the
-     keyboard and the reply bar have the foot of the screen. The rest of
-     that moment is Swift's own: the band fades, the card shrinks, the bar
-     rises (KTodayDesk). The keyboard's done, a tap on the dimmed desk or a
+     keyboard and the reply box have the foot of the screen. The rest of
+     that moment is Swift's own: the band fades, the card shrinks, the box
+     rises onto the keyboard and can grow into a full page (KTodayDesk,
+     KReplyDock). The keyboard's done, a tap on the dimmed desk or a
      send let go of the field, and the bar comes back.
    No islands: Wren is Swift's, drawn from her pictures. A reply in the air
    is hers to carry too: she takes the letter off the band and comes back
@@ -105,6 +106,7 @@ export function nativeCard(c: CardVM, identity: boolean): KTodayCard {
     menu: c.menu,
     a11yLabel: c.a11yLabel,
     replyPlaceholder: c.replyPlaceholder,
+    replyingTo: c.replyingTo,
     paper: c.paper,
   };
 }
@@ -146,19 +148,22 @@ export function TodayNative({ model }: { model: TodayModel }) {
     commands.send("setText", { target: "reply", value: draftFor(boundId) });
   }, [boundId, view.draftEpoch, commands, draftFor]);
 
-  // the send key and the hint, per keystroke
+  // the send key and the hint, per keystroke; the reply box (owner, 2026-11-09) shows only a
+  // hint about this send, so the two resting thread lines go as "" (its header names who you
+  // reply to instead)
   const r = view.reply;
+  const notice = r.state.notice ? r.state.hint : "";
   useEffect(() => {
     commands.send("composer", {
       letterId: r.letterId,
       sendState: r.state.sendState,
-      hint: r.state.hint,
+      hint: notice,
       hintWarn: r.state.hintWarn,
       preview: r.preview,
       sending: view.sending,
       sendSerial: view.answeredSerial,
     });
-  }, [r.letterId, r.state.sendState, r.state.hint, r.state.hintWarn, r.preview, view.sending, view.answeredSerial, commands]);
+  }, [r.letterId, r.state.sendState, notice, r.state.hintWarn, r.preview, view.sending, view.answeredSerial, commands]);
 
   // the one voice player's transitions (never per tick: Swift runs the bars itself)
   const playback = model.voice.state;
@@ -217,6 +222,8 @@ export function TodayNative({ model }: { model: TodayModel }) {
     send: s.send,
     placeholder: s.placeholder,
     emoji: s.emoji,
+    expandA11y: s.expandA11y,
+    collapseA11y: s.collapseA11y,
     offlineTitle: s.offlineTitle,
     offlineBody: s.offlineBody,
     loadingA11y: s.loadingA11y,

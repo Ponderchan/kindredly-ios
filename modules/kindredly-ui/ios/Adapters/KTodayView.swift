@@ -13,7 +13,7 @@ import ExpoUI
  Built as every step-5 screen is (KScreenProps.swift): the props subclass KScreenProps (theme,
  letterFont, insets, rev, commands), the view is registered with ExpoUIView and the "command"
  AsyncFunction (KindredlyUIModule.swift), and it MUST sit in an @expo/ui <Host>: one Host for the
- whole screen, never one per card. It holds a field (the reply bar's KComposerField, a UITextView
+ whole screen, never one per card. It holds a field (the reply box's KComposerField, a UITextView
  since the chat composers' emoji key, 2026-10-18), so it is an ExpoSwiftUI.FocusableView: the
  virtual view resigns it before the view is taken off screen (the expo focus/unmount crash's guard;
  TS also blurs it on unmount). It has no children and no islands: Wren is drawn here, from her own
@@ -21,17 +21,17 @@ import ExpoUI
 
  Props, beyond KScreenProps (insets: top = the status bar the desk draws its strip for,
  tabBarRoom = the floating bar's room, the band sits 2 above it, bottom = the home indicator, over
- which the reply bar sits with a hardware keyboard while the tab bar is away):
- - strings: the plate's title and every fixed word of the cards, the band and the dock (emoji:
-   the reply bar's emoji key, for VoiceOver)
+ which the reply box's keys stand with a hardware keyboard while the tab bar is away):
+ - strings: the plate's title and every fixed word of the cards, the band and the dock (emoji,
+   expandA11y, collapseA11y: the reply box's emoji, expand and collapse keys, for VoiceOver)
  - phase: loading | offline | reading | done (anything else is loading)
  - left, leftA11y: kept for the record; the B8 band shows no count and says strings.nextA11y
  - desk, deskAt: Next's ring (owner 2026-11-09): today's whole desk in reading order, each
    { id, state: unread | read | replied } (anything else is unread), and the letter on screen's place
  - cards: the letters not passed yet, the one on screen first (KTodayCardRecord: who wrote it,
    KTodayWhoRecord, with the frosted window as a KFrostRecord, when, the switch-off postmark
-   line that keeps the old docket while the identity switch is off, and the paper id the card is
-   drawn on), converted once per rev
+   line that keeps the old docket while the identity switch is off, the paper id the card is
+   drawn on, and replyingTo, the reply box's header), converted once per rev
  - titleLocked: the plate stays small (a letter passed today, or the day done)
  - freshUnfold, arrivalLine: her first arrival (the first card unfolds; her line over her head)
  - wrenLetter: her counted note in done; window: the window to her game, its sky by the hour
@@ -140,6 +140,8 @@ struct KTodayCardRecord: Record {
   @Field var menu: [KMenuActionRecord] = []
   @Field var a11yLabel: String = ""
   @Field var replyPlaceholder: String = ""
+  /// the reply box's header, "Replying to No. 7273"
+  @Field var replyingTo: String = ""
   /// the letter's paper id ("plain" … "riso", src/data/papers.ts); "" or unknown is plain
   @Field var paper: String = "plain"
 
@@ -168,6 +170,7 @@ struct KTodayCardRecord: Record {
     m.menu = menu.map { KMenuItem(key: $0.key, title: $0.title, systemImage: $0.icon, destructive: $0.destructive) }
     m.a11yLabel = a11yLabel
     m.replyPlaceholder = replyPlaceholder
+    m.replyingTo = replyingTo
     m.paper = KPaper(key: paper)
     return m
   }
@@ -189,8 +192,11 @@ struct KTodayStringsRecord: Record {
   @Field var pause: String = ""
   @Field var send: String = ""
   @Field var placeholder: String = ""
-  /// the reply bar's emoji key, for VoiceOver
+  /// the reply box's emoji key, for VoiceOver
   @Field var emoji: String = ""
+  /// the reply box's expand and collapse buttons, for VoiceOver
+  @Field var expandA11y: String = ""
+  @Field var collapseA11y: String = ""
   @Field var offlineTitle: String = ""
   @Field var offlineBody: String = ""
   @Field var loadingA11y: String = ""
@@ -213,6 +219,8 @@ struct KTodayStringsRecord: Record {
     l.send = send
     l.placeholder = placeholder
     l.emoji = emoji
+    l.expandA11y = expandA11y
+    l.collapseA11y = collapseA11y
     l.offlineTitle = offlineTitle
     l.offlineBody = offlineBody
     l.loadingA11y = loadingA11y

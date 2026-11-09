@@ -10,7 +10,7 @@ import SwiftUI
  is. No reply arrow, no outline, no shadow. The notes below describe the bar before R2.
 
  THE REPLY BAR (chat composers, Prompt 1; the owner's final, 2026-10-18): one object in two
- places, the Today reply (Today/KReplyDock.swift) and the pen-pal chat before names are traded
+ places, the Today reply (Today/KReplyDock.swift, until its reply box took over, 2026-11-09) and the pen-pal chat before names are traded
  (Chat/KDock.swift, letters). What leaves it is a letter: words and emoji, nothing else. No Wren
  tool, no +, no voice.
 

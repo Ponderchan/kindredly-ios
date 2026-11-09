@@ -113,6 +113,9 @@ public struct KLetterCardModel: Identifiable, Equatable, Sendable {
   /// the reply field's placeholder for this letter: "write back to No. 7273…" (switch on, "write back to
   /// Sunday Kite…"), or "write back…" unsigned
   public var replyPlaceholder = ""
+  /// the reply box's header for this letter: "Replying to No. 7273" (switch on, "Replying to
+  /// Sunday Kite"), the name as the card's header shows it
+  public var replyingTo = ""
   /// the paper the writer picked (KPaper(key:) of TS's id): Plain, the card as it always was, for
   /// none or anything unknown
   public var paper: KPaper = .plain
@@ -147,8 +150,12 @@ public struct KTodayLabels: Equatable, Sendable {
   public var send = ""
   /// "write back…": the field's placeholder when the shown card has none of its own
   public var placeholder = ""
-  /// VoiceOver: the reply bar's emoji key ("Emoji keyboard")
+  /// VoiceOver: the reply box's emoji key ("Emoji keyboard")
   public var emoji = ""
+  /// VoiceOver: the reply box's expand button ("Expand to full screen") and the full page's
+  /// collapse button ("Back to the small box")
+  public var expandA11y = ""
+  public var collapseA11y = ""
   /// the offline cold start's card
   public var offlineTitle = ""
   public var offlineBody = ""
@@ -310,10 +317,12 @@ public struct KTodayContent: Equatable, Sendable {
   public init() {}
 }
 
-/// The reply strip's state for one letter, sent by TS on every change (the composer command).
+/// The reply box's state for one letter, sent by TS on every change (the composer command).
 public struct KTodayComposer: Equatable, Sendable {
   public var letterId = ""
   public var sendState: KSendState = .disabled
+  /// a line about this send (the headwind, over the limit, the pouch full); "" while there is none
+  /// (TS leaves the resting thread lines out: the box names who you reply to instead)
   public var hint = ""
   /// the hint in the postmark red (over the limit)
   public var hintWarn = false
@@ -334,7 +343,7 @@ public struct KTodayComposer: Equatable, Sendable {
 public final class KTodayDock: ObservableObject {
   /// the reply field; the adapter blurs it before the view goes (FocusableView)
   public let reply = KFieldController()
-  /// what the desk reads of the reply (reply mode, the keyboard, the bar's height): its own object,
+  /// what the desk reads of the reply (reply mode, the keyboard, the box's height): its own object,
   /// so TS's composer, per keystroke, never redraws the desk
   public let stage = KReplyStage()
   @Published public private(set) var composer = KTodayComposer()
@@ -387,21 +396,22 @@ public final class KTodayDock: ObservableObject {
 }
 
 /*
- THE REPLY'S ROOM ON THE DESK (the chat composers' A1, owner 2026-10-18). Reply mode is the field
- having the keyboard (`open`): the desk then fades the band out, shrinks the card to make room
- and sets its letter at the compact size, while the dock raises the bar 12 over the keyboard
- (KTodayGeometry.replyCardHeight says how tall the card can be). Written by the dock (focus, the
- keyboard measured from the two layers' heights, the hint and bar measured as drawn); observed by
- the desk alone. These change only when the keyboard comes or goes, the bar grows or loses a
- line, or the hint wraps: never per keystroke.
+ THE REPLY'S ROOM ON THE DESK (the chat composers' A1, owner 2026-10-18; the reply box, owner
+ 2026-11-09). Reply mode is the field having the keyboard (`open`): the desk then fades the band
+ out, shrinks the card to make room and sets its letter at the compact size, while the dock raises
+ the reply box onto the keyboard (KTodayGeometry.replyCardHeight says how tall the card can be).
+ Written by the dock (focus, the keyboard measured from the two layers' heights, the compact box
+ measured as drawn); observed by the desk alone. These change only when the keyboard comes or
+ goes or the box grows or loses a line: never per keystroke. The box's full page doesn't count
+ here (it covers the card; the card keeps the compact box's height under it).
  */
 public final class KReplyStage: ObservableObject {
   /// the reply field has the keyboard (a software one or a hardware one): reply mode
   @Published public private(set) var open = false
   /// the software keyboard's overlap at the Host's bottom; 0 while it is down or with a hardware keyboard
   @Published public private(set) var keyboard: CGFloat = 0
-  /// the hint and the bar together, as tall as they are drawn (the bar grows to four lines, the
-  /// hint wraps to two); the bar's hard shadow hangs outside it
+  /// the compact reply box as tall as it is drawn, from its top to the dock layer's foot (the
+  /// keyboard's top, or the screen's foot with a hardware keyboard): its field grows to five lines
   @Published public private(set) var strip: CGFloat = 0
 
   public init() {}

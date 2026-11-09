@@ -8,7 +8,7 @@ import SwiftUI
  old scrolling stack: there is no previous letter and no page under the reader's thumb, only the
  card on screen and the one that comes after it. While the reader writes back (the chat
  composers' A1, owner 2026-10-18) the desk gives it a shorter `height` (replyCardHeight: room
- for the keyboard and the reply bar) and `compact`, and the card on screen sets its letter at the
+ for the keyboard and the reply box) and `compact`, and the card on screen sets its letter at the
  compact size (KCardText), folding what still doesn't fit; both go back when the keyboard does.
 
  WHAT IT DRAWS, by TS's phase:

@@ -555,6 +555,9 @@ export type TodayStrings = {
   placeholder: string;
   /** VoiceOver: the reply bar's emoji key (the system emoji keyboard and back) */
   emoji: string;
+  /** VoiceOver: the Swift reply box's expand (to the full page) and collapse (back to the box) buttons */
+  expandA11y: string;
+  collapseA11y: string;
   offlineTitle: string;
   offlineBody: string;
   loadingA11y: string;
@@ -1370,6 +1373,8 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
       send: t("ld.send"),
       placeholder: t("ld.writeBackPh"),
       emoji: t("cmp.emoji"),
+      expandA11y: t("rd.expandA11y"),
+      collapseA11y: t("rd.collapseA11y"),
       offlineTitle: t("net.offline.title"),
       offlineBody: t("ld.offlineDesk"),
       loadingA11y: t("ld.loading.a11y"),

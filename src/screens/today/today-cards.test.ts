@@ -364,6 +364,7 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   ok("card: a language without the named line keeps its own write back", unwritten.replyPlaceholder === "ld.writeBackPh");
   const written = M.buildCard({ letter: L({ id: "a" }), offer: null, signal: null, voiceReady: false }, "#FFFFFF", { ...fmt, has: () => true });
   ok("card: a language with the named line uses it", written.replyPlaceholder === "ld.writeBackTo(name=No. 8007)");
+  ok("card: the reply box says who you reply to, by the header's name", c.replyingTo === "rd.replyingTo(name=No. 8007)");
   ok("card: the docket's number comes from penPal (the reader's language), upper and compact", M.docket(L({ id: "a" }), { ...fmt, penPal: (_u: string, o: { upper: boolean; compact: boolean }) => (o.upper && o.compact ? "N.º8007" : "?") }) === "PM09 · N.º8007");
   const menuBack = M.cardMenu(L({ id: "a" }), t, { bringBack: true });
   ok("card: Bring back is the third item on a signed letter", menuBack.map((m) => m.key).join() === "report,block,bringBack" && menuBack[2].title === "ld.bringBack" && menuBack[2].icon === "arrow.uturn.backward" && !menuBack[2].destructive);
@@ -415,6 +416,7 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   ok("identity on: the mark and the sign with their VoiceOver words", on.who.mark === "she" && on.who.markLabel === "id.mark.she" && on.who.sign === "gemini" && on.who.signLabel === "zd.gemini");
   ok("identity on: VoiceOver opens with name, mark and sign, then when — no number", on.a11yLabel === `${courier}, id.mark.she, zd.gemini. PM09. #tiny win. I fixed the wobbly chair today.` && !on.a11yLabel.includes("NO."));
   ok("identity on: the reply field names the courier name (id.writeBackTo, in all nine)", on.replyPlaceholder === `id.writeBackTo(name=${courier})`);
+  ok("identity on: the reply box replies to the courier name", on.replyingTo === `rd.replyingTo(name=${courier})`);
   ok("identity on: the legacy docket carries the courier name in capitals", on.postmark === `PM09 · ${courier.toLocaleUpperCase()}`);
   ok("identity on: the legacy mask stays today's mosaic (only who has the frost)", on.mask === mosaicMask(UID, 1) && !on.ghost);
   ok("identity on: when is still the date alone", on.when === "PM09");
@@ -504,20 +506,21 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
 {
   const empty = M.replyState({ text: "", flights: 0, demo: false }, t);
   ok("reply: empty is disabled with the resting hint", empty.sendState === "disabled" && empty.hint === "ld.replyThreadOpens" && !empty.hintWarn);
+  ok("reply: the resting lines are no notice (the Swift box hides them)", !empty.notice && !M.replyState({ text: "ok.", flights: 0, demo: false }, t).notice);
   const one = M.replyState({ text: " a ", flights: 0, demo: false }, t);
   ok("reply: one character (trimmed) is not enough", one.sendState === "disabled" && !one.ok);
   const fine = M.replyState({ text: "ok.", flights: 2, demo: false }, t);
   ok("reply: 'ok.' is a whole answer — enabled, a thread opens", fine.sendState === "enabled" && fine.hint === "ld.threadOpensTwo");
   const full = M.replyState({ text: "hello there", flights: 5, demo: false }, t);
-  ok("reply: a full pouch dims the key but it still takes the tap, and the hint says why", full.sendState === "dimmed" && full.pouchFull && full.hint === "ld.flightFull");
+  ok("reply: a full pouch dims the key but it still takes the tap, and the hint says why", full.sendState === "dimmed" && full.pouchFull && full.hint === "ld.flightFull" && full.notice);
   const demo = M.replyState({ text: "hello there", flights: 9, demo: true }, t);
   ok("reply: a dev letter never counts against the pouch", demo.sendState === "enabled" && !demo.pouchFull);
   const forced = M.replyState({ text: "hello there", flights: 0, demo: true, forceFull: true }, t);
   ok("reply: ?full=1 pretends the pouch is full", forced.sendState === "dimmed");
   const over = M.replyState({ text: "x".repeat(1003), flights: 0, demo: false }, t);
-  ok("reply: over the limit is disabled, in red, with the count", over.sendState === "disabled" && over.hintWarn && over.hint === "ui.overLimit(n=3)");
+  ok("reply: over the limit is disabled, in red, with the count", over.sendState === "disabled" && over.hintWarn && over.hint === "ui.overLimit(n=3)" && over.notice);
   const slowSend = M.replyState({ text: "hello", flights: 0, demo: false, sending: true, slow: true }, t);
-  ok("reply: a send that outlasts a send says the headwind (net.slow), key still disabled", slowSend.hint === "net.slow" && slowSend.sendState === "disabled");
+  ok("reply: a send that outlasts a send says the headwind (net.slow), key still disabled", slowSend.hint === "net.slow" && slowSend.sendState === "disabled" && slowSend.notice);
   ok("reply: slow alone (nothing sending) changes nothing", M.replyState({ text: "hello", flights: 0, demo: false, slow: true }, t).hint === "ld.threadOpensTwo");
   const sending = M.replyState({ text: "hello", flights: 0, demo: false, sending: true }, t);
   ok("reply: nothing sends twice while a send is in flight", sending.sendState === "disabled");
