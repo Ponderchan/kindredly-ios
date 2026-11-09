@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Redirect } from "expo-router";
+import { useEffect, useState } from "react";
+import { Redirect, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Host } from "@expo/ui/swift-ui";
@@ -51,6 +51,16 @@ const PANEL_STYLES: readonly PanelStyle[] = ["cards", "sheet", "pop"];
 export default function UiLab() {
   const { key, t } = useTheme();
   const forced = useDevThemeOverride();
+  /* ?set=key:swift,other:rn,third:default — the same as tapping each surface chip, for scripted
+     simulator passes (a run of eighty chips is hard to hit by coordinates) */
+  const { set } = useLocalSearchParams<{ set?: string }>();
+  useEffect(() => {
+    if (!__DEV__ || !set) return;
+    for (const pair of set.split(",")) {
+      const [k, v] = pair.split(":");
+      if (k) setDevSurfaceOverride(k, v === "swift" ? true : v === "rn" ? false : null);
+    }
+  }, [set]);
   if (!__DEV__) return <Redirect href="/" />;
   const native = isKindredlyUIAvailable();
   const choices: { label: string; value: KThemeKey | null }[] = [...KEYS.map((k) => ({ label: THEMES.themes[k].name, value: k })), { label: "Off", value: null }];

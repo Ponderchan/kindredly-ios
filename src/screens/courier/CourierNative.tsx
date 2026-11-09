@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWindowDimensions } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useIsFocused } from "expo-router";
@@ -167,13 +167,24 @@ export function CourierNative({
       [swiftGame, fStage, hour, winH, best, flightBirds, view.strings],
     ),
   );
+  /* the game opens once her three faces are in (or after 1.5 s at most): opened straight from
+     Today's day's end or the day-off push, the pictures are captured as the page mounts, and the
+     first second of the cover had no bird in the sky (simulator pass, 2026-11-09) */
+  const birdsIn = !!fStage && FLIGHT_MOODS.every((mood) => !!flightBirds[flightPose(fStage, mood)]);
+  const [waitedOut, setWaitedOut] = useState(false);
+  useEffect(() => {
+    if (!play || birdsIn) return;
+    const id = setTimeout(() => setWaitedOut(true), 1500);
+    return () => clearTimeout(id);
+  }, [play, birdsIn]);
+  const flightOpen = play && (birdsIn || waitedOut);
   const onFlightRun = useCallback((gates: number, pace: number) => {
     // kept once, the best updated; a game played: no day-off race for a week, and the next one carries the new best
     void saveRun({ gates, pace })
       .then(() => replanLocal({ force: true }))
       .catch((e) => console.warn("[free-flight] saving a Swift run:", e));
   }, []);
-  const rev = useRev(strings, cover, hero, band, slip, log, facts, journey, keepsakes, cells, looks, dress, firstClass, flight, play);
+  const rev = useRev(strings, cover, hero, band, slip, log, facts, journey, keepsakes, cells, looks, dress, firstClass, flight, flightOpen);
 
   /* the status bar on her sky, while the cover is under it and this page is in front */
   const focused = useIsFocused();
@@ -219,7 +230,7 @@ export function CourierNative({
           onRack={onRack}
           onUnderSky={onUnderSky}
           flight={flight}
-          flightOpen={play}
+          flightOpen={flightOpen}
           onPlayEnd={onPlayEnd}
           onFlightRun={onFlightRun}
         />

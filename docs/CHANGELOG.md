@@ -25,6 +25,7 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 | App Store | Binary | Builds | Code | Dates |
 |---|---|---|---|---|
+| 1.0.8 | 1.2.7 | 38–39 | `ios-1.2.3` up to dd98c4a | b38 uploaded 10-31, b39 11-01; **approved 11-09** |
 | 1.0.7 | 1.2.6 | 36–37 | `ios-1.2.3` | b36 built and uploaded 10-28 from a2f2159, not submitted; b37 adds the glass tab bar and the guest stamps fix |
 | 1.0.6 | 1.2.5 | 35 | `ios-1.2.3` at b355ff6 | uploaded 10-25, expedited review, **live 10-25 03:03 Beijing** (Apple lookup) |
 | 1.0.5 | 1.2.4 | 29–34 | `ios-1.2.3` up to b710f2f | b34 rejected for a launch crash, then approved and **released automatically 10-25** — it crashes at launch on every iOS 27 phone (built with Xcode 27 without the scene life cycle); 1.0.6 fixes it. Web launch-day deploy and 0035 the same day |
@@ -37,7 +38,20 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 ## Unreleased
 
 Changed
+- The last React Native a reader could see is now SwiftUI, each behind its own switch (2026-11-09 audit): the launch animation, the magic-link page, the onboarding's hatch / named chick / doorstep flight / first flight, the empty Kindreds tab, the wardrobe sheet, the Plush moment, Wren in compose / Notes / Make your own face, your own face on Me and Edit profile, the face-ready banner, the rating ask, the First Class receipt, the revealed pen-pal header, the reply crossing in the reader, every guide reel and the 1.0.5 release reel, and Free Flight (the courier page no longer turns back into React Native to play). Twenty on; the note's voice card, note films, the composer's photo viewer and Wren's post media stay off until a device pass. [binary]
+- An unknown kindredly:// link lands on Today (or onboarding) instead of a blank "Unmatched route" page. [OTA]
+
+Fixed
+- Wren's room: the mood stamps guide's button opens the album instead of replaying the launch and dropping you on Today. [OTA]
+- Today: tapping "Otis wants a look" opens the wardrobe; the slip used to take itself away first, so the sheet never opened. [OTA]
+
 - Wren's desk shows a post's picture or short film under it (animated pictures play, films loop silently, still with Reduce Motion), with Open to the full file or the post's link. [OTA] [server: 0050]
+
+---
+
+## 1.0.8 (binary 1.2.7, builds 38–39), approved 2026-11-09
+
+Changed
 - Settings reads larger: row names at 17 (iOS body size), sublines at 14, rows a little taller. [binary]
 - Sign out asks first (what stays with your account; Stay / Sign out) and taps as it goes. Nine languages. [OTA]
 - Settings' footer reads the App Store version off the binary (it said 1.0.5 on every build since). [OTA]
