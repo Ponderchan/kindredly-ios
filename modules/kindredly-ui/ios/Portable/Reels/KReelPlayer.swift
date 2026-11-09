@@ -181,6 +181,7 @@ enum KReels {
     case "aura": return KReelAura.def
     case "stamps": return KReelStamps.def
     case "kindreds": return KReelKindreds.def
+    case "courier": return KReelCourier.def
     // REELS-MORE
     default: return nil
     }

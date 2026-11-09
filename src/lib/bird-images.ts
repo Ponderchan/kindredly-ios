@@ -232,7 +232,20 @@ const SLICE4_POSES = {
    React Native reels draw WrenBird at a fraction of the square's side; each picture here is her
    at that fraction of the widest square (360), in her own look and stage as the reels leave them,
    so Swift only ever draws her a little smaller. Not base: captured only while a Swift reel asks. */
-export type ReelPose = "reelSleepy" | "reelContent" | "reelFlyHappy" | "reelFlyEmpty";
+/** the courier reel's coats (Sky, Mist, Peach, Night) */
+const REEL_COATS = ["sticker", "plush", "peach", "ink"] as const;
+/* the courier reel draws her at her own stage, or hatched while she is still an egg (courier.tsx
+   useHatchedStage): each of those pictures comes twice, as she is and hatched ("-h") */
+type ReelStaged = `reelCoat-${(typeof REEL_COATS)[number]}` | "reelCoatBeanie" | "reelCurious" | "reelDelight";
+export type ReelPose = "reelSleepy" | "reelContent" | "reelFlyHappy" | "reelFlyEmpty" | "reelHatchContent" | "reelHatchDelight" | "reelHatchCurious" | ReelStaged | `${ReelStaged}-h`;
+const REEL_STAGED: Record<ReelStaged, BirdPoseSpec> = {
+  // the dressing disc (.52 s): each coat bare and content, then Night with the beanie, delighted
+  ...(Object.fromEntries(REEL_COATS.map((skin) => [`reelCoat-${skin}`, { size: 188, mood: "content", skin, accessory: "none" }])) as Record<`reelCoat-${(typeof REEL_COATS)[number]}`, BirdPoseSpec>),
+  reelCoatBeanie: { size: 188, mood: "delight", skin: "ink", accessory: "beanie" },
+  // under Settings' switches (.27 s) and in the Live Activity (.16 s): curious, then glad
+  reelCurious: { size: 98, mood: "curious" },
+  reelDelight: { size: 98, mood: "delight" },
+};
 const REEL_POSES: Record<ReelPose, BirdPoseSpec> = {
   // sealed: dozing by the cloud (.27 s); letters: by the desk, content then sleepy (.24 s)
   reelSleepy: { size: 98, mood: "sleepy" },
@@ -241,6 +254,12 @@ const REEL_POSES: Record<ReelPose, BirdPoseSpec> = {
   reelFlyHappy: { size: 94, mood: "happy", fly: true },
   // kindreds: bringing the reply (.34 s), flying, happy, the envelope drawn apart from her
   reelFlyEmpty: { size: 123, mood: "happy", fly: true, letter: false },
+  // courier: the hatchling out of the egg (.56 s) and under her name tag (.46 s), bare
+  reelHatchContent: { size: 202, mood: "content", stage: "hatch", accessory: "none" },
+  reelHatchDelight: { size: 202, mood: "delight", stage: "hatch", accessory: "none" },
+  reelHatchCurious: { size: 202, mood: "curious", stage: "hatch", accessory: "none" },
+  ...REEL_STAGED,
+  ...(Object.fromEntries(Object.entries(REEL_STAGED).map(([k, v]) => [`${k}-h`, { ...v, stage: "hatch" }])) as Record<`${ReelStaged}-h`, BirdPoseSpec>),
 };
 
 /* sizes are the RN call sites' own, so the Swift picture is the same drawing */

@@ -21,6 +21,8 @@ import { DIMENSION_INK, stickerLook, stickerName, titleName } from "../../lib/st
 import { dimLabel } from "../../lib/aura-copy";
 import type { DimKey } from "../../lib/hatch-engine";
 import { AURA_SCENES, AURA_SKETCHES } from "../../data/aura-scenes";
+import { EGG_SHELLS } from "../EggShell";
+import { CHICK_FILL } from "../WrenBird";
 import "../../data/strings-reel-guides";
 import "../../data/strings-today3d"; // pub.popLetter / pub.popNote, bag.opens
 
@@ -47,14 +49,20 @@ export type ReelData = {
   stickers?: Record<string, { name: string; bg: string; fg: string; border: string; tilt: number; pill: boolean }>;
 };
 
+/** what a reel may draw on beyond t(): her name, the egg she came from, whether she is still in it */
+export type ReelCtx = { wren: string; egg: number; egged: boolean };
+
 export type ReelBuild = {
   /** her snapshots, by the name the Swift scenes ask for */
-  birds?: Record<string, BirdPose>;
+  birds?: Record<string, BirdPose> | ((ctx: ReelCtx) => Record<string, BirdPose>);
   /** bundled pictures (require()), by name */
   assets?: Record<string, number | null>;
   /** the words and facts, now, in the reader's language */
-  data: () => ReelData;
+  data: (ctx: ReelCtx) => ReelData;
 };
+
+/** a reel's snapshots for this reader */
+export const birdsOf = (b: ReelBuild, ctx: ReelCtx): Record<string, BirdPose> => (typeof b.birds === "function" ? b.birds(ctx) : b.birds ?? {});
 
 /** these keys, each worded by t() */
 export const wordsOf = (keys: readonly string[]): Record<string, string> => Object.fromEntries(keys.map((k) => [k, t(k)]));
@@ -265,10 +273,47 @@ const KINDREDS: ReelBuild = {
   },
 };
 
+/* ── the courier (guide-reel/courier) ── */
+const COURIER_COATS = ["sticker", "plush", "peach", "ink"] as const;
+const COURIER: ReelBuild = {
+  birds: ({ egged }) => {
+    // her own stage, or hatched while she is still an egg (useHatchedStage)
+    const h = (p: string) => (egged ? `${p}-h` : p) as BirdPose;
+    return {
+      hatchContent: "reelHatchContent",
+      hatchDelight: "reelHatchDelight",
+      hatchCurious: "reelHatchCurious",
+      ...Object.fromEntries(COURIER_COATS.map((c) => [`coat.${c}`, h(`reelCoat-${c}`)])),
+      coatBeanie: h("reelCoatBeanie"),
+      curious: h("reelCurious"),
+      delight: h("reelDelight"),
+      fly: "reelFlyHappy",
+    };
+  },
+  data: ({ wren, egg }) => {
+    const shell = EGG_SHELLS[egg] ?? EGG_SHELLS[0];
+    return {
+      words: {
+        ...wordsOf(["la.out.back", "la.out.eyebrow", "la.out.repliedHead", "la.out.reads0", "la.out.reads1", "la.out.readsN", "la.out.repliedLine", "la.out.looking", "set.sec.quiet", "set.notify.title", "set.knock.title", "gd.courier.title"]),
+        wren,
+        ...Object.fromEntries(COURIER_COATS.map((c) => [`skin.${c}`, t(`skin.${c}.name`).toUpperCase()])),
+      },
+      colors: {
+        "shell.base": shell.base,
+        "shell.mid": shell.mid,
+        "shell.deep": shell.deep,
+        "shell.mark": shell.mark,
+        ...Object.fromEntries(COURIER_COATS.map((c) => [`chick.${c}`, CHICK_FILL[c]])),
+      },
+    };
+  },
+};
+
 export const REEL_BUILDS: Record<string, ReelBuild> = {
   sealed: SEALED,
   letters: LETTERS,
   aura: AURA,
   stamps: STAMPS_REEL,
   kindreds: KINDREDS,
+  courier: COURIER,
 };

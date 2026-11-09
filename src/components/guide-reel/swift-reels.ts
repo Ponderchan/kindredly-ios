@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { AppState } from "react-native";
 import { isKindredlyUIViewAvailable } from "../../../modules/kindredly-ui/src/available";
 import type { KReelSpec } from "../../../modules/kindredly-ui/src/Reel";
@@ -14,7 +14,9 @@ import { reel as stamps } from "./stamps";
 import { reel as sealed } from "./sealed";
 import { reel as courier } from "./courier";
 import { reel as v105 } from "../news-reel/v1-0-5";
-import { REEL_BUILDS } from "./swift-reel-data";
+import { REEL_BUILDS, birdsOf, type ReelCtx } from "./swift-reel-data";
+import { getWrenEgg, useWrenName } from "../../lib/wren-name";
+import { useWrenStage } from "../../lib/wren-stage";
 
 /* THE REELS IN SWIFT, FROM TS (2026-11-09, behind the "reels" switch, off by default).
    ────────────────────────────────────────────────────────────────────────
@@ -156,12 +158,29 @@ export function useReelSpecs(asks: readonly ReelAsk[], live: boolean): Map<strin
   const on = useSwiftReels(ids.some(Boolean));
   const wantIds = on ? Array.from(new Set(ids.filter((x): x is string => !!x))) : [];
   const idsKey = wantIds.join(",");
+  // the reader's courier, for the reels that show her: her name, her egg, whether she is in it
+  const wren = useWrenName();
+  const { stage } = useWrenStage();
+  const [egg, setEgg] = useState(0);
+  const wantsEgg = wantIds.includes("courier");
+  useEffect(() => {
+    if (!wantsEgg) return;
+    let alive = true;
+    getWrenEgg().then(
+      (v) => alive && setEgg(v),
+      () => {},
+    );
+    return () => {
+      alive = false;
+    };
+  }, [wantsEgg]);
+  const ctx = useMemo<ReelCtx>(() => ({ wren, egg, egged: stage === "egg" }), [wren, egg, stage]);
   // every snapshot and every bundled picture the reels on show draw, asked for once
   const poses = useMemo(() => {
     const out = new Set<BirdPose>();
-    for (const id of idsKey ? idsKey.split(",") : []) Object.values(REEL_BUILDS[id].birds ?? {}).forEach((p) => out.add(p));
+    for (const id of idsKey ? idsKey.split(",") : []) Object.values(birdsOf(REEL_BUILDS[id], ctx)).forEach((p) => out.add(p));
     return Array.from(out);
-  }, [idsKey]);
+  }, [idsKey, ctx]);
   const birds = useBirdImageRefs(poses);
   const assetMods = useMemo(() => {
     const out: Record<string, number | null> = {};
@@ -172,11 +191,11 @@ export function useReelSpecs(asks: readonly ReelAsk[], live: boolean): Map<strin
   // the words, once a language and a set of reels
   const datas = useMemo(() => {
     const out = new Map<string, string>();
-    for (const id of idsKey ? idsKey.split(",") : []) out.set(id, JSON.stringify(REEL_BUILDS[id].data()));
+    for (const id of idsKey ? idsKey.split(",") : []) out.set(id, JSON.stringify(REEL_BUILDS[id].data(ctx)));
     return out;
     // lang: every word is t()'s
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idsKey, lang]);
+  }, [idsKey, lang, ctx]);
   const birdSig = JSON.stringify(birds);
   const assetSig = JSON.stringify(assets);
   const askSig = asks.map((a, i) => `${a.slot}|${ids[i] ?? ""}|${a.label}`).join("\n");
@@ -188,7 +207,7 @@ export function useReelSpecs(asks: readonly ReelAsk[], live: boolean): Map<strin
       if (!id) return;
       const b = REEL_BUILDS[id];
       const images: Record<string, ImageRefRecord> = {};
-      for (const [name, pose] of Object.entries(b.birds ?? {})) {
+      for (const [name, pose] of Object.entries(birdsOf(b, ctx))) {
         const r = birds[pose];
         if (r) images[name] = r;
       }
@@ -201,5 +220,5 @@ export function useReelSpecs(asks: readonly ReelAsk[], live: boolean): Map<strin
     return out;
     // the signatures say everything the inputs hold
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [on, askSig, birdSig, assetSig, datas, live]);
+  }, [on, askSig, birdSig, assetSig, datas, live, ctx]);
 }
