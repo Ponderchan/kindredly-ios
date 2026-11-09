@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type Component
 import { View, type LayoutChangeEvent } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Host } from "@expo/ui/swift-ui";
 import { KTabBar, isKindredlyUIViewAvailable, type KTabBarCard, type KTabBarProps, type KTabBarTab, type KTabGlyph } from "../../modules/kindredly-ui";
 import { t, useLang } from "../lib/i18n";
@@ -26,28 +27,31 @@ import "../data/strings-today3d"; // pub.* (the publish entry's words)
    PRESSES DO WHAT POSTTABBAR'S DO. A tab emits tabPress to the navigator
    and navigates only if it isn't already the focused tab and nobody
    prevented it — re-pressing the tab you're on emits and does nothing else,
-   as today. The + toggles what it opens. One difference, from the mock: a
-   tab tapped while it is open also closes it (H:445, go() clears the
-   composer). The React Native fan stayed open over the new tab.
+   as today. The + toggles what it opens. While it is open a tab tapped
+   only closes it and switches nothing (the owner's P2, 2026-11-09: "tap a
+   tab = close the + first"); the next tap goes to the tab.
 
-   THE + IS THE PUBLISH ENTRY (Today 3d × 25b, design Prompt 8), and it
-   opens by the tab it is pressed on (owner, 2026-10-18; it used to go by
-   the reader's first week): on Today, where the reader is reading, two
-   round buttons, LETTER and NOTE, pop from behind the + just above the
-   letter's band, light enough not to cover the letter; on every other tab
-   a bottom sheet, Wren asking who this one is for, with a letter row and a
-   diary-note row, while the bar slides away. Both show the free plan's
-   real letters left today (under LETTER, or on the letter row). Neither is new writing UI: the letter goes to the letter
-   composer (/compose), the note to the diary composer (/journal-pick),
-   PostFan's own two destinations, in PostFan's order — push first, close
-   after the slide, so the composer slides in over what the + opened.
-   Today reads the same open flag (usePlusSheetOpen, which the tabs layout
-   provides) to fade its band and window and step its card back; nothing
-   crosses between the two Hosts. The style is held from the press to the
-   end of the closing (see panelStyle below).
+   THE + IS THE PUBLISH ENTRY, THE SAME ON EVERY TAB (the owner's P2,
+   2026-11-09, which replaces the split by tab of 2026-10-18: two round
+   buttons on Today, an iOS sheet on the others). The glass bar itself
+   grows taller, its bottom edge where it was, around two rows: Letter
+   (pub.letter, with pub.letterSub naming the reader's Wren) and Note
+   (pub.note, pub.noteSub), over a light dim with a blur. A free reader's
+   Letter row shows today's real letters left (pub.left); at none left it
+   is red and Letter goes to the paywall (src=daily_cap, the compose page's
+   own cap link) instead of the composer. For the reader's first three
+   opens on this phone, Wren's picture and her question (pub.ask) sit above
+   the rows (see ASK_OPENS). Neither row is new writing UI: the letter goes
+   to the letter composer (/compose), the note to the diary composer
+   (/journal-pick), PostFan's own two destinations, in PostFan's order —
+   push first, close after the slide, so the composer slides in over the
+   grown bar. Today reads the same open flag (usePlusSheetOpen, which the
+   tabs layout provides) to fade its band and window and step its card
+   back; nothing crosses between the two Hosts. The drawing is
+   KPublishTray and KTabBar's growing (modules/kindredly-ui, style "grow").
 
-   The 10a cards ("stranger" / "yourself") stay wired, so a binary or a lab
-   that still asks for them goes where they always went.
+   The 10a cards ("stranger" / "yourself") stay wired: a binary built
+   before "grow" opens them instead, and they go where they always went.
 
    ONE HOST, TWO SIZES. A SwiftUI hosting view can take every touch inside
    its frame, even where it draws nothing — UIHostingController's view is
@@ -57,11 +61,11 @@ import "../data/strings-today3d"; // pub.* (the publish entry's words)
    relying on either answer, the Host is the bar's strip at the
    bottom of the screen (the bar and its gap below, full width) while
    the + is closed, and the whole screen while it is open or closing —
-   the dim covers everything and the sheet or the buttons rise from the
-   bar. SwiftUI lays all of it out from the bottom edge, so growing the
-   Host upward moves nothing. Closing, the Host stays full-screen for
-   PANEL_OUT_MS so the sheet, the buttons and the dim can finish going,
-   then shrinks. The strip takes no more than PostTabBar did — it was a
+   the dim covers everything and the bar grows up from where it sits.
+   SwiftUI lays all of it out from the bottom edge, so growing the Host
+   upward moves nothing. Closing, the Host stays full-screen for
+   PANEL_OUT_MS so the bar can shrink back and the dim finish going, then
+   shrinks. The strip takes no more than PostTabBar did — it was a
    full-width slab 54 + inset tall — and both the wrapper and the Host are
    box-none, so if the hosting view does let touches through where it
    draws nothing, the gutters beside the bar pass them on.
@@ -88,15 +92,28 @@ import "../data/strings-today3d"; // pub.* (the publish entry's words)
    Words: the tab names (tab.*), the +'s name (pc.post, the post chooser's
    own heading), the × (wren.trackClose, the app's "Close"), the 10a cards
    (pc.stranger / pc.yourself with pc.strangerSaid / pc.yourselfSaid), and
-   the publish entry's pub.* (data/strings-today3d, English for now). Wren
-   is called by the name the reader gave her. */
+   the publish entry's pub.* (data/strings-today3d). Wren is called by the
+   name the reader gave her. */
 
 type BarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["tabBar"]>>[0];
 
-/* the publish entry's props, as the bar takes them */
-type PanelStyle = NonNullable<KTabBarProps["panelStyle"]>;
+/* the publish entry's words, as the bar takes them */
 type PublishSheet = NonNullable<KTabBarProps["sheet"]>;
-type PublishPop = NonNullable<KTabBarProps["pop"]>;
+
+/* WREN ASKS, THREE TIMES. For the reader's first ASK_OPENS opens of the +,
+   Wren's picture and pub.ask sit above the two rows (and the bar grows a
+   little taller for them); from the next open on, only the rows. Counted on
+   this phone, raw AsyncStorage (device-level, as language and launch-seen
+   are — lib/scoped-store): a second account on the same phone has already
+   seen the line. Decided at each press and held through that opening and
+   its closing, so the line never pops in or out under the finger. Until
+   the count has been read (or if it can't be), no line and no write: never
+   a fourth showing over a count we didn't see. */
+const PLUS_OPENS_KEY = "kindredly_plus_opens";
+const ASK_OPENS = 3;
+
+/* where Letter goes with no letters left today: the compose page's own cap link */
+const PAYWALL_OUT = "/paywall?src=daily_cap";
 
 /* the four tabs, in the bar's order — the mock's order too (H:448): Today,
    Notes, +, Kindreds, Me. `name` is the route under (tabs)/. */
@@ -160,15 +177,13 @@ export function useTabBarSpace(): number {
   return useContext(TabBarSpace) ?? tabBarHeight(insets.bottom);
 }
 
-/* how long the Host stays full-screen after the + closes: Today's two
-   buttons fly back over .4s plus NOTE's 50ms and the dim fades over .3s —
-   so .45s and a little over. Kept no longer than that because the screen
-   under the Host can't take taps until the Host shrinks. (The sheet on the
-   other tabs is an iOS sheet, presented over the window: the Host stays the
-   bar's strip for it.) */
+/* how long the Host stays full-screen after the + closes: the bar shrinks
+   back over .45s and the dim fades over .3s — so .45s and a little over.
+   Kept no longer than that because the screen under the Host can't take
+   taps until the Host shrinks. */
 const PANEL_OUT_MS = 480;
 
-/* PostFan's wait between pushing the composer and closing Today's buttons under it */
+/* PostFan's wait between pushing the composer and closing the grown bar under it */
 const CLOSE_AFTER_PUSH_MS = 420;
 
 /** Whether this binary can draw the Swift bar: the KindredlyUI module AND
@@ -200,14 +215,50 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
   // only Today writes back on this bar's ground; anywhere else the bar stays
   const hidden = away && current === "letters";
 
+  /* the + opens on this phone so far (ASK_OPENS); null until read */
+  const [opens, setOpens] = useState<number | null>(null);
+  // the opens this component has counted, so the read value is never written back
+  const [counted, setCounted] = useState(false);
+  /* Wren's line for this opening: decided at the press, held until the next one */
+  const [asks, setAsks] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    AsyncStorage.getItem(PLUS_OPENS_KEY)
+      .then((v) => {
+        if (alive) setOpens(Math.max(0, parseInt(v ?? "0", 10) || 0));
+      })
+      .catch((e) => {
+        // no count, no line (and nothing written): the smaller failure
+        if (__DEV__) console.warn("[tabbar] plus opens unread", e);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (!counted || opens == null) return;
+    AsyncStorage.setItem(PLUS_OPENS_KEY, String(opens)).catch((e) => {
+      if (__DEV__) console.warn("[tabbar] plus opens unsaved", e);
+    });
+  }, [opens, counted]);
+
   /* full screen while open, and for PANEL_OUT_MS after it closes. Decided
      during render, not in an effect, so the frame it starts closing in is
-     already a full-screen one; each close restarts the wait. */
+     already a full-screen one; each close restarts the wait. Each opening
+     also decides Wren's line, here, so it is there in the first frame. */
   const [wasOpen, setWasOpen] = useState(open);
   const [closedAt, setClosedAt] = useState(0);
   if (wasOpen !== open) {
     setWasOpen(open);
     if (!open) setClosedAt(Date.now());
+    else {
+      const first = opens != null && opens < ASK_OPENS;
+      setAsks(first);
+      if (first) {
+        setOpens(opens + 1);
+        setCounted(true);
+      }
+    }
   }
   useEffect(() => {
     if (!closedAt) return;
@@ -215,43 +266,28 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
     return () => clearTimeout(id);
   }, [closedAt]);
   const full = open || closedAt > 0;
-  /* what the + opens: the two buttons on Today, the sheet on the other tabs —
-     HELD for the life of an opening, so a tab tapped while it is open (which
-     closes it) can't swap the closing sheet for the buttons under the finger.
-     The style follows the tab only while the Host is the strip; from the
-     press until the closing is over (full) it stays what it was. Adjusted
-     during render, as `full` is. */
-  const stageNow: PanelStyle = current === "letters" ? "pop" : "sheet";
-  const [panelStyle, setPanelStyle] = useState(stageNow);
-  if (!full && panelStyle !== stageNow) setPanelStyle(stageNow);
-  /* the Host fills the screen only for Today's buttons, which are drawn in it. The sheet on the
-     other tabs is an iOS sheet (owner, 2026-10-26: the drawn one "ran around" as the Host grew):
-     the system presents it over the window from the bottom, so the Host stays the bar's strip
-     and the sheet opens with the press. */
-  const native = panelStyle === "sheet";
-  const fills = full && !native;
-  /* THE PANEL OPENS ONLY ONCE THE HOST IS FULL SCREEN (owner, b32: "the two discs and the sheet
+  /* THE BAR GROWS ONLY ONCE THE HOST IS FULL SCREEN (owner, b32: "the two discs and the sheet
      come down from the top — not logical, not native"). Opening in the same frame the Host grew
      from the strip, SwiftUI animated from the strip's layout, whose top is the top of the new
-     frame: the discs and the sheet came from the top of the screen. Now the Host grows first
-     (laid out closed, at the bar), and the panel opens on the next layout, from the + itself. */
+     frame: what the + opened came from the top of the screen. Now the Host grows first (laid out
+     closed, at the bar), and the bar grows on the next layout, from where it sits. */
   const [grown, setGrown] = useState(false);
-  if (!fills && grown) setGrown(false);
+  if (!full && grown) setGrown(false);
   const strip = nativeTabBarSpace(insets.bottom);
   const onLayout = (e: LayoutChangeEvent) => {
-    if (fills && !grown && e.nativeEvent.layout.height > strip + 1) requestAnimationFrame(() => setGrown(true));
+    if (full && !grown && e.nativeEvent.layout.height > strip + 1) requestAnimationFrame(() => setGrown(true));
   };
 
   const wren = useWrenName();
   const bird = useBirdImageRef("content");
-  // the free plan's count, asked as the + opens (both styles show it)
+  // the free plan's count, asked as the + opens
   const left = useLettersLeft(open);
 
   // dev: one line in Metro per change, next to Today's own (useTodayDesk), so when the + seems
   // to do nothing it shows which side moved — the bar's open state, or the screen's
   useEffect(() => {
-    if (__DEV__) console.log(`[tabbar] open=${open} style=${panelStyle} full=${full}`);
-  }, [open, panelStyle, full]);
+    if (__DEV__) console.log(`[tabbar] open=${open} full=${full} asks=${asks}`);
+  }, [open, full, asks]);
 
   // the navigator's own semantics, exactly as PostTabBar has them
   const go = (name: string) => {
@@ -261,22 +297,24 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
     if (!focused && !event.defaultPrevented) navigation.navigate(name);
   };
 
+  // while the + is open a tab only closes it (P2); the bar plays no pick for it either
   const onTabPress = (index: number) => {
     const tab = TABS[index];
     if (!tab) return;
-    if (open) onClose();
+    if (open) {
+      onClose();
+      return;
+    }
     go(tab.name);
   };
 
-  /* Today's buttons: push first, close after the slide — the composer slides over what the +
-     opened. The sheet: it is already down (Swift closes it first and hands the choice over once it
-     has gone), so the composer slides in on a clear screen. */
+  /* push first, close after the slide — the composer slides over the grown bar. Letter with
+     none left today goes to the paywall instead; Note always works. */
   const onPanelAction = (key: string) => {
-    const to = ROUTES[key];
+    const to = key === "letter" && left === 0 ? PAYWALL_OUT : ROUTES[key];
     if (!to) return;
     router.push(to);
-    if (native) onClose();
-    else setTimeout(onClose, CLOSE_AFTER_PUSH_MS);
+    setTimeout(onClose, CLOSE_AFTER_PUSH_MS);
   };
 
   // lang is in the deps so a change of language re-reads t()
@@ -290,43 +328,42 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
   );
   const sheet = useMemo<PublishSheet>(
     () => ({
-      ask: t("pub.ask"),
+      // Wren's line only for the first ASK_OPENS opens; "" leaves it out
+      ask: asks ? t("pub.ask") : "",
       letterTitle: t("pub.letter"),
       letterSub: t("pub.letterSub", { name: wren }),
       // hidden for First Class, a guest, and a count that couldn't be read: never a guess
       letterLeft: left == null ? "" : t("pub.left", { n: left }),
+      // none left: the count goes red (and Letter goes to the paywall, onPanelAction)
+      letterOut: left === 0,
       noteTitle: t("pub.note"),
       noteSub: t("pub.noteSub"),
       footnote: "",
       bird,
     }),
-    [lang, wren, left, bird],
-  );
-  const pop = useMemo<PublishPop>(
-    () => ({ letterLabel: t("pub.popLetter"), noteLabel: t("pub.popNote"), letterA11y: t("pub.letter"), noteA11y: t("pub.note"), letterLeft: left == null ? "" : t("pub.left", { n: left }) }),
-    [lang, left],
+    [lang, wren, left, bird, asks],
   );
 
   return (
     <View
       onLayout={onLayout}
       pointerEvents={hidden ? "none" : "box-none"}
-      style={fills ? { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 } : { position: "absolute", left: 0, right: 0, bottom: 0, height: strip }}
+      style={full ? { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 } : { position: "absolute", left: 0, right: 0, bottom: 0, height: strip }}
     >
       <Host style={{ flex: 1 }} pointerEvents="box-none" ignoreSafeArea="all" colorScheme={dark ? "dark" : "light"}>
         <KTabBar
           theme={theme}
           tabs={tabs}
           activeIndex={TABS.findIndex((tab) => tab.name === current)}
-          panelOpen={native ? open : open && grown}
+          panelOpen={open && grown}
           safeAreaBottom={insets.bottom}
           plusLabel={t("pc.post")}
           closeLabel={t("wren.trackClose")}
           panelTitle={t("pc.post")}
           panelCards={cards}
-          panelStyle={panelStyle}
+          // one behaviour on every tab (P2); a binary without "grow" opens the 10a cards
+          panelStyle="grow"
           sheet={sheet}
-          pop={pop}
           barHidden={hidden}
           onTabPress={onTabPress}
           onPlusPress={onPost}

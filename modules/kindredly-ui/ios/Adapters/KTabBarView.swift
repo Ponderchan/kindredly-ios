@@ -27,12 +27,13 @@ import ExpoUI
  - panelTitle: the sheet's header; panelLinkKey / panelLinkTitle: its link on the right, shown
    only when the title is not empty
  - panelCards: [{ key, title, subtitle, glyph, tone }]; glyph letter / note, tone lavender / warm
- - panelStyle: what the + opens: "cards" (the 10a sheet above, the default; ui-lab), "sheet" (the
-   new reader's publish sheet) or "pop" (the returning reader's two buttons). Anything else is
-   "cards"
- - sheet: { ask, letterTitle, letterSub, letterLeft, noteTitle, noteSub, footnote, bird }: the
-   publish sheet's words ("" letterLeft hides the count) and the user's own Wren
-   ({ uri, key, kind }, an empty uri for none yet)
+ - panelStyle: what the + opens: "grow" (the bar grows around two rows, the app's on every tab),
+   "cards" (the 10a sheet above, the default; ui-lab), "sheet" (the older publish sheet) or "pop"
+   (the older two buttons). Anything else is "cards"
+ - sheet: { ask, letterTitle, letterSub, letterLeft, letterOut, noteTitle, noteSub, footnote,
+   bird }: the publish entry's words for the sheet and the grown bar's tray ("" letterLeft hides
+   the count, letterOut draws it red, "" ask leaves the tray's Wren line out) and the user's own
+   Wren ({ uri, key, kind }, an empty uri for none yet)
  - pop: { letterLabel, noteLabel, letterA11y, noteA11y, letterLeft }: the two buttons' labels and what
    VoiceOver says for each
  - barHidden: the bar slides 160 down out of sight and reach (a fade under Reduce Motion): Today's
@@ -77,6 +78,8 @@ struct KTabBarSheetRecord: Record {
   @Field var letterSub: String = ""
   /// "3 LEFT"; empty hides it (First Class, a guest, a count that couldn't be read)
   @Field var letterLeft: String = ""
+  /// none left today: the grown bar's tray draws the count in red
+  @Field var letterOut: Bool = false
   @Field var noteTitle: String = ""
   @Field var noteSub: String = ""
   @Field var footnote: String = ""
@@ -106,7 +109,7 @@ final class KTabBarViewProps: UIBaseViewProps {
   @Field var panelLinkKey: String = ""
   @Field var panelLinkTitle: String = ""
   @Field var panelCards: [KTabBarCardRecord] = []
-  /// cards, sheet or pop (KPublishStyle)
+  /// cards, sheet, pop or grow (KPublishStyle)
   @Field var panelStyle: String = "cards"
   @Field var sheet: KTabBarSheetRecord = KTabBarSheetRecord()
   @Field var pop: KTabBarPopRecord = KTabBarPopRecord()
@@ -171,6 +174,7 @@ struct KTabBarView: ExpoSwiftUI.View {
     m.letterTitle = r.letterTitle
     m.letterSub = r.letterSub
     m.letterLeft = r.letterLeft
+    m.letterOut = r.letterOut
     m.noteTitle = r.noteTitle
     m.noteSub = r.noteSub
     m.footnote = r.footnote

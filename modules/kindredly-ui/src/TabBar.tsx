@@ -17,11 +17,13 @@ import type { KImageRefProps } from "./types";
    It fills the Host and lays itself out from the bottom edge, so the Host can be the bar's strip
    while the sheet is closed and the whole screen while it is open.
 
-   WHAT THE + OPENS (panelStyle). "cards" is the 10a sheet of cards above the bar (the default, so
-   ui-lab is unchanged). "sheet" and "pop" are the publish entry of Today 3d × 25b (Prompt 8): the
-   bottom sheet, where Wren asks who this one is for and the bar slides away (every tab but
-   Today), and the two round buttons popping from behind the + (Today). Both report "letter" or
-   "note" through onPanelAction. Which one opens is NativeTabBar's choice, by tab.
+   WHAT THE + OPENS (panelStyle). "grow" is the publish entry the app opens on every tab (the
+   owner's P2, 2026-11-09): the glass bar itself grows taller around two rows, Letter and Note,
+   with Wren's question above them when the sheet model carries an ask. "cards" is the 10a sheet
+   of cards above the bar (the default, so ui-lab is unchanged, and what a binary that doesn't
+   know "grow" opens). "sheet" and "pop" are the older publish entry of Today 3d × 25b (Prompt 8),
+   the iOS sheet and the two round buttons, no longer opened by the app; ui-lab and the dev Today
+   page still show them. grow, sheet and pop report "letter" or "note" through onPanelAction.
 
    barHidden sends the bar away, 160 down out of sight and reach over .35s (a fade under Reduce
    Motion), whatever the + is doing: Today's reply (the chat composers' A1, owner 2026-10-18),
@@ -51,17 +53,19 @@ export type KTabBarCard = {
   tone: "lavender" | "warm";
 };
 
-/** What the + opens: the 10a cards, the new reader's sheet, or the returning reader's two buttons. */
-export type KTabBarPanelStyle = "cards" | "sheet" | "pop";
+/** What the + opens: the grown bar's two rows, the 10a cards, the older sheet, or the older two buttons. */
+export type KTabBarPanelStyle = "cards" | "sheet" | "pop" | "grow";
 
-/** The new reader's publish sheet. Every string already translated. */
+/** The publish entry's words, for the sheet and the grown bar's tray. Every string already translated. */
 export type KTabBarSheet = {
-  /** Wren's question beside her ("Which one tonight?") */
+  /** Wren's question beside her ("Who's this one for?"); for "grow", "" leaves her line out */
   ask: string;
   letterTitle: string;
   letterSub: string;
   /** the free plan's letters left today ("3 LEFT"); "" hides it */
   letterLeft: string;
+  /** none left today: "grow" draws the count in red. false by default */
+  letterOut?: boolean;
   noteTitle: string;
   noteSub: string;
   footnote: string;
@@ -82,18 +86,18 @@ export type KTabBarPop = {
 };
 
 type NativeImage = { uri: string; key: string; kind: "image" | "videoPoster" };
-type NativeSheet = Omit<KTabBarSheet, "bird"> & { bird: NativeImage };
+type NativeSheet = Omit<KTabBarSheet, "bird" | "letterOut"> & { letterOut: boolean; bird: NativeImage };
 
 const NO_IMAGE: NativeImage = { uri: "", key: "", kind: "image" };
-const EMPTY_SHEET: NativeSheet = { ask: "", letterTitle: "", letterSub: "", letterLeft: "", noteTitle: "", noteSub: "", footnote: "", bird: NO_IMAGE };
+const EMPTY_SHEET: NativeSheet = { ask: "", letterTitle: "", letterSub: "", letterLeft: "", letterOut: false, noteTitle: "", noteSub: "", footnote: "", bird: NO_IMAGE };
 const EMPTY_POP: KTabBarPop = { letterLabel: "", noteLabel: "", letterA11y: "", noteA11y: "", letterLeft: "" };
 
 /** The sheet as Swift's flat record: a missing bird is an empty ref, never null (a Record @Field
     can't take one). */
 function nativeSheet(sheet: KTabBarSheet | undefined): NativeSheet {
   if (!sheet) return EMPTY_SHEET;
-  const { bird, ...words } = sheet;
-  return { ...words, bird: bird && bird.uri ? { uri: bird.uri, key: bird.key, kind: bird.kind ?? "image" } : NO_IMAGE };
+  const { bird, letterOut, ...words } = sheet;
+  return { ...words, letterOut: letterOut ?? false, bird:bird && bird.uri ? { uri: bird.uri, key: bird.key, kind: bird.kind ?? "image" } : NO_IMAGE };
 }
 
 type NativeTabBarProps = CommonViewModifierProps & {
@@ -142,7 +146,7 @@ export type KTabBarProps = CommonViewModifierProps & {
   panelCards: KTabBarCard[];
   /** what the + opens; "cards" (the 10a sheet) by default */
   panelStyle?: KTabBarPanelStyle;
-  /** the new reader's publish sheet, for panelStyle "sheet" */
+  /** the publish entry's words, for panelStyle "sheet" and "grow" */
   sheet?: KTabBarSheet;
   /** the returning reader's two buttons, for panelStyle "pop" */
   pop?: KTabBarPop;
@@ -152,7 +156,7 @@ export type KTabBarProps = CommonViewModifierProps & {
   onTabPress?: (index: number) => void;
   /** the + (or ×) was tapped */
   onPlusPress?: () => void;
-  /** a card, or the header link, was tapped; for "sheet" and "pop", "letter" or "note" */
+  /** a card, or the header link, was tapped; for "sheet", "pop" and "grow", "letter" or "note" */
   onPanelAction?: (key: string) => void;
   /** the dim was tapped, VoiceOver's escape gesture, or the publish sheet was dragged down */
   onPanelDismiss?: () => void;

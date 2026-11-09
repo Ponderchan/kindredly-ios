@@ -4,14 +4,18 @@
 import SwiftUI
 
 /*
- WHAT THE + OPENS. Three ways (KPublishStyle), chosen by whoever holds the bar:
+ WHAT THE + OPENS. Four ways (KPublishStyle), chosen by whoever holds the bar:
+ - grow: the publish entry the app uses on every tab (the owner's P2, 2026-11-09): the glass bar
+   itself grows taller around two rows, Letter and Note (KPublishTray, further down; the growing
+   is KTabBar's). One behaviour wherever the + is pressed;
  - cards: the 10a composer sheet below (KPlusPanel), rising just above the tab bar over a dimmed
-   screen. ui-lab keeps it;
- - sheet and pop: the publish entry of Today 3d × 25b (design Prompt 8), by the tab it is pressed
-   on (owner, 2026-10-18): on Today, where the reader is reading, two round buttons pop from
-   behind the + just above the letter's band; on every other tab, a bottom sheet where Wren asks
-   who this one is for. Both are further down this file (KPublishSheet, KPublishPop), and the
-   stage that puts any of them on screen is KTabStage at the end.
+   screen. ui-lab keeps it, and a binary that doesn't know a style it is sent opens it;
+ - sheet and pop: the publish entry of Today 3d × 25b (design Prompt 8), which the app chose by
+   tab until P2 (owner, 2026-10-18): two round buttons popping from behind the + on Today, an iOS
+   sheet where Wren asks who this one is for on the other tabs (KPublishSheet, KPublishPop). The
+   app no longer opens either; they stay drawn because ui-lab and the dev Today page still ask
+   for them by name.
+ The stage that puts any of them on screen is KTabStage at the end.
 
  THE 10a CARDS (H:128-135). The sheet is a flat panel (owner's rule B, 2026-10-26; the mock's
  2.5 ln outline and hard 6/6 ln shadow are gone): sf, corners of 28, a 1pt line hairline in
@@ -203,12 +207,36 @@ public extension KMotion {
 }
 
 /*
- ══ THE PUBLISH ENTRY (Today 3d × 25b, design Prompt 8) ══════════════════════════════════════
+ ══ THE PUBLISH ENTRY ═════════════════════════════════════════════════════════════════════════
 
- The + is where a reader writes, and it opens by who they are (src/lib/publish-stage.ts decides,
- the holder passes the style):
+ The + is where a reader writes. Since the owner's P2 (2026-11-09) it opens the same way on every
+ tab: GROW, below. SHEET and POP are the older styles (Today 3d × 25b, design Prompt 8), no longer
+ opened by the app, kept for ui-lab and the dev Today page.
 
- SHEET, on every tab but Today:
+ GROW (CLAUDE-CODE-PROMPTS-PLUS.md Prompts 0-2; KTabBar grows the glass, KPublishTray is what it
+ grows around):
+ - the dim is the pop's (rgba(30,27,53,.22), Midnight black .33) with a light blur of the page
+   under it (the design's blur 6, as a thin material at part strength: SwiftUI's materials have
+   one blur each, so this is the nearest); a tap on it, on the x or on any tab closes, and nothing
+   else happens (no tab switch while it is open);
+ - the bar's glass grows upward from 62, its bottom edge fixed and its corners kept, by the
+   tray's height: 10 in on every side, the pieces 8 apart, 10 above the tab row (210 in all);
+ - for the new reader's first three opens (the holder counts and sends ask; "" otherwise) a line
+   above the rows: Wren's own picture 27 x 30 and, 10 beside her, the ask in System italic
+   17/1.3 in ink, as the old sheet's header had it;
+ - two rows at least 60 tall, corners of 22, translucent white on the glass (.75; pressed .55;
+   Midnight white .10 and .18), padding 0 14 0 11, their pieces 12 apart: a 38 tile (corners 12)
+   holding a 22 line drawing on the design's 24 grid at 1.9 (Letter #E4E2F4 with the envelope in
+   #3A34D6; Note the calm mood's #DDEFD6 with the page in its #2E7D4F, both the same in every
+   theme), then the title, System 600 16 in the tile's ink (Midnight: ind and the calm fill, which
+   read on the dark glass), and its sub-line under it, System 13 in #8A86A3 (Midnight: sub);
+ - on the letter row, if the caller gives one, the letters left today at the right, as the old
+   sheet showed it (mono 500 10 at .12em, mute), red #E0483C when none are left (letterOut);
+   where Letter then goes is the holder's (the paywall);
+ - VoiceOver reads each row as one button, its title, sub-line and count; opening moves it to the
+   letter row. Reduce Motion: the bar doesn't spring and the + doesn't turn; everything cross-fades.
+
+ SHEET, on every tab but Today (until P2):
  - an iOS sheet (owner, 2026-10-26: the hand-drawn one "ran around"; "native, rising from the
    bottom"): the system's rise, dim, grabber, corners and drag down, on sf, exactly as tall as
    its content (a measured height detent). A choice closes it, and the composer is pushed once
@@ -228,7 +256,7 @@ public extension KMotion {
  - it closes on a tap on the dim, VoiceOver's escape, or a drag down, as any iOS sheet; each
    is onDismiss. Its text grows with Dynamic Type up to xxLarge.
 
- POP, for a returning reader:
+ POP, on Today (until P2):
  - the dim is lighter (.22; Midnight black .33, KDim.publishPop), and the bar stays: its + turns
    to an × on the publish curve, .35s cubic-bezier(.3,1.3,.4,1);
  - two 64 discs (owner's mock, 2026-10-20, replacing the black-ringed stickers): the lav2 wash, a
@@ -254,21 +282,26 @@ public extension KMotion {
 public enum KPublishStyle: String, Sendable {
   /// the 10a composer sheet of cards over the bar (KPlusPanel); ui-lab keeps it
   case cards
-  /// the bottom sheet, Wren asking who this one is for (every tab but Today)
+  /// the bottom sheet, Wren asking who this one is for (every tab but Today, until P2)
   case sheet
-  /// the two round buttons popping from behind the + (Today)
+  /// the two round buttons popping from behind the + (Today, until P2)
   case pop
+  /// the bar growing around two rows, on every tab (the owner's P2): KPublishTray
+  case grow
 }
 
-/// The new reader's sheet: every word already translated.
+/// The publish entry's words, for the sheet and for the grown bar's tray: every word already
+/// translated.
 public struct KPublishSheetModel: Equatable, Sendable {
-  /// Wren's question, beside her ("Who's this one for?")
+  /// Wren's question, beside her ("Who's this one for?"); in the tray, "" leaves her line out
   public var ask = ""
   /// the letter row's title and subtitle
   public var letterTitle = ""
   public var letterSub = ""
   /// the letters left today on the letter row's right ("3 LEFT"); "" hides it
   public var letterLeft = ""
+  /// none left today: the tray draws the count in red (the sheet ignores it)
+  public var letterOut = false
   /// the note row's title and subtitle
   public var noteTitle = ""
   public var noteSub = ""
@@ -310,13 +343,18 @@ public extension KDim {
   /// Midnight's: black at .33, stepping down from the composer's .45 by the same ratio.
   static let publishPopDark = Color.black.opacity(0.33)
 
-  /// The dim the + spreads over the screen in this theme, for this style.
+  /// The dim the + spreads over the screen in this theme, for this style. The grown bar's is
+  /// the pop's, the design's own .22 (P2).
   static func publish(_ style: KPublishStyle, for theme: KTheme) -> Color {
     switch style {
     case .cards, .sheet: return composer(for: theme)
-    case .pop: return theme.isDark ? publishPopDark : publishPop
+    case .pop, .grow: return theme.isDark ? publishPopDark : publishPop
     }
   }
+
+  /// How strong the thin material under the grown bar's dim is: the design blurs the page by 6,
+  /// lighter than any material's own blur, so the material is laid at part strength.
+  static let growBlur: Double = 0.55
 }
 
 public extension KMotion {
@@ -348,6 +386,21 @@ enum KPublishMetrics {
   static let popClosedScale: CGFloat = 0.4
   /// the label's top under its disc
   static let popLabelGap: CGFloat = 10
+
+  /// the grown bar's tray (P2): padding 10, pieces 8 apart, rows 60 tall with corners of 22,
+  /// tiles 38
+  static let trayInset: CGFloat = 10
+  static let trayGap: CGFloat = 8
+  static let trayRow: CGFloat = 60
+  static let trayRowCorner: CGFloat = 22
+  static let trayTile: CGFloat = 38
+  /// the letter tile's pair, the same in every theme (P2 Prompt 1: lav and ind)
+  static let letterTile = Color(hex: "#E4E2F4")
+  static let letterInk = Color(hex: "#3A34D6")
+  /// the rows' sub-lines in the light themes
+  static let traySub = Color(hex: "#8A86A3")
+  /// the count when no letters are left today
+  static let outRed = Color(hex: "#E0483C")
 
   /// The grouped list's fill on the sheet's sf: soft, the theme's wash for grouped lists; in
   /// Midnight soft is sf itself, so soft2 there, or the list wouldn't show.
@@ -566,6 +619,148 @@ struct KPublishNativeSheet: View {
   }
 }
 
+/// The two rows the bar grows around (P2): Wren's line for a new reader, then Letter and Note.
+/// The glass, the growing and the clip are KTabBar's; this is only what is inside.
+struct KPublishTray: View {
+  let theme: KTheme
+  let model: KPublishSheetModel
+  let open: Bool
+  let onAction: (String) -> Void
+
+  @AccessibilityFocusState private var letterFocused: Bool
+
+  var body: some View {
+    VStack(spacing: KPublishMetrics.trayGap) {
+      // Wren asks, for the new reader's first three opens: her picture, then the line
+      if !model.ask.isEmpty {
+        HStack(spacing: 10) {
+          KImage(model.bird, size: CGSize(width: 27, height: 30), contentMode: .fit, placeholder: .clear)
+            .accessibilityHidden(true)
+          Text(model.ask)
+            .italic()
+            .kText(.system(17, lineHeight: 1.3))
+            .foregroundStyle(theme.ink)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 6)
+        .padding(.top, 4)
+        .padding(.bottom, 2)
+      }
+      row(
+        key: KPublishAction.letter,
+        art: KPublishArt.letter,
+        tile: KPublishMetrics.letterTile,
+        ink: KPublishMetrics.letterInk,
+        title: model.letterTitle,
+        titleColor: theme.isDark ? theme.ind : KPublishMetrics.letterInk,
+        sub: model.letterSub,
+        trailing: model.letterLeft,
+        out: model.letterOut
+      )
+      .accessibilityFocused($letterFocused)
+      row(
+        key: KPublishAction.note,
+        art: KPublishArt.note,
+        tile: KMood.calm.fill,
+        ink: KMood.calm.ink,
+        title: model.noteTitle,
+        titleColor: theme.isDark ? KMood.calm.fill : KMood.calm.ink,
+        sub: model.noteSub,
+        trailing: "",
+        out: false
+      )
+    }
+    .padding(KPublishMetrics.trayInset)
+    .onChange(of: open) { _, isOpen in
+      guard isOpen else { return }
+      // VoiceOver to the first choice once the bar has grown
+      Task { @MainActor in
+        try? await Task.sleep(for: .milliseconds(450))
+        letterFocused = true
+      }
+    }
+  }
+
+  /// One row: the tile, the title over its sub-line, the count on the right if there is one.
+  private func row(key: String, art: Path, tile: Color, ink: Color, title: String, titleColor: Color, sub: String, trailing: String, out: Bool) -> some View {
+    let shape = RoundedRectangle(cornerRadius: KPublishMetrics.trayRowCorner, style: .continuous)
+    return Button {
+      onAction(key)
+    } label: {
+      HStack(spacing: 12) {
+        KPublishGlyphShape(art: art)
+          .stroke(ink, style: StrokeStyle(lineWidth: 1.9 * 22 / KPublishArt.grid, lineCap: .round, lineJoin: .round))
+          .frame(width: 22, height: 22)
+          .frame(width: KPublishMetrics.trayTile, height: KPublishMetrics.trayTile)
+          .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(tile))
+          .accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: 1) {
+          Text(title)
+            .kText(.system(16, .semibold))
+            .foregroundStyle(titleColor)
+            .fixedSize(horizontal: false, vertical: true)
+          Text(sub)
+            .kText(.system(13))
+            .foregroundStyle(theme.isDark ? theme.sub : KPublishMetrics.traySub)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        if !trailing.isEmpty {
+          Text(trailing)
+            .kText(.mono(10, .medium, tracking: 0.12))
+            .foregroundStyle(out ? KPublishMetrics.outRed : theme.mute)
+            .lineLimit(1)
+            .fixedSize()
+        }
+      }
+      // 60 tall, taller only for large text
+      .padding(.leading, 11)
+      .padding(.trailing, 14)
+      .padding(.vertical, 8)
+      .frame(maxWidth: .infinity, minHeight: KPublishMetrics.trayRow)
+      .contentShape(shape)
+      // one element: "Write a letter, Wren carries it to a stranger, 3 LEFT, button"
+      .accessibilityElement(children: .combine)
+    }
+    .buttonStyle(KPublishTrayRowStyle(theme: theme, shape: shape))
+  }
+}
+
+/// The tray rows' ground: translucent white on the glass, lighter while pressed (Midnight: a
+/// faint white lift, a little more pressed).
+private struct KPublishTrayRowStyle: ButtonStyle {
+  let theme: KTheme
+  let shape: RoundedRectangle
+
+  func makeBody(configuration: Configuration) -> some View {
+    let fill: Color = theme.isDark
+      ? Color.white.opacity(configuration.isPressed ? 0.18 : 0.10)
+      : Color.white.opacity(configuration.isPressed ? 0.55 : 0.75)
+    return configuration.label
+      .background(shape.fill(fill))
+      .animation(KMotion.press, value: configuration.isPressed)
+  }
+}
+
+/// The tray's two drawings, the design's own (P2 Prompt 1), on a 24 grid.
+enum KPublishArt {
+  static let grid: CGFloat = 24
+  /// an envelope
+  static let letter = KSVGPath.path("M3 6h18v12H3z M3 7l9 7 9-7")
+  /// a page with a folded corner and two lines
+  static let note = KSVGPath.path("M6 3h12v14l-4 4H6z M14 21v-4h4 M9 8h6 M9 12h6")
+}
+
+/// A path on the tray's 24 grid, drawn to whatever frame it is given.
+struct KPublishGlyphShape: Shape {
+  let art: Path
+
+  func path(in rect: CGRect) -> Path {
+    art.applying(CGAffineTransform(scaleX: rect.width / KPublishArt.grid, y: rect.height / KPublishArt.grid))
+  }
+}
+
 /// The returning reader's two buttons, in the stage's whole frame: they come out from behind the
 /// + and go back there.
 struct KPublishPop: View {
@@ -668,11 +863,11 @@ struct KPublishPop: View {
 
 /*
  THE STAGE: the tab bar with what its + opens, as one view filling the space it is given, laid
- out from the bottom up, the way the mocks stack them (10a H:117, 128, 129; Today 3d Prompt 8),
- back to front:
+ out from the bottom up, the way the mocks stack them (10a H:117, 128, 129; Today 3d Prompt 8;
+ P2), back to front:
  - the dim, over everything it is given. A tap on it closes; VoiceOver reads it as a close
    button, and the escape gesture (two-finger scrub) closes too. Its strength is the style's
-   (KDim.publish);
+   (KDim.publish); for grow, a thin material at part strength under it blurs the page a little;
  - cards: the 10a sheet, 12 in from each side, its bottom 12 above the bar's top. In the mock
    that is bottom 104 = the bar's 30 + 62 + 12, and here it follows the bar wherever the safe
    area puts it. It rises from 24 lower at .94 of its size, scaling from its bottom edge, over
@@ -680,14 +875,15 @@ struct KPublishPop: View {
    With Reduce Motion on it only fades;
  - pop: the returning reader's two buttons, under the bar so they come out from behind the +;
  - the bar (KTabBarMetrics.bottomGap above the bottom edge), over the dim so the × stays live
-   and undimmed (the new reader's sheet, an iOS sheet, covers it). While the holder says
+   and undimmed (the new reader's sheet, an iOS sheet, covers it). For grow it carries the tray
+   and grows around it, upward from where it sits. While the holder says
    barHidden (Today's reply, the chat composers' A1, owner 2026-10-18: the reader writing back
    to a letter has the keyboard and the reply bar where the tab bar was) it does the same, 160
    down out of sight and reach over .35s, and comes back up when the reply ends;
  - sheet: the new reader's sheet, presented as an iOS sheet over the window (no dim of ours).
 
- The sheets, the buttons and the dim are always there, only transparent and untouchable while
- closed. That keeps them out of VoiceOver while closed, and it means the whole stage only needs
+ The sheets, the buttons, the tray and the dim are always there, only transparent and
+ untouchable while closed. That keeps them out of VoiceOver while closed, and it means the whole stage only needs
  the full screen while something is open or closing: the holder can give it just the bar's strip
  the rest of the time (see src/components/NativeTabBar.tsx, which does). Everything is anchored
  to the bottom edge, so growing or shrinking the space from the top moves nothing.
@@ -729,12 +925,12 @@ public struct KTabStage: View {
   ///   - panelTitle, panelLink, cards: the 10a sheet's (KPlusPanel), for the cards style
   ///   - safeAreaBottom: the screen's bottom safe-area inset
   ///   - style: what the + opens (cards by default, as before the publish entry)
-  ///   - sheet: the new reader's sheet, for the sheet style
+  ///   - sheet: the publish entry's words, for the sheet style and the grown bar's tray
   ///   - pop: the returning reader's buttons, for the pop style
   ///   - barHidden: the bar steps away (slides 160 down out of sight; a fade under Reduce
   ///     Motion), whatever the + is doing: Today's reply has the bottom of the screen
   ///   - onPanelAction: a choice was tapped, with its key: a card's or the header link's
-  ///     (cards), or KPublishAction.letter / .note (sheet and pop)
+  ///     (cards), or KPublishAction.letter / .note (sheet, pop and grow)
   ///   - onDismiss: the dim was tapped, VoiceOver's escape, or the sheet was dragged down; the
   ///     holder closes
   public init(
@@ -790,6 +986,12 @@ public struct KTabStage: View {
     // and a sheet, closed and invisible, reaches far above it. (A root view bigger than its
     // hosting view can be centred in it instead of pinned, and the bar would drop.)
     KDim.publish(style, for: theme)
+      // the grown bar's blur of the page, under its dim (P2: blur 6)
+      .background {
+        if style == .grow {
+          Rectangle().fill(.ultraThinMaterial).opacity(KDim.growBlur)
+        }
+      }
       .opacity(dims ? 1 : 0)
       .animation(KMotion.dimFade, value: dims)
       .contentShape(Rectangle())
@@ -834,9 +1036,11 @@ public struct KTabStage: View {
           plusLabel: plusLabel,
           closeLabel: closeLabel,
           // the publish entry turns its + on the design's own curve; the 10a sheet keeps its own
-          plusTurn: style == .cards ? KMotion.plusTurn : KMotion.plusTurnPublish,
+          plusTurn: style == .cards ? KMotion.plusTurn : style == .grow ? KMotion.plusTurnGrow : KMotion.plusTurnPublish,
           // Today's reply has the screen's foot (the new reader's sheet covers the bar itself)
           hidden: barHidden,
+          // the grown bar's rows (P2): the bar itself grows around them
+          tray: style == .grow ? AnyView(KPublishTray(theme: theme, model: sheet, open: open, onAction: onPanelAction)) : nil,
           onSelect: onSelect,
           onPlus: onPlus
         )

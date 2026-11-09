@@ -42,19 +42,34 @@ import SwiftUI
  THE + (G Prompt 3): a 46 ind disc with a white + 22 across at 2.6 and an ind glow; open, it
  turns 45 degrees into an x and the disc goes ink. The holder still passes the turn's curve.
 
+ THE BAR GROWS (the owner's P2, 2026-11-09: CLAUDE-CODE-PROMPTS-PLUS.md Prompt 2). Given a tray
+ (the publish entry's two rows, KPublishTray in KPlusPanel.swift), the glass itself grows taller
+ while the + is open: no new layer, the same face, ring and shadow, its bottom edge where it was
+ and its corners kept at 31, so it is the capsule again at 62. It grows from 62 by the tray's own
+ measured height (210 in all at the default text size; a little more for the new reader's line,
+ more with large text) on .45s cubic-bezier(.3,1.2,.4,1); the tray, clipped inside it, fades in
+ over .3s once the glass has started (.1s late) and out at once (.15s) on closing. The tab row
+ stays at the foot, untouched. While the tray is open a tap on a tab is reported as before but
+ plays no pick (the lens stays put, a drag doesn't start): the holder closes the + first and
+ switches nothing. With Reduce Motion the height changes at once, the tray only fades, and the +
+ doesn't turn: the + and the x cross-fade. Without a tray (ui-lab, the older publish styles)
+ none of this happens and the bar is the 62 capsule it always was.
+
  Selection belongs to whoever holds the bar. A tap or a drag only reports the tab (onSelect);
  the lens settles where selectedIndex says, so a tab that refuses the press or a route changed
  from elsewhere both come out right. A released drag holds its tab for a moment while the holder
  catches up, so the lens doesn't run back to the old tab first.
 
- The bar is fixed at 62 tall, so its one piece of text, the count, stays at the default Dynamic
- Type size, and each tab and the + show the large content viewer. With Reduce Motion the lens
+ The tab row is fixed at 62 tall, so its one piece of text, the count, stays at the default
+ Dynamic Type size, and each tab and the + show the large content viewer. The tray's words grow
+ with Dynamic Type up to xxLarge, and the bar grows with them. With Reduce Motion the lens
  moves on a plain ease, nothing stretches and the accents stay still; a drag still follows the
  finger.
 
- THE PUBLISH ENTRY (Today 3d x 25b, Prompt 8; KPlusPanel.swift). hidden drops the whole bar 160
- on the publish turn's curve, out of sight and out of reach, for the new reader's sheet and for
- Today's reply; with Reduce Motion it fades instead.
+ THE PUBLISH ENTRY (KPlusPanel.swift). On every tab the + now grows the bar around its tray (see
+ THE BAR GROWS above). hidden drops the whole bar 160 on the publish turn's curve, out of sight
+ and out of reach, for Today's reply (and the older sheet style); with Reduce Motion it fades
+ instead.
  */
 
 /// The four tabs' drawings. The order on the bar is the caller's.
@@ -114,6 +129,9 @@ public enum KTabBarMetrics {
     max(safeAreaBottom - 4, 16)
   }
 
+  /// the corners, kept while the bar grows around its tray (a capsule's at 62)
+  public static let corner: CGFloat = height / 2
+
   /// How far the bar drops when hidden (Today 3d Prompt 8: translateY(160)), enough to clear the
   /// screen's bottom edge from any gap.
   public static let hiddenDrop: CGFloat = 160
@@ -137,6 +155,14 @@ public extension KMotion {
   static let lensStretchStep = UnitCurve.bezier(startControlPoint: UnitPoint(x: 0.3, y: 1), endControlPoint: UnitPoint(x: 0.4, y: 1))
   /// Each step of an accent's move: cubic-bezier(.3,1.3,.4,1).
   static let tabAccentStep = UnitCurve.bezier(startControlPoint: UnitPoint(x: 0.3, y: 1.3), endControlPoint: UnitPoint(x: 0.4, y: 1))
+  /// The bar growing around its tray and back: height .45s cubic-bezier(.3,1.2,.4,1) (P2).
+  static let barGrow = Animation.timingCurve(0.3, 1.2, 0.4, 1, duration: 0.45)
+  /// The + turning with it: .4s on the same curve (the approved prototype's).
+  static let plusTurnGrow = Animation.timingCurve(0.3, 1.2, 0.4, 1, duration: 0.4)
+  /// The tray's rows fading in once the glass has started: .3s, .1s late (P2).
+  static let trayIn = Animation.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.3).delay(0.1)
+  /// ...and out at once on closing (.15s).
+  static let trayOut = Animation.easeOut(duration: 0.15)
 }
 
 /// The glass's colours, light and Midnight (G Prompt 1; the dark side is ours, the mock is light).
@@ -206,9 +232,12 @@ public struct KTabBar: View {
   private let closeLabel: String
   private let plusTurn: Animation
   private let hidden: Bool
+  private let tray: AnyView?
   private let onSelect: (Int) -> Void
   private let onPlus: () -> Void
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  /// the tray's own height, measured, so the bar grows by exactly that
+  @State private var trayHeight: CGFloat = 0
 
   /// where the finger went down, while it is down
   @State private var downX: CGFloat?
@@ -232,6 +261,8 @@ public struct KTabBar: View {
   ///   - hidden: the bar slides 160 down out of sight (the new reader's publish sheet takes its
   ///     place, or Today's reply has the keyboard: KTabStage barHidden), on the publish turn's
   ///     curve; with Reduce Motion it fades instead
+  ///   - tray: what the bar grows around while isPanelOpen (the publish entry's rows); nil keeps
+  ///     the bar 62 tall whatever isPanelOpen says
   ///   - onSelect: a tab was chosen (tapped, or a drag let go over it), with its index; selected or not
   ///   - onPlus: the + (or x) was tapped
   public init(
@@ -243,6 +274,7 @@ public struct KTabBar: View {
     closeLabel: String,
     plusTurn: Animation = KMotion.plusTurn,
     hidden: Bool = false,
+    tray: AnyView? = nil,
     onSelect: @escaping (Int) -> Void,
     onPlus: @escaping () -> Void
   ) {
@@ -254,6 +286,7 @@ public struct KTabBar: View {
     self.closeLabel = closeLabel
     self.plusTurn = plusTurn
     self.hidden = hidden
+    self.tray = tray
     self.onSelect = onSelect
     self.onPlus = onPlus
   }
@@ -268,6 +301,9 @@ public struct KTabBar: View {
   }
 
   private var dragging: Bool { dragX != nil }
+
+  /// the bar has grown around its tray: a tap on a tab closes it first, and plays no pick
+  private var trayOpen: Bool { tray != nil && isPanelOpen }
 
   /// the tab drawn as selected: the one under a dragging finger, else the one just chosen, else the holder's
   private func shownTab(slot: CGFloat) -> Int? {
@@ -296,8 +332,47 @@ public struct KTabBar: View {
 
   public var body: some View {
     let tone = KGlassTone.of(theme)
-    let shape = Capsule(style: .circular)
-    return GeometryReader { geo in
+    // the capsule's corners at any height: a capsule at 62, its corners kept while it grows
+    let shape = RoundedRectangle(cornerRadius: KTabBarMetrics.corner, style: .circular)
+    let grown = trayOpen
+    return ZStack(alignment: .bottom) {
+      // the tray, above the tab row, inside the glass: clipped away while closed
+      if let tray {
+        tray
+          .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+          .fixedSize(horizontal: false, vertical: true)
+          .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { trayHeight = $0 }
+          .opacity(grown ? 1 : 0)
+          .animation(reduceMotion ? KMotion.publishReduced : grown ? KMotion.trayIn : KMotion.trayOut, value: grown)
+          .allowsHitTesting(grown)
+          .accessibilityHidden(!grown)
+          .padding(.bottom, KTabBarMetrics.height)
+      }
+      tabRow(tone: tone)
+    }
+    // bottom edge fixed: the frame grows upward and the tab row stays at its foot
+    .frame(height: KTabBarMetrics.height + (grown ? trayHeight : 0), alignment: .bottom)
+    .animation(reduceMotion ? nil : KMotion.barGrow, value: grown)
+    .frame(maxWidth: .infinity)
+    .background { KGlassFace(tone: tone) }
+    .clipShape(shape)
+    .background { KOuterShadow(shadows: tone.shadow, shape: shape) }
+    .environment(\.colorScheme, theme.isDark ? .dark : .light)
+    .onChange(of: selectedIndex) { _, _ in pending = nil }
+    // out of the way for the publish sheet: down 160, or with Reduce Motion a fade
+    .animation(reduceMotion ? .easeInOut(duration: 0.25) : KMotion.plusTurnPublish) {
+      $0
+        .offset(y: hidden && !reduceMotion ? KTabBarMetrics.hiddenDrop : 0)
+        .opacity(hidden && reduceMotion ? 0 : 1)
+    }
+    .allowsHitTesting(!hidden)
+    .accessibilityElement(children: .contain)
+    .accessibilityHidden(hidden)
+  }
+
+  /// the 62 row of tabs and the +, with the lens behind them
+  private func tabRow(tone: KGlassTone) -> some View {
+    GeometryReader { geo in
       let width = geo.size.width
       let slot = width / CGFloat(max(1, columnCount))
       let shown = shownTab(slot: slot)
@@ -316,34 +391,22 @@ public struct KTabBar: View {
         .frame(width: width, height: KTabBarMetrics.height)
       }
       .frame(width: width, height: KTabBarMetrics.height)
-      .contentShape(shape)
+      .contentShape(Capsule(style: .circular))
       .gesture(barGesture(slot: slot))
     }
     .frame(height: KTabBarMetrics.height)
-    .frame(maxWidth: .infinity)
-    .background { KGlassFace(tone: tone) }
-    .clipShape(shape)
-    .background { KOuterShadow(shadows: tone.shadow, shape: shape) }
-    .environment(\.colorScheme, theme.isDark ? .dark : .light)
-    .onChange(of: selectedIndex) { _, _ in pending = nil }
-    // the bar never grows; its count is the only text (see the note at the top)
+    // the row never grows; its count is the only text (see the note at the top)
     .dynamicTypeSize(...DynamicTypeSize.large)
-    // out of the way for the publish sheet: down 160, or with Reduce Motion a fade
-    .animation(reduceMotion ? .easeInOut(duration: 0.25) : KMotion.plusTurnPublish) {
-      $0
-        .offset(y: hidden && !reduceMotion ? KTabBarMetrics.hiddenDrop : 0)
-        .opacity(hidden && reduceMotion ? 0 : 1)
-    }
-    .allowsHitTesting(!hidden)
     .accessibilityElement(children: .contain)
     .accessibilityAddTraits(.isTabBar)
-    .accessibilityHidden(hidden)
   }
 
   // ── touch: one gesture for the whole bar, so a press can turn into a drag (G Prompt 2) ──
   private func barGesture(slot: CGFloat) -> some Gesture {
     DragGesture(minimumDistance: 0, coordinateSpace: .local)
       .onChanged { value in
+        // the grown bar: a tab only closes the tray, so no press and no drag to show
+        if trayOpen { return }
         let x = value.location.x
         if downX == nil {
           downX = x
@@ -355,6 +418,18 @@ public struct KTabBar: View {
         }
       }
       .onEnded { value in
+        if trayOpen {
+          downX = nil
+          dragX = nil
+          pressed = false
+          // the x closes as ever; a tab is reported, and the holder only closes the tray
+          if onPlusColumn(value.location.x, slot: slot) {
+            onPlus()
+          } else {
+            onSelect(nearestTab(to: value.location.x, slot: slot))
+          }
+          return
+        }
         let x = dragX ?? value.location.x
         let dragged = dragX != nil
         let wasShown = shownTab(slot: slot)
@@ -466,7 +541,8 @@ public struct KTabBar: View {
 
   // ── the + (G Prompt 3) ──
   private var plus: some View {
-    KGlassPlus(theme: theme, isOpen: isPanelOpen, turn: reduceMotion ? .easeInOut(duration: 0.25) : plusTurn)
+    // the grown bar's + under Reduce Motion doesn't turn: the + and the x cross-fade
+    KGlassPlus(theme: theme, isOpen: isPanelOpen, turn: reduceMotion ? .easeInOut(duration: 0.25) : plusTurn, turns: !(reduceMotion && tray != nil))
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .contentShape(Rectangle())
       .accessibilityElement(children: .ignore)
@@ -479,12 +555,14 @@ public struct KTabBar: View {
   }
 }
 
-/// The capsule's glass, inside its edge (G Prompt 1). The caller clips it to the capsule.
+/// The capsule's glass, inside its edge (G Prompt 1). The caller clips it to the capsule. Its ring
+/// and lines keep the capsule's corners at any height, so the bar grown around its tray is the
+/// same glass, taller.
 struct KGlassFace: View {
   let tone: KGlassTone
 
   var body: some View {
-    let shape = Capsule(style: .circular)
+    let shape = RoundedRectangle(cornerRadius: KTabBarMetrics.corner, style: .circular)
     ZStack {
       Rectangle().fill(.ultraThinMaterial)
       Rectangle().fill(tone.tint)
@@ -525,17 +603,22 @@ struct KOuterShadow<S: InsettableShape>: View {
 
 /// The + (G Prompt 3): a 46 ind disc, a white + 22 across at 2.6, an ind glow and a bright line
 /// along its top; open, it turns 45 degrees into an x and the disc goes ink. In Midnight the mark
-/// is drawn in bg, as KPrimaryRound's is (white on its pale ind is under 3:1).
+/// is drawn in bg, as KPrimaryRound's is (white on its pale ind is under 3:1). turns false (the
+/// grown bar under Reduce Motion) keeps it still: the + fades out as an x, already turned, fades in.
 struct KGlassPlus: View {
   let theme: KTheme
   let isOpen: Bool
   let turn: Animation
+  var turns = true
 
   var body: some View {
     let disc = Circle()
-    KPlusGlyph()
-      .stroke(theme.isDark ? theme.bg : Color.white, style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
-      .frame(width: 22, height: 22)
+    ZStack {
+      mark.opacity(turns || !isOpen ? 1 : 0)
+      if !turns {
+        mark.rotationEffect(.degrees(45)).opacity(isOpen ? 1 : 0)
+      }
+    }
       .frame(width: 46, height: 46)
       .background(disc.fill(isOpen ? theme.ink : theme.ind))
       .overlay(
@@ -544,10 +627,16 @@ struct KGlassPlus: View {
           lineWidth: 1
         )
       )
-      .rotationEffect(.degrees(isOpen ? 45 : 0))
+      .rotationEffect(.degrees(turns && isOpen ? 45 : 0))
       .animation(turn, value: isOpen)
       .kSoftShadows([KSoftShadow(y: 6, blur: 16, spread: -6, color: theme.ind.opacity(0.7))], in: disc)
       .accessibilityHidden(true)
+  }
+
+  private var mark: some View {
+    KPlusGlyph()
+      .stroke(theme.isDark ? theme.bg : Color.white, style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
+      .frame(width: 22, height: 22)
   }
 }
 
