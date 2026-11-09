@@ -1024,6 +1024,7 @@ export const DEMO_WREN_POSTS: WrenPost[] = [
     i18n: null,
     link: null,
     at: iso(3 * 24 * H),
+    media: null,
   },
   {
     id: 2,
@@ -1032,5 +1033,6 @@ export const DEMO_WREN_POSTS: WrenPost[] = [
     i18n: null,
     link: null,
     at: iso(5 * H),
+    media: null,
   },
 ];
