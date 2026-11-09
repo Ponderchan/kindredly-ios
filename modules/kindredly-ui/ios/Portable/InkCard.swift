@@ -629,7 +629,7 @@ public struct KLetterSheet: View {
  `letter` is the Today letter (owner, 2026-11-09; KLetterSheet above): no black frame on any paper.
  Plain is the letter sheet at the .me corners. Every other paper keeps its fill, its stripes, the
  airmail border, the receipt's teeth and the sticky note's fold, but loses its own shadow and its
- solid line (grid's ink outline among them) for the same frame as Plain: a 1pt edge in the paper's
+ solid line (grid's ink outline among them) for the same frame as Plain (kraft and riso keep their own shadow, owner 2026-11-09): a 1pt edge in the paper's
  ink at 11% (a darker tone of that paper: brown on kraft, indigo on riso, ink on the rest) and the
  theme's hard 6/6 depth, cut to the sheet's outline (the receipt's teeth included). The inset stays
  paper.edge.width + KPaper.padding, so nothing inside moves. The compose body, the chat hero and the
@@ -674,6 +674,10 @@ public struct KPaperSurface: View {
     }
   }
 
+  /* Kraft's soft brown lift and riso's indigo 6/6 are part of what those papers are, so the Today
+     letter keeps them (owner, 2026-11-09: "保留吧"); every other paper takes the theme's depth. */
+  private var keepsOwnShadow: Bool { paper.id == .kraft || paper.id == .riso }
+
   private var sheet: some View {
     let radius = mini ? paper.miniRadius : paper.radius
     let edge = mini ? paper.miniEdge : paper.edge
@@ -693,7 +697,7 @@ public struct KPaperSurface: View {
       }
     }
     .background {
-      if letter {
+      if letter && !keepsOwnShadow {
         // the theme's hard depth in the sheet's outline, its teeth included
         silhouette(shape: shape, color: KLetterSheet.depth(for: theme))
           .offset(x: KLetterSheet.depthOffset, y: KLetterSheet.depthOffset)
