@@ -95,6 +95,9 @@ export type BirdPose =
   | "inflightFly34"
   | "inflightStill26";
 
+  // the guide reels in Swift (behind "reels"): her in the reels' scenes (see REEL_POSES)
+  | ReelPose;
+
 /* THE COURIER PAGE (/courier in Swift, 2026-10-26). Her perch draws her at the
    React Native perch's 186 in every face she can make there (her whereabouts'
    face, and the faces a tap, a pick-up, a drop and a doze give her), in her own
@@ -225,6 +228,19 @@ const SLICE4_POSES = {
   faceReady30: { size: 30, mood: "delight" },
 } as Record<Slice4Pose, BirdPoseSpec>;
 
+/* THE GUIDE REELS IN SWIFT (2026-11-09, behind "reels": components/guide-reel/swift-reels). The
+   React Native reels draw WrenBird at a fraction of the square's side; each picture here is her
+   at that fraction of the widest square (360), in her own look and stage as the reels leave them,
+   so Swift only ever draws her a little smaller. Not base: captured only while a Swift reel asks. */
+export type ReelPose = "reelSleepy" | "reelContent" | "reelFlyHappy";
+const REEL_POSES: Record<ReelPose, BirdPoseSpec> = {
+  // sealed: dozing by the cloud (.27 s); letters: by the desk, content then sleepy (.24 s)
+  reelSleepy: { size: 98, mood: "sleepy" },
+  reelContent: { size: 87, mood: "content" },
+  // letters: the courier over the desks (.26 s) and past the title (.22 s), flying, happy
+  reelFlyHappy: { size: 94, mood: "happy", fly: true },
+};
+
 /* sizes are the RN call sites' own, so the Swift picture is the same drawing */
 export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
   content: { size: 56, mood: "content", base: true },
@@ -333,6 +349,9 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
   rateWorry118: { size: 118, mood: "worry" },
   inflightFly34: { size: 34, mood: "delight", fly: true },
   inflightStill26: { size: 26, mood: "content", fly: true },
+
+  // the guide reels in Swift (see REEL_POSES above)
+  ...REEL_POSES,
 };
 
 /** The user's look, as BirdSnapshots reads it from the Wren contexts. */

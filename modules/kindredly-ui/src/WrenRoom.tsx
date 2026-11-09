@@ -4,6 +4,8 @@ import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
 import type { KChatTrace } from "./Conversation";
 import type { KPostMediaSlot } from "./MediaPieces";
+
+import { REEL_OFF, nativeReel, type KReelSpec, type NativeReelSpec } from "./Reel";
 import type { KImageRefProps, KInsets, KScreenBaseProps, KScreenHandle, KStandardCommands } from "./types";
 
 /* WREN'S ROOM, drawn by SwiftUI (2026-10-27; ios/Portable/WrenRoom/KWrenRoomScreen.swift, adapter
@@ -58,6 +60,8 @@ export type KWrenRoomCard = {
   /** "Not it?" under a guide she guessed from a question; "" for none */
   notIt: string;
   sendOn: string;
+  /** batch 3 (behind "reels"): the reel Swift draws in the square instead of the island; null or absent keeps the island */
+  reel?: KReelSpec | null;
 };
 
 /** One row of the transcript, worded. */
@@ -122,7 +126,8 @@ type Ev<T> = (e: { nativeEvent: T }) => void;
 type None = Ev<Record<string, never>>;
 type Key = Ev<{ key: string }>;
 
-type NativeRow = Omit<KWrenRoomRow, "photo" | "card"> & { photo: KImageRefProps; hasCard: boolean; card: KWrenRoomCard };
+type NativeCard = Omit<KWrenRoomCard, "reel"> & { reel: NativeReelSpec };
+type NativeRow = Omit<KWrenRoomRow, "photo" | "card"> & { photo: KImageRefProps; hasCard: boolean; card: NativeCard };
 
 type NativeKWrenRoomViewProps = Omit<
   KWrenRoomViewProps,
@@ -164,9 +169,10 @@ type NativeKWrenRoomViewProps = Omit<
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
 const NO_IMAGE: KImageRefProps = { uri: "", key: "", kind: "image" };
-const NO_CARD: KWrenRoomCard = { slot: "", title: "", body: "", cta: "", notIt: "", sendOn: "" };
+const NO_CARD: NativeCard = { slot: "", title: "", body: "", cta: "", notIt: "", sendOn: "", reel: REEL_OFF };
 const imageOf = (r: KImageRefProps | null): KImageRefProps => (r ? { uri: r.uri, key: r.key, kind: r.kind ?? "image" } : NO_IMAGE);
-const nativeRow = (r: KWrenRoomRow): NativeRow => ({ ...r, photo: imageOf(r.photo), hasCard: !!r.card, card: r.card ?? NO_CARD });
+const nativeCard = (c: KWrenRoomCard | null): NativeCard => (c ? { ...c, reel: nativeReel(c.reel) } : NO_CARD);
+const nativeRow = (r: KWrenRoomRow): NativeRow => ({ ...r, photo: imageOf(r.photo), hasCard: !!r.card, card: nativeCard(r.card) });
 
 const NativeKWrenRoomView = requireNativeView<NativeKWrenRoomViewProps>("KindredlyUI", "KWrenRoomView");
 

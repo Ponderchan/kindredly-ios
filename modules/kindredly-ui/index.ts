@@ -498,3 +498,7 @@ export {
   type KPostMediaSlot,
   type KPostMediaViewProps,
 } from "./src/MediaPieces";
+
+
+// batch 3: reels — a reel square drawn by SwiftUI (behind "reels"; src/components/guide-reel/swift-reels builds the spec)
+export { KReelView, REEL_OFF, nativeReel, type KReelSpec, type KReelViewProps, type NativeReelSpec } from "./src/Reel";

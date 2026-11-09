@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, View, type LayoutChangeEvent } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useIsFocused } from "expo-router";
+import { Host } from "@expo/ui/swift-ui";
+import { KReelView } from "../../modules/kindredly-ui/src/Reel";
 import type { Reel } from "./guide-reel/kit";
-import { useTheme } from "../lib/theme";
+import { useReelSpecs } from "./guide-reel/swift-reels";
+import { useLetterFont, useTheme } from "../lib/theme";
 
 /* A REEL, PLAYING — the square every moving card in Wren's room is built
    on (a guide's, and since 1.2.3 a release's own "what's new"). Scenes play
@@ -21,27 +24,46 @@ import { useTheme } from "../lib/theme";
    top corners are clipped (the default, top 17 / bottom 0); NewsCard holds
    nothing else, so its card clips all four (top 17 / bottom 17); a bare
    square with no card has none (0 / 0). The light themes draw no edge:
-   there the square sits on a light card as it always has. */
+   there the square sits on a light card as it always has.
+
+   IN SWIFT (batch 3, behind the "reels" switch, off by default): a reel the
+   Swift player draws (guide-reel/swift-reels) is drawn by SwiftUI in a Host
+   the square's size (KReelView, Portable/Reels KReelSquare: the same scenes,
+   bars, tap and edge); any other reel, or the switch off, is this square. */
 const EDGE = "rgba(17,17,19,0.14)"; // the reel's own hairline, as its scene bars' track
 const GUIDE_CORNERS = { top: 17, bottom: 0 }; // GuideCard's clip: text below the square
 
 export function ReelSquare({ reel, label, max = 360, corners = GUIDE_CORNERS }: { reel: Reel; label: string; max?: number; corners?: { top: number; bottom: number } }) {
-  const { dark } = useTheme();
+  const { dark, key: themeKey } = useTheme();
+  const letterFont = useLetterFont();
   const [w, setW] = useState(0);
   const [i, setI] = useState(0);
   const [run, setRun] = useState(0); // bumps to restart the reel from the top
   const focused = useIsFocused();
   const scene = reel.scenes[i % reel.scenes.length];
+  const asks = useMemo(() => [{ slot: "reel", reel, label }], [reel, label]);
+  const swift = useReelSpecs(asks, focused).get("reel");
   useEffect(() => {
-    if (!focused || !w) return;
+    if (!focused || !w || swift) return; // Swift keeps its own time
     const id = setTimeout(() => setI((n) => (n + 1) % reel.scenes.length), scene.ms);
     return () => clearTimeout(id);
-  }, [i, run, focused, w, scene.ms, reel.scenes.length]);
+  }, [i, run, focused, w, scene.ms, reel.scenes.length, swift]);
   const restart = () => {
     setI(0);
     setRun((r) => r + 1);
   };
   const s = Math.min(w, max);
+  if (swift) {
+    return (
+      <View onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width)}>
+        {s > 0 && (
+          <Host style={{ width: s, height: s }} colorScheme={dark ? "dark" : "light"}>
+            <KReelView theme={themeKey} letterFont={letterFont} reel={swift} side={s} cornerTop={corners.top} cornerBottom={corners.bottom} />
+          </Host>
+        )}
+      </View>
+    );
+  }
   return (
     <View onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width)}>
       {s > 0 && (

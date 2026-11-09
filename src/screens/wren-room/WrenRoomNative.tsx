@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { View, useWindowDimensions } from "react-native";
-import { useRouter } from "expo-router";
+import { useIsFocused, useRouter } from "expo-router";
 import { KIsland, useKCommands, useRev, type KScreenHandle } from "../../../modules/kindredly-ui";
 import { KWrenRoomView, type KWrenRoomChip, type KWrenRoomCommands, type KWrenRoomRow, type KWrenRoomStrings } from "../../../modules/kindredly-ui/src/WrenRoom";
 import type { KChatTrace } from "../../../modules/kindredly-ui/src/Conversation";
@@ -13,6 +13,7 @@ import { useSwiftIsland } from "../../components/swift-island";
 import type { KPostMediaSlot } from "../../../modules/kindredly-ui/src/MediaPieces";
 import type { Reel } from "../../components/guide-reel/kit";
 import { GUIDE_HREF, reelOf } from "../../components/guide-reel";
+import { useReelSpecs } from "../../components/guide-reel/swift-reels";
 import { newsCardOf, newsIdOf, newsReelOf } from "../../components/news-reel";
 import { GUIDES, GUIDE_BY_ID, isGuideId, type GuideId } from "../../data/guides";
 import { useLetterFont, useTheme } from "../../lib/theme";
@@ -246,7 +247,16 @@ export function WrenRoomNative() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [lang, m.allChips, hasMail, m.mode],
   );
-  const rev = useRev(built.rows, chips, traces);
+  /* batch 3 (behind "reels"): a reel Swift draws goes on its card's record and its island is left
+     out; the rest stay React Native islands (components/guide-reel/swift-reels) */
+  const focused = useIsFocused();
+  const reelSpecs = useReelSpecs(built.reels, focused);
+  const rows = useMemo(
+    () => (reelSpecs.size ? built.rows.map((r) => (r.card && reelSpecs.has(r.card.slot) ? { ...r, card: { ...r.card, reel: reelSpecs.get(r.card.slot) } } : r)) : built.rows),
+    [built.rows, reelSpecs],
+  );
+  const islandReels = useMemo(() => built.reels.filter((r) => !reelSpecs.has(r.slot)), [built.reels, reelSpecs]);
+  const rev = useRev(rows, chips, traces);
 
   // batch 3: postmedia — the squares Swift draws itself, once its gate has opened
   const mediaIn = useSwiftIsland("postmedia", "KPostMediaView", built.medias.length > 0);
@@ -290,7 +300,7 @@ export function WrenRoomNative() {
           strings={strings}
           bird={bird}
           emptyBird={emptyBird}
-          rows={built.rows}
+          rows={rows}
           chips={chips}
           traces={traces}
           cardWidth={cardWidth}
@@ -314,7 +324,7 @@ export function WrenRoomNative() {
               <PostMediaSquare media={r.media} />
             </KIsland>
           ))}
-          {built.reels.map((r) => (
+          {islandReels.map((r) => (
             <KIsland key={r.slot} name={r.slot} interactive style={{ width: reelSide, height: reelSide, borderTopLeftRadius: 17, borderTopRightRadius: 17, overflow: "hidden" }}>
               <ReelSquare reel={r.reel} label={r.label} />
             </KIsland>

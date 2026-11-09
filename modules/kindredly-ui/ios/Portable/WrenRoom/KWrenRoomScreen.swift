@@ -89,14 +89,18 @@ public struct KWrenRoomCard: Equatable, Sendable {
   public let notIt: String
   /// "Send it to the makers", the link after "Not it?"
   public let sendOn: String
+  /// batch 3 (behind "reels"): the reel drawn here in Swift (Portable/Reels KReelSquare) instead
+  /// of the slot's React Native island; nil keeps the island
+  public let reel: KReelSpec?
 
-  public init(slot: String, title: String, body: String, cta: String, notIt: String, sendOn: String) {
+  public init(slot: String, title: String, body: String, cta: String, notIt: String, sendOn: String, reel: KReelSpec? = nil) {
     self.slot = slot
     self.title = title
     self.body = body
     self.cta = cta
     self.notIt = notIt
     self.sendOn = sendOn
+    self.reel = reel
   }
 }
 
@@ -652,8 +656,14 @@ private struct KWrenRoomRowView<Reel: View>: View {
     let shape = RoundedRectangle(cornerRadius: 18, style: .circular)
     return VStack(alignment: .leading, spacing: 0) {
       VStack(alignment: .leading, spacing: 0) {
-        reel(card.slot)
-          .frame(width: side, height: side)
+        Group {
+          if let spec = card.reel {
+            KReelSquare(theme: theme, spec: spec, side: side)
+          } else {
+            reel(card.slot)
+          }
+        }
+        .frame(width: side, height: side)
         VStack(alignment: .leading, spacing: 6) {
           Text(card.title)
             .kText(.system(17, .bold))

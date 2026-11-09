@@ -17,7 +17,8 @@ import ExpoUI
    placeholder, modeLabel, modeCloseLabel, plusLabel, plusCloseLabel, sendLabel }
  - bird, emptyBird: her official snapshots (image refs)
  - rows: [{ key, dayLabel, first, label, labelMine, labelUnderDay, question, answerLabel, body,
-   mine, hasPhoto, photo, link, hasCard, card { slot, title, body, cta, notIt, sendOn } }]
+   mine, hasPhoto, photo, link, hasCard, card { slot, title, body, cta, notIt, sendOn, reel } }]
+   (reel, batch 3: a reel Swift draws in the square, KReelSpecRecord; off keeps the island)
  - chips: [{ id, title }]; traces: the ⊕'s tray (KChatTraceRecord, KConversationView.swift)
  - cardWidth: a card's width, its edge included
  Children: one <KIsland name={card.slot}> per card (the reel square, cardWidth - 2 square), every
@@ -57,9 +58,11 @@ struct KWrenRoomCardRecord: Record {
   @Field var cta: String = ""
   @Field var notIt: String = ""
   @Field var sendOn: String = ""
+  /// batch 3: the reel Swift draws in the square (KReelView.swift); off keeps the island
+  @Field var reel: KReelSpecRecord = KReelSpecRecord()
 
   var card: KWrenRoomCard {
-    KWrenRoomCard(slot: slot, title: title, body: body, cta: cta, notIt: notIt, sendOn: sendOn)
+    KWrenRoomCard(slot: slot, title: title, body: body, cta: cta, notIt: notIt, sendOn: sendOn, reel: reel.spec)
   }
 }
 

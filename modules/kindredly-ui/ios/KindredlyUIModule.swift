@@ -476,5 +476,11 @@ public class KindredlyUIModule: Module {
     ExpoUIView(KNoteFilmView.self)
     ExpoUIView(KPostMediaView.self)
 
+    // batch 3: reels — the guide reels and the release reel in Wren's room, in SwiftUI behind the
+    // "reels" switch (off by default). KReelView is one square on its own (ReelSquare's Host) and
+    // the binary's marker; the Swift room draws the same square from its card record.
+    // Adapters/KReelView.swift, Portable/Reels. New files: a pod install before the build.
+    ExpoUIView(KReelView.self)
+
   }
 }
