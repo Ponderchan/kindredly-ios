@@ -28,6 +28,10 @@ import ExpoUI
  - stampShown, sections (KComposeSectionRecord, rev)
  - hatch: { flood, floodX, floodY, hatched, readS }, name: { chick, ideas, typed, pronoun, reserved }
  - refused
+ - pieces: { route, birds [{ id, image }], chick { on, … }, flight { on, … }, hatch { on, … } } —
+   the four islands Swift may draw itself (batch 3, Portable/Onboarding/KObPieces.swift). An `on`
+   false (the default, and what an older JS bundle sends by omission) and an empty route keep
+   the island. TS asks for the marker view KObPiecesView before it sends any.
  - children: <KIsland name="routeBird">, "hatch", "chick", "flight", every render, in that order
 
  Commands (KCommandBus): setText { target: letter | name | email | code | switchCode, value } ·
@@ -154,6 +158,158 @@ struct KObNameRecord: Record {
   @Field var reserved: Bool = false
 }
 
+// batch 3: the onboarding's last four islands (Portable/Onboarding/KObPieces.swift, KObHatchStage.swift)
+
+/// One picture by name: a mood, or a rig part.
+struct KObPicRecord: Record {
+  @Field var id: String = ""
+  @Field var image: KImageRefRecord = KImageRefRecord()
+}
+
+func kObPics(_ list: [KObPicRecord]) -> [String: KImageRef] {
+  var out: [String: KImageRef] = [:]
+  for p in list {
+    if let r = p.image.ref { out[p.id] = r }
+  }
+  return out
+}
+
+struct KObChickRecord: Record {
+  @Field var on: Bool = false
+  @Field var mood: String = "content"
+  @Field var tag: String = ""
+  @Field var a11y: String = ""
+  @Field var nudge: Int = 0
+  /// chirp | tilt | happy
+  @Field var nudgeRe: String = "chirp"
+
+  var piece: KObChickPiece? {
+    guard on else { return nil }
+    var c = KObChickPiece()
+    c.mood = mood
+    c.tag = tag
+    c.a11y = a11y
+    c.nudge = nudge
+    c.nudgeRe = nudgeRe
+    return c
+  }
+}
+
+struct KObFlightPieceRecord: Record {
+  @Field var on: Bool = false
+  /// ms since 1970
+  @Field var startAt: Double = 0
+  @Field var still: Bool = false
+  @Field var mood: String = "curious"
+  @Field var theme: String = "classic"
+  @Field var head: String = ""
+  @Field var sub: String = ""
+  @Field var line: String = ""
+  @Field var lineLines: Int = 2
+  @Field var stamp: String = ""
+  @Field var opener: String = ""
+  @Field var openerLines: Int = 3
+  @Field var carried: String = ""
+  @Field var yourCity: String = ""
+  @Field var chart: String = ""
+  @Field var skip: String = ""
+  @Field var stops: [KFirstFlightStopRecord] = []
+  @Field var stopWordsSize: Double = 11
+  @Field var loop: String = ""
+  @Field var home: KFirstFlightPointRecord = KFirstFlightPointRecord()
+  @Field var stopPoints: [KFirstFlightPointRecord] = []
+  @Field var trail: [KFirstFlightPointRecord] = []
+  @Field var curves: KFirstFlightCurvesRecord = KFirstFlightCurvesRecord()
+  @Field var bird: KFirstFlightTrackRecord = KFirstFlightTrackRecord()
+  @Field var envelope: KFirstFlightTrackRecord = KFirstFlightTrackRecord()
+  @Field var envelopeW: Double = 156
+  @Field var envelopeH: Double = 98
+  @Field var total: Double = 3.05
+
+  func piece(madeAt: Date) -> KObFlightPiece? {
+    guard on else { return nil }
+    var f = KObFlightPiece()
+    f.startAt = startAt > 0 ? Date(timeIntervalSince1970: startAt / 1000) : madeAt
+    f.still = still
+    f.mood = mood
+    f.theme = theme
+    f.head = head
+    f.sub = sub
+    f.line = line
+    f.lineLines = lineLines
+    f.stamp = stamp
+    f.opener = opener
+    f.openerLines = openerLines
+    f.carried = carried
+    f.yourCity = yourCity
+    f.chart = chart
+    f.skip = skip
+    f.stops = stops.map { KFirstFlightStop(label: $0.label, words: $0.words) }
+    f.stopWordsSize = CGFloat(stopWordsSize)
+    f.loop = loop
+    f.home = home.cg
+    f.stopPoints = stopPoints.map(\.cg)
+    f.trail = trail.map { KFirstFlightPoint(x: CGFloat($0.x), y: CGFloat($0.y), at: $0.at) }
+    f.curves = curves.curves
+    f.bird = bird.track
+    f.envelope = envelope.track
+    f.envelopeSize = CGSize(width: max(1, envelopeW), height: max(1, envelopeH))
+    f.total = total > 0 ? total : 3.05
+    return f
+  }
+}
+
+struct KObMotionRecord: Record {
+  @Field var m: String = ""
+  @Field var w: Double = 0
+  @Field var s: Double = 1
+  @Field var face: String = ""
+}
+
+struct KObHatchPieceRecord: Record {
+  @Field var on: Bool = false
+  @Field var layers: [KObPicRecord] = []
+  @Field var faces: [KObPicRecord] = []
+  @Field var mood: String = "content"
+  @Field var words: [String] = []
+  @Field var quote: String = ""
+  @Field var motions: [KObMotionRecord] = []
+  @Field var celebrate: Int = 0
+  @Field var shadowDark: Bool = false
+
+  var piece: KObHatchPiece? {
+    guard on else { return nil }
+    var h = KObHatchPiece()
+    h.layers = kObPics(layers)
+    h.faces = kObPics(faces)
+    h.mood = mood
+    h.words = words
+    h.quote = quote
+    h.motions = motions.filter { !$0.m.isEmpty }.map { KObMotionRow(m: $0.m, w: max(0, $0.w), s: $0.s, face: $0.face) }
+    h.celebrate = celebrate
+    h.shadowDark = shadowDark
+    return h
+  }
+}
+
+struct KObPiecesRecord: Record {
+  @Field var route: KImageRefRecord = KImageRefRecord()
+  @Field var birds: [KObPicRecord] = []
+  @Field var chick: KObChickRecord = KObChickRecord()
+  @Field var flight: KObFlightPieceRecord = KObFlightPieceRecord()
+  @Field var hatch: KObHatchPieceRecord = KObHatchPieceRecord()
+
+  func pieces(madeAt: Date) -> KObPieces {
+    var p = KObPieces()
+    p.route = route.ref
+    p.birds = kObPics(birds)
+    p.chick = chick.piece
+    p.flight = flight.piece(madeAt: madeAt)
+    p.hatch = hatch.piece
+    return p
+  }
+}
+
 final class KOnboardingViewProps: KScreenProps {
   @Field var screen: String = "doorstep"
   @Field var side: String = ""
@@ -182,8 +338,13 @@ final class KOnboardingViewProps: KScreenProps {
   @Field var hatch: KObHatchRecord = KObHatchRecord()
   @Field var name: KObNameRecord = KObNameRecord()
   @Field var refused: Bool = false
+  // batch 3: the onboarding's last four islands
+  @Field var pieces: KObPiecesRecord = KObPiecesRecord()
 
   var onObEvent = EventDispatcher()
+
+  /// when this view was made: the flight's clock if TS sent none
+  let madeAt = Date()
 
   /// The fields: as long-lived as the view, like `commands`.
   let driver = KObDriver()
@@ -333,6 +494,7 @@ final class KOnboardingViewProps: KScreenProps {
     c.name = n
 
     c.refused = refused
+    c.pieces = pieces.pieces(madeAt: madeAt)
     return c
   }
 }

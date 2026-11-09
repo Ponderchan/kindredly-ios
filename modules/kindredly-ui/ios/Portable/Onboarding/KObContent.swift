@@ -255,6 +255,8 @@ public struct KObContent: Equatable, Sendable {
   public var name = KObName()
   /// 13: iOS refused before (Yes opens Settings)
   public var refused = false
+  /// the four pieces Swift draws in place of their islands, each behind its switch (KObPieces.swift)
+  public var pieces = KObPieces()
   public init() {}
 
   /// a word by its name, or "" (a missing word is a blank, never a crash)

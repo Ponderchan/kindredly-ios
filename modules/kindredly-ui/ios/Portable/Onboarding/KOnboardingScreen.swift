@@ -18,7 +18,9 @@ import SwiftUI
  THE ISLANDS (React Native inside, KIsland): `routeBird` (Wren flying on the doorstep's slide 2),
  `hatch` (HatchStage on 9), `chick` (the named chick on 10, 11 and 13: placed over a slot the
  screen leaves, so it is one view across 10 → 11) and `flight` (FirstFlight on 12, landed and
- still behind 13). Wren is never drawn here.
+ still behind 13). Wren is never drawn here. Each of the four can be drawn by Swift instead
+ (content.pieces, KObPieces.swift: behind its own switch, from pictures of the run's own bird);
+ while TS sends no piece, the island is placed exactly as before.
 
  THE KEYBOARD. The page sits in a Host that keeps the keyboard's safe area. The run lays itself
  out on the whole window (the doorstep and the nest never move), and the screens with a field
@@ -104,7 +106,7 @@ public struct KOnboardingScreen<RouteBird: View, Hatch: View, Chick: View, Fligh
       // FirstFlight: the flight itself on 12 (it takes the taps: 12's own layer lets them through),
       // landed and still behind 13
       if content.screen == .flight || content.screen == .knock {
-        flight
+        flightLayer(ctx)
           .frame(width: size.width, height: size.height)
           .accessibilityHidden(content.screen == .knock)
       }
@@ -154,7 +156,7 @@ public struct KOnboardingScreen<RouteBird: View, Hatch: View, Chick: View, Fligh
         if let anchor, content.screen == .name || content.screen == .address || content.screen == .knock {
           let r = proxy[anchor]
           ZStack(alignment: .bottomTrailing) {
-            chick.frame(width: r.width, height: r.height)
+            chickLayer(size: r.height / 1.12).frame(width: r.width, height: r.height)
             if content.screen == .address {
               // what it holds on 11: your envelope (drawn here, rule B, where the React Native
               // chick's `holding` went: at its right, 8% of its size up)
@@ -174,7 +176,7 @@ public struct KOnboardingScreen<RouteBird: View, Hatch: View, Chick: View, Fligh
   private func screen(_ ctx: KObCtx) -> some View {
     switch content.screen {
     case .doorstep:
-      KObDoorstep(ctx: ctx, routeBird: routeBird, onEggHandoff: { eggFromDoor = true })
+      KObDoorstep(ctx: ctx, routeBird: routeBirdLayer, onEggHandoff: { eggFromDoor = true })
     case .egg:
       KObEggScreen(ctx: ctx, fromDoor: eggFromDoor)
     case .birthday:
@@ -194,7 +196,7 @@ public struct KOnboardingScreen<RouteBird: View, Hatch: View, Chick: View, Fligh
     case .stamp:
       KObStampScreen(ctx: ctx)
     case .hatch:
-      KObHatchScreen(ctx: ctx, stage: hatch)
+      KObHatchScreen(ctx: ctx, stage: hatchLayer(ctx))
     case .name:
       KObNameScreen(ctx: ctx)
     case .address:
@@ -204,6 +206,49 @@ public struct KOnboardingScreen<RouteBird: View, Hatch: View, Chick: View, Fligh
       Color.clear.allowsHitTesting(false)
     case .knock:
       KObKnockScreen(ctx: ctx)
+    }
+  }
+}
+
+// MARK: - each island, or the piece Swift draws in its place
+
+extension KOnboardingScreen {
+  /// slide 2's flying Wren: her snapshot, framed as the island is (KObSlide2 flies and turns it)
+  @ViewBuilder
+  var routeBirdLayer: some View {
+    if let r = content.pieces.route {
+      KImage(r, size: CGSize(width: KObRoute.bird, height: KObRoute.bird), contentMode: .fit, placeholder: .clear)
+        .accessibilityHidden(true)
+    } else {
+      routeBird
+    }
+  }
+
+  @ViewBuilder
+  func hatchLayer(_ ctx: KObCtx) -> some View {
+    if let h = content.pieces.hatch {
+      KObHatchStage(ctx: ctx, piece: h)
+    } else {
+      hatch
+    }
+  }
+
+  /// the chick at `size` (the slot is 1.6 × 1.12 of it)
+  @ViewBuilder
+  func chickLayer(size: CGFloat) -> some View {
+    if let c = content.pieces.chick {
+      KObSnapChick(piece: c, pieces: content.pieces, size: size)
+    } else {
+      chick
+    }
+  }
+
+  @ViewBuilder
+  func flightLayer(_ ctx: KObCtx) -> some View {
+    if let f = content.pieces.flight {
+      KObFlightStage(ctx: ctx, piece: f)
+    } else {
+      flight
     }
   }
 }

@@ -150,7 +150,7 @@ const TILT: Record<Reaction, number> = { hop: 0, chirp: 0, happy: 0, sleepy: 0, 
 
 /* the words she throws out: whatever was fed, in pieces that read as words.
    Space-separated scripts split on space; CJK runs are cut into threes. */
-function tokens(fed: string[]): string[] {
+export function tokens(fed: string[]): string[] {
   const out: string[] = [];
   for (const raw of fed.join(" ").split(/\s+/)) {
     const w = raw.replace(/^[“"'(¿¡]+|[.,!?;:”"')…]+$/g, "");

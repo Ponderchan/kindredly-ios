@@ -77,7 +77,9 @@ export type BirdPose =
   // Let it travel in Swift (components/LetterTravel): the courier flying, empty-handed
   | "travelFly"
   // the courier card on Me in Swift (behind "couriercard"): her 50 on the arc or the sill, her 44 on the day-off cover
-  | CardPose;
+  | CardPose
+  // batch 3: the Swift onboarding's doorstep, slide 2 (behind "obroutebird"): Wren flying the route
+  | "obRoute";
 
 /* THE COURIER PAGE (/courier in Swift, 2026-10-26). Her perch draws her at the
    React Native perch's 186 in every face she can make there (her whereabouts'
@@ -243,6 +245,11 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
   travelFly: { size: 112, mood: "delight", fly: true, letter: false },
   // the courier card on Me in Swift (see CARD_POSES above)
   ...CARD_POSES,
+  /* batch 3: the Swift onboarding's doorstep, slide 2 ("obroutebird"): s01-showcase's WrenBird 50,
+     flying (with her letter), the grown bird in the sticker coat wearing nothing — the brand bird,
+     every part pinned, never the account's look (no one has one yet). KObSlide2 flies and turns
+     the picture. Not base: captured only while the doorstep asks. */
+  obRoute: { size: 50, mood: "content", fly: true, stage: "wren", skin: "sticker", accessory: "none", mark: null },
 };
 
 /** The user's look, as BirdSnapshots reads it from the Wren contexts. */

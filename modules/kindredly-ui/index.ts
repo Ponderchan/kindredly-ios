@@ -422,3 +422,16 @@ export {
   type KLaunchMode,
   type KLaunchViewProps,
 } from "./src/Launch";
+
+// batch 3: the onboarding's last four islands (hatch, obchick, obroutebird, obflight), drawn by KOnboardingView
+// from its `pieces` record when each switch is on; KObPiecesView is the binary's marker
+// (src/screens/onboarding/ob-pieces.tsx builds them)
+export {
+  OB_PIECES_OFF,
+  type KObChickPiece,
+  type KObFlightPiece,
+  type KObHatchPiece,
+  type KObMotion,
+  type KObPic,
+  type KObPieces,
+} from "./src/ObPieces";

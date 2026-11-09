@@ -4,13 +4,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Host } from "@expo/ui/swift-ui";
-import { KIsland, KOnboardingView, useKCommands, useRev, type KObAuth, type KObDob, type KObDoor, type KObEnvelope, type KObEvent, type KObFace, type KObHatch, type KObLetter, type KObMake, type KObName, type KObShell, type KObWord, type KOnboardingCommands, type KScreenHandle } from "../../../modules/kindredly-ui";
+import { KIsland, KOnboardingView, useKCommands, useRev, type KObPieces, type KObAuth, type KObDob, type KObDoor, type KObEnvelope, type KObEvent, type KObFace, type KObHatch, type KObLetter, type KObMake, type KObName, type KObShell, type KObWord, type KOnboardingCommands, type KScreenHandle } from "../../../modules/kindredly-ui";
 import type { KComposeSection } from "../../../modules/kindredly-ui/src/Compose";
 import type { SurfaceHostLink } from "../../components/NativeSurface";
 import { LaunchFrame } from "../../components/LaunchAnimation";
 import { EGG_SHELLS } from "../../components/EggShell";
 import { FirstFlight, type FlightColors } from "../../components/FirstFlight";
-import { HATCH_READ_S, HatchStage } from "../../components/HatchStage";
+import { HATCH_READ_S, HatchStage, tokens } from "../../components/HatchStage";
+import { HOME, LOOP_D, STOPS, FLIGHT_TOTAL, birdTrack, envelopeTrack, flightPoints, stopStamp, stopWords } from "../../components/first-flight-model";
 import { WrenBird } from "../../components/WrenBird";
 import { FACES, getFace } from "../../data/aura-avatar-lib";
 import { getStamp, sname } from "../../data/stamps";
@@ -20,6 +21,9 @@ import { postmark, monthsShort } from "../../lib/format";
 import { starterStamp } from "../../lib/hatch-engine";
 import { LANGS, setLang, t } from "../../lib/i18n";
 import { useAssetImageRefs } from "../../lib/images";
+import { useBirdImageRefs } from "../../lib/bird-images";
+import { FACE_OF_MOTION, MOTION_OF_DIM, MOTION_S } from "../../lib/chick-motions";
+import { useEggOS } from "../../lib/egg-os";
 import { openPrivacy, openTerms } from "../../lib/legal";
 import { makeFaceHref, setMadeFaceWorn, useMadeFace, useMadeFaceAvatarId, useMakeFaceOn } from "../../lib/make-face";
 import { useSeason } from "../../lib/season";
@@ -29,7 +33,7 @@ import { OPENING_MIN, weightedCount } from "../../lib/weighted-count";
 import { screenNow } from "../../lib/wren";
 import { NAME_IDEAS, WREN_NAME_MAX, isReservedName } from "../../lib/wren-name";
 import { ZODIAC_TEXT, zodiacKey } from "../../lib/zodiac";
-import { letterFitLines } from "../../theme/post";
+import { letterFitLines, letterFitSize } from "../../theme/post";
 import { THEMES } from "../../theme/themes";
 import { traySections } from "../compose/useComposeState";
 import { ageOn, clampDob, dayOf, dobString, gate, groundOf, lettersLeft, pipsLit, signOf, voiceKey, type ObDraft } from "./flow";
@@ -44,6 +48,8 @@ import { ENV_H, ENV_W, EnvelopeFront, envelopeDate, yourCourierName } from "./sc
 import { keptLine, useHatchRead } from "./screens/s09-read";
 import { Chick, type Nudge } from "./screens/s10-chick";
 import { prefetchFlightPool, takeFlightPool } from "./screens/s10-pool";
+import { FLIGHT_SWIFT_CURVES, hatchKnock, useArmedPiece, useLatch, useObFlightClock, useObPieceGate, useRunPictures } from "./ob-pieces";
+import { RIG_LAYERS, RUN_MOODS, motionRows, parseBurst, shotPlan } from "./ob-pieces-model";
 import type { ObScreenProps } from "./types";
 import type { PoolLetter } from "../../lib/db";
 import "../../data/strings-onboarding2";
@@ -66,7 +72,14 @@ import "../../data/strings-make-face";
    hatch's word, the chick's nudges — is kept here, with the same rules, so the two renderers
    behave the same. Swift plays the motion and says when it is over (then the move is made).
 
-   The haptics are the run's own (parts/haptics): Swift asks for one by name ("haptic"), TS plays it. */
+   The haptics are the run's own (parts/haptics): Swift asks for one by name ("haptic"), TS plays it.
+
+   THE FOUR ISLANDS IN SWIFT (batch 3, 2026-11-09): each can be drawn by the Swift run instead,
+   behind its own switch — "obroutebird", "hatch", "obchick", "obflight" (ob-pieces.tsx: the gate,
+   the run's own pictures, the flight's clock). The `pieces` record carries them; while a piece is
+   null its island below is drawn exactly as before, and while it is Swift's the island is empty.
+   Swift's hatch says "hatchKnock", "hatchBurst" and "hatchBorn" where HatchStage called its
+   callbacks; the Swift flight says "flightSkip" for a tap. */
 
 const CUE_COUNT = 18; // S07Letter's eighteen cues (ob.cue.1 … 18)
 const IDEAS = ["Pip", "Juno", "Otis", "Moth", "Bea", "Fen"].filter((n) => NAME_IDEAS.includes(n));
@@ -215,6 +228,18 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
   /* ── 12 ── */
   const [stops, setStops] = useState<PoolLetter[]>([]);
   const flightLeft = useRef(false);
+
+  /* ── the four islands Swift may draw (ob-pieces) ── */
+  const swiftGate = useObPieceGate();
+  const runMark = (EGG_SHELLS[draft.shell] ?? EGG_SHELLS[0]).mark;
+  const pics = useRunPictures(read.form, runMark, shotPlan(screen, swiftGate));
+  const routeRefs = useBirdImageRefs<"obRoute">(swiftGate.route && screen === "doorstep" ? ["obRoute"] : []);
+  // the hatch and the flight choose as they open, so nothing swaps under the motion
+  const hatchSwift = useLatch(screen === "hatch", swiftGate.hatch && pics.rigReady);
+  const flightSwift = useLatch(screen === "flight" || screen === "knock", swiftGate.flight && (screen === "knock" || pics.birdsReady));
+  const chickSwift = swiftGate.chick && pics.birdsReady && (screen === "name" || screen === "address" || screen === "knock");
+  const flightClock = useObFlightClock(flightSwift && screen === "flight", () => void landed());
+  const eggDark = useEggOS().dark;
 
   /* entering a screen: what its React Native screen did on mount */
   useEffect(() => {
@@ -478,6 +503,22 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
         return;
       case "stage":
         setStageH(Math.max(0, Math.round(e.n)));
+        return;
+      /* Swift's hatch and flight (batch 3): what HatchStage's callbacks and FirstFlight's tap did */
+      case "hatchKnock":
+        hatchKnock(e.n === 1);
+        return;
+      case "hatchBurst": {
+        const at = parseBurst(e.s);
+        if (at) setFlood(at);
+        return;
+      }
+      case "hatchBorn":
+        setHatched(true);
+        setSaid(e.s || null);
+        return;
+      case "flightSkip":
+        flightClock.skip();
         return;
       case "name":
         if (e.s.length > d.wrenName.length) {
@@ -813,6 +854,10 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
         });
         fold();
         break;
+      case "flight":
+        // YOUR envelope front, when Swift draws the flight (KObEnvelopeFront, as on 8)
+        if (flightSwift) Object.assign(o, { "env.to": t("ob2.stamp.to"), "env.a11y": t("ob2.stamp.envA11y", { name: courier }) });
+        break;
       case "knock":
         Object.assign(o, {
           head: t("ob2.knock.head"),
@@ -893,7 +938,7 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
     showMark: draft.showMark ?? true,
     showSign: draft.showSign ?? true,
     date: screen === "envelope" ? postmark(props.now()) : "",
-    envDate: screen === "stamp" ? envelopeDate(props.now()) : "",
+    envDate: screen === "stamp" || (screen === "flight" && flightSwift) ? envelopeDate(props.now()) : "",
   });
 
   const letter = useSameContent<KObLetter>({
@@ -914,6 +959,80 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
   const chickSize = screen === "name" ? (kb ? 64 : 104) : 96;
   const name = useSameContent<KObName>({ chick: chickSize, ideas: IDEAS, typed: draft.wrenName.trim(), pronoun: draft.wrenPronoun, reserved: isReservedName(draft.wrenName.trim()) });
 
+  /* the four islands, when Swift draws them (KObPieces); null keeps each island */
+  const chickName = screen === "name" ? draft.wrenName.trim() || null : null;
+  const pieces = useSameContent<KObPieces>({
+    route: swiftGate.route && screen === "doorstep" ? routeRefs.obRoute ?? null : null,
+    birds: chickSwift || flightSwift ? RUN_MOODS.map((m) => ({ id: m, image: pics.birds[m] ?? null })) : [],
+    chick: chickSwift
+      ? {
+          mood: screen === "knock" ? "delight" : read.mood,
+          tag: chickName ? chickName.toLocaleUpperCase() : "",
+          a11y: chickName ? t("a11yob.chickNamed", { name: chickName }) : t("a11yob.chick"),
+          nudge: nudge.n,
+          nudgeRe: nudge.re,
+        }
+      : null,
+    flight: flightSwift ? flightPiece() : null,
+    hatch: hatchSwift
+      ? {
+          layers: RIG_LAYERS.map((l) => ({ id: l, image: pics.layers[l] ?? null })),
+          faces: RUN_MOODS.map((m) => ({ id: m, image: pics.faces[m] ?? null })),
+          mood: read.mood,
+          words: tokens([draft.letter]),
+          quote: firstWord([draft.letter]) ?? "",
+          motions: motionRows(read.read.dims, MOTION_OF_DIM, MOTION_S, FACE_OF_MOTION),
+          celebrate,
+          shadowDark: eggDark,
+        }
+      : null,
+  });
+  useArmedPiece("obroutebird", !!pieces.route);
+  useArmedPiece("obchick", !!pieces.chick);
+  useArmedPiece("obflight", !!pieces.flight);
+  useArmedPiece("hatch", !!pieces.hatch);
+
+  /** 12 (and still behind 13), as FlightIsland and FirstFlightSwift build it, YOUR envelope at CARRY_W */
+  function flightPiece(): NonNullable<KObPieces["flight"]> {
+    const still = screen === "knock";
+    const k = CARRY_W / ENV_W;
+    const carry = { w: Math.ceil(CARRY_W + 4 * k), h: Math.ceil(ENV_H * k + 4 * k) };
+    const pts = flightPoints();
+    return {
+      startAt: still ? 0 : flightClock.startAt,
+      still,
+      mood: flightClock.mood,
+      theme,
+      head: still ? "" : keptLine("ob.flight.plain", "ob.flight.em", { name: her }),
+      sub: still ? "" : t("ob2.flight.sub"),
+      line: !still && courier ? t("ob2.flight.line", { name: courier }) : "",
+      lineLines: letterFitLines(letterFont, 2),
+      stamp: draft.stamp ?? starterStamp(null, draft.letter),
+      opener: still ? "" : draft.letter.trim(),
+      openerLines: letterFitLines(letterFont, 3),
+      carried: t("ob.carriedBy", { name: her.toUpperCase() }),
+      yourCity: t("ff.yourCity"),
+      chart: t("ff.chart"),
+      skip: t("ff.skip"),
+      // 13's landed chart is FirstFlight's with no stops (STOP 1, 2, 3), as React Native draws it
+      stops: STOPS.map((_, i) => {
+        const l = still ? undefined : stops[i];
+        return { label: stopStamp(l) || t("ff.stop", { n: i + 1 }), words: stopWords(l) };
+      }),
+      stopWordsSize: letterFitSize(letterFont, 11),
+      loop: LOOP_D,
+      home: { x: HOME[0], y: HOME[1], at: 0 },
+      stopPoints: STOPS.map(([x, y]) => ({ x, y, at: 0 })),
+      trail: pts,
+      curves: FLIGHT_SWIFT_CURVES,
+      bird: birdTrack(pts),
+      envelope: envelopeTrack(pts, carry),
+      envelopeW: carry.w,
+      envelopeH: carry.h,
+      total: FLIGHT_TOTAL,
+    };
+  }
+
   const rev = useRev(w, shells, faces, sections, dob.months, name.ideas);
   const ground = groundOf(screen, draft);
 
@@ -924,6 +1043,8 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
   return (
     <View style={{ flex: 1, backgroundColor: ground === "blue" ? OB.blue : ground === "paper" ? OB.sheet : OB.shell }}>
       <StatusBar style={ground === "shell" ? "dark" : "light"} animated />
+      {/* the run's own pictures being captured, offscreen (ob-pieces useRunPictures) */}
+      {pics.strip}
       <Host style={{ flex: 1 }} ignoreSafeArea="container" colorScheme="light" onLayoutContent={host.onLayoutContent}>
         <KOnboardingView
           ref={commands.ref}
@@ -958,14 +1079,15 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
           hatch={hatch}
           name={name}
           refused={ctx.notif === "settings"}
+          pieces={pieces}
           onEvent={onEventStable}
         >
           {/* every island on every render, in this order (Slot.tsx) */}
           <KIsland name="routeBird" style={{ width: 50, height: 50 }}>
-            {screen === "doorstep" ? <WrenBird size={50} pose="fly" stage="wren" skin="sticker" accessory="none" /> : null}
+            {screen === "doorstep" && !pieces.route ? <WrenBird size={50} pose="fly" stage="wren" skin="sticker" accessory="none" /> : null}
           </KIsland>
           <KIsland name="hatch" interactive style={{ width: W, height: screen === "hatch" ? stageH : 0 }}>
-            {screen === "hatch" && stageH > 0 ? (
+            {screen === "hatch" && stageH > 0 && !hatchSwift ? (
               <HatchIsland
                 draft={draft}
                 read={read}
@@ -978,7 +1100,7 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
             ) : null}
           </KIsland>
           <KIsland name="chick" interactive style={{ width: chickSize * 1.6, height: chickSize * 1.12 }}>
-            {screen === "name" || screen === "address" || screen === "knock" ? (
+            {(screen === "name" || screen === "address" || screen === "knock") && !chickSwift ? (
               <Chick
                 shell={draft.shell}
                 form={read.form}
@@ -991,7 +1113,7 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
             ) : null}
           </KIsland>
           <KIsland name="flight" interactive={screen === "flight"} style={{ width: W, height: H }}>
-            {screen === "flight" ? (
+            {flightSwift ? null : screen === "flight" ? (
               <FlightIsland props={props} stops={stops} her={her} courier={courier} form={read.form} onLanded={() => void landed()} />
             ) : screen === "knock" ? (
               <FirstFlight still her={her} opener="" stops={[]} colors={FLIGHT_COLORS} onDone={() => {}} />

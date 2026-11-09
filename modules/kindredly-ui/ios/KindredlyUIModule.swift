@@ -426,5 +426,10 @@ public class KindredlyUIModule: Module {
     ExpoUIView(KLaunchView.self)
     ExpoUIView(KAuthCallbackView.self)
 
+    // batch 3: the onboarding's last four islands (hatch, obchick, obroutebird, obflight), drawn by
+    // KOnboardingView from its `pieces` record; this view is only the binary's marker that it can
+    // (Adapters/KObPiecesView.swift). New files: a pod install before the build.
+    ExpoUIView(KObPiecesView.self)
+
   }
 }

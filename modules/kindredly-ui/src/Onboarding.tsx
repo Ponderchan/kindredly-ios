@@ -5,6 +5,7 @@ import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
 import type { KComposeSection } from "./Compose";
 import { nativeComposeSections } from "./Compose";
 import { nativeFrost, type KFrost, type KImageRefProps, type KInsets, type KScreenBaseProps, type KScreenHandle, type KStandardCommands } from "./types";
+import { nativeObPieces, type KObPieces, type NativeObPieces } from "./ObPieces";
 
 /* THE ONBOARDING, drawn by SwiftUI (ios/Portable/Onboarding, adapter ios/Adapters/
    KOnboardingView.swift), for src/screens/onboarding/OnboardingNative.tsx. The run is TS's (the
@@ -17,7 +18,8 @@ import { nativeFrost, type KFrost, type KImageRefProps, type KInsets, type KScre
 
    Islands, every one on every render, in this order: "routeBird" (Wren flying on the doorstep's
    slide 2), "hatch" (HatchStage on 9), "chick" (the named chick on 10, 11, 13) and "flight"
-   (FirstFlight on 12 and, landed, behind 13). */
+   (FirstFlight on 12 and, landed, behind 13). Each of the four can be drawn by Swift instead
+   (`pieces`, ./ObPieces.ts; batch 3): null keeps its island. */
 
 export type KObScreenId = "doorstep" | "egg" | "birthday" | "pronoun" | "face" | "envelope" | "letter" | "stamp" | "hatch" | "name" | "address" | "flight" | "knock";
 export type KObSideId = "" | "signin" | "underage" | "tray" | "code";
@@ -110,6 +112,8 @@ export type KOnboardingViewProps = CommonViewModifierProps &
     hatch: KObHatch;
     name: KObName;
     refused: boolean;
+    /** the islands Swift draws itself (batch 3); omitted = every island React Native's */
+    pieces?: KObPieces;
     onEvent?: (e: KObEvent) => void;
     /** the four <KIsland>s, "routeBird", "hatch", "chick", "flight", every render (Slot.tsx) */
     children?: ReactNode;
@@ -117,12 +121,13 @@ export type KOnboardingViewProps = CommonViewModifierProps &
 
 type Ev<T> = (e: { nativeEvent: T }) => void;
 
-type NativeProps = Omit<KOnboardingViewProps, "letterFont" | "insets" | "rev" | "onEvent" | "door" | "envelope" | "make"> &
+type NativeProps = Omit<KOnboardingViewProps, "letterFont" | "insets" | "rev" | "onEvent" | "door" | "envelope" | "make" | "pieces"> &
   Required<Pick<KOnboardingViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
     door: Omit<KObDoor, "frostThem" | "frostYou" | "faceThem" | "faceYou"> & { frostThem: KFrost; frostYou: KFrost; faceThem: KImageRefProps; faceYou: KImageRefProps };
     envelope: Omit<KObEnvelope, "frost" | "face"> & { frost: KFrost; face: KImageRefProps };
     make: Omit<KObMake, "image"> & { image: KImageRefProps };
+    pieces: NativeObPieces;
     onObEvent?: Ev<{ type: string; s?: string; n?: number }>;
   };
 
@@ -137,7 +142,7 @@ const NativeKOnboardingView = requireNativeView<NativeProps>("KindredlyUI", "KOn
 
 /** The bare SwiftUI run. Only inside an @expo/ui <Host>; its ref takes commands. */
 export const KOnboardingView = forwardRef<KScreenHandle, KOnboardingViewProps>(function KOnboardingView(
-  { modifiers, letterFont, insets, rev, door, envelope, make, faces, sections, onEvent, ...rest },
+  { modifiers, letterFont, insets, rev, door, envelope, make, faces, sections, pieces, onEvent, ...rest },
   ref,
 ) {
   const doorSent = useMemo(
@@ -148,6 +153,7 @@ export const KOnboardingView = forwardRef<KScreenHandle, KOnboardingViewProps>(f
   const makeSent = useMemo(() => ({ ...make, image: img(make.image) }), [make]);
   const facesSent = useMemo(() => faces.map((f) => ({ id: f.id, image: img(f.image), a11y: f.a11y ?? "" })), [faces]);
   const sectionsSent = useMemo(() => nativeComposeSections(sections), [sections]);
+  const piecesSent = useMemo(() => nativeObPieces(pieces), [pieces]);
   return (
     <NativeKOnboardingView
       ref={ref}
@@ -162,6 +168,7 @@ export const KOnboardingView = forwardRef<KScreenHandle, KOnboardingViewProps>(f
       make={makeSent}
       faces={facesSent}
       sections={sectionsSent}
+      pieces={piecesSent}
       onObEvent={onEvent ? (e) => onEvent({ type: e.nativeEvent.type, s: e.nativeEvent.s ?? "", n: e.nativeEvent.n ?? 0 }) : undefined}
     />
   );

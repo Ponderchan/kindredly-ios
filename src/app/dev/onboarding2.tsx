@@ -8,6 +8,7 @@ import { isScreen, SCREENS, SCREEN_NO, SIDE_HOME, SIDE_NO, SIDES, type NotifStat
 import { clearDevNotes, devConfig, devNotes, devPayload, setDevConfig, setDevStart, type DevConfig, type DevVariant } from "../../screens/onboarding/dev";
 import { clearBlock } from "../../screens/onboarding/device-block";
 import { clearDraft } from "../../screens/onboarding/draft-store";
+import { devSurfaceOverride, nativeOn, setDevSurfaceOverride } from "../../lib/surfaces";
 
 /* dev only — THE NEW ONBOARDING'S DEV ENTRY. kindredly:///dev/onboarding2
 
@@ -28,6 +29,9 @@ import { clearDraft } from "../../screens/onboarding/draft-store";
      notification prompt are stubbed (screens/onboarding/dev). Turning it
      off asks first: an off run on the simulator is a real run — a real
      anonymous user, a real letter in the pool. Never complete one.
+   · SWIFT PIECES: force the run's last four islands into Swift (or back)
+     for this run of the app — the doorstep's bird, the hatch, the chick,
+     the flight (screens/onboarding/ob-pieces); a run reads them as it opens.
    · THE OLD RUN: the identity switch's dev preview off, then the route, to
      check the old onboarding still opens exactly as it was.
    Every jump turns the identity preview ON for this run of the app (the
@@ -43,6 +47,13 @@ const VARIANTS: { id: DevVariant; label: string }[] = [
   { id: "guest-onboarded", label: "guest who finished here → Today" },
 ];
 const NOTIFS: NotifState[] = ["ask", "granted", "settings"];
+/** the four islands Swift can draw (batch 3), and where they show */
+const SWIFT_PIECES: [string, string][] = [
+  ["obroutebird", "1, slide 2"],
+  ["hatch", "9"],
+  ["obchick", "10, 11, 13"],
+  ["obflight", "12, 13"],
+];
 
 export default function DevOnboarding2() {
   const router = useRouter();
@@ -149,6 +160,28 @@ export default function DevOnboarding2() {
             {(["full", "short", "still"] as LaunchMode[]).map((m) => (
               <Chip key={m} label={m} onPress={() => fromLaunch(m)} />
             ))}
+          </Row>
+        </Section>
+
+        {/* batch 3: the run's last four islands in Swift. Each run decides once, as it opens, so
+            set these first, then jump. Default = whatever the table says. */}
+        <Section title="SWIFT PIECES (each run reads them as it opens)">
+          <Row>
+            {SWIFT_PIECES.map(([key, where]) => {
+              const forced = devSurfaceOverride(key);
+              const next = forced === null ? true : forced ? false : null;
+              return (
+                <Chip
+                  key={key}
+                  label={`${key} (${where}): ${forced === null ? `default, ${nativeOn(key) ? "on" : "off"}` : forced ? "ON" : "OFF"}`}
+                  on={nativeOn(key)}
+                  onPress={() => {
+                    setDevSurfaceOverride(key, next);
+                    bump((n) => n + 1);
+                  }}
+                />
+              );
+            })}
           </Row>
         </Section>
 

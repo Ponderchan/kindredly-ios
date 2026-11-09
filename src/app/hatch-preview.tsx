@@ -1,6 +1,13 @@
 /* DEV ONLY — the hatch screen on its own, replayable, with the four shells
-   to hand: kindredly:///hatch-preview. Nothing links here. */
-import { Redirect } from "expo-router";
+   to hand: kindredly:///hatch-preview. Nothing links here.
+   The Swift hatch ("hatch" in app_surfaces, batch 3) is the new run's screen 9
+   only, so with that switch on this page offers it there: the onboarding dev
+   entry's jump to 9 (a demo run, the answers before it filled in). This page's
+   own stage stays React Native. */
+import { Redirect, useRouter, type Href } from "expo-router";
+import { nativeOn } from "../lib/surfaces";
+import { setDevIdentityPreview } from "../lib/identity";
+import { setDevStart } from "../screens/onboarding/dev";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -17,6 +24,7 @@ const FED = ["i keep rehearsing conversations i will never have", "the kettle cl
 export default function HatchPreview() {
   // the console skin in the theme's colours, as onboarding has it; above the dev gate, so it runs every render
   const { Y, bevel, key: keyBtn, mono } = useEggOS();
+  const router = useRouter();
   if (!__DEV__) return <Redirect href="/" />;
   const [run, setRun] = useState(0);
   const [shell, setShell] = useState(1);
@@ -46,6 +54,18 @@ export default function HatchPreview() {
           </View>
         }
       />
+      {nativeOn("hatch") && (
+        <Pressable
+          onPress={() => {
+            setDevIdentityPreview(true);
+            setDevStart({ screen: "hatch", side: null, seed: true });
+            router.push(`/onboarding?run=${Date.now()}` as Href);
+          }}
+          style={{ alignSelf: "center", marginBottom: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1.5, borderColor: Y.ink }}
+        >
+          <Text style={[mono(11, "b"), { color: Y.ink }]}>SWIFT HATCH IS ON: PLAY IT ON 9 ›</Text>
+        </Pressable>
+      )}
       <View style={{ flexDirection: "row", justifyContent: "center", paddingBottom: 8 }}>
         {EGG_SHELLS.map((s, i) => (
           <Pressable

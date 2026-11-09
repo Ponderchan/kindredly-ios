@@ -71,6 +71,15 @@ export function useChickIdle(dims: DimScore[] | null | undefined, active = true)
 /** the face she wears right now: the motion's, if it has one */
 export const faceFor = (idle: Idle, mood: WrenMood): WrenMood => (idle.motion && FACE_OF_MOTION[idle.motion]) || mood;
 
+/** her shapes, sorted into the rig's layers */
+function rigLayers(skin: WrenSkin, form?: HatchlingForm): Record<Layer, WShape[]> {
+  const base = WREN_FAMILY[`wren-${skin}-hatchling`] || [];
+  const list = (form ? shapeHatchling(base, form) : base).flatMap(splitSides);
+  const by: Record<Layer, WShape[]> = { tail: [], farWing: [], feather: [], body: [], belly: [], nearWing: [], face: [], legL: [], legR: [] };
+  for (const sh of list) by[layerOf(sh)].push(sh);
+  return by;
+}
+
 export function HatchlingRig({
   size = 104,
   skin = "sticker",
@@ -88,10 +97,7 @@ export function HatchlingRig({
   accessory?: WrenAccessory;
   idle?: Idle;
 }) {
-  const base = WREN_FAMILY[`wren-${skin}-hatchling`] || [];
-  const list = (form ? shapeHatchling(base, form) : base).flatMap(splitSides);
-  const by: Record<Layer, WShape[]> = { tail: [], farWing: [], feather: [], body: [], belly: [], nearWing: [], face: [], legL: [], legR: [] };
-  for (const sh of list) by[layerOf(sh)].push(sh);
+  const by = rigLayers(skin, form);
   const pose = poseAt(idle.motion, idle.p);
   const face = faceFor(idle, mood);
   const hatchMood = face !== "content" ? face : null;
@@ -128,6 +134,66 @@ export function HatchlingRig({
           {accessory !== "none" ? <Shapes list={WREN_FAMILY[`acc-shared-hatchling-${accessory}`] || []} bare /> : null}
         </G>
       </G>
+    </Svg>
+  );
+}
+
+/* THE RIG IN PICTURES, FOR SWIFT (the Swift hatch, "hatch" in app_surfaces, 2026-11-09). Swift
+   can't run this SVG, and Wren is never redrawn there, so the hatch screen's Swift stage is handed
+   the rig as pictures: each moving part drawn alone at rest on the full 200 box, captured once
+   (screens/onboarding/ob-pieces RunBirdShots), and moved in SwiftUI by the same poses (chick-motions
+   poseAt). "base" is what never moves on its own (the near leg, the body, the belly); "face" is
+   the feather, her face, the birthmark and the mood's eyes — one picture per mood. Stacked in
+   HatchlingRig's order (tail, far wing, far leg, base, near wing, face) they are this drawing. */
+export type RigPart = "tail" | "farWing" | "legL" | "base" | "nearWing" | "face";
+
+export function HatchlingPart({
+  part,
+  size,
+  skin = "sticker",
+  mood = "content",
+  form,
+  mark,
+  accessory = "none",
+}: {
+  part: RigPart;
+  size: number;
+  skin?: WrenSkin;
+  mood?: WrenMood;
+  form?: HatchlingForm;
+  mark?: string | null;
+  accessory?: WrenAccessory;
+}) {
+  const by = rigLayers(skin, form);
+  const hatchMood = mood !== "content" ? mood : null;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 200 200">
+      {part === "tail" ? (
+        <G>
+          <Shapes list={by.tail} bare />
+          {form?.tail ? <TailFeather /> : null}
+        </G>
+      ) : part === "farWing" ? (
+        <Shapes list={by.farWing} bare />
+      ) : part === "legL" ? (
+        <Shapes list={by.legL} bare />
+      ) : part === "base" ? (
+        <G>
+          <Shapes list={by.legR} bare />
+          <Shapes list={by.body} bare />
+          <Shapes list={by.belly} bare />
+        </G>
+      ) : part === "nearWing" ? (
+        <Shapes list={by.nearWing} bare />
+      ) : (
+        <G>
+          <Shapes list={by.feather} bare />
+          <Shapes list={by.face} bare />
+          {mark ? <Birthmark color={mark} /> : null}
+          {hatchMood ? <HatchEyes mood={hatchMood} skin={skin} form={form} /> : null}
+          {accessory !== "none" ? <Shapes list={WREN_FAMILY[`acc-shared-hatchling-${accessory}`] || []} bare /> : null}
+        </G>
+      )}
     </Svg>
   );
 }
