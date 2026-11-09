@@ -8,7 +8,7 @@ import ExpoUI
  modules/kindredly-ui/src/FourPieces.tsx. Every word, number and rule is TS's; these turn records
  into Portable values and taps into events.
 
- KRatingAskView: the rating ask's sheet (Portable/Today/KRatingAsk.swift; "ratingask"), filling a
+ KRatingAskView: the rating ask's sheet (Portable/Today/KRatingAsk.swift; "ratingsheet"), filling a
  Host inside the React Native Modal of src/components/RatingAsk.tsx. Props: review (B) or not (A),
  bottom (the room under the sheet), strings { cta, later, stamp, label, ps, say, reviewLabel, who },
  paragraphs, rows [{ label, value, warn }], stampBird, worryBird. Events: onAskTap {} ·

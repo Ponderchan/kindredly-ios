@@ -79,25 +79,20 @@ export type BirdPose =
   // the courier card on Me in Swift (behind "couriercard"): her 50 on the arc or the sill, her 44 on the day-off cover
   | CardPose
   // batch 3: the Swift onboarding's doorstep, slide 2 (behind "obroutebird"): Wren flying the route
-  | "obRoute";
-
+  | "obRoute"
   // batch 3 (2026-11-09): the empty Kindreds tab's curious bird, the Plush moment, the wardrobe sheet
   | "curious40"
   | "plush128"
-  | TryPose;
-
+  | TryPose
   // batch 3, slice 4: Wren in the compose toolbar, the Notes composer, Make your own face and the face-ready banner
-  | Slice4Pose;
-
-  // batch 3: the rating ask's two sheets and the crossing in the reader (behind "ratingask", "inflight")
+  | Slice4Pose
+  // batch 3: the rating ask's two sheets and the crossing in the reader (behind "ratingsheet", "inflight")
   | "rateStamp50"
   | "rateWorry118"
   | "inflightFly34"
-  | "inflightStill26";
-
+  | "inflightStill26"
   // the guide reels in Swift (behind "reels"): her in the reels' scenes (see REEL_POSES)
-  | ReelPose;
-
+  | ReelPose
   // Free Flight in Swift (batch 3, "freeflight"): her three faces in the game, at 46
   | FlightPose;
 
@@ -389,7 +384,7 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
   // batch 3, slice 4 (see SLICE4_POSES above)
   ...SLICE4_POSES,
 
-  /* batch 3 (2026-11-09). The rating ask in Swift ("ratingask", components/RatingAsk): the founder
+  /* batch 3 (2026-11-09). The rating ask in Swift ("ratingsheet", components/RatingAsk): the founder
      letter's stamp draws WrenBird at 50 flying, happy; Wren's review draws her at 118, worried (her
      fidget and the sweat bead are SwiftUI motion on this picture). The crossing in the reader
      ("inflight", components/LetterInFlight): 34 flying, delighted, with the letter under her feet,

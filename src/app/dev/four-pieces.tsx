@@ -30,7 +30,7 @@ import { PFM } from "../../theme/post";
      KChatHeaderView with build-items revealedLettersHeader. The keys only log here (the RN ⋯
      opens the real report card: don't send it).
    The other two have their own pages: the rating ask kindredly:///rating-preview?v=letter (or
-   v=review&ratings=3), the receipt kindredly:///dev/me4a-fc; turn "ratingask" / "fcreceipt" on in
+   v=review&ratings=3), the receipt kindredly:///dev/me4a-fc; turn "ratingsheet" / "fcreceipt" on in
    kindredly:///ui-lab to see them in Swift. The Swift rows need a dev client built with the
    batch-3 views. */
 export default function FourPiecesLab() {

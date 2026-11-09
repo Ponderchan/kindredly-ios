@@ -463,7 +463,7 @@ export {
 } from "./src/LastIslands";
 
 // batch 3: slice 5 — four pieces (2026-11-09), each behind its own switch, off by default: the rating
-// ask's sheet ("ratingask"), the First Class receipt ("fcreceipt"), the revealed pen-pal header
+// ask's sheet ("ratingsheet"), the First Class receipt ("fcreceipt"), the revealed pen-pal header
 // ("chatheader": KConversationView draws it; KChatHeaderView is its marker) and the crossing in the
 // reader ("inflight": KLetterReaderView draws it; KLetterInFlightView is its marker)
 export {

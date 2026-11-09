@@ -3,7 +3,7 @@
 import SwiftUI
 
 /*
- THE RATING ASK, IN SWIFT (behind the "ratingask" switch, 2026-11-09): the inside of the sheet
+ THE RATING ASK, IN SWIFT (behind the "ratingsheet" switch, 2026-11-09): the inside of the sheet
  Today raises at a calm moment (src/screens/today/TodayUpdate.tsx), drawn as the React Native
  RatingAskSheet draws it (src/components/RatingAsk.tsx; owner 2026-11-01, the design canvas
  UmibsHqWgMSwDeJ5QRcFeS). The window it rises in (a transparent Modal sliding up, its onShow, the

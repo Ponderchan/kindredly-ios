@@ -49,7 +49,7 @@ type SheetProps = {
   onLater: () => void;
 };
 
-/* SWIFT OR REACT NATIVE (2026-11-09, the "ratingask" switch, off by default): with the switch on
+/* SWIFT OR REACT NATIVE (2026-11-09, the "ratingsheet" switch, off by default): with the switch on
    and the binary carrying KRatingAskView, the same Modal holds the inside drawn by SwiftUI
    (RatingAskSwift below; modules/kindredly-ui Portable/Today/KRatingAsk.swift), else the React
    Native sheet as it was. components/OverlayNativeSurface picks, holds the answer while the sheet
@@ -58,9 +58,9 @@ type SheetProps = {
    NB the key is also the ask's own remote switch (lib/rating-ask-core RATING_SURFACE, on unless a
    row says false): a row turning the Swift sheet off would turn the ask off with it. */
 export function RatingAskSheet(props: SheetProps) {
-  const { native, toRN } = useOverlayRenderer("ratingask", "KRatingAskView", props.open);
+  const { native, toRN } = useOverlayRenderer("ratingsheet", "KRatingAskView", props.open);
   // her picture is captured while Swift may draw the sheet, so she is there when it rises
-  const warm = useNativeSurface("ratingask") && isKindredlyUIViewAvailable("KRatingAskView");
+  const warm = useNativeSurface("ratingsheet") && isKindredlyUIViewAvailable("KRatingAskView");
   const birds = useBirdImageRefs<"rateStamp50" | "rateWorry118">(warm ? [props.variant === "letter" ? "rateStamp50" : "rateWorry118"] : []);
   if (!props.open) return null;
   return native ? <RatingAskSwift {...props} birds={birds} onFallback={toRN} /> : <RatingAskRN {...props} />;
@@ -98,7 +98,7 @@ function RatingAskSwift({
   return (
     <Modal visible transparent animationType="slide" statusBarTranslucent onShow={onShown} onRequestClose={onLater}>
       <OverlaySurface
-        surface="ratingask"
+        surface="ratingsheet"
         view="KRatingAskView"
         onFallback={onFallback}
         pending={() => <View style={{ flex: 1, backgroundColor: scrimColor(dark, 0.3) }} />}
@@ -133,7 +133,7 @@ function RatingAskSwift({
   );
 }
 
-/** The React Native sheet (the "ratingask" switch's fallback), as it was. */
+/** The React Native sheet (the "ratingsheet" switch's fallback), as it was. */
 function RatingAskRN({ open, variant, ratings, onShown, onTap, onLater }: SheetProps) {
   useLang();
   const { t: tk, dark } = useTheme();

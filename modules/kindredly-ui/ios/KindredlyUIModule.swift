@@ -454,7 +454,7 @@ public class KindredlyUIModule: Module {
     ExpoUIView(KFaceReadyView.self)
 
     // batch 3: slice 5 — four pieces (2026-11-09), each behind its own switch (off by default) with
-    // its React Native piece as the fallback: the rating ask's sheet ("ratingask"), the First Class
+    // its React Native piece as the fallback: the rating ask's sheet ("ratingsheet"), the First Class
     // receipt ("fcreceipt"), and the markers for the revealed pen-pal header ("chatheader", drawn by
     // KConversationView) and the crossing in the reader ("inflight", drawn by KLetterReaderView),
     // which also draw their piece alone. Adapters/KFourPiecesView.swift; Portable/Today/

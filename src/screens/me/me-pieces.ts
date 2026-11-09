@@ -40,16 +40,14 @@ import type { MeCourier } from "./useMeModel";
 /* batch 3 (2026-11-09): the same gate for two pieces drawn inside other Swift pages — the revealed
    chat header (KConversationView, "chatheader") and the crossing in the reader (KLetterReaderView,
    "inflight") — each with its marker view (modules/kindredly-ui/src/FourPieces.tsx) */
-export type MePieceKey = "couriercard" | "auraart" | "chatheader" | "inflight";
+export type MePieceKey = "couriercard" | "auraart" | "chatheader" | "inflight" | "freeflight"; // Free Flight (app/courier) uses this gate too
 const PIECE_VIEW: Record<MePieceKey, string> = {
   couriercard: "KCourierCardView",
   auraart: "KAuraArtView",
   chatheader: "KChatHeaderView",
   inflight: "KLetterInFlightView",
+  freeflight: "KFreeFlightView",
 };
-
-export type MePieceKey = "couriercard" | "auraart" | "freeflight"; // batch 3: Free Flight (app/courier) uses this gate too
-const PIECE_VIEW: Record<MePieceKey, string> = { couriercard: "KCourierCardView", auraart: "KAuraArtView", freeflight: "KFreeFlightView" };
 
 /* ── the gate ──────────────────────────────────────────────────────────── */
 

@@ -109,7 +109,7 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   // the wrapped monthly report (2026-10-31): off until the owner approves the pairing table
   ok("the wrapped report's key is there and off", entries.reportwrapped === false);
   // the last React Native a reader can see (2026-11-09): there and off until each simulator pass
-  const LAST_RN = ["launch", "authcallback", "hatch", "obchick", "obroutebird", "obflight", "kindredsempty", "wardrobesheet", "plush", "composewren", "notewren", "facewren", "myavatar", "faceready", "ratingask", "fcreceipt", "chatheader", "inflight", "notevoice", "notefilm", "frameviewer", "postmedia", "reels", "freeflight"];
+  const LAST_RN = ["launch", "authcallback", "hatch", "obchick", "obroutebird", "obflight", "kindredsempty", "wardrobesheet", "plush", "composewren", "notewren", "facewren", "myavatar", "faceready", "ratingsheet", "fcreceipt", "chatheader", "inflight", "notevoice", "notefilm", "frameviewer", "postmedia", "reels", "freeflight"];
   ok("the last pieces' keys are there and off", LAST_RN.every((k) => entries[k] === false));
   ok("nothing else is in the table", Object.keys(entries).length === LAST_RN.length + NINE.length + ME4A.length + AURA.length + ME_LAST.length + SMALL.length + NOTE_PAGES.length + CHAT_OVERLAYS.length + SHEETS.length + TODAY_OVERLAYS.length + MOMENTS.length + COMPOSE_PIECES.length + ME_PIECES.length + 11);
 }

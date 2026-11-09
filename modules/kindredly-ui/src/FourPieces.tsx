@@ -8,7 +8,7 @@ import type { KImageRefProps, KInsets, KScreenBaseProps } from "./types";
    (src/lib/surfaces.ts, off by default) with its React Native piece kept as the fallback:
    ios/Adapters/KFourPiecesView.swift → ios/Portable.
 
-   - KRatingAskView ("ratingask"): the inside of the rating ask's Modal (src/components/RatingAsk.tsx,
+   - KRatingAskView ("ratingsheet"): the inside of the rating ask's Modal (src/components/RatingAsk.tsx,
      Portable/Today/KRatingAsk.swift): the dim and one of the two sheets. Fills a Host.
    - KFCReceiptView ("fcreceipt"): the First Class receipt over the paywall
      (src/components/FirstClassWelcome.tsx, Portable/Kit/KFCReceipt.swift). Fills a Host laid over
