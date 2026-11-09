@@ -417,5 +417,14 @@ public class KindredlyUIModule: Module {
     ExpoUIView(KCourierCardView.self)
     ExpoUIView(KAuraArtView.self)
 
+    // batch 3: launch + authcallback (2026-11-09), each behind its own switch (off by default)
+    // with its React Native page as the fallback: the launch on every cold start and its held
+    // last frame ("launch": src/components/LaunchAnimation.tsx) and where the magic link lands
+    // ("authcallback": src/app/auth-callback.tsx). Adapters/KLaunchView.swift, Portable/Launch
+    // (KLaunch, KAuthCallback). No commands: they draw, and the launch reports a tap. New files:
+    // a pod install before the build.
+    ExpoUIView(KLaunchView.self)
+    ExpoUIView(KAuthCallbackView.self)
+
   }
 }

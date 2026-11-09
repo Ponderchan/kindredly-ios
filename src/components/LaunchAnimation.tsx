@@ -10,6 +10,9 @@ import { PF, PFM } from "../theme/post";
 import { t } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
 import type { ThemeTokens } from "../theme/themes";
+import { isKindredlyUIViewAvailable, KLaunchView } from "../../modules/kindredly-ui";
+import { nativeOn, surfacesReady, surfacesSettled } from "../lib/surfaces";
+import { NativeSurface, SurfaceHost } from "./NativeSurface";
 
 /* THE LAUNCH — the egg hatches into the mark (owner, 2026-09-24: logo C,
    launch 2c, "按照你的最强能力").
@@ -87,7 +90,24 @@ import type { ThemeTokens } from "../theme/themes";
    starts on — before the saved appearance is read, that is System (the
    default) and the phone's scheme, the rule the splash follows. A saved pick read a moment later doesn't change it, so the
    piece never switches grounds half-way; the first screen brings the
-   theme. */
+   theme.
+
+   IN SWIFTUI (batch 3, 2026-11-09; the "launch" switch, off by default). With
+   it on and the binary carrying KLaunchView, SwiftUI draws the piece and its
+   last frame (modules/kindredly-ui Portable/Launch/KLaunch.swift), number for
+   number on the same clock; everything else stays here, unchanged: how it
+   plays (the mode), the inks, the words, the haptic as the shell breaks, when
+   it may leave (the clock's end, a tap past SKIP_FROM), the hand-off note and
+   onDone. The renderer is picked ONLY from answers already on the phone
+   (surfacesReady: the cached table and the crash breadcrumb, a local read; the
+   ask for them is queued before this piece's own read). If they aren't in by
+   the next frame, this cold start plays React Native, as before: the launch
+   never waits for anything to decide how to draw. Swift then goes through
+   NativeSurface (mount mode), so the crash breadcrumb covers the one Swift
+   view every cold start opens — two launches that die in it send it back to
+   React Native on that binary — and a JS error in it falls back to the React
+   Native piece. LaunchFrame draws in Swift only when this process's launch
+   did, so the frame a route holds is always the one the launch left. */
 
 const GOLD = "#D8A63F";
 /** The app icon's blue (assets/icon.png), the native splash's and the launch's ground by day. */
@@ -169,6 +189,8 @@ export function LaunchAnimation({ ready, onDone, force }: { ready: boolean; onDo
   // the ground the app starts on, kept for the whole piece (see above)
   const { dark, t: tk } = useTheme();
   const [inks] = useState(() => launchInks(dark, tk));
+  // which renderer plays it: decided from the phone's own answers, by the next frame (see above)
+  const renderer = useLaunchRenderer();
 
   /* first launch, or the first after an update, gets the hatch */
   useEffect(() => {
@@ -199,24 +221,120 @@ export function LaunchAnimation({ ready, onDone, force }: { ready: boolean; onDo
      light on both, whatever the saved pick turns out to be. The root sets no
      style (app/_layout leaves the bar to iOS), so this one holds while the
      piece is up */
+  const ground = <View style={{ flex: 1, backgroundColor: inks.bg }} />;
   return (
     <>
       <StatusBar style="light" />
-      {mode ? <Piece mode={mode} ready={ready} onDone={onDone} inks={inks} /> : <View style={{ flex: 1, backgroundColor: inks.bg }} />}
+      {!mode || renderer === "wait" ? (
+        ground
+      ) : renderer === "swift" ? (
+        <NativeSurface
+          surface="launch"
+          view={LAUNCH_VIEW}
+          mode="mount"
+          native={() => <SwiftPiece mode={mode} ready={ready} onDone={onDone} inks={inks} />}
+          fallback={() => <Piece mode={mode} ready={ready} onDone={onDone} inks={inks} />}
+          pending={() => ground}
+        />
+      ) : (
+        <Piece mode={mode} ready={ready} onDone={onDone} inks={inks} />
+      )}
     </>
   );
 }
+
+/* ── which renderer (the "launch" switch) ── */
+
+const LAUNCH_VIEW = "KLaunchView";
+/** the renderer this process's launch played in: LaunchFrame follows it */
+let launchDrew: "rn" | "swift" | null = null;
+const swiftWanted = () => nativeOn("launch") && isKindredlyUIViewAvailable(LAUNCH_VIEW);
+
+/* "swift" hands the choice to NativeSurface (which checks the switch again and
+   writes the crash breadcrumb first); "rn" is the React Native piece as it
+   always was; "wait" draws the ground, for one frame at most. */
+function useLaunchRenderer(): "wait" | "rn" | "swift" {
+  const [r, setR] = useState<"wait" | "rn" | "swift">(() => {
+    /* the root layout asks for the phone's answers only after its children's
+       effects have run, so the piece queues the ask itself, ahead of its own read */
+    void surfacesReady();
+    return surfacesSettled() ? (swiftWanted() ? "swift" : "rn") : "wait";
+  });
+  useEffect(() => {
+    if (r !== "wait") return;
+    let open = true;
+    const decide = () => {
+      if (!open) return;
+      open = false;
+      setR(surfacesSettled() && swiftWanted() ? "swift" : "rn");
+    };
+    void surfacesReady().then(decide);
+    const id = requestAnimationFrame(decide); // not in by the next frame: React Native, as before
+    return () => {
+      open = false;
+      cancelAnimationFrame(id);
+    };
+  }, [r]);
+  return r;
+}
+
+/* leave once the piece has landed and the session is known. It doesn't
+   fade itself out any more: it holds its last frame and the next screen
+   fades in over it (app/index, the stack's "fade" on (tabs) and
+   onboarding) — one dissolve from the mark to the letters, instead of a
+   fade to empty lavender and a page sliding in from the right (owner,
+   2026-09-24: "我要一种正常的打开方式"). Both renderers leave this way. */
+function useLeave(canLeave: boolean, ready: boolean, onDone: () => void, mode: Mode): void {
+  const leaving = useRef(false);
+  useEffect(() => {
+    if (!canLeave || !ready || leaving.current) return;
+    leaving.current = true;
+    landed = { mode, at: Date.now() }; // the note the new onboarding's first screen reads (takeLaunchHandoff)
+    onDone();
+  }, [canLeave, ready, onDone, mode]);
+}
+
+/* The piece in SwiftUI: the same clock and the same leave, drawn by
+   KLaunchView from `startAt`. The timers are the React Native piece's
+   (withTiming's end, the still frame's 600 ms, the haptic at 980 ms). */
+function SwiftPiece({ mode, ready, onDone, inks }: { mode: Mode; ready: boolean; onDone: () => void; inks: Inks }) {
+  const { key: theme } = useTheme();
+  const [startAt] = useState(() => Date.now());
+  const [canLeave, setCanLeave] = useState(false);
+  useEffect(() => {
+    launchDrew = "swift";
+    const ms = mode === "full" ? END * 1000 : mode === "short" ? (END - SHORT_FROM) * 1000 : 600;
+    const ids = [setTimeout(() => setCanLeave(true), ms)];
+    if (mode === "full") ids.push(setTimeout(crackTap, 980));
+    return () => ids.forEach(clearTimeout);
+  }, [mode]);
+  useLeave(canLeave, ready, onDone, mode);
+  const skip = useCallback(() => {
+    if (mode === "full" && (Date.now() - startAt) / 1000 >= SKIP_FROM) setCanLeave(true);
+  }, [mode, startAt]);
+  return (
+    <View style={{ flex: 1, backgroundColor: inks.bg }}>
+      <SurfaceHost>
+        <KLaunchView theme={theme} mode={mode} startAt={startAt} colors={launchColors(inks)} tag={t("launch.tag")} sub={t("launch.sub")} onTap={skip} />
+      </SurfaceHost>
+    </View>
+  );
+}
+
+const launchColors = (inks: Inks) => ({ bg: inks.bg, ink: inks.ink, word: inks.word, mute: inks.mute });
 
 function Piece({ mode, ready, onDone, inks }: { mode: Mode; ready: boolean; onDone: () => void; inks: Inks }) {
   const { bg: BG, ink: INK, word: WORD, mute: MUTE } = inks;
   const { width: sw, height: sh } = useWindowDimensions();
   const [canLeave, setCanLeave] = useState(false);
-  const leaving = useRef(false);
 
   const time = useSharedValue(0); // the piece's clock, seconds
   const veil = useSharedValue(0); // short / still: the whole finished frame fades in
 
   const finished = useCallback(() => setCanLeave(true), []);
+  useEffect(() => {
+    launchDrew = "rn";
+  }, []);
   useEffect(() => {
     if (mode === "full") {
       time.value = 0;
@@ -239,18 +357,7 @@ function Piece({ mode, ready, onDone, inks }: { mode: Mode; ready: boolean; onDo
     return () => clearTimeout(id);
   }, [mode, time, veil, finished]);
 
-  /* leave once the piece has landed and the session is known. It doesn't
-     fade itself out any more: it holds its last frame and the next screen
-     fades in over it (app/index, the stack's "fade" on (tabs) and
-     onboarding) — one dissolve from the mark to the letters, instead of a
-     fade to empty lavender and a page sliding in from the right (owner,
-     2026-09-24: "我要一种正常的打开方式"). */
-  useEffect(() => {
-    if (!canLeave || !ready || leaving.current) return;
-    leaving.current = true;
-    landed = { mode, at: Date.now() }; // the note the new onboarding's first screen reads (takeLaunchHandoff)
-    onDone();
-  }, [canLeave, ready, onDone, mode]);
+  useLeave(canLeave, ready, onDone, mode); // leave once landed and the session is known (useLeave)
 
   const skip = () => {
     if (mode === "full" && time.value >= SKIP_FROM) setCanLeave(true);
@@ -405,12 +512,34 @@ export function LaunchMarkArt({ size, color = "#FFFFFF", dot }: { size: number; 
  */
 export function LaunchFrame({ word = true, tag = true }: { word?: boolean; tag?: boolean }) {
   const { width: sw, height: sh } = useWindowDimensions();
-  const { dark, t: tk } = useTheme();
+  const { dark, t: tk, key: theme } = useTheme();
   const [inks] = useState(() => launchInks(dark, tk));
+  /* SwiftUI only when this process's launch played in it (and the switch is
+     still on): the frame a route holds is then the very view the launch
+     left, and the launch's own crash breadcrumb has already covered it this
+     cold start. Fixed at mount. */
+  const [swift] = useState(() => launchDrew === "swift" && swiftWanted());
   const g = launchGeometry(sw, sh);
   return (
     <View style={{ flex: 1, backgroundColor: inks.bg }}>
       <StatusBar style="light" />
+      <RNFrame g={g} inks={inks} word={word} tag={tag} />
+      {swift && (
+        /* over the React Native frame, which stays under it: a Host can come up a frame
+           late, and this frame exists so that nothing blinks (the Doorstep's Reduce Motion
+           veil mounts it at full opacity) — Swift covers it pixel for pixel, ground and all */
+        <SurfaceHost pointerEvents="none" style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}>
+          <KLaunchView theme={theme} mode="frame" startAt={0} colors={launchColors(inks)} tag={t("launch.tag")} sub={t("launch.sub")} showWord={word} showTag={tag} />
+        </SurfaceHost>
+      )}
+    </View>
+  );
+}
+
+/* LaunchFrame's React Native drawing, on the ground its caller paints */
+function RNFrame({ g, inks, word, tag }: { g: LaunchGeometry; inks: Inks; word: boolean; tag: boolean }) {
+  return (
+    <>
       <View pointerEvents="none" style={{ position: "absolute", left: g.mark.x, top: g.mark.y }}>
         <LaunchMarkArt size={g.mark.size} color={inks.ink} />
       </View>
@@ -425,7 +554,7 @@ export function LaunchFrame({ word = true, tag = true }: { word?: boolean; tag?:
           <Text style={SUB_TYPE(inks.ink)}>{t("launch.sub")}</Text>
         </View>
       )}
-    </View>
+    </>
   );
 }
 

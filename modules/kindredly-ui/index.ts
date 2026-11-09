@@ -412,3 +412,13 @@ export {
   type KCourierPalette,
   type KDeskPaint,
 } from "./src/MePieces";
+// batch 3: launch + authcallback (2026-11-09), each behind its own switch, off by default: the launch
+// and its held last frame ("launch"), where the magic link lands ("authcallback")
+export {
+  KAuthCallbackView,
+  KLaunchView,
+  type KAuthCallbackViewProps,
+  type KLaunchColors,
+  type KLaunchMode,
+  type KLaunchViewProps,
+} from "./src/Launch";

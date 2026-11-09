@@ -5,6 +5,8 @@ import { useAuth } from "../lib/auth";
 import { useTheme } from "../lib/theme";
 import { P, PFM } from "../theme/post";
 import { t, useLang } from "../lib/i18n";
+import { KAuthCallbackView } from "../../modules/kindredly-ui";
+import { NativeSurface, SurfaceHost } from "../components/NativeSurface";
 
 /* WHERE THE MAGIC LINK LANDS. The deep-link listener in lib/auth does the
    actual code-for-session exchange the moment the URL arrives; this screen
@@ -13,10 +15,17 @@ import { t, useLang } from "../lib/i18n";
    a sign-in link and was shown an error while the sign-in quietly succeeded
    underneath it. This holds the door for a few seconds, then hands over to
    the entry gate either way: signed in → the app; not → onboarding, where
-   they can simply try again. */
+   they can simply try again. (Any other link the app doesn't know now lands
+   on app/+not-found, which sends the reader on the same way, without the
+   launch.)
+
+   IN SWIFTUI (batch 3, 2026-11-09; the "authcallback" switch, off by
+   default): the page — one mono line on the wash — is drawn by
+   KAuthCallbackView (modules/kindredly-ui Portable/Launch/KAuthCallback.swift)
+   in the same colours; the refresh, the wait and the hand-over stay here. */
 export default function AuthCallback() {
   useLang();
-  const { t: tk, dark } = useTheme();
+  const { t: tk, dark, key: theme } = useTheme();
   const { ready, isGuest, refresh } = useAuth();
   const [waited, setWaited] = useState(false);
 
@@ -33,9 +42,27 @@ export default function AuthCallback() {
   /* the light themes keep the wash this page has always had; Midnight paints
      its own page, or the hop from Safari back into a dark app flashed
      lavender (under a light status bar it couldn't carry) */
-  return (
-    <View style={{ flex: 1, backgroundColor: dark ? tk.bg : P.penWash, alignItems: "center", justifyContent: "center" }}>
+  const ground = dark ? tk.bg : P.penWash;
+  const rn = () => (
+    <View style={{ flex: 1, backgroundColor: ground, alignItems: "center", justifyContent: "center" }}>
       <Text style={{ ...PFM.mono, fontSize: 12, letterSpacing: 1.4, color: dark ? tk.sub : P.ink60 }}>{t("cb.line")}</Text>
     </View>
+  );
+  return (
+    <NativeSurface
+      surface="authcallback"
+      view="KAuthCallbackView"
+      mode="mount"
+      native={() => (
+        <View style={{ flex: 1, backgroundColor: ground }}>
+          <SurfaceHost>
+            <KAuthCallbackView theme={theme} dark={dark} line={t("cb.line")} />
+          </SurfaceHost>
+        </View>
+      )}
+      fallback={rn}
+      // while the phone's answers are read (a cold start from the link): the page as it always was
+      pending={rn}
+    />
   );
 }

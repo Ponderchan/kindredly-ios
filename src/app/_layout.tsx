@@ -305,6 +305,8 @@ function ThemedStack() {
         {/* the two doors out of the launch fade in over its last frame */}
         <Stack.Screen name="onboarding" options={{ animation: "fade", animationDuration: 450 }} />
         <Stack.Screen name="(tabs)" options={{ animation: "fade", animationDuration: 450 }} />
+        {/* an unknown link (app/+not-found) is only passed through, so it doesn't slide in */}
+        <Stack.Screen name="+not-found" options={{ animation: "none" }} />
         {/* WRITING TO A STRANGER rises from the bottom (10a), and the edge
             swipe can't take it away: the guarded ✕ is its one way out, so
             words are never lost to a stray swipe (owner). */}
