@@ -10,6 +10,12 @@ import { useWrenName } from "../lib/wren-name";
 import { fetchThreads } from "../lib/db";
 import { BRAND } from "../theme/themes";
 import type { RatingVariant } from "../lib/rating-ask-core";
+import { useNativeSurface } from "../lib/surfaces";
+import { useBirdImageRefs } from "../lib/bird-images";
+import type { ImageRefRecord } from "../lib/images";
+import { isKindredlyUIViewAvailable, KRatingAskView } from "../../modules/kindredly-ui";
+import { SurfaceHost } from "./NativeSurface";
+import { OverlaySurface, useOverlayRenderer } from "./OverlayNativeSurface";
 import "../data/strings-rating-ask";
 
 /* THE RATING ASK'S SHEET (owner, 2026-11-01; the design canvas UmibsHqWgMSwDeJ5QRcFeS).
@@ -34,21 +40,101 @@ function useStill(): boolean {
   return still;
 }
 
-export function RatingAskSheet({
-  open,
-  variant,
-  ratings,
-  onShown,
-  onTap,
-  onLater,
-}: {
+type SheetProps = {
   open: boolean;
   variant: RatingVariant;
   ratings: number | null;
   onShown?: () => void;
   onTap: () => void;
   onLater: () => void;
-}) {
+};
+
+/* SWIFT OR REACT NATIVE (2026-11-09, the "ratingask" switch, off by default): with the switch on
+   and the binary carrying KRatingAskView, the same Modal holds the inside drawn by SwiftUI
+   (RatingAskSwift below; modules/kindredly-ui Portable/Today/KRatingAsk.swift), else the React
+   Native sheet as it was. components/OverlayNativeSurface picks, holds the answer while the sheet
+   is up and arms the crash breadcrumb as it opens. The rules, the events and the numbers stay
+   here and in lib/rating-ask*: Swift draws the words it is given and says which key was pressed.
+   NB the key is also the ask's own remote switch (lib/rating-ask-core RATING_SURFACE, on unless a
+   row says false): a row turning the Swift sheet off would turn the ask off with it. */
+export function RatingAskSheet(props: SheetProps) {
+  const { native, toRN } = useOverlayRenderer("ratingask", "KRatingAskView", props.open);
+  // her picture is captured while Swift may draw the sheet, so she is there when it rises
+  const warm = useNativeSurface("ratingask") && isKindredlyUIViewAvailable("KRatingAskView");
+  const birds = useBirdImageRefs<"rateStamp50" | "rateWorry118">(warm ? [props.variant === "letter" ? "rateStamp50" : "rateWorry118"] : []);
+  if (!props.open) return null;
+  return native ? <RatingAskSwift {...props} birds={birds} onFallback={toRN} /> : <RatingAskRN {...props} />;
+}
+
+/** The two sheets' words, numbers and rows, as React Native draws them (pure but for t). */
+function reviewRows(nums: { carried: number; replies: number } | null, ratings: number | null): { label: string; value: string; warn: boolean }[] {
+  const rows: { label: string; value: string; warn: boolean }[] = [];
+  if (nums) {
+    rows.push({ label: t("ra.review.carried"), value: String(nums.carried), warn: false });
+    rows.push({ label: t("ra.review.replies"), value: String(nums.replies), warn: false });
+  }
+  rows.push({ label: t("ra.review.lost"), value: "0", warn: false });
+  if (ratings != null) rows.push({ label: t("ra.review.ratings"), value: String(ratings), warn: ratings < 10 });
+  return rows;
+}
+
+/** The Modal as React Native's, its inside drawn by SwiftUI (KRatingAskView). */
+function RatingAskSwift({
+  variant,
+  ratings,
+  onShown,
+  onTap,
+  onLater,
+  birds,
+  onFallback,
+}: SheetProps & { birds: Partial<Record<"rateStamp50" | "rateWorry118", ImageRefRecord>>; onFallback: () => void }) {
+  useLang();
+  const { key: theme, letterFont, dark } = useTheme();
+  const insets = useSafeAreaInsets();
+  const wren = useWrenName();
+  const review = variant === "review";
+  const nums = useNumbers(review);
+  const WREN = wren.toUpperCase();
+  return (
+    <Modal visible transparent animationType="slide" statusBarTranslucent onShow={onShown} onRequestClose={onLater}>
+      <OverlaySurface
+        surface="ratingask"
+        view="KRatingAskView"
+        onFallback={onFallback}
+        pending={() => <View style={{ flex: 1, backgroundColor: scrimColor(dark, 0.3) }} />}
+        native={() => (
+          <SurfaceHost>
+            <KRatingAskView
+              theme={theme}
+              letterFont={letterFont}
+              review={review}
+              bottom={Math.max(insets.bottom - 26, 8)}
+              strings={{
+                cta: review ? t("ra.review.cta", { wren }) : t("ra.letter.cta"),
+                later: review ? t("ra.review.later", { wren }) : t("ra.later"),
+                stamp: t("ra.letter.stamp"),
+                label: t("ra.letter.label", { WREN }),
+                ps: t("ra.letter.ps", { wren }),
+                say: t("ra.review.say"),
+                reviewLabel: t("ra.review.label"),
+                who: t("ra.review.who", { WREN }),
+              }}
+              paragraphs={review ? [] : [t("ra.letter.hi"), t("ra.letter.p1"), t("ra.letter.p2"), t("ra.letter.p3"), t("ra.letter.sign")]}
+              rows={review ? reviewRows(nums, ratings) : []}
+              stampBird={birds.rateStamp50 ?? null}
+              worryBird={birds.rateWorry118 ?? null}
+              onTap={onTap}
+              onLater={onLater}
+            />
+          </SurfaceHost>
+        )}
+      />
+    </Modal>
+  );
+}
+
+/** The React Native sheet (the "ratingask" switch's fallback), as it was. */
+function RatingAskRN({ open, variant, ratings, onShown, onTap, onLater }: SheetProps) {
   useLang();
   const { t: tk, dark } = useTheme();
   const insets = useSafeAreaInsets();
@@ -123,9 +209,10 @@ function LetterAsk({ onTap, onLater }: { onTap: () => void; onLater: () => void 
 
 /* ── B · Wren's performance review ────────────────────────────────────────── */
 
-function useNumbers(): { carried: number; replies: number } | null {
+function useNumbers(on = true): { carried: number; replies: number } | null {
   const [n, setN] = useState<{ carried: number; replies: number } | null>(null);
   useEffect(() => {
+    if (!on) return;
     let alive = true;
     void fetchThreads().then((th) => {
       if (!alive || !th) return;
@@ -134,7 +221,7 @@ function useNumbers(): { carried: number; replies: number } | null {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [on]);
   return n;
 }
 
@@ -170,13 +257,7 @@ function ReviewAsk({ ratings, onTap, onLater }: { ratings: number | null; onTap:
   const dropY = sweat.interpolate({ inputRange: [0, 0.4, 0.48, 0.8, 1], outputRange: [0, 0, 0, 22, 30] });
   const dropO = sweat.interpolate({ inputRange: [0, 0.4, 0.48, 0.8, 0.9, 1], outputRange: [0, 0, 1, 1, 0, 0] });
 
-  const rows: { label: string; value: string; warn?: boolean }[] = [];
-  if (nums) {
-    rows.push({ label: t("ra.review.carried"), value: String(nums.carried) });
-    rows.push({ label: t("ra.review.replies"), value: String(nums.replies) });
-  }
-  rows.push({ label: t("ra.review.lost"), value: "0" });
-  if (ratings != null) rows.push({ label: t("ra.review.ratings"), value: String(ratings), warn: ratings < 10 });
+  const rows = reviewRows(nums, ratings);
 
   return (
     <View>

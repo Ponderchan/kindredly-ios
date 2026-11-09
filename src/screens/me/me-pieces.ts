@@ -37,8 +37,16 @@ import type { MeCourier } from "./useMeModel";
      models both renderers read (components/courier-card-model, aura-art-model); her picture is
      her snapshot (lib/bird-images card-*), the fifty pictures their bundled files. */
 
-export type MePieceKey = "couriercard" | "auraart";
-const PIECE_VIEW: Record<MePieceKey, string> = { couriercard: "KCourierCardView", auraart: "KAuraArtView" };
+/* batch 3 (2026-11-09): the same gate for two pieces drawn inside other Swift pages — the revealed
+   chat header (KConversationView, "chatheader") and the crossing in the reader (KLetterReaderView,
+   "inflight") — each with its marker view (modules/kindredly-ui/src/FourPieces.tsx) */
+export type MePieceKey = "couriercard" | "auraart" | "chatheader" | "inflight";
+const PIECE_VIEW: Record<MePieceKey, string> = {
+  couriercard: "KCourierCardView",
+  auraart: "KAuraArtView",
+  chatheader: "KChatHeaderView",
+  inflight: "KLetterInFlightView",
+};
 
 /* ── the gate ──────────────────────────────────────────────────────────── */
 

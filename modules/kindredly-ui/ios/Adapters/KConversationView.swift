@@ -432,11 +432,15 @@ struct KChatHeaderRecord: Record {
   @Field var canOpenPage: Bool = false
   @Field var backLabel: String = ""
   @Field var moreLabel: String = ""
+  /// a pen-pal chat seen in place after names are traded ("chatheader"): the React Native
+  /// ChatHeader's "letters" variant, drawn by KChatHeaderRevealed (room true for the round face)
+  @Field var revealed: Bool = false
 
   func header(theme: KTheme) -> KChatHeaderModel? {
     guard show else { return nil }
     var h = KChatHeaderModel()
     h.room = room
+    h.revealed = revealed
     switch faceKind {
     case "image": h.face = .image(faceUri.isEmpty ? nil : KImageRef(uri: faceUri, key: faceKey), overscan: CGFloat(faceOverscan))
     case "mosaic": h.face = .mosaic(mask: faceMask, tint: theme.ink)

@@ -699,6 +699,10 @@ public struct KChatHeaderModel: Equatable, Sendable {
   public var backLabel = ""
   /// VoiceOver: the ⋯ (Report or block); "" hides it (nobody to report)
   public var moreLabel = ""
+  /// a pen-pal chat seen in place after names are traded ("chatheader", 2026-11-09): the React
+  /// Native ChatHeader's "letters" variant (KChatHeader draws KChatHeaderRevealed), with `room`
+  /// true for the round `face`
+  public var revealed = false
 
   public init() {}
 }

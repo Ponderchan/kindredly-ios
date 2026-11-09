@@ -453,5 +453,17 @@ public class KindredlyUIModule: Module {
     ExpoUIView(KMyFaceView.self)
     ExpoUIView(KFaceReadyView.self)
 
+    // batch 3: slice 5 — four pieces (2026-11-09), each behind its own switch (off by default) with
+    // its React Native piece as the fallback: the rating ask's sheet ("ratingask"), the First Class
+    // receipt ("fcreceipt"), and the markers for the revealed pen-pal header ("chatheader", drawn by
+    // KConversationView) and the crossing in the reader ("inflight", drawn by KLetterReaderView),
+    // which also draw their piece alone. Adapters/KFourPiecesView.swift; Portable/Today/
+    // KRatingAsk.swift, KLetterInFlight.swift, Portable/Kit/KFCReceipt.swift. No commands. New
+    // files: a pod install before the build.
+    ExpoUIView(KRatingAskView.self)
+    ExpoUIView(KFCReceiptView.self)
+    ExpoUIView(KChatHeaderView.self)
+    ExpoUIView(KLetterInFlightView.self)
+
   }
 }

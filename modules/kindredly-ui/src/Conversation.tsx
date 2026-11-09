@@ -326,6 +326,11 @@ export type KChatHeader = {
   backLabel: string;
   /** "" hides the ⋯ (nobody to report) */
   moreLabel: string;
+  /** a pen-pal chat seen in place after names are traded ("chatheader", 2026-11-09; build-items
+      revealedLettersHeader): the React Native ChatHeader's "letters" variant, drawn by Swift (52
+      tall, the round `face` at 36, the name in 600 16, `sub` in its tone, no rule), with `room`
+      true. Absent = false. Send it only where the binary has KChatHeaderView. */
+  revealed?: boolean;
 };
 
 /** The pen-pal chat's progress band (build-items bandFacts):
@@ -508,8 +513,9 @@ type NativeDock = {
 };
 /* the header as Swift's record: the face flattened, no mark or sign as "", no window as NO_FROST
    (a @Field record can't take null) */
-type NativeHeader = Omit<KChatHeader, "face" | "frost" | "mark" | "sign" | "identity" | "band" | "stamp"> & {
+type NativeHeader = Omit<KChatHeader, "face" | "frost" | "mark" | "sign" | "identity" | "band" | "stamp" | "revealed"> & {
   show: boolean;
+  revealed: boolean;
   stamp: string;
   faceKind: KChatFace["kind"];
   faceUri: string;
@@ -529,6 +535,7 @@ const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
 const NO_IMAGE: NativeImage = { uri: "", key: "", kind: "image" };
 const NO_HEADER: NativeHeader = {
   show: false,
+  revealed: false,
   room: false,
   faceKind: "placeholder",
   faceUri: "",
@@ -669,10 +676,11 @@ export function nativeChatDock(d: KChatDock): NativeDock {
 /** The header as Swift's record (the face flattened): show false for none. */
 export function nativeChatHeader(h: KChatHeader | null | undefined): NativeHeader {
   if (!h) return NO_HEADER;
-  const { face, frost, mark, sign, identity, band, stamp, ...rest } = h;
+  const { face, frost, mark, sign, identity, band, stamp, revealed, ...rest } = h;
   return {
     ...rest,
     show: true,
+    revealed: !!revealed,
     stamp: stamp ?? "",
     faceKind: face.kind,
     faceUri: face.uri,

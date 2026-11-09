@@ -6,7 +6,8 @@ import SwiftUI
  THE CONVERSATION'S HEADER (chat composers, the owner's final, 2026-10-18), drawn at the top of
  the conversation's one Host: the pen-pal chat's while names aren't traded (Prompt 2 A2), and the
  kindreds chat's (B). A pen-pal chat that turns out to be revealed already keeps the React Native
- header (ChatHeader.tsx).
+ header (ChatHeader.tsx), or, behind the "chatheader" switch, has it drawn here as it stands
+ (KChatHeaderRevealed, at the end of this file).
 
    ‹  ▦  No. 5422                                ···      72 tall, on the page, a 1.5 line rule
          LETTER 3 OF 5 · THEIRS                            under it; padding 0 18 0 14, 12 apart
@@ -81,14 +82,18 @@ struct KChatHeader: View {
   }
 
   var body: some View {
-    VStack(spacing: 0) {
-      bar
-      if !model.room, let band = model.band {
-        KChatBand(theme: theme, model: band)
+    if model.revealed {
+      KChatHeaderRevealed(theme: theme, model: model, topInset: topInset, actions: actions)
+    } else {
+      VStack(spacing: 0) {
+        bar
+        if !model.room, let band = model.band {
+          KChatBand(theme: theme, model: band)
+        }
       }
+      .background(theme.bg)
+      .dynamicTypeSize(...DynamicTypeSize.accessibility2)
     }
-    .background(theme.bg)
-    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
   }
 
   private var bar: some View {
@@ -330,5 +335,116 @@ struct KChatHeaderFace: View {
     }
     .frame(width: 44, height: 36)
     .accessibilityHidden(true)
+  }
+}
+
+/*
+ THE PEN-PAL CHAT ONCE NAMES ARE TRADED, seen in place (behind the "chatheader" switch,
+ 2026-11-09): what the React Native ChatHeader's "letters" variant draws above the conversation
+ (src/screens/chat/ChatHeader.tsx), now in the Host's own header (model.revealed; TS words it in
+ build-items revealedLettersHeader). The other two headers are the owner's A2 and B; this one was
+ never redesigned, so it is ported as it stands, not dressed as B:
+
+   ‹  ◯  Mira                                    ⋯       at least 52 tall on the page colour, no
+         Your turn                                        rule under it; padding 6, 12 left, 8 right
+
+ - ‹ the app's one chevron (KBackChevron: the 36 box 12 from the edge, a 44 target), 6 before
+   the face, as BackChevron inline sits in the React Native row.
+ - THE FACE: round, 36 across, as lib/faces resolves a kindred (their portrait, the glyph when
+   they gave none; a member's gold stamp round it, C2). Deliberately as the Swift room draws a
+   kindred: a closed account is the veil here, where the React Native header kept their picture.
+ - THE NAME in system 600 16 on one line (it truncates), the state 2 under it in mono 600 10 at
+   .1em, in its tone: ind, brass (the brass seal in every theme, as BRAND.brassSeal), else mute.
+   Face and name are one button (it fades to .6 while pressed) that opens their page when
+   canOpenPage, one element for VoiceOver either way (TS's label, the stamp's words in it).
+ - ⋯ in mono 20 ink in a 42 square, 6 after the name; TS opens the report card (ReportSheet)
+   exactly as ReportMenu's own ⋯ did, the keyboard let go first. None when nobody is there.
+ */
+struct KChatHeaderRevealed: View {
+  let theme: KTheme
+  let model: KChatHeaderModel
+  let topInset: CGFloat
+  let actions: KConversationActions
+
+  static let minHeight: CGFloat = 52
+  static let face: CGFloat = 36
+
+  private var tone: Color {
+    switch model.tone {
+    case .mute: return theme.mute
+    case .ind: return theme.ind
+    case .brass: return KBrand.brassSeal
+    }
+  }
+
+  var body: some View {
+    HStack(spacing: 0) {
+      // the 36 box 12 from the edge: its 44 target starts 4 sooner and ends 4 later
+      KBackChevron(theme: theme, label: model.backLabel) {
+        actions.onDock("back")
+      }
+      // the row's gap of 6 after the 36 box, less the 4 of target past it
+      .padding(.trailing, 2)
+
+      identity
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+      if !model.moreLabel.isEmpty {
+        SwiftUI.Button {
+          actions.onDock("more")
+        } label: {
+          Text(verbatim: "⋯")
+            .font(.system(size: 20, design: .monospaced))
+            .foregroundStyle(theme.ink)
+            .frame(width: 42, height: 42)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(KChatPlainPress())
+        .accessibilityLabel(model.moreLabel)
+        .padding(.leading, 6)
+      }
+    }
+    .padding(.leading, KBackChevron.leading)
+    .padding(.trailing, 8)
+    .padding(.vertical, 6)
+    .frame(minHeight: Self.minHeight)
+    .padding(.top, topInset)
+    .background(theme.bg)
+  }
+
+  @ViewBuilder
+  private var identity: some View {
+    let content = HStack(spacing: 11) {
+      KFace(theme: theme, source: model.face, size: Self.face, stamp: KMemberStamp(model.stamp))
+        .accessibilityHidden(true)
+      VStack(alignment: .leading, spacing: 2) {
+        Text(model.name)
+          .kText(.system(16, .semibold))
+          .foregroundStyle(theme.ink)
+          .lineLimit(1)
+        if !model.sub.isEmpty {
+          Text(model.sub)
+            .kText(.mono(10, .semibold, tracking: 0.1))
+            .foregroundStyle(tone)
+            .lineLimit(1)
+        }
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    if model.canOpenPage {
+      SwiftUI.Button {
+        actions.onDock("page")
+      } label: {
+        content.contentShape(Rectangle())
+      }
+      .buttonStyle(KFadePressStyle())
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(model.a11yLabel)
+      .accessibilityAddTraits(.isButton)
+    } else {
+      content
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(model.a11yLabel)
+    }
   }
 }

@@ -4,6 +4,7 @@ import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
 import { nativeTodayCards, type KTodayCard } from "./Today";
 import type { KImageRefProps, KInsets, KScreenBaseProps, KScreenHandle, KStandardCommands } from "./types";
+import { nativeInFlight, type KLetterInFlightData, type NativeInFlight } from "./FourPieces";
 
 /* TODAY'S OVERLAYS, drawn by SwiftUI (2026-10-27, the second Swift batch): ios/Adapters/
    KTodayOverlaysView.swift → ios/Portable/Today (KLetterReaderScreen, KWardrobeSlip, KParcelSheet).
@@ -75,12 +76,16 @@ export type KLetterReaderViewProps = CommonViewModifierProps &
     onStamp?: (action: "keep" | "report") => void;
     /** <KIsland name="inflight"> */
     children?: ReactNode;
+    /** batch 3: the crossing drawn by Swift at the foot ("inflight"; FourPieces), null keeps the
+        island. Only where the binary has KLetterInFlightView (src/screens/me/me-pieces useSwiftPiece). */
+    inflight?: KLetterInFlightData | null;
   };
 
-type NativeKLetterReaderViewProps = Omit<KLetterReaderViewProps, "letterFont" | "insets" | "rev" | "card" | "onClose" | "onChange" | "onSend" | "onStamp"> &
+type NativeKLetterReaderViewProps = Omit<KLetterReaderViewProps, "letterFont" | "insets" | "rev" | "card" | "onClose" | "onChange" | "onSend" | "onStamp" | "inflight"> &
   Required<Pick<KLetterReaderViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
     card: ReturnType<typeof nativeTodayCards>[number];
+    inflight: NativeInFlight;
     onReaderClose?: None;
     onReaderChange?: Ev<{ text: string }>;
     onReaderSend?: Ev<{ text: string }>;
@@ -91,10 +96,11 @@ const NativeKLetterReaderView = requireNativeView<NativeKLetterReaderViewProps>(
 
 /** The bare SwiftUI reader. Only inside an @expo/ui <Host> (SurfaceHost field). Give it useKCommands(...).ref. */
 export const KLetterReaderView = forwardRef<KScreenHandle, KLetterReaderViewProps>(function KLetterReaderView(
-  { modifiers, letterFont, insets, rev, card, onClose, onChange, onSend, onStamp, children, ...rest },
+  { modifiers, letterFont, insets, rev, card, onClose, onChange, onSend, onStamp, children, inflight, ...rest },
   ref,
 ) {
   const sent = useMemo(() => nativeTodayCards([card])[0], [card]);
+  const crossing = useMemo(() => nativeInFlight(inflight), [inflight]);
   return (
     <NativeKLetterReaderView
       ref={ref}
@@ -105,6 +111,7 @@ export const KLetterReaderView = forwardRef<KScreenHandle, KLetterReaderViewProp
       insets={insets ?? NO_INSETS}
       rev={rev ?? 0}
       card={sent}
+      inflight={crossing}
       onReaderClose={onClose ? () => onClose() : undefined}
       onReaderChange={onChange ? (e) => onChange(e.nativeEvent.text) : undefined}
       onReaderSend={onSend ? (e) => onSend(e.nativeEvent.text) : undefined}

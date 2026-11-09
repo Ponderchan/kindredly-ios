@@ -37,6 +37,7 @@ import {
   indexOfKey,
   lettersHeader,
   NO_FACE,
+  revealedLettersHeader,
   roomHeader,
   windowItems,
   type ComposerFacts,
@@ -46,6 +47,7 @@ import { useLettersModel } from "./useLettersModel";
 import { ChatHeader } from "./ChatHeader";
 import { useOverlayRenderer } from "../../components/OverlayNativeSurface";
 import { SongShelfSwift, type SongShelfProps } from "./SongShelfNative";
+import { useSwiftPiece } from "../me/me-pieces";
 import { shelfSaysKey, shelfTitleOf, shelfWhoOf } from "./song-shelf";
 
 /* THE CONVERSATION IN SWIFTUI (10a step 5): the room (RoomNative) and the
@@ -60,7 +62,7 @@ import { shelfSaysKey, shelfTitleOf, shelfWhoOf } from "./song-shelf";
      the ♀/♂ mark and star sign (lettersHeader, from the screen's book), and
      a deleted pen pal's veil becomes the flat veil tile (identity). A
      pen-pal chat that is already revealed keeps the React Native
-     ChatHeader;
+     ChatHeader (or, behind the "chatheader" switch, Swift's port of it);
    · the room (B): the kindred's portrait, their name, KINDRED SINCE …. The
      React Native header's lore button and "Wren found you two" line are not
      in the owner's B (lore stays a row in Settings).
@@ -507,15 +509,27 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
   );
 
   /* the Swift header (A2) while names aren't traded (and while the thread loads); a revealed
-     thread seen here keeps the React Native one */
-  const swiftHeader = !detail?.revealed;
+     thread seen here keeps the React Native one, or with the "chatheader" switch on (and the
+     binary carrying KChatHeaderView; me-pieces useSwiftPiece arms the crash breadcrumb) has that
+     same header drawn by Swift (KChatHeaderRevealed, build-items revealedLettersHeader): the
+     round face as lib/faces resolves a kindred, the state in its tone, the ⋯ opening the same
+     report card ReportMenu opened */
+  const revealedSwift = useSwiftPiece("chatheader", !!detail?.revealed) && !!detail?.revealed;
+  const swiftHeader = !detail?.revealed || revealedSwift;
   const report = useReportFlow({ context: "thread", targetUser: detail?.gone ? undefined : detail?.other || undefined, refId: id, snapshot: m.theirLatest, onBlocked: m.onBlocked });
   // C2: the pen pal's stamp when they are a member (membership only, never who; never once gone)
   const stampOf = useMemberStamps([detail?.other]);
   const stamp = detail && !detail.gone ? stampOf(detail.other) : "";
+  // the revealed header's face (a kindred's, as the room's); nobody to resolve until it is drawn
+  const revealedFaceSource = useFaceSource(
+    threadFaceInput({ other: revealedSwift ? detail?.other : null, otherFace: detail?.otherFace, revealed: true, theirs: detail?.otherCount ?? 0, gone: detail?.gone }),
+  );
+  const revealedFace: KChatFace = revealedSwift ? faceRecord(revealedFaceSource) : NO_FACE;
   const header = useMemo<KChatHeader | null>(
     () =>
-      swiftHeader
+      revealedSwift
+        ? withStamp(revealedLettersHeader({ t, name: m.name, face: revealedFace, state: m.state, canOpenPage: m.canOpenPage, canReport: !report.nobody }), stamp)
+        : swiftHeader
         ? withStamp({
             ...lettersHeader({
               t,
@@ -535,7 +549,27 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
           }, stamp)
         : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [swiftHeader, m.name, m.who, m.identity, detail?.other, detail?.myCount, detail?.otherCount, detail?.theirSigned, m.state, m.canOpenPage, report.nobody, lang, stamp],
+    [
+      swiftHeader,
+      revealedSwift,
+      revealedFace.kind,
+      revealedFace.uri,
+      revealedFace.key,
+      revealedFace.overscan,
+      revealedFace.mask,
+      m.name,
+      m.who,
+      m.identity,
+      detail?.other,
+      detail?.myCount,
+      detail?.otherCount,
+      detail?.theirSigned,
+      m.state,
+      m.canOpenPage,
+      report.nobody,
+      lang,
+      stamp,
+    ],
   );
   const headerTop = topInset ?? safe.top;
   const strings = useChatStrings();
@@ -629,8 +663,9 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
         />
       </SurfaceHost>
 
-      {/* the Swift header's ⋯: the card drops just under it */}
-      {swiftHeader ? <ReportSheet flow={report} top={headerTop + 62} /> : null}
+      {/* the Swift header's ⋯: the card drops just under it (the revealed header's where
+          ReportMenu's own card dropped: its default top) */}
+      {revealedSwift ? <ReportSheet flow={report} /> : swiftHeader ? <ReportSheet flow={report} top={headerTop + 62} /> : null}
       {/* the KDock door's sheet: identity on, the signing sheet; off, today's ENCLOSE IT confirmation */}
       {m.identity ? (
         <SignSheet m={m} />

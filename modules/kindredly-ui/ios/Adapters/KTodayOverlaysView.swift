@@ -22,7 +22,8 @@ import ExpoUI
  composer { sendState, hint, hintWarn } (on every edit)
  Events: onReaderClose {} · onReaderChange { text } · onReaderSend { text } · onReaderStamp { action:
  keep | report }
- Island: "inflight" (LetterInFlight, while a reply is in the air)
+ Island: "inflight" (LetterInFlight, while a reply is in the air), left empty when the
+ inflight record says on (batch 3: the crossing drawn here, KLetterInFlight)
 
  KWardrobeSlipView: the first arrival's wardrobe slip (Portable/Today/KWardrobeSlip.swift), from
  src/screens/today/WardrobeSlip.tsx ("wardrobeslip"), in a Host sized to it. Props: title, sub,
@@ -58,6 +59,9 @@ final class KLetterReaderViewProps: KScreenProps {
   @Field var docketA11y: String = ""
   @Field var sending: Bool = false
   @Field var strings: KLetterReaderStringsRecord = KLetterReaderStringsRecord()
+  /// batch 3: the crossing drawn here ("inflight", KFourPiecesView.swift); on: false (the default,
+  /// and what an older JS bundle sends by omission) keeps the "inflight" island
+  @Field var inflight: KLetterInFlightRecord = KLetterInFlightRecord()
 
   var onReaderClose = EventDispatcher()
   var onReaderChange = EventDispatcher()
@@ -98,6 +102,7 @@ final class KLetterReaderViewProps: KScreenProps {
     c.send = strings.send
     c.emoji = strings.emoji
     c.sending = sending
+    c.inflight = inflight.on ? inflight.content : nil
     return c
   }
 

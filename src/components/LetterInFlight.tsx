@@ -47,6 +47,8 @@ const BIRD = 34;
 /* just inside the beat, so she is on the postmark — not still over the
    dashes — at the instant the row is taken away. */
 const CYCLE = Math.max(380, SEND_BEAT_MS - 70);
+/** the crossing's length, for its Swift twin (KLetterInFlight, behind "inflight") */
+export const INFLIGHT_CYCLE_MS = CYCLE;
 
 export function LetterInFlight({ to, slow }: { to?: string | null; slow?: boolean }) {
   const P = useP();

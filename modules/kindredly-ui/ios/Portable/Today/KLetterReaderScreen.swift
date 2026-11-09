@@ -39,7 +39,8 @@ import SwiftUI
    the reader with it, or (the pouch full) leaves it open under the sheet that says why.
  - A REPLY IN THE AIR while the reader is open (the desk's own send, still flying): the crossing
    (LetterInFlight, an RN island: Wren keeps her die-cut outline there, so she is never redrawn
-   here) takes the foot instead of the key or the bar.
+   here) takes the foot instead of the key or the bar; behind the "inflight" switch it is drawn
+   here instead (KLetterInFlight, Wren as her snapshot) and the island stays empty.
  - THE KEYBOARD: the Host keeps the keyboard's safe area, so the foot rides the keyboard natively
    (the React Native reader had to reckon the sheet's own top for it); the bar sits 12 over the
    keyboard, and 12 over the home indicator's room (at least 12) without it. A tap on the letter
@@ -73,6 +74,9 @@ struct KLetterReaderContent: Equatable {
   var emoji = ""
   /// a reply is in the air: the crossing takes the foot
   var sending = false
+  /// the "inflight" switch on: the crossing as Swift draws it (KLetterInFlight); nil keeps the
+  /// "inflight" island
+  var inflight: KLetterInFlightContent? = nil
 }
 
 /// The reply bar's field and TS's composer for this letter.
@@ -341,8 +345,15 @@ struct KLetterReaderScreen<InFlight: View>: View {
         .dynamicTypeSize(...DynamicTypeSize.accessibility2)
       }
       if content.sending {
-        inFlight()
-          .frame(maxWidth: .infinity, alignment: .leading)
+        Group {
+          if let crossing = content.inflight {
+            // the "inflight" switch on: the crossing drawn here (KLetterInFlight), the island left empty
+            KLetterInFlight(theme: theme, content: crossing)
+          } else {
+            inFlight()
+          }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
       }
     }
     .padding(.horizontal, 12)

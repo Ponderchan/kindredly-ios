@@ -1406,7 +1406,50 @@ export function roomHeader(i: RoomHeaderInput): KChatHeader {
   };
 }
 
-/* ── the ideas (B, Prompt 4) ───────────────────────────────────────────── */
+/* ── the pen-pal chat once names are traded ("chatheader", 2026-11-09) ── */
+
+export type RevealedHeaderInput = {
+  t: TFn;
+  /** their name, traded */
+  name: string;
+  /** the kindred's face as lib/faces resolves it (role kindred: their portrait, the glyph, the veil) */
+  face: KChatFace;
+  /** the thread's state (lib/thread-state), as ChatHeader's "letters" variant shows it; null for none */
+  state: { label: string; toneKey: ThreadToneKey } | null;
+  canOpenPage: boolean;
+  /** someone is on the other side to report (ReportMenu's own rule) */
+  canReport: boolean;
+};
+
+/** A pen-pal chat seen in place after names are traded: what the React Native ChatHeader's
+    "letters" variant shows (52 tall, ‹, the round face at 36, the name in 600 16, the state in
+    its tone under it, ⋯), drawn by Swift's KChatHeader when `revealed`. The state's label goes
+    as it is (ChatHeader never upper-cases it) in its own tone, whatever its kind; no band. */
+export function revealedLettersHeader(i: RevealedHeaderInput): KChatHeader {
+  const { t } = i;
+  const sub = i.state?.label ?? "";
+  return {
+    room: true,
+    revealed: true,
+    face: i.face,
+    name: i.name,
+    sub,
+    tone: i.state?.toneKey ?? "mute",
+    mask: 0,
+    frost: null,
+    mark: null,
+    sign: null,
+    veil: false,
+    frame: "none",
+    band: null,
+    a11yLabel: join(i.name, sub),
+    canOpenPage: i.canOpenPage,
+    backLabel: t("a11y.back"),
+    moreLabel: i.canReport ? t("rp.menu.a11y") : "",
+  };
+}
+
+/* ── the ideas (B, Prompt 4)───────────────────────────────────────────── */
 
 /* THE IDEAS BUBBLE'S SENTENCES. There is no server pool of openers (the
    spec's): the room offers the 36 stamps' prompts (data/stamps, already in

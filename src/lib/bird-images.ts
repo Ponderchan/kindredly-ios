@@ -89,6 +89,12 @@ export type BirdPose =
   // batch 3, slice 4: Wren in the compose toolbar, the Notes composer, Make your own face and the face-ready banner
   | Slice4Pose;
 
+  // batch 3: the rating ask's two sheets and the crossing in the reader (behind "ratingask", "inflight")
+  | "rateStamp50"
+  | "rateWorry118"
+  | "inflightFly34"
+  | "inflightStill26";
+
 /* THE COURIER PAGE (/courier in Swift, 2026-10-26). Her perch draws her at the
    React Native perch's 186 in every face she can make there (her whereabouts'
    face, and the faces a tap, a pick-up, a drop and a doze give her), in her own
@@ -316,6 +322,17 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
 
   // batch 3, slice 4 (see SLICE4_POSES above)
   ...SLICE4_POSES,
+
+  /* batch 3 (2026-11-09). The rating ask in Swift ("ratingask", components/RatingAsk): the founder
+     letter's stamp draws WrenBird at 50 flying, happy; Wren's review draws her at 118, worried (her
+     fidget and the sweat bead are SwiftUI motion on this picture). The crossing in the reader
+     ("inflight", components/LetterInFlight): 34 flying, delighted, with the letter under her feet,
+     and Reduce Motion's still row at 26, flying, content. Her look, not pinned. Not base: captured
+     only while a sheet or the crossing asks. */
+  rateStamp50: { size: 50, mood: "happy", fly: true },
+  rateWorry118: { size: 118, mood: "worry" },
+  inflightFly34: { size: 34, mood: "delight", fly: true },
+  inflightStill26: { size: 26, mood: "content", fly: true },
 };
 
 /** The user's look, as BirdSnapshots reads it from the Wren contexts. */

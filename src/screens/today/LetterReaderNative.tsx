@@ -5,7 +5,11 @@ import { KIsland, useKCommands, useRev, type KScreenHandle } from "../../../modu
 import { KLetterReaderView, type KLetterReaderCommands, type KLetterReaderStrings } from "../../../modules/kindredly-ui/src/TodayOverlays";
 import { SurfaceHost } from "../../components/NativeSurface";
 import { LeaveSheet } from "../../components/LeaveSheet";
-import { LetterInFlight } from "../../components/LetterInFlight";
+import { INFLIGHT_CYCLE_MS, LetterInFlight } from "../../components/LetterInFlight";
+import { isKindredlyUIViewAvailable, type KLetterInFlightData } from "../../../modules/kindredly-ui";
+import { useNativeSurface } from "../../lib/surfaces";
+import { useBirdImageRefs } from "../../lib/bird-images";
+import { useSwiftPiece } from "../me/me-pieces";
 import { Toast } from "../../components/ui";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { t, useLang } from "../../lib/i18n";
@@ -43,7 +47,9 @@ import type { TodayModel } from "./useTodayDesk";
      said in a toast (not for a dev sample: the flows still run, quietly);
    - a reply still in the air from the desk: LetterInFlight in the
      "inflight" island takes the foot (Wren keeps her die-cut outline there,
-     so she is never redrawn in Swift). */
+     so she is never redrawn in Swift); behind the "inflight" switch the
+     reader draws the crossing itself (KLetterInFlight) with her snapshots,
+     and the island stays empty. */
 
 export function LetterReaderNative({ model, letter, card }: { model: TodayModel; letter: PoolLetter; card: CardVM }) {
   const lang = useLang();
@@ -107,6 +113,33 @@ export function LetterReaderNative({ model, letter, card }: { model: TodayModel;
   const written = `${t("ld.written")} ${sinceShort(letter.created_at)}`;
   const rev = useRev(nativeCardRecord, strings);
 
+  /* the crossing in Swift ("inflight", me-pieces useSwiftPiece: the switch, the marker view, the
+     crash breadcrumb armed while it shows): LetterInFlight's words and her two snapshots, the
+     island left empty; off, null and the island draws it as before. Her pictures are asked for
+     while the reader is open with the switch on, so they are there before a send (a crossing is
+     under a second); until her flying one has landed the island still draws it. */
+  const crossingSwift = useSwiftPiece("inflight", view.sending);
+  const crossingWarm = useNativeSurface("inflight") && isKindredlyUIViewAvailable("KLetterInFlightView");
+  const crossingBirds = useBirdImageRefs<"inflightFly34" | "inflightStill26">(crossingWarm ? ["inflightFly34", "inflightStill26"] : []);
+  const flyBird = crossingBirds.inflightFly34 ?? null;
+  const stillBird = crossingBirds.inflightStill26 ?? null;
+  const inflight = useMemo<KLetterInFlightData | null>(
+    () =>
+      crossingSwift && flyBird
+        ? {
+            to: view.flyTo ?? "",
+            slow: view.slow ? t("net.slow").toLocaleUpperCase(localeTag()) : "",
+            onItsWay: t("ld.onItsWay"),
+            cycleMs: INFLIGHT_CYCLE_MS,
+            bird: flyBird,
+            stillBird,
+          }
+        : null,
+    // lang: the words are t()'s
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [crossingSwift, view.flyTo, view.slow, flyBird, stillBird, lang],
+  );
+
   const onSend = (text: string) => {
     /* once it's gone the letter is answered, so the reader closes with it
        (Wren takes it and "Reply sent." shows on the desk). A full pouch only
@@ -137,6 +170,7 @@ export function LetterReaderNative({ model, letter, card }: { model: TodayModel;
           written={written}
           docketA11y={readerDocketA11y(card, identity)}
           sending={view.sending}
+          inflight={inflight}
           strings={strings}
           onClose={act.closeReader}
           onChange={(text) => act.changeDraft(letterId, text)}
@@ -145,7 +179,7 @@ export function LetterReaderNative({ model, letter, card }: { model: TodayModel;
         >
           {/* the foot's width (the sheet less its 12 each side): the crossing measures its route from it */}
           <KIsland name="inflight" style={{ width: width - 24 }}>
-            {view.sending ? <LetterInFlight to={view.flyTo} slow={view.slow} /> : null}
+            {view.sending && !inflight ? <LetterInFlight to={view.flyTo} slow={view.slow} /> : null}
           </KIsland>
         </KLetterReaderView>
       </SurfaceHost>

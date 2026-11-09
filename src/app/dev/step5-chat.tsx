@@ -92,6 +92,8 @@ const FIXTURES: Fixture[] = [
   { id: "demo-voice", variant: "letters", label: "LETTERS · VOICE" },
   { id: "demo-gone-penpal", variant: "letters", label: "LETTERS · GONE" },
   { id: "demo-quiet", variant: "letters", label: "LETTERS · QUIET" },
+  // a pen-pal chat seen after names are traded: ChatHeader, or Swift's port of it with "chatheader" on (batch 3)
+  { id: "demo-mira", variant: "letters", label: "LETTERS · NAMES TRADED" },
   { id: "demo-quiet", variant: "reader", label: "READER · KRAFT" },
   { id: "demo-north", variant: "reader", label: "READER · AIRMAIL", m: "opening" },
   { id: "demo-north", variant: "reader", label: "READER · A REPLY" },

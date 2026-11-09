@@ -460,6 +460,15 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   ok("room header: the ⋯ only with someone to report; back is named", rh.moreLabel === "rp.menu.a11y" && rh.backLabel === "a11y.back" && B.roomHeader({ t, locale: "en-US", name: "Mira", sub: "", face: B.NO_FACE, canReport: false }).moreLabel === "");
   ok("room header: no line, no line", B.roomHeader({ t, locale: "en-US", name: "Mira", sub: "", face: B.NO_FACE, canReport: true }).a11yLabel === "Mira");
 
+  // a pen-pal chat seen in place after names are traded ("chatheader"): ChatHeader's letters variant
+  const rv = B.revealedLettersHeader({ t, name: "Mira", face: portrait, state: { label: "Your turn", toneKey: "ind" }, canOpenPage: true, canReport: true });
+  ok("revealed header: the round face, no band, marked revealed", rv.revealed === true && rv.room && rv.face === portrait && rv.band === null && !rv.veil && rv.frame === "none");
+  ok("revealed header: the state as ChatHeader shows it (not upper-cased) in its own tone", rv.sub === "Your turn" && rv.tone === "ind");
+  ok("revealed header: VoiceOver hears name and state; the ⋯ and back are named", rv.a11yLabel === "Mira, Your turn" && rv.moreLabel === "rp.menu.a11y" && rv.backLabel === "a11y.back");
+  const rvNone = B.revealedLettersHeader({ t, name: "Mira", face: B.NO_FACE, state: null, canOpenPage: false, canReport: false });
+  ok("revealed header: no state, no line, mute; nobody to report, no ⋯; the page as the model says", rvNone.sub === "" && rvNone.tone === "mute" && rvNone.moreLabel === "" && !rvNone.canOpenPage && rvNone.a11yLabel === "Mira");
+  ok("the room's header is not the revealed one", rh.revealed !== true);
+
   const base: import("./build-items").RoomDockInput = { t, locale: "en-US", wren: "Wren", name: "Mira", closing: false, daysLeft: 9, mode: null, replyTo: null, notice: null, gone: false, expired: false, quietDays: 0 };
   const dock = B.buildRoomDock(base);
   ok("Kindreds bar: the ✦ key is named (it opens the openers deck), so Swift draws the Kindreds bar", dock.ideasLabel === "sp.deck.a11y");

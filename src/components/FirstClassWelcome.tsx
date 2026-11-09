@@ -13,6 +13,8 @@ import { iapActiveTrial } from "../lib/iap";
 import { useFares } from "../lib/fares";
 import { pad3, trialFromIntro, type Trial } from "../screens/paywall/paywall-model";
 import { StickerBox, objectDepth } from "./10a/StickerBox";
+import { NativeSurface, SurfaceHost } from "./NativeSurface";
+import { KFCReceiptView } from "../../modules/kindredly-ui";
 import "../data/strings-fc2";
 
 /* THE RECEIPT — A3 "three stickers" (owner, 2026-10-19; FC2 §4; the prototype
@@ -199,6 +201,68 @@ export function FirstClassReceipt({
 }) {
   useLang();
   const dev = __DEV__ ? devIn : undefined;
+  const lifetime = plan === "lifetime";
+  const trial = useConfirmedTrial(!lifetime, productId, offeredTrial, dev);
+  const no = useCofounderNo(lifetime, dev);
+  const w = receiptWords(plan, price, offeredTrial, trial, no);
+  const { dark } = useTheme();
+
+  // a medium haptic as it appears, whichever draws it
+  useEffect(() => {
+    thunk();
+  }, []);
+
+  const router = useRouter();
+  const startWriting = () => {
+    onDone();
+    // after the fare's sheet has gone, so the composer lands on top of the page underneath
+    setTimeout(() => router.push("/compose"), 350);
+  };
+
+  /* SWIFT OR REACT NATIVE (2026-11-09, the "fcreceipt" switch, off by default): with the switch on
+     and the binary carrying KFCReceiptView, SwiftUI draws the dim and the card (ReceiptSwift;
+     modules/kindredly-ui Portable/Kit/KFCReceipt.swift) from the same words; else the React Native
+     card as it was. NativeSurface decides once, as the receipt mounts, and arms the crash
+     breadcrumb; until it has (a frame or two) the dim alone is drawn. The facts above, the
+     haptic and what the keys do stay here. */
+  return (
+    <NativeSurface
+      surface="fcreceipt"
+      view="KFCReceiptView"
+      mode="mount"
+      native={() => <ReceiptSwift w={w} onDone={onDone} onWrite={startWriting} />}
+      fallback={() => <ReceiptRN w={w} onDone={onDone} onWrite={startWriting} />}
+      pending={() => <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, backgroundColor: receiptScrim(dark) }} />}
+    />
+  );
+}
+
+type ReceiptWords = ReturnType<typeof receiptWords>;
+
+/** the dim under the receipt: the brand ink at .55, black on Midnight */
+const receiptScrim = (dark: boolean) => (dark ? scrimColor(true, 0.55) : "rgba(30,27,53,0.55)");
+
+/** The receipt drawn by SwiftUI, in a Host over the whole box. */
+function ReceiptSwift({ w, onDone, onWrite }: { w: ReceiptWords; onDone: () => void; onWrite: () => void }) {
+  const { key: theme } = useTheme();
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 }}>
+      <SurfaceHost>
+        <KFCReceiptView
+          theme={theme}
+          insets={{ top: insets.top, bottom: insets.bottom, tabBarRoom: 0 }}
+          words={{ first: t("fc2.rc.stFirst"), gold: w.gold, lav: w.lav, title: w.title, body: w.body, go: t("fc2.rc.go"), close: t("fc2.rc.close") }}
+          onDone={onDone}
+          onWrite={onWrite}
+        />
+      </SurfaceHost>
+    </View>
+  );
+}
+
+/** The React Native receipt (the "fcreceipt" switch's fallback), as it was. */
+function ReceiptRN({ w, onDone, onWrite: startWriting }: { w: ReceiptWords; onDone: () => void; onWrite: () => void }) {
   const { t: T, dark } = useTheme();
   const insets = useSafeAreaInsets();
   const { height: winH } = useWindowDimensions();
@@ -206,19 +270,14 @@ export function FirstClassReceipt({
      page with its panel): the card's cap follows the box it is drawn in, never the window alone */
   const [boxH, setBoxH] = useState<number | null>(null);
   const capH = Math.min(winH, boxH ?? winH) - 90 - insets.top;
-  const lifetime = plan === "lifetime";
-  const trial = useConfirmedTrial(!lifetime, productId, offeredTrial, dev);
-  const no = useCofounderNo(lifetime, dev);
-  const w = receiptWords(plan, price, offeredTrial, trial, no);
 
   /* popin: .45s cubic-bezier(.3,1.2,.4,1), translateY 30 + scale .96 → 0 / 1; instant under
-     Reduce Motion. A medium haptic as it appears. */
+     Reduce Motion. (The medium haptic is the receipt's, above.) */
   const reduced = useReducedMotion();
   const p = useSharedValue(reduced ? 1 : 0);
   useEffect(() => {
     if (!reduced) p.value = withTiming(1, { duration: 450, easing: Easing.bezier(0.3, 1.2, 0.4, 1) });
     else p.value = 1;
-    thunk();
   }, [reduced, p]);
   const cardStyle = useAnimatedStyle(() => ({
     opacity: Math.min(1, p.value * 1.6),
@@ -235,13 +294,6 @@ export function FirstClassReceipt({
     return () => clearTimeout(id);
   }, []);
 
-  const router = useRouter();
-  const startWriting = () => {
-    onDone();
-    // after the fare's sheet has gone, so the composer lands on top of the page underneath
-    setTimeout(() => router.push("/compose"), 350);
-  };
-
   const stickerText = { color: INK } as const;
 
   return (
@@ -250,7 +302,7 @@ export function FirstClassReceipt({
         onPress={onDone}
         accessibilityRole="button"
         accessibilityLabel={t("fc2.rc.close")}
-        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: dark ? scrimColor(true, 0.55) : "rgba(30,27,53,0.55)" }}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: receiptScrim(dark) }}
       />
       <Animated.View
         style={[
