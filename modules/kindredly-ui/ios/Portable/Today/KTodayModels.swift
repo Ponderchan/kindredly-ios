@@ -249,6 +249,28 @@ public struct KTodayWren: Equatable, Sendable {
   public init() {}
 }
 
+/// One letter on today's desk as Next's ring draws it (owner 2026-11-09; KDeskRing): its id, so
+/// the ring can follow the card the deck shows before TS confirms a pass, and how far the reader
+/// has got with it.
+public struct KDeskTick: Equatable, Sendable {
+  public enum State: String, Sendable {
+    /// not on screen yet today
+    case unread
+    /// on screen, passed, or gone past without a reply (the letter on screen counts as read)
+    case read
+    /// a reply went to it today
+    case replied
+  }
+
+  public var id: String
+  public var state: State
+
+  public init(id: String, state: State) {
+    self.id = id
+    self.state = state
+  }
+}
+
 /// Everything the desk shows, from TS.
 public struct KTodayContent: Equatable, Sendable {
   /// "TODAY"
@@ -260,6 +282,11 @@ public struct KTodayContent: Equatable, Sendable {
   public var leftA11y = ""
   /// the letters not passed yet, the one on screen first
   public var cards: [KLetterCardModel] = []
+  /// today's whole desk in reading order for Next's ring: what went past first (passed or answered,
+  /// in the order they came on screen), then the letter on screen, then the rest (up to 15)
+  public var desk: [KDeskTick] = []
+  /// the letter on screen's place in `desk` (desk.count once nothing is left)
+  public var deskAt = 0
   /// a letter was passed today, or the desk is done (the plate no longer shrinks for it: the deck
   /// still reads it for the first card's unfold)
   public var titleLocked = false

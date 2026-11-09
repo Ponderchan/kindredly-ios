@@ -328,6 +328,8 @@ public struct KTodayDesk: View {
         left: content.left,
         labels: content.labels,
         leftA11y: content.leftA11y,
+        desk: content.desk,
+        deskAt: content.deskAt,
         enabled: content.phase == .reading || content.phase == .done,
         hidden: content.hideBand || plus != .closed,
         deck: deck,

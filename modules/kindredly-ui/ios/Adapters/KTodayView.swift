@@ -26,6 +26,8 @@ import ExpoUI
    the reply bar's emoji key, for VoiceOver)
  - phase: loading | offline | reading | done (anything else is loading)
  - left, leftA11y: kept for the record; the B8 band shows no count and says strings.nextA11y
+ - desk, deskAt: Next's ring (owner 2026-11-09): today's whole desk in reading order, each
+   { id, state: unread | read | replied } (anything else is unread), and the letter on screen's place
  - cards: the letters not passed yet, the one on screen first (KTodayCardRecord: who wrote it,
    KTodayWhoRecord, with the frosted window as a KFrostRecord, when, the switch-off postmark
    line that keeps the old docket while the identity switch is off, and the paper id the card is
@@ -345,11 +347,22 @@ struct KTodayBirdsRecord: Record {
   }
 }
 
+/// One letter of today's desk for Next's ring.
+struct KTodayDeskTickRecord: Record {
+  @Field var id: String = ""
+  /// unread | read | replied
+  @Field var state: String = "unread"
+
+  var tick: KDeskTick { KDeskTick(id: id, state: KDeskTick.State(rawValue: state) ?? .unread) }
+}
+
 final class KTodayViewProps: KScreenProps {
   @Field var strings: KTodayStringsRecord = KTodayStringsRecord()
   @Field var phase: String = "loading"
   @Field var left: Int = 0
   @Field var leftA11y: String = ""
+  @Field var desk: [KTodayDeskTickRecord] = []
+  @Field var deskAt: Int = 0
   @Field var cards: [KTodayCardRecord] = []
   @Field var titleLocked: Bool = false
   @Field var freshUnfold: Bool = false
@@ -447,6 +460,8 @@ struct KTodayView: ExpoSwiftUI.View {
     content.phase = KTodayPhase(rawValue: props.phase) ?? .loading
     content.left = props.left
     content.leftA11y = props.leftA11y
+    content.desk = props.desk.map(\.tick)
+    content.deskAt = props.deskAt
     content.cards = props.cached("cards") { props.cards.map(\.model) }
     content.titleLocked = props.titleLocked
     content.freshUnfold = props.freshUnfold

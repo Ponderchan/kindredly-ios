@@ -6,6 +6,7 @@ import {
   KTodayView,
   type KTodayCard,
   type KTodayCommands,
+  type KTodayDeskTick,
   type KTodayStrings,
   type KTodayWindow,
   type KTodayWren,
@@ -32,7 +33,9 @@ import type { TodayModel } from "./useTodayDesk";
 
    This file only turns the model (useTodayDesk, the same one the React
    Native fallback draws) into the Swift props and commands:
-   - props, which change rarely: the phase, NEXT's number, the cards
+   - props, which change rarely: the phase, NEXT's number, Next's ring
+     (the whole desk in reading order, each letter unread, read or
+     replied, and the letter on screen's place), the cards
      (memoised apart from the drafts, with a rev, so typing never re-sends
      fifteen letters; each header from the card's `who` and `when` once the
      identity switch is on — courier names, frosted windows, ♀/♂ and star
@@ -219,6 +222,7 @@ export function TodayNative({ model }: { model: TodayModel }) {
     loadingA11y: s.loadingA11y,
     arrivalDismiss: s.arrivalDismiss,
   });
+  const desk = useSame<KTodayDeskTick[]>(view.desk);
   const wrenLetter = useSame<KTodayWrenLetter>(view.wrenLetter);
   const flightWindow = useSame<KTodayWindow>(view.window);
   const birds = useTodayBirds({ wilt: view.wren.wilt, stage: view.wren.stage });
@@ -237,6 +241,8 @@ export function TodayNative({ model }: { model: TodayModel }) {
           phase={view.phase}
           left={view.left}
           leftA11y={view.leftA11y}
+          desk={desk}
+          deskAt={view.deskAt}
           cards={cards}
           titleLocked={view.titleLocked}
           freshUnfold={view.freshUnfold}

@@ -1,6 +1,7 @@
 /* Behaviour lock for the Today tab's model (screens/today/today-cards): the
    saved day (read, phase, pass / bring back / answer / drop, seen, freeze,
-   done, the relaunch), left as the desk's own intersection, the seal held
+   done, the relaunch), Next's ring (the desk in reading order, an answered
+   letter kept in its place), left as the desk's own intersection, the seal held
    against the desk, how a load deals, her counted letter and the window,
    how Wren rests on the band (her night hours, her hunger), the card both
    renderers draw (its who slot with the identity switch off — exactly
@@ -237,6 +238,32 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   ok("seen: the first time counts", r.counted && r.rec.seen.join() === "a");
   const again = M.markSeen(r.rec, "a");
   ok("seen: the second doesn't (across relaunches too: it is in the record)", !again.counted && again.rec === r.rec);
+}
+
+/* ── Next's ring: the desk in reading order ── */
+{
+  const ticks = (rec: import("./today-cards").DayRecord) => M.deskTicks(rec, M.unpassed(rec.desk, rec.passed).map((l) => l.id));
+  // u unread, r read, R replied; @ the letter on screen's place
+  const show = (x: { desk: { id: string; state: string }[]; at: number }) => x.desk.map((d) => d.id + ":" + (d.state === "replied" ? "R" : d.state[0])).join() + "@" + x.at;
+  // the reader sees a, passes it, sees b
+  let rec = M.markSeen(recOf(), "a").rec;
+  ok("ring: a fresh desk, the letter on screen read, the rest unread", show(ticks(rec)) === "a:r,b:u,c:u@0");
+  rec = M.markSeen(M.passLetter(rec, "a"), "b").rec;
+  ok("ring: a pass moves the letter on screen on", show(ticks(rec)) === "a:r,b:r,c:u@1");
+  // b answered: it leaves the desk, but keeps its place by when it was seen
+  rec = M.markSeen(M.answerLetter(rec, "b"), "c").rec;
+  ok("ring: an answered letter keeps its place and reads replied", show(ticks(rec)) === "a:r,b:R,c:r@2");
+  rec = M.passLetter(rec, "c");
+  ok("ring: done, every letter behind, at = the desk's size", show(ticks(rec)) === "a:r,b:R,c:r@3");
+  const back = M.bringBack(rec);
+  ok("ring: bring back puts the letter on screen again", show(ticks(back)) === "a:r,b:R,c:r@2");
+  // a letter gone past without being counted seen (a dev letter) still has its tick
+  const unseen = M.answerLetter(M.passLetter(recOf(), "a"), "b");
+  ok("ring: gone past unseen follows the seen ones, passed before answered", show(ticks(unseen)) === "a:r,b:R,c:r@2");
+  // a letter passed, then its writer blocked: still read
+  const blocked = M.dropAuthor(M.markSeen(M.passLetter(M.markSeen(recOf(), "a").rec, "a"), "b").rec, "author-a");
+  ok("ring: a passed letter whose writer was blocked stays read", show(ticks(blocked)) === "a:r,b:r,c:u@1");
+  ok("ring: an empty desk is an empty ring", show(M.deskTicks(M.emptyDay(TODAY), [])) === "@0");
 }
 
 /* ── her letter ── */

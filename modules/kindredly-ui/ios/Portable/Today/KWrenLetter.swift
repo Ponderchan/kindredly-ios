@@ -25,9 +25,11 @@ import SwiftUI
    ──────────────────────────────────────────────
    WREN IS BACK IN                          8H 06M     the foot, the countdown in ind
 
- The material is the Me InkCard's (sf, a 2.5 ln outline, corners of 24, a hard 5/5 ln shadow),
- padded 0 18 12 inside the outline. The bag takes whatever height is left (margins 14 above, 56
- at the sides, 8 below), never less than the design's 120: it is the done state's main object, so
+ The material is the letter sheet the desk's cards are on (KLetterSheet, owner 2026-11-09: no black
+ frame; sf, a 1pt edge in its ink at 11%, corners of 24, a hard 6/6 drop in the theme's depth),
+ padded 0 18 12 inside where the 2.5 outline was, so nothing inside moved when it went. The bag
+ takes whatever height is left (margins 14 above, 56 at the sides, 8 below), never less than the
+ design's 120: it is the done state's main object, so
  the lines give way first. The whole letter is laid out at 20 (the design's), 18, then 16 with the
  bag's 120 kept, and only when even 16 leaves less than that (a small phone, large text) does the
  bag stand aside, the lines then taking the room back at 20, 18 or 16, and at the last truncating
@@ -48,8 +50,8 @@ import SwiftUI
  */
 struct KWrenLetter: View {
   static let radius: CGFloat = 24
+  /// the old outline's width: still the room the content keeps round it (the bag's envelopes too)
   static let border: CGFloat = 2.5
-  static let shadow: CGFloat = 5
   static let holes = 14
   static let hole: CGFloat = 7
   static let stampSize = CGSize(width: 46, height: 56)
@@ -184,19 +186,10 @@ struct KWrenLetter: View {
       }
       layout(size: Self.sizes(for: face).last ?? 16, fixed: false, bag: false)
     }
-    // padding 0 18 12 inside the 2.5 outline (border-box)
+    // padding 0 18 12 inside where the 2.5 outline was (border-box)
     .padding(EdgeInsets(top: Self.border, leading: 18 + Self.border, bottom: 12 + Self.border, trailing: 18 + Self.border))
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-    .background {
-      KStickerBackground(
-        shape: RoundedRectangle(cornerRadius: Self.radius, style: .circular),
-        fill: theme.sf,
-        stroke: theme.isDark ? theme.line : theme.ln,
-        lineWidth: Self.border,
-        shadow: theme.isDark ? nil : theme.ln,
-        shadowOffset: Self.shadow
-      )
-    }
+    .background { KLetterSheet(theme: theme, radius: Self.radius) }
   }
 
   /// one whole letter: the letter, the bag's room (or, without the bag, the space it leaves) and

@@ -96,18 +96,22 @@ public struct InkCard<Content: View>: View {
   private let soft: Bool
   /// no outline: rule B's object depth instead of the ink shadow (the Aura card, owner 2026-10-26)
   private let object: Bool
+  /// the Today letter's sheet (KLetterSheet, owner 2026-11-09): a 1pt edge and the theme's depth
+  /// instead of the outline and the ink shadow, at the variant's corners and the same insets
+  private let letter: Bool
   private let content: Content
 
   /// - Parameters:
   ///   - variant: .today (28, 6/6, 18 20 14) or .me (24, 5/5, 16)
   ///   - spacing: the gap between the content's pieces, CSS's gap. The Today card has none;
   ///     the Me cards use 14 (profile) or 12 (Aura, Stamps).
-  public init(theme: KTheme, variant: InkCardVariant = .today, spacing: CGFloat = 0, soft: Bool = false, object: Bool = false, @ViewBuilder content: () -> Content) {
+  public init(theme: KTheme, variant: InkCardVariant = .today, spacing: CGFloat = 0, soft: Bool = false, object: Bool = false, letter: Bool = false, @ViewBuilder content: () -> Content) {
     self.theme = theme
     self.variant = variant
     self.spacing = spacing
     self.soft = soft
     self.object = object
+    self.letter = letter
     self.content = content()
   }
 
@@ -120,6 +124,8 @@ public struct InkCard<Content: View>: View {
     .background {
       if soft {
         RoundedRectangle(cornerRadius: 20, style: .circular).fill(theme.soft)
+      } else if letter {
+        KLetterSheet(theme: theme, radius: variant.cornerRadius)
       } else if object {
         let shape = RoundedRectangle(cornerRadius: variant.cornerRadius, style: .circular)
         shape.fill(theme.sf).kObjectDepth(shape, theme: theme)
@@ -146,9 +152,11 @@ public struct InkCard<Content: View>: View {
  values (export 3/today-papers-final/src/Today Papers.dc.html) as SwiftUI data; src/data/papers.ts
  is the same table for TS and the web. Change a value in both places, never one.
 
- - Plain is the card as it has always been: the theme's InkCard (.me on Today), so it follows the
-   theme (`themed`). Every other paper is a physical sheet and keeps its own colours in every
-   theme, Midnight included; cardTheme(over:) hands the card's pieces a theme in the paper's ink.
+ - Plain is drawn in the theme's tokens, so it follows the theme (`themed`): the InkCard where the
+   paper is drawn as a paper (the compose body), and on Today the letter sheet (KLetterSheet: no
+   black frame since 2026-11-09, as for every paper there; KPaperSurface's `letter`). Every other
+   paper is a physical sheet and keeps its own colours in every theme, Midnight included;
+   cardTheme(over:) hands the card's pieces a theme in the paper's ink.
  - CSS, read as SwiftUI: a repeating-linear-gradient is KPaperStripes (a CSS angle and the bands
    of one period, drawn by a Canvas from the gradient line's start, as CSS lays it out); a border
    is drawn inside the edge (border-box); airmail's "padding-box white over a border-box gradient"
@@ -547,14 +555,85 @@ struct KPaperFold: View {
 }
 
 /*
+ THE LETTER SHEET (owner, 2026-11-09: the Today letter loses its black frame). The letter you read
+ is an object in the story, so it takes rule B (KObjectDepth, the Aura card's look) instead of the
+ InkCard's ink outline and black hard shadow: the face in sf, a 1pt edge in the face's own slightly
+ darker tone (its ink at 11%: on white that is the ink at the brief's 10–12%; on Midnight's dark
+ face the same rule gives a faint light hairline, which is what reads as an edge there), and a hard
+ 6/6 drop with no blur in the theme's depth colour. The depth is per theme here, not KObjectDepth's
+ two values (the owner's numbers for the letter: Classic #C9C4F2, Lavender #B5AEEA on its lilac
+ page, Paper #D3C29C on its cream, Midnight #3A3580); KObjectDepth stays as it is for the other
+ objects. Like box-shadow the drop takes no room: whoever places the sheet leaves the 6 clear, as
+ they did for the old shadow. No layout changes with it: the content keeps the insets it had
+ inside the 2.5 outline (InkCardVariant.contentInsets), so nothing inside a card moves.
+
+ Every place the Today letter is drawn uses it, so reading looks the same everywhere: the desk
+ card on Plain (and, through KPaperSurface(letter: true), on every paper), the loading and offline
+ card in its slot, Wren's letter when the day is done, and the unfolded letter (KLetterReaderScreen).
+ */
+public struct KLetterSheet: View {
+  /// the edge: 1pt, drawn inside the face, in the face's ink at this opacity
+  public static let edgeWidth: CGFloat = 1
+  public static let edgeOpacity: Double = 0.11
+  /// the hard drop, right and down
+  public static let depthOffset: CGFloat = 6
+
+  /// The letter's depth in `theme` (always the base theme: a paper's own colours never change it).
+  /// A theme this table doesn't know takes Classic's, or Midnight's when it is dark.
+  public static func depth(for theme: KTheme) -> Color {
+    switch theme.key {
+    case KTheme.lavender.key: return Color(hex: "#B5AEEA")
+    case KTheme.paper.key: return Color(hex: "#D3C29C")
+    case KTheme.midnight.key: return Color(hex: "#3A3580")
+    default: return theme.isDark ? Color(hex: "#3A3580") : Color(hex: "#C9C4F2")
+    }
+  }
+
+  /// the edge's colour on a face whose words are drawn in `ink`
+  public static func edge(ink: Color) -> Color { ink.opacity(edgeOpacity) }
+
+  let theme: KTheme
+  let radius: CGFloat
+
+  /// - Parameter radius: the card's own corners (24 for the desk card, 28 for the unfolded letter)
+  public init(theme: KTheme, radius: CGFloat) {
+    self.theme = theme
+    self.radius = radius
+  }
+
+  public var body: some View {
+    let shape = RoundedRectangle(cornerRadius: radius, style: .circular)
+    // back to front: the drop, the face, the edge (inside the face, as a CSS border is)
+    ZStack {
+      shape.fill(theme.sf)
+      shape.strokeBorder(Self.edge(ink: theme.ink), lineWidth: Self.edgeWidth)
+    }
+    .background {
+      shape.fill(Self.depth(for: theme))
+        .offset(x: Self.depthOffset, y: Self.depthOffset)
+    }
+    .allowsHitTesting(false)
+    .accessibilityHidden(true)
+  }
+}
+
+/*
  THE SHEET, behind a card's content: .background { KPaperSurface(paper:theme:) }. Back to front:
  the shadow (outside the sheet, as CSS paints it), the fill, the stripes, the edge, and on top the
  receipt's teeth (outside the frame, top and bottom) and the sticky note's fold. Plain draws the
- theme's InkCard (.me: sf, a 2.5 ln edge, corners of 24, the hard 5/5 shadow in ln), so a Plain
- card is exactly the card it always was. `mini` is the strip's swatch: the paper's mini edge and
- corners, no shadow, no teeth, no fold; teeth: false leaves the receipt's teeth off (the compose
- body). The content's inset is paper.edge.width + KPaper.padding
- (border-box); a caller with its own padding adds the edge's width.
+ theme's InkCard (.me: sf, a 2.5 ln edge, corners of 24, the hard 5/5 shadow in ln). `mini` is the
+ strip's swatch: the paper's mini edge and corners, no shadow, no teeth, no fold; teeth: false
+ leaves the receipt's teeth off (the compose body). The content's inset is paper.edge.width +
+ KPaper.padding (border-box); a caller with its own padding adds the edge's width.
+
+ `letter` is the Today letter (owner, 2026-11-09; KLetterSheet above): no black frame on any paper.
+ Plain is the letter sheet at the .me corners. Every other paper keeps its fill, its stripes, the
+ airmail border, the receipt's teeth and the sticky note's fold, but loses its own shadow and its
+ solid line (grid's ink outline among them) for the same frame as Plain: a 1pt edge in the paper's
+ ink at 11% (a darker tone of that paper: brown on kraft, indigo on riso, ink on the rest) and the
+ theme's hard 6/6 depth, cut to the sheet's outline (the receipt's teeth included). The inset stays
+ paper.edge.width + KPaper.padding, so nothing inside moves. The compose body, the chat hero and the
+ strip's swatches don't pass it and are drawn exactly as before.
  */
 public struct KPaperSurface: View {
   let paper: KPaper
@@ -562,16 +641,21 @@ public struct KPaperSurface: View {
   let mini: Bool
   /// the receipt's torn edges (the compose body leaves them off, as the prototype's does)
   let teeth: Bool
+  /// the Today letter's frame (rule B) instead of the paper's own edge and shadow
+  let letter: Bool
 
-  public init(paper: KPaper, theme: KTheme, mini: Bool = false, teeth: Bool = true) {
+  public init(paper: KPaper, theme: KTheme, mini: Bool = false, teeth: Bool = true, letter: Bool = false) {
     self.paper = paper
     self.theme = theme
     self.mini = mini
     self.teeth = teeth
+    self.letter = letter && !mini
   }
 
   public var body: some View {
-    if paper.themed {
+    if paper.themed && letter {
+      KLetterSheet(theme: theme, radius: InkCardVariant.me.cornerRadius)
+    } else if paper.themed {
       let radius = mini ? paper.miniRadius : InkCardVariant.me.cornerRadius
       KStickerBackground(
         shape: RoundedRectangle(cornerRadius: radius, style: .circular),
@@ -596,15 +680,24 @@ public struct KPaperSurface: View {
     let shape = RoundedRectangle(cornerRadius: radius, style: .circular)
     return ZStack {
       face(shape: shape, edge: edge, radius: radius)
-      switch edge {
-      case .none, .stripes:
-        EmptyView()
-      case let .solid(color, width, dashed):
-        shape.strokeBorder(color, style: StrokeStyle(lineWidth: width, dash: dashed ? [3, 2] : []))
+      if letter {
+        // the letter's 1pt edge, in a darker tone of this paper, round every paper alike
+        shape.strokeBorder(KLetterSheet.edge(ink: paper.ink), lineWidth: KLetterSheet.edgeWidth)
+      } else {
+        switch edge {
+        case .none, .stripes:
+          EmptyView()
+        case let .solid(color, width, dashed):
+          shape.strokeBorder(color, style: StrokeStyle(lineWidth: width, dash: dashed ? [3, 2] : []))
+        }
       }
     }
     .background {
-      if !mini, let s = paper.shadow {
+      if letter {
+        // the theme's hard depth in the sheet's outline, its teeth included
+        silhouette(shape: shape, color: KLetterSheet.depth(for: theme))
+          .offset(x: KLetterSheet.depthOffset, y: KLetterSheet.depthOffset)
+      } else if !mini, let s = paper.shadow {
         Color.clear.kSoftShadows([s.soft], in: shape)
       }
     }
@@ -638,6 +731,23 @@ public struct KPaperSurface: View {
         }
       }
     }
+  }
+
+  /// the sheet's outline in one colour (the letter's depth): its shape, and the receipt's teeth
+  /// where the sheet has them
+  private func silhouette(shape: RoundedRectangle, color: Color) -> some View {
+    let tornHeight = KPaper.tornHang + 1
+    return shape.fill(color)
+      .overlay(alignment: .top) {
+        if teeth && paper.torn {
+          KPaperZigzag().fill(color).frame(height: tornHeight).offset(y: -KPaper.tornHang)
+        }
+      }
+      .overlay(alignment: .bottom) {
+        if teeth && paper.torn {
+          KPaperZigzag().fill(color).frame(height: tornHeight).scaleEffect(x: 1, y: -1).offset(y: KPaper.tornHang)
+        }
+      }
   }
 
   /// a torn edge: the teeth hang tornHang outside the frame and overlap it by 1, with the 1pt

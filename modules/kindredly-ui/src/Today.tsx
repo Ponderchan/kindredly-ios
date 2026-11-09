@@ -89,6 +89,10 @@ export type KTodayCard = {
   paper: string;
 };
 
+/** One letter of today's desk for Next's ring (today-cards DeskTick): Swift's band draws a tick per
+    letter, coloured by how far the reader has got (the letter on screen counts as read). */
+export type KTodayDeskTick = { id: string; state: "unread" | "read" | "replied" };
+
 /** TS's phase of the desk (today-cards DeskPhase). */
 export type KTodayPhase = "loading" | "offline" | "reading" | "done";
 
@@ -198,6 +202,12 @@ export type KTodayViewProps = CommonViewModifierProps &
     /** letters on today's desk not yet passed (NEXT's number) */
     left: number;
     leftA11y: string;
+    /** Next's ring: today's whole desk in reading order (what went past, the letter on screen, the
+        rest; up to 15), memoised so it is re-sent only when a letter moves */
+    desk: KTodayDeskTick[];
+    /** the letter on screen's place in `desk` (desk.length once nothing is left); Swift also follows
+        the card it shows, so a pass ticks before TS confirms it */
+    deskAt: number;
     /** the letters not passed yet, the one on screen first */
     cards: KTodayCard[];
     titleLocked: boolean;

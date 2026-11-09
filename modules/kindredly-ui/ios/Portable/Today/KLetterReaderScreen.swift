@@ -11,10 +11,11 @@ import SwiftUI
 
    ✕ FOLD BACK                                  the mono ✕ 15 in ink, the words 500 15 in sub,
                                                 18 in, 14 from the top, 12 under
-   ╭────────────────────────────────────╮       the Today ink panel (InkCard .today: sf, a 2.5 ln
-   │ [face] Sunday Kite ♀ ♊      [stamp] │       outline, corners 28, a hard 6/6 ln shadow: the
-   │        SEP.23                       │       letter card keeps its black edge, rule B), 16 from
-   │                                     │       the sides, the shadow's 6 kept clear
+   ╭────────────────────────────────────╮       the letter sheet, as on the desk card (InkCard
+   │ [face] Sunday Kite ♀ ♊      [stamp] │       .today, letter: sf, a 1pt edge in its ink at 11%,
+   │        SEP.23                       │       corners 28, a hard 6/6 drop in the theme's depth,
+   │                                     │       no black frame since 2026-11-09), 16 from the
+   │                                     │       sides, the drop's 6 kept clear
    │ Dear stranger, …                    │
    │                                     │       the letter in the reader's Letter font at 19/31
    │ WRITTEN 3D AGO                      │       in ink; the written line mono 500 10 at .06em in
@@ -142,7 +143,7 @@ struct KLetterReaderScreen<InFlight: View>: View {
       header
       ScrollView(.vertical, showsIndicators: false) {
         letter
-          // the hard shadow's 6 hangs outside the panel
+          // the depth's 6 hangs outside the panel
           .padding(.trailing, InkCardVariant.today.shadowOffset)
           .padding(.bottom, InkCardVariant.today.shadowOffset)
           .padding(.horizontal, 16)
@@ -199,7 +200,7 @@ struct KLetterReaderScreen<InFlight: View>: View {
 
   // ── the letter in its panel ──
   private var letter: some View {
-    InkCard(theme: theme, variant: .today) {
+    InkCard(theme: theme, variant: .today, letter: true) {
       docket
         .padding(.bottom, 22)
       Text(content.text)

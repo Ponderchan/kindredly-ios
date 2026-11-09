@@ -7,7 +7,8 @@ import SwiftUI
  half their height, so they read as capsules) and padding 6 12 (plus the 2 the mock's outline
  took). Owner's rule B (2026-10-26): controls and chips are flat, so only the topic tag, which
  belongs to the letter, keeps the mock's ln outline and hard shadow (in the light themes; flat in
- Midnight, owner 2026-10-31). Every word on them is
+ Midnight, owner 2026-10-31) where it is still drawn that way; on the Today letter it is flat too
+ since the card lost its black frame (owner 2026-11-09: KTopicTag's `flat`). Every word on them is
  passed in already translated.
  */
 
@@ -39,14 +40,19 @@ public struct KTopicTag: View {
   private let fill: Color
   private let textColor: Color
 
-  public init(theme: KTheme, text: String, fill: Color, textColor: Color) {
+  /// flat: the fill alone, no outline and no shadow in any theme (the Today letter's tag since its
+  /// card lost the black frame, owner 2026-11-09); the same size as the outlined tag
+  private let flat: Bool
+
+  public init(theme: KTheme, text: String, fill: Color, textColor: Color, flat: Bool = false) {
     self.theme = theme
     self.text = text
     self.fill = fill
     self.textColor = textColor
+    self.flat = flat
   }
 
-  public init(theme: KTheme, text: String, tone: Tone = .indigo) {
+  public init(theme: KTheme, text: String, tone: Tone = .indigo, flat: Bool = false) {
     let colors: (Color, Color)
     switch tone {
     case .green: colors = (KBrand.greenText, KBrand.paperWhite)
@@ -54,29 +60,34 @@ public struct KTopicTag: View {
     case let .channel(wash, ink): colors = (wash, ink)
     case let .custom(fill, text): colors = (fill, text)
     }
-    self.init(theme: theme, text: text, fill: colors.0, textColor: colors.1)
+    self.init(theme: theme, text: text, fill: colors.0, textColor: colors.1, flat: flat)
   }
 
   public var body: some View {
+    let shape = RoundedRectangle(cornerRadius: 20, style: .circular)
     Text(text)
       .kText(.monoTag)
       .foregroundStyle(textColor)
       .lineLimit(1)
       .fixedSize()
-      // the padding, and the 2pt outline outside it
+      // the padding, and the 2pt outline outside it (kept as room when flat, so the tag is one size)
       .padding(.vertical, 6 + 2)
       .padding(.horizontal, 12 + 2)
       .background {
-        // Midnight: flat (owner, 2026-10-31: the pale outline and shadow looked wrong at night;
-        // there ln is a light lilac, so the sticker read as a glowing cut-out). Same size either way.
-        KStickerBackground(
-          shape: RoundedRectangle(cornerRadius: 20, style: .circular),
-          fill: fill,
-          stroke: theme.isDark ? nil : theme.ln,
-          lineWidth: 2,
-          shadow: theme.isDark ? nil : theme.ln,
-          shadowOffset: theme.isDark ? 0 : 3
-        )
+        if flat {
+          shape.fill(fill)
+        } else {
+          // Midnight: flat (owner, 2026-10-31: the pale outline and shadow looked wrong at night;
+          // there ln is a light lilac, so the sticker read as a glowing cut-out). Same size either way.
+          KStickerBackground(
+            shape: shape,
+            fill: fill,
+            stroke: theme.isDark ? nil : theme.ln,
+            lineWidth: 2,
+            shadow: theme.isDark ? nil : theme.ln,
+            shadowOffset: theme.isDark ? 0 : 3
+          )
+        }
       }
   }
 }

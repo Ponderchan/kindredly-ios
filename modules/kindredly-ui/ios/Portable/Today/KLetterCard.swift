@@ -6,9 +6,10 @@ import SwiftUI
  ONE LETTER ON THE DESK (Today 3d × 25b, design Prompts 1–2), at the height the deck's slot gives
  it (KTodayGeometry.cardHeight: 548 on a 393 × 852 phone, never under 360; shorter while the
  reader writes back, the chat composers' A1, owner 2026-10-18: replyCardHeight, room for the
- keyboard and the reply bar, 272 in the prototype). Inside the InkCard
- (.me: sf, a 2.5 ln outline, corners of 24, a hard 5/5 shadow, padding 16; .today, which the
- composer sheet shares, is not retuned):
+ keyboard and the reply bar, 272 in the prototype). On the letter sheet (KLetterSheet, owner
+ 2026-11-09: the black frame is gone, rule B as on the Aura card): sf, a 1pt edge in the face's ink
+ at 11%, corners of 24, a hard 6/6 drop with no blur in the theme's depth colour; the content keeps
+ the InkCard .me's insets (16 inside where the 2.5 outline was), so nothing inside moved:
 
  - the docket row, 10 apart:
    · WHO, with the identity switch OFF (TS sends the old postmark line, card.postmark): exactly
@@ -50,7 +51,8 @@ import SwiftUI
  - a voice letter instead: VOICE LETTER, the voice card (the 44 disc, sixteen bars, the time)
    drawn from TS's one player, and the writer's caption in the italic serif under it. Until its
    link is signed it shows itself unavailable; the caption is never drawn as the letter;
- - the foot: the topic tag (the App Store tag: the stamp's colour solid with white words, from TS) and
+ - the foot: the topic tag (the App Store tag: a flat capsule in the stamp's colour, no outline and
+   no shadow since 2026-11-09, ink words, from TS) and
    the one capsule (translation wins over the lime signal), side by side, stacked when they
    don't fit (a long language, large text). The translation is the LANGUAGE PAIR (KLangPair,
    the owner's B1 brought back 2026-10-16): the ink segment with the code they wrote in, the
@@ -61,14 +63,16 @@ import SwiftUI
    is not drawn and the docket stops at xxxLarge, so the shrunk card keeps the letter (a11y pass).
 
  THE PAPER (letter papers, owner 2026-10-20; .claude/papers/CONTRACT.md §4.1): the writer picked
- one in the compose screen (card.paper, KPaper). Plain is everything above, the InkCard as it always
- was. Any other paper swaps the InkCard for the same column on its sheet (KPaperSurface: its fill,
- stripes, edge, shadow, the receipt's teeth, the sticky note's fold), inset by its edge and 16, and
+ one in the compose screen (card.paper, KPaper). Plain is everything above, the letter sheet. Any
+ other paper draws the same column on its own sheet (KPaperSurface, letter: its fill, stripes, the
+ airmail border, the receipt's teeth, the sticky note's fold; its own shadow and solid line give way
+ to the letter's frame, a 1pt edge in a darker tone of that paper and the theme's 6/6 depth, so no
+ paper keeps a black frame either), inset by its edge and 16, and
  every piece inside is drawn in the paper's own colours whatever the theme (cardTheme(over:): light
  even on Midnight, so the stamp draws light too). The letter keeps the reader's Letter font and takes
  the paper's size (KPaper.cardSize / cardLine / letterStyle: the serif sheets keep the tiers, the
  receipt and the sticky note scale them; owner 10-20: the user's font wins), riso adds its red misprint, and the foot keeps 36 clear of
- the folded corner. The topic tag keeps the stamp's colour (stamps v3), its edge in the paper's ink.
+ the folded corner. The topic tag keeps the stamp's colour (stamps v3), flat as on Plain.
  The geometry, the gestures, the fold and UNFOLD, the stamp and the menu are the same on every paper.
 
  VoiceOver reads the card as one element (TS's a11yLabel: who wrote it and when — "SEP.23 ·
@@ -138,23 +142,16 @@ struct KLetterCard: View, Equatable {
 
   var body: some View {
     let paper = card.paper
-    Group {
-      if paper.themed {
-        // Plain: the card exactly as it always was
-        InkCard(theme: theme, variant: .me) {
-          content
-        }
-      } else {
-        // on paper (contract §4.1): the same column, inset by the paper's edge and its 16 (border-box),
-        // on the sheet; the base theme goes to the sheet, for the sticky note's fold (the page colour)
-        VStack(alignment: .leading, spacing: 0) {
-          content
-        }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .padding(paper.edge.width + KPaper.padding)
-        .background { KPaperSurface(paper: paper, theme: theme) }
-      }
+    // one column on every paper (contract §4.1), inset by the paper's edge and its 16 (border-box):
+    // on Plain that is the 2.5 + 16 the InkCard .me gave it, so nothing inside moved when the
+    // outline went. The sheet is the letter's (KPaperSurface letter: rule B, no black frame); the
+    // base theme goes to it, for the depth's colour and the sticky note's fold (the page colour)
+    VStack(alignment: .leading, spacing: 0) {
+      content
     }
+    .frame(maxWidth: .infinity, alignment: .topLeading)
+    .padding(paper.edge.width + KPaper.padding)
+    .background { KPaperSurface(paper: paper, theme: theme, letter: true) }
     // a card's paper is fixed; the .35s is the prototype's, for a paper changed under a card (the dev page's PAPER)
     .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: paper.id)
     .accessibilityElement(children: .ignore)
@@ -307,8 +304,8 @@ struct KLetterCard: View, Equatable {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
       }
-      // the tag's 3/3 shadow hangs outside it; on the sticky note the row keeps clear of the
-      // folded corner (the prototype's rowPR, 36)
+      // the 3 the tag's old 3/3 shadow hung into, kept so the foot sits where it did (the tag is
+      // flat now); on the sticky note the row keeps clear of the folded corner (the prototype's rowPR, 36)
       .padding(.trailing, card.paper.fold ? Self.foldRowTrailing : 3)
       .padding(.bottom, 3)
       .padding(.top, 8)
@@ -328,7 +325,9 @@ struct KLetterCard: View, Equatable {
         tone: .custom(
           fill: KStampFrame.rgb(hex: card.topicWash).map { KStampFrame.color($0) } ?? KStampFrame.color(KStampFrame.v3TagNeutral),
           text: KStampFrame.color(KStampFrame.v3Ink)
-        )
+        ),
+        // a flat capsule in its own colour: the black outline and shadow went with the card's (2026-11-09)
+        flat: true
       )
     }
   }

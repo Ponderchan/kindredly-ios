@@ -624,6 +624,8 @@ struct KCardDeck: View {
 
 /// The slot when there is no letter to show yet: the first load (an empty card face) or an
 /// offline cold start with nothing kept, which says so instead of looking like a quiet day.
+/// On the letter sheet (no black frame, 2026-11-09), so the letter that replaces it lands in the
+/// same frame.
 struct KTodayStatusCard: View {
   enum Kind: Equatable {
     case loading
@@ -643,14 +645,14 @@ struct KTodayStatusCard: View {
   var body: some View {
     switch kind {
     case .loading:
-      InkCard(theme: theme, variant: .me) {
+      InkCard(theme: theme, variant: .me, letter: true) {
         Color.clear
           .frame(maxWidth: .infinity, maxHeight: .infinity)
       }
       .accessibilityElement(children: .ignore)
       .accessibilityLabel(labels.loadingA11y)
     case .offline:
-      InkCard(theme: theme, variant: .me) {
+      InkCard(theme: theme, variant: .me, letter: true) {
         VStack(spacing: 10) {
           Text(labels.offlineTitle)
             .kText(.system(20, .semibold))

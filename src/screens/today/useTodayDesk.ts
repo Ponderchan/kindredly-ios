@@ -581,6 +581,10 @@ export type TodayView = {
   /** letters on today's desk not yet passed (NEXT's number) */
   left: number;
   leftA11y: string;
+  /** Next's ring (Swift's band only): today's whole desk in reading order, each letter unread, read or replied (C.deskTicks) */
+  desk: C.DeskTick[];
+  /** the letter on screen's place in `desk` (desk.length once nothing is left) */
+  deskAt: number;
   /** the letter on screen */
   current: PoolLetter | null;
   /** the title has shrunk for the day: a letter was passed, or the desk is done */
@@ -1381,6 +1385,12 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   const rest = C.wrenRest({ hour, wilt: source.wilt });
 
   const left = unpassed.length;
+  // Next's ring: what went past, the letter on screen, the rest (Swift's band; the React Native band draws none)
+  const { passed: recPassed, answered: recAnswered, seen: recSeen } = rec;
+  const ticks = useMemo(
+    () => C.deskTicks({ passed: recPassed, answered: recAnswered, seen: recSeen }, unpassed.map((l) => l.id)),
+    [recPassed, recAnswered, recSeen, unpassed],
+  );
   // only over letters she brought back, and only while the first three are up: a quiet day draws no arrival, in either renderer
   const arrivalOpen = C.arrivalShows({ fresh: source.fresh, onDesk: left }) && phase === "reading" && rec.passed.length < C.ARRIVAL_LETTERS;
   // her line goes by itself ARRIVAL_BUBBLE_MS after it first shows (owner, 2026-10-21: it stayed and couldn't be tapped away); settled, it never returns
@@ -1407,6 +1417,8 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     cards,
     left,
     leftA11y: left === 1 ? t("ld.left.a11y.1") : t("ld.left.a11y", { n: left }),
+    desk: ticks.desk,
+    deskAt: ticks.at,
     current,
     titleLocked: rec.passed.length > 0 || phase === "done",
     canBringBack: bringBackNow,

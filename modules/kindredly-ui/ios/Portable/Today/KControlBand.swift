@@ -11,17 +11,34 @@ import SwiftUI
         Next                     Reply
 
  - One row, centred, gap 44: Next's disc, Wren, Reply's disc (26 + 44 + 20 = 90 from the middle
-   to each disc's centre). Discs of 52 in the system's gray 6 (#F2F1F6; #272443 on the dark
-   themes), no edge, no shadow, no glass, and no count: the 15 a day are a ceiling, not a task.
+   to each disc's centre). Discs of 52, both GLASS since 2026-11-09 (owner, proto8 "glass, as the
+   tab bar"): the 10a tab bar's own material (KGlassFace with KGlassTone: the thin material, its
+   white tint and top fade, the bright line along the top and the faint dark one along the bottom;
+   in Midnight the bar's dark glass), clipped to the disc, and a soft drop outside it only
+   (KOuterShadow: 0 6 16 ink .10 and a .5 hairline in ink .07; Midnight black .5), so the disc
+   lifts off the page. The bar's 32-blur shadow is sized for a 62-tall capsule and would swallow a
+   52 disc, hence the disc's own (the prototype's numbers). Before, they were flat gray 6 (#F2F1F6
+   / #272443).
+ - No number on Next: the 15 a day are a ceiling, not a task. Instead a ring of ticks drawn ON
+   Next's edge (KDeskRing; the disc keeps its 52): one tick per letter on today's desk, from 12
+   o'clock clockwise, a 2.5 round stroke, 4.5 between ticks (3 past eight letters; the round caps
+   take 2.5 of each gap), coloured by how far the reader has got: not yet read #DDDAEE, read
+   #B9B5F5, replied #3A34D6 (Midnight: white .16, #6F69D8, #8E89FF, the brief's values kept: on the
+   dark glass, about 1.7, 3.4 and 5 to 1, three clear steps). The letter on screen counts as read, and
+   the ring follows the card the deck shows (deck.shownId) as well as TS's deskAt, so a pass ticks
+   at once. A tick changes colour over .25s; under Reduce Motion at once. Reply has no ring in any
+   state (the owner's call).
  - Next's glyph is the ↑ in ink, Reply's the ↩ in ind (22, a 2.2 round stroke on a 24 grid, the
-   prompt's paths); the labels 6 under the discs in system 500 11 at .02em, Next's in mute (the
-   dark themes' sub, #B9B5D0, as the prompt asks), Reply's in ind.
- - Pressed, a disc darkens (#E6E4EC; dark #34305A) and shrinks to .96 in 80ms; let go, it springs
-   back over .25s on cubic-bezier(.3, 1.3, .5, 1).
+   prompt's paths); on the day's LAST letter Next's ↑ becomes a ✓ at the same size and stroke (a
+   .25s crossfade, none under Reduce Motion); once the desk is done the band goes as below. The
+   labels 6 under the discs in system 500 11 at .02em, Next's in mute (the dark themes' sub,
+   #B9B5D0, as the prompt asks), Reply's in ind.
+ - Pressed, a disc takes the tab bar lens's tint over its glass (ink .06; Midnight white .1) and
+   shrinks to .96 in 80ms; let go, it springs back over .25s on cubic-bezier(.3, 1.3, .5, 1).
  - Wren (KWireWren draws her) stands between them at 40, her centre on the discs' midline.
 
  Every word is TS's: Next, Reply and what VoiceOver says (labels.nextA11y, "Next letter", and
- labels.replyA11y). Its states:
+ labels.replyA11y); the ring and the ✓ are pictures, hidden from VoiceOver. Its states:
  - hidden (a send in flight, the reader open, the + open): everything fades out and takes no
    touches (bandFade);
  - typing (the reply field has the keyboard, or a send it let go of awaits TS): the same, the
@@ -92,6 +109,8 @@ enum KBandLayout {
 struct KControlBand: View {
   private let theme: KTheme
   private let left: Int
+  private let desk: [KDeskTick]
+  private let deskAt: Int
   private let labels: KTodayLabels
   private let leftA11y: String
   private let enabled: Bool
@@ -108,6 +127,7 @@ struct KControlBand: View {
   ///     no count)
   ///   - labels: Next, Reply and their VoiceOver words (labels.next, .reply, .nextA11y, .replyA11y)
   ///   - leftA11y: the old "Next letter. 3 left today." (kept for the record: B8 says labels.nextA11y)
+  ///   - desk, deskAt: today's desk in reading order and the letter on screen's place in it (Next's ring)
   ///   - enabled: false while loading or offline: the buttons at .4, no touches, NEXT empty
   ///   - hidden: hideBand or the + open: the band fades out, no touches
   ///   - onNext: NEXT (the desk calls deck.requestNext())
@@ -117,6 +137,8 @@ struct KControlBand: View {
     left: Int,
     labels: KTodayLabels,
     leftA11y: String,
+    desk: [KDeskTick],
+    deskAt: Int,
     enabled: Bool,
     hidden: Bool,
     deck: KDeckState,
@@ -128,6 +150,8 @@ struct KControlBand: View {
     self.left = left
     self.labels = labels
     self.leftA11y = leftA11y
+    self.desk = desk
+    self.deskAt = deskAt
     self.enabled = enabled
     self.hidden = hidden
     self._deck = ObservedObject(wrappedValue: deck)
@@ -139,6 +163,34 @@ struct KControlBand: View {
   /// the buttons take a touch now
   private var active: Bool {
     enabled && !hidden && flow.bandShown && !deck.typing && !deck.animating
+  }
+
+  /// the letter on screen's place in the desk: TS's, or the deck's card when it is further on (the
+  /// deck shows the next card .3s after TS hears of the pass; a card that left reaches TS first)
+  private var at: Int {
+    let shown = deck.shownId.flatMap { id in desk.firstIndex { $0.id == id } } ?? -1
+    return max(deskAt, shown)
+  }
+
+  /// each tick, in the desk's order: replied stays replied; the letter on screen and every one
+  /// before it count as read
+  private var ticks: [KDeskRing.Tick] {
+    let at = at
+    return desk.indices.map { i in
+      let state = desk[i].state
+      if state == .replied { return .replied }
+      return i <= at || state == .read ? .read : .unread
+    }
+  }
+
+  /// the day's last letter is on screen: Next's ↑ becomes a ✓
+  private var onLast: Bool {
+    !desk.isEmpty && at >= desk.count - 1
+  }
+
+  /// the ring's and the ✓'s .25s, nothing under Reduce Motion
+  private var tickChange: Animation? {
+    reduceMotion ? nil : .easeInOut(duration: 0.25)
   }
 
   var body: some View {
@@ -172,6 +224,7 @@ struct KControlBand: View {
         label: labels.next,
         labelColor: theme.isDark ? theme.sub : theme.mute,
         a11y: labels.nextA11y,
+        ring: true,
         action: onNext
       )
       .frame(width: column, alignment: .top)
@@ -183,6 +236,7 @@ struct KControlBand: View {
         label: labels.reply,
         labelColor: theme.ind,
         a11y: labels.replyA11y,
+        ring: false,
         action: onReply
       )
       .frame(width: column, alignment: .top)
@@ -203,19 +257,33 @@ struct KControlBand: View {
   }
 
   /// A disc that is the button, and its label 6 under it (a tap on the label presses too; VoiceOver
-  /// hears the button's own words, so the label is hidden from it).
-  private func control(glyph: KBandGlyph, glyphColor: Color, label: String, labelColor: Color, a11y: String, action: @escaping () -> Void) -> some View {
+  /// hears the button's own words, so the label is hidden from it). `ring`: Next's ticks on its
+  /// edge, and its ↑ turning into a ✓ on the day's last letter.
+  private func control(glyph: KBandGlyph, glyphColor: Color, label: String, labelColor: Color, a11y: String, ring: Bool, action: @escaping () -> Void) -> some View {
     let act = { if active { action() } }
     let size = KBandLayout.disc
+    let check = ring && onLast
     return VStack(spacing: KBandLayout.labelGap) {
       Button(action: act) {
-        glyph
-          .stroke(glyphColor, style: StrokeStyle(lineWidth: KBandGlyph.lineWidth * KBandGlyph.size / 24, lineCap: .round, lineJoin: .round))
-          .frame(width: KBandGlyph.size, height: KBandGlyph.size)
-          .frame(width: size, height: size)
-          .contentShape(Circle())
+        ZStack {
+          if ring && !desk.isEmpty {
+            let ticks = ticks
+            KDeskRing(ticks: ticks, dark: theme.isDark)
+              .frame(width: 2 * KDeskRing.radius, height: 2 * KDeskRing.radius)
+              .animation(tickChange, value: ticks)
+          }
+          stroked(glyph, glyphColor)
+            .opacity(check ? 0 : 1)
+          if ring {
+            stroked(.check, glyphColor)
+              .opacity(check ? 1 : 0)
+          }
+        }
+        .animation(tickChange, value: check)
+        .frame(width: size, height: size)
+        .contentShape(Circle())
       }
-      .buttonStyle(KBandDiscStyle(dark: theme.isDark))
+      .buttonStyle(KBandDiscStyle(theme: theme))
       .disabled(!enabled)
       .accessibilityLabel(a11y)
 
@@ -231,14 +299,78 @@ struct KControlBand: View {
     .dynamicTypeSize(...DynamicTypeSize.large)
   }
 
+  /// a glyph at 22, its 2.2 stroke on the 24 grid
+  private func stroked(_ glyph: KBandGlyph, _ color: Color) -> some View {
+    glyph
+      .stroke(color, style: StrokeStyle(lineWidth: KBandGlyph.lineWidth * KBandGlyph.size / 24, lineCap: .round, lineJoin: .round))
+      .frame(width: KBandGlyph.size, height: KBandGlyph.size)
+  }
+
   /// the labels: system 500 11 at .02em
   static let labelStyle = KTextStyle.system(11, .medium, tracking: 0.02)
 }
 
+/*
+ NEXT'S RING (owner 2026-11-09, proto8): one tick per letter on today's desk, drawn on the disc's
+ own edge, the circle 1.5 inside it (the prototype's r 25.5 on its 54 disc: 24.5 on our 52), from
+ 12 o'clock clockwise. Each tick is the circle trimmed to its share less the gap, the gap split
+ either side of the boundary, so the gaps sit between letters; one letter is the whole circle with
+ no gap. Pictures only: the band's VoiceOver words are TS's.
+ */
+struct KDeskRing: View {
+  enum Tick: Equatable {
+    case unread, read, replied
+  }
+
+  /// the circle's radius: 1.5 inside the 52 disc's edge
+  static let radius: CGFloat = KBandLayout.disc / 2 - 1.5
+  static let lineWidth: CGFloat = 2.5
+
+  /// the gap between ticks along the circle: 4.5, 3 past eight letters (none for one)
+  static func gap(_ n: Int) -> CGFloat {
+    n > 1 ? (n > 8 ? 3 : 4.5) : 0
+  }
+
+  static func color(_ tick: Tick, dark: Bool) -> Color {
+    switch (tick, dark) {
+    case (.unread, false): return Color(hex: "#DDDAEE")
+    case (.read, false): return Color(hex: "#B9B5F5")
+    case (.replied, false): return Color(hex: "#3A34D6")
+    case (.unread, true): return Color.white.opacity(0.16)
+    case (.read, true): return Color(hex: "#6F69D8")
+    case (.replied, true): return Color(hex: "#8E89FF")
+    }
+  }
+
+  let ticks: [Tick]
+  let dark: Bool
+
+  var body: some View {
+    let n = ticks.count
+    let circumference = 2 * CGFloat.pi * Self.radius
+    // each tick's share and the gap, as fractions of the circle
+    let share = n > 0 ? 1 / CGFloat(n) : 0
+    let gap = Self.gap(n) / circumference
+    ZStack {
+      ForEach(0..<n, id: \.self) { i in
+        let from = CGFloat(i) * share + gap / 2
+        Circle()
+          .trim(from: from, to: max(from, from + share - gap))
+          .stroke(Self.color(ticks[i], dark: dark), style: StrokeStyle(lineWidth: Self.lineWidth, lineCap: .round))
+      }
+    }
+    // a circle's path starts at 3 o'clock and runs clockwise: a quarter turn back starts it at 12
+    .rotationEffect(.degrees(-90))
+    .allowsHitTesting(false)
+    .accessibilityHidden(true)
+  }
+}
+
 /// B8's two glyphs on a 24 grid, scaled to the frame: Next's ↑ (M12 19V5 M6 11l6-6 6 6) and
-/// Reply's ↩ (M9 7 4 12l5 5 M4 12h9a6 6 0 0 1 6 6v1).
+/// Reply's ↩ (M9 7 4 12l5 5 M4 12h9a6 6 0 0 1 6 6v1); and the ✓ Next shows on the day's last
+/// letter (M5 12.5l4.5 4.5L19 7.5), in the ↑'s room.
 private enum KBandGlyph: Shape {
-  case next, reply
+  case next, reply, check
 
   /// drawn at 22
   static let size: CGFloat = 22
@@ -265,29 +397,52 @@ private enum KBandGlyph: Shape {
       // a 6 arc, a quarter turn from (13, 12) to (19, 18), then down 1
       p.addArc(tangent1End: pt(19, 12), tangent2End: pt(19, 18), radius: 6 * k)
       p.addLine(to: pt(19, 19))
+    case .check:
+      p.move(to: pt(5, 12.5))
+      p.addLine(to: pt(9.5, 17))
+      p.addLine(to: pt(19, 7.5))
     }
     return p
   }
 }
 
-/// A B8 disc: gray 6 at rest, a shade darker and .96 while pressed (80ms out), springing back
-/// over .25s on cubic-bezier(.3, 1.3, .5, 1).
+/// A band disc: the tab bar's glass (KGlassFace in the theme's KGlassTone) clipped to the circle,
+/// its soft drop outside it; pressed, the bar lens's tint over the glass and .96 (80ms out),
+/// springing back over .25s on cubic-bezier(.3, 1.3, .5, 1).
 private struct KBandDiscStyle: ButtonStyle {
-  let dark: Bool
+  let theme: KTheme
 
-  static let rest = Color(hex: "#F2F1F6")
-  static let restDark = Color(hex: "#272443")
-  static let pressed = Color(hex: "#E6E4EC")
-  static let pressedDark = Color(hex: "#34305A")
   static let press = Animation.easeOut(duration: 0.08)
   static let release = Animation.timingCurve(0.3, 1.3, 0.5, 1, duration: 0.25)
 
+  /// the disc's drop (the prototype's glass: 0 6 16 ink .10, and a .5 hairline in ink .07 so the
+  /// glass has an edge on a pale page); Midnight's in black, its edge the glass's own white ring
+  static func shadows(dark: Bool) -> [KSoftShadow] {
+    let ink = Color(.sRGB, red: 30 / 255, green: 27 / 255, blue: 53 / 255, opacity: 1)
+    if dark {
+      return [KSoftShadow(y: 6, blur: 16, color: Color.black.opacity(0.5))]
+    }
+    return [
+      KSoftShadow(y: 0, blur: 0, spread: 0.5, color: ink.opacity(0.07)),
+      KSoftShadow(y: 6, blur: 16, color: ink.opacity(0.10)),
+    ]
+  }
+
   func makeBody(configuration: Configuration) -> some View {
     let down = configuration.isPressed
+    let tone = KGlassTone.of(theme)
+    let disc = Circle()
     configuration.label
       .background {
-        Circle().fill(down ? (dark ? Self.pressedDark : Self.pressed) : (dark ? Self.restDark : Self.rest))
+        ZStack {
+          KGlassFace(tone: tone)
+          disc.fill(tone.lens).opacity(down ? 1 : 0)
+        }
+        .clipShape(disc)
+        // the material reads the theme's light or dark, as the tab bar's does
+        .environment(\.colorScheme, theme.isDark ? .dark : .light)
       }
+      .background { KOuterShadow(shadows: Self.shadows(dark: theme.isDark), shape: disc) }
       .scaleEffect(down ? 0.96 : 1)
       .animation(down ? Self.press : Self.release, value: down)
   }

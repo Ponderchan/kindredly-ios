@@ -254,6 +254,30 @@ export function markSeen(rec: DayRecord, id: string): { rec: DayRecord; counted:
   return { rec: { ...rec, seen: [...rec.seen, id] }, counted: true };
 }
 
+/** One letter of today's desk as Next's ring draws it (Swift's KDeskRing, owner 2026-11-09). */
+export type DeskTick = { id: string; state: "unread" | "read" | "replied" };
+
+/**
+ * Next's ring: today's whole desk in reading order, and the letter on
+ * screen's place in it. What went past comes first (passed or answered), in
+ * the order those letters first came on screen (`seen`): an answered letter
+ * has left `desk`, so `seen` is the one list that still knows where it
+ * stood. One gone past without being counted seen (a dev letter, an old
+ * record) follows the seen ones, passed before answered. Then the letters not
+ * passed, the one on screen first. The letter on screen counts as read; so
+ * does one further on that was already on screen (a reload that dealt it
+ * behind the current one); the rest are unread.
+ */
+export function deskTicks(rec: Pick<DayRecord, "passed" | "answered" | "seen">, unpassedIds: readonly string[]): { desk: DeskTick[]; at: number } {
+  const replied = new Set(rec.answered);
+  const gone = new Set([...rec.passed, ...rec.answered]);
+  const seen = new Set(rec.seen);
+  const order = [...rec.seen.filter((id) => gone.has(id)), ...rec.passed.filter((id) => !seen.has(id)), ...rec.answered.filter((id) => !seen.has(id))];
+  const behind = order.map((id): DeskTick => ({ id, state: replied.has(id) ? "replied" : "read" }));
+  const ahead = unpassedIds.map((id, i): DeskTick => ({ id, state: i === 0 || seen.has(id) ? "read" : "unread" }));
+  return { desk: [...behind, ...ahead], at: behind.length };
+}
+
 /** The day's deal is done: nothing joins the desk until the morning. An empty deal stays open, so a quiet morning can still fill. */
 export function freeze(rec: DayRecord, now: number): DayRecord {
   if (rec.dealtAt != null || rec.desk.length === 0) return rec;
