@@ -177,6 +177,7 @@ enum KReels {
   static func def(_ id: String) -> KReelDef? {
     switch id {
     case "sealed": return KReelSealed.def
+    case "letters": return KReelLetters.def
     // REELS-MORE
     default: return nil
     }

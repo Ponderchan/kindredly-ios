@@ -574,3 +574,57 @@ struct KReelPlus: View {
       .frame(width: size, height: size)
   }
 }
+
+// MARK: - Stamps and windows
+
+/// components/Stamp snapStampWidth: the ladder width nearest `w` (a tie to the narrower), no wider
+/// than `maxW` (the narrowest when none fits); under 15 the width as asked
+func kReelSnap(_ w: CGFloat, _ widths: [CGFloat], max maxW: CGFloat = .infinity) -> CGFloat {
+  guard w >= 15, !widths.isEmpty else { return w }
+  let fits = widths.filter { $0 <= maxW }
+  let pool = fits.isEmpty ? [widths.min() ?? w] : fits
+  var best = pool[0]
+  for x in pool where abs(x - w) < abs(best - w) { best = x }
+  return best
+}
+
+extension KReelCtx {
+  /// GUIDE_REEL_WIDTHS (components/Stamp), as TS sends them
+  var reelWidths: [CGFloat] {
+    let l = data.lists["reelWidths"]?.compactMap { Double($0) }.map { CGFloat($0) } ?? []
+    return l.isEmpty ? [30, 40, 60] : l
+  }
+
+  /// a stranger's frosted window by name
+  func frost(_ name: String) -> KFrostSpec? { data.frosts[name]?.spec }
+
+  /// a word with its {var}s filled
+  func w(_ key: String, _ vars: [String: String]) -> String {
+    var s = w(key)
+    for (k, v) in vars { s = s.replacingOccurrences(of: "{\(k)}", with: v) }
+    return s
+  }
+
+  func list(_ key: String) -> [String] { data.lists[key] ?? [] }
+}
+
+/// a stamp as the reels draw them: the real one, flat, light
+struct KReelStamp: View {
+  let id: String
+  let width: CGFloat
+  var body: some View {
+    KStamp(id: id, width: width, dark: false).frame(width: width, height: width * 1.2)
+  }
+}
+
+/// a stranger's window (KFrost), or an empty square when TS sent none
+struct KReelFrost: View {
+  let spec: KFrostSpec?
+  let size: CGFloat
+  var body: some View {
+    Group {
+      if let spec { KFrost(theme: .classic, spec: spec, size: size) } else { Color.clear }
+    }
+    .frame(width: size, height: size)
+  }
+}
