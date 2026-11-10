@@ -199,6 +199,23 @@ public class KindredlyUIModule: Module {
       KStampArt.hasArt(id)
     }
 
+    // The journal book (journal book, 2026-11-10; contract .claude/journal-book/CONTRACT.md): the
+    // First Class export of Notes as a typeset A5 PDF, made on this phone. JS builds the whole book
+    // as JSON (src/lib/journal-book-core.ts) and calls renderJournalBook; Portable/Book paginates it
+    // and draws it with CoreText off the main thread (KBookRenderer.pdf), writes
+    // Caches/<fileStem>.pdf over an older one and answers its file:// uri. JSON that is not a book
+    // rejects the promise with a sentence that says why (KBookError). hasJournalBook is how JS
+    // knows this binary can (modules/kindredly-ui/src/JournalBook.ts). New files in Portable/Book:
+    // a pod install before the build.
+    AsyncFunction("renderJournalBook") { (json: String, inkSaver: Bool) async throws -> String in
+      let book = try KBook.decode(json: json)
+      let url = try await KBookRenderer.pdf(book: book, inkSaver: inkSaver)
+      return url.absoluteString
+    }
+    Function("hasJournalBook") { () -> Bool in
+      true
+    }
+
     // The album (custom stamps, B): adapter appended to Adapters/KMeView.swift, the page to
     // Portable/Me/KStampsCard.swift; src/app/album.tsx
     ExpoUIView(KStampAlbumView.self) {

@@ -14,10 +14,17 @@ import ExpoUI
 
  The gallery's buttons are SwiftUI's; this file imports ExpoUI, whose own public Button would
  make a bare "Button" here ambiguous, so nothing of that kind is written in this file.
+
+ `page` (journal book, 2026-11-10): "" draws the gallery; "book" draws the journal book lab
+ instead (Portable/Book/KBookLab.swift: every template of the First Class book from a built-in
+ sample), so that dev page needed no view registration of its own. A binary from before this
+ prop ignores it and draws the gallery (src/app/dev/journal-book-lab.tsx says so on the page).
  */
 final class KGalleryViewProps: UIBaseViewProps {
   /// a key of src/theme/themes.json: classic, midnight, lavender or paper
   @Field var theme: String = "classic"
+  /// "" the gallery; "book" the journal book lab
+  @Field var page: String = ""
 }
 
 struct KGalleryView: ExpoSwiftUI.View {
@@ -26,6 +33,14 @@ struct KGalleryView: ExpoSwiftUI.View {
   var body: some View {
     // the JS side only passes the four keys (its prop is typed from themes.json), so the
     // Classic fallback is for a theme added to the JSON without regenerating KTheme.swift
-    KGallery(theme: KTheme.named(props.theme) ?? .classic)
+    let theme = KTheme.named(props.theme) ?? .classic
+    // a Group around the choice, as the other adapters with two bodies have (KReelView)
+    Group {
+      if props.page == "book" {
+        KBookLab(theme: theme)
+      } else {
+        KGallery(theme: theme)
+      }
+    }
   }
 }
