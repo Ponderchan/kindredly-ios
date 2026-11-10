@@ -29,10 +29,36 @@ strings(
     // row ("Continue your draft, <first words>"). Sentence case, no full stop, like pub.letter
     "pub.draft": "Continue your draft",
   },
-  /* ── es ── */
-  {},
-  /* ── pt ── */
-  {},
-  /* ── id ── */
-  {},
+  /* ── es · Español (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "pub.draft": "Seguir con tu borrador",
+  },
+  /* ── pt · Português (Brasil) (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "pub.draft": "Continuar seu rascunho",
+  },
+  /* ── id · Bahasa Indonesia (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "pub.draft": "Lanjutkan drafmu",
+  },
+  /* ── fr · Français (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "pub.draft": "Reprendre ton brouillon",
+  },
+  /* ── de · Deutsch (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "pub.draft": "Entwurf weiterschreiben",
+  },
+  /* ── it · Italiano (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "pub.draft": "Riprendi la bozza",
+  },
+  /* ── ja · 日本語 (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "pub.draft": "下書きの続きを書く",
+  },
+  /* ── ko · 한국어 (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "pub.draft": "초안 이어 쓰기",
+  },
 );

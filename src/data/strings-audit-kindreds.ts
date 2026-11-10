@@ -7,7 +7,7 @@ import { strings } from "../lib/i18n";
    chip row becomes a search field and the list narrows as the reader types
    (the rule is kindreds-model's searchKey / searchFields).
 
-   ENGLISH ONLY for now: t() falls back to English, and native writers add
+   ENGLISH FIRST (the other eight blocks below were written natively on 2026-11-10; this note is how the file began): t() falls back to English, and native writers add
    the other eight blocks after this lands (write them AS the language, as
    every other strings file here was; the comments say where each line sits).
 
@@ -30,10 +30,52 @@ strings(
     // short, plain, no exclamation mark
     "kd.search.none": "Nobody here by that name or line.",
   },
-  /* ── es ── */
-  {},
-  /* ── pt ── */
-  {},
-  /* ── id ── */
-  {},
+  /* ── es · Español (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "kd.search": "Buscar",
+    "kd.search.ph": "Nombre o última línea",
+    "kd.search.none": "Nadie por aquí con ese nombre ni esa línea.",
+  },
+  /* ── pt · Português (Brasil) (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "kd.search": "Buscar",
+    "kd.search.ph": "Nome ou última linha",
+    "kd.search.none": "Ninguém por aqui com esse nome ou essa linha.",
+  },
+  /* ── id · Bahasa Indonesia (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "kd.search": "Cari",
+    "kd.search.ph": "Nama atau baris akhir",
+    "kd.search.none": "Tak ada nama atau baris seperti itu di sini.",
+  },
+  /* ── fr · Français (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "kd.search": "Rechercher",
+    "kd.search.ph": "Nom ou dernière ligne",
+    "kd.search.none": "Personne ici avec ce nom ou cette ligne.",
+  },
+  /* ── de · Deutsch (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "kd.search": "Suchen",
+    "kd.search.ph": "Name oder letzte Zeile",
+    "kd.search.none": "Dazu passt hier kein Name und keine Zeile.",
+  },
+  /* ── it · Italiano (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "kd.search": "Cerca",
+    "kd.search.ph": "Nome o ultima riga",
+    "kd.search.none": "Qui non c'è nessuno con quel nome o quella riga.",
+  },
+  /* ── ja · 日本語 (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "kd.search": "検索",
+    "kd.search.ph": "名前か最後の一行",
+    "kd.search.none": "その名前も、その一行も、ここにはありません。",
+  },
+  /* ── ko · 한국어 (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "kd.search": "검색",
+    "kd.search.ph": "이름이나 마지막 한 줄",
+    "kd.search.none": "그런 이름도, 그런 한 줄도 여기엔 없어요.",
+  },
 );

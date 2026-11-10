@@ -34,7 +34,52 @@ strings(
     // Muted"), where a sighted reader sees a small bell.slash beside the name; one word, the state
     "tm.muted": "Muted",
   },
-  {},
-  {},
-  {},
+  /* ── es · Español (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "tm.mute": "Silenciar",
+    "tm.unmute": "Dejar de silenciar",
+    "tm.muted": "Silenciado",
+  },
+  /* ── pt · Português (Brasil) (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "tm.mute": "Silenciar",
+    "tm.unmute": "Reativar",
+    "tm.muted": "Silenciado",
+  },
+  /* ── id · Bahasa Indonesia (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "tm.mute": "Bisukan",
+    "tm.unmute": "Bunyikan",
+    "tm.muted": "Dibisukan",
+  },
+  /* ── fr · Français (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "tm.mute": "Mettre en sourdine",
+    "tm.unmute": "Réactiver",
+    "tm.muted": "En sourdine",
+  },
+  /* ── de · Deutsch (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "tm.mute": "Stummschalten",
+    "tm.unmute": "Stummschaltung aufheben",
+    "tm.muted": "Stummgeschaltet",
+  },
+  /* ── it · Italiano (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "tm.mute": "Silenzia",
+    "tm.unmute": "Riattiva",
+    "tm.muted": "Silenziata",
+  },
+  /* ── ja · 日本語 (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "tm.mute": "ミュート",
+    "tm.unmute": "ミュート解除",
+    "tm.muted": "ミュート中",
+  },
+  /* ── ko · 한국어 (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "tm.mute": "알림 끄기",
+    "tm.unmute": "알림 켜기",
+    "tm.muted": "알림 꺼짐",
+  },
 );
