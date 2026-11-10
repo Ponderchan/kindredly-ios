@@ -37,6 +37,11 @@ import SwiftUI
  typed signature.
 
  Large type: from xxxLarge a fact's value goes under its label and a track's label over its track.
+ HOW ALIKE YOU WRITE's labels are never cut (owner's audit, 2026-11-10: "SENTENCE SH…",
+ "EMOTIONAL R…" in a fixed 86): the label column is as wide as the widest of the nine, measured
+ in the reader's language and text size, up to 46% of the card; a label longer than that wraps
+ (PALABRAS / FUNCIONALES on a small phone) and the nine tracks still start on one line
+ (KKindredTracks).
  VoiceOver: a stamped face says its stamp; each dimension, each track and each fact is one
  element; the signature says whose hand it is, with Report this signature and Block as actions
  when it can be held (its hint says so). A held signature (450ms) reports its slot in this
@@ -503,12 +508,8 @@ public struct KKindredPageScreen: View {
       }
       .accessibilityElement(children: .combine)
       .accessibilityAddTraits(.isHeader)
-      VStack(alignment: .leading, spacing: 0) {
-        ForEach(r.rows) { row in
-          KKindredTrackRow(theme: theme, row: row)
-        }
-      }
-      .padding(.top, 14)
+      KKindredTracks(theme: theme, rows: r.rows)
+        .padding(.top, 14)
       theme.line
         .frame(height: 1)
         .padding(.top, 4)
@@ -749,11 +750,63 @@ struct KKindredMoment: View {
   }
 }
 
+/// The tracks under HOW ALIKE YOU WRITE, their labels in one column (owner's audit, 2026-11-10).
+/// The column was a fixed 86 with one line each, which cut every label longer than twelve
+/// letters. Now it is as wide as the widest label, measured unseen on one line in the reader's
+/// language and text size, up to `share` of the card; a label longer than that wraps inside it.
+/// Every row gets the same column, so the tracks stay aligned to one another.
+struct KKindredTracks: View {
+  let theme: KTheme
+  let rows: [KKindredTrack]
+
+  /// the most of the card the label column may take
+  static let share: CGFloat = 0.46
+  /// between a label and its track
+  static let gap: CGFloat = 10
+  /// the column until the labels are measured (the first layout pass): the old fixed one
+  static let unmeasured: CGFloat = 86
+
+  /// the widest label on one line, and the rows' own width
+  @State private var widest: CGFloat = 0
+  @State private var width: CGFloat = 0
+
+  private var column: CGFloat {
+    guard widest > 0, width > 0 else { return Self.unmeasured }
+    return min(widest.rounded(.up) + Self.gap, (width * Self.share).rounded(.down))
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 0) {
+      ForEach(rows) { row in
+        KKindredTrackRow(theme: theme, row: row, column: column)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+    .background(alignment: .topLeading) {
+      // every label on one line, never drawn: as wide as the widest of them
+      ZStack(alignment: .leading) {
+        ForEach(rows) { row in
+          KKindredTrackRow.label(row.label, theme: theme)
+            .lineLimit(1)
+            .fixedSize()
+        }
+      }
+      .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { widest = $0 }
+      .hidden()
+      .accessibilityHidden(true)
+      .allowsHitTesting(false)
+    }
+  }
+}
+
 /// One dimension, both of you on the same track: hollow is you, solid is them; the span between
 /// you goes ink when you land together.
 struct KKindredTrackRow: View {
   let theme: KTheme
   let row: KKindredTrack
+  /// the label column all nine rows share (KKindredTracks)
+  let column: CGFloat
 
   @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -763,14 +816,17 @@ struct KKindredTrackRow: View {
       if typeSize >= .xxxLarge {
         VStack(alignment: .leading, spacing: 6) {
           label
+            .fixedSize(horizontal: false, vertical: true)
           track
         }
         .padding(.bottom, 14)
       } else {
         HStack(alignment: .center, spacing: 0) {
+          // in full, on as many lines as it needs: never cut
           label
-            .lineLimit(1)
-            .frame(width: 86, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.trailing, KKindredTracks.gap)
+            .frame(width: column, alignment: .leading)
           track
         }
         .padding(.bottom, 11)
@@ -781,7 +837,12 @@ struct KKindredTrackRow: View {
   }
 
   private var label: some View {
-    Text(row.label)
+    Self.label(row.label, theme: theme)
+  }
+
+  /// a track's label: SF Mono 500 10 at .06em, in sub (KKindredTracks measures the same)
+  static func label(_ text: String, theme: KTheme) -> some View {
+    Text(text)
       .kText(.mono(10, .medium, tracking: 0.06))
       .foregroundStyle(theme.sub)
   }

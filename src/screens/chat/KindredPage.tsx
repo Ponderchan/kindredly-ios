@@ -458,7 +458,12 @@ function Moment({ d }: { d: DimScore }) {
 function ResonanceLine({ r, locale }: { r: ResonanceRow; locale: string }) {
   const { t: tk } = useTheme();
   // from xxxLarge the label goes over its track, at its full width, instead of "RHY…" in 86
-  const stack = useWindowDimensions().fontScale >= 1.35;
+  const fontScale = useWindowDimensions().fontScale;
+  const stack = fontScale >= 1.35;
+  /* never cut (owner's audit, 2026-11-10: "SENTENCE SH…" in a fixed 86, one line): the column
+     holds fifteen letters at the reader's text size (EMOTIONAL RANGE, ZEICHENSETZUNG) and a longer
+     label wraps. The Swift page measures the widest label instead (KKindredTracks). */
+  const column = Math.round(114 * Math.max(1, fontScale));
   const lo = Math.min(r.mine, r.theirs);
   const hi = Math.max(r.mine, r.theirs);
   // VoiceOver hears both places on the track and whether you land together, not the name alone
@@ -469,7 +474,7 @@ function ResonanceLine({ r, locale }: { r: ResonanceRow; locale: string }) {
       accessible
       accessibilityLabel={spoken}
     >
-      <Text numberOfLines={stack ? undefined : 1} style={{ width: stack ? undefined : 86, ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: tk.sub }}>
+      <Text style={{ width: stack ? undefined : column, paddingRight: stack ? 0 : 10, ...PFM.monoMed, fontSize: MONO.label, letterSpacing: 0.6, color: tk.sub }}>
         {dimLabel(r.key).toLocaleUpperCase(locale)}
       </Text>
       <View style={{ flex: stack ? undefined : 1, height: 12, justifyContent: "center" }}>
