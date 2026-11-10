@@ -43,6 +43,13 @@ import SwiftUI
  the stamp's full rule would leave a 6pt face at these sizes (decision D-6).
 
  VoiceOver doesn't see the drawing; the legend and the Orbit chip's hint say what it means.
+
+ TAPS (owner's audit, 2026-11-10: readers tapped a square and nothing happened). With `onTap`
+ set, a tap on a stranger's face, or within 24pt of it, reports their id (the nearest face wins),
+ and the screen opens that correspondence as their row would. The faces move, so the tap is
+ tested against where each one is at that moment: KOrbitGeometry.faceBox is the one place a
+ face's position is worked out, for the drawing and for the tap alike. A tap on empty sky does
+ nothing. The orbit stays hidden from VoiceOver: the rows under it are the accessible way in.
  */
 
 /// One stranger on the orbit, as TS computes it.
@@ -109,12 +116,58 @@ public enum KOrbitGeometry {
   public static func faceSide(letters: Int) -> CGFloat {
     9 + 0.6 * CGFloat(max(0, min(letters, 5)))
   }
+
+  /// how far outside a face a tap still counts as on it (pt): the faces are 9 to 12pt across
+  public static let tapReach: CGFloat = 24
+
+  /// points per unit when the viewBox is drawn in `size`, aspect fit
+  public static func scale(in size: CGSize) -> CGFloat {
+    min(size.width / box.width, size.height / box.height)
+  }
+
+  /// Where a stranger's face is, in a drawing of `size`, at `date`: its box. `still` rests it at
+  /// a0 (Reduce Motion). The drawing and the tap both ask here, so a tap lands on what is seen.
+  public static func faceBox(_ item: KOrbitItem, in size: CGSize, at date: Date, still: Bool) -> CGRect {
+    let s = scale(in: size)
+    let angle: Double
+    if still {
+      angle = item.a0
+    } else {
+      let phase = date.timeIntervalSince1970.truncatingRemainder(dividingBy: item.period) / item.period
+      angle = item.a0 + item.dir * 2 * Double.pi * phase
+    }
+    let r = radius(letters: item.ring)
+    let x = size.width / 2 + r * s * CGFloat(cos(angle))
+    let y = size.height / 2 + r * squash * s * CGFloat(sin(angle))
+    let side = faceSide(letters: item.ring) * s
+    return CGRect(x: x - side / 2, y: y - side / 2, width: side, height: side)
+  }
+
+  /// Whose face a tap at `point` is on: the nearest one whose box is within `tapReach` of it, or
+  /// nil for empty sky. Of two equally near, the one drawn later (on top).
+  public static func hit(_ point: CGPoint, items: [KOrbitItem], in size: CGSize, at date: Date, still: Bool) -> String? {
+    guard scale(in: size) > 0 else { return nil }
+    var best: (id: String, distance: CGFloat)?
+    for item in items {
+      let face = faceBox(item, in: size, at: date, still: still)
+      let dx = max(face.minX - point.x, 0, point.x - face.maxX)
+      let dy = max(face.minY - point.y, 0, point.y - face.maxY)
+      guard (dx * dx + dy * dy).squareRoot() <= tapReach else { continue }
+      let cx = face.midX - point.x
+      let cy = face.midY - point.y
+      let centre = (cx * cx + cy * cy).squareRoot()
+      if let nearest = best, centre > nearest.distance { continue }
+      best = (item.id, centre)
+    }
+    return best?.id
+  }
 }
 
 public struct KOrbit: View, Equatable {
   private let theme: KTheme
   private let items: [KOrbitItem]
   private let active: Bool
+  private let onTap: ((String) -> Void)?
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -124,14 +177,17 @@ public struct KOrbit: View, Equatable {
   /// - Parameters:
   ///   - items: the strangers, in TS's order
   ///   - active: the drawing may move (the tab is focused and the orbit can be seen)
-  public init(theme: KTheme, items: [KOrbitItem], active: Bool) {
+  ///   - onTap: a face was tapped, with its id; nil and the drawing takes no taps. Not compared
+  ///     (hand it a closure that stays good for the life of the screen)
+  public init(theme: KTheme, items: [KOrbitItem], active: Bool, onTap: ((String) -> Void)? = nil) {
     self.theme = theme
     self.items = items
     self.active = active
+    self.onTap = onTap
   }
 
   public static func == (a: KOrbit, b: KOrbit) -> Bool {
-    a.theme == b.theme && a.items == b.items && a.active == b.active
+    a.theme == b.theme && a.items == b.items && a.active == b.active && (a.onTap == nil) == (b.onTap == nil)
   }
 
   public var body: some View {
@@ -143,14 +199,29 @@ public struct KOrbit: View, Equatable {
     }
     .frame(height: KOrbitGeometry.height)
     .frame(maxWidth: .infinity)
+    .overlay {
+      if let onTap {
+        // the whole drawing listens; only a tap on or near a face goes anywhere
+        GeometryReader { geo in
+          Color.clear
+            .contentShape(Rectangle())
+            .gesture(
+              SpatialTapGesture().onEnded { tap in
+                if let id = KOrbitGeometry.hit(tap.location, items: items, in: geo.size, at: Date(), still: reduceMotion) {
+                  onTap(id)
+                }
+              }
+            )
+        }
+      }
+    }
     .onAppear { arrivals.note(items.map(\.id), at: Date()) }
     .onChange(of: items.map(\.id)) { _, ids in arrivals.note(ids, at: Date()) }
     .accessibilityHidden(true)
   }
 
   private func draw(in gc: inout GraphicsContext, size: CGSize, date: Date, running: Bool) {
-    let box = KOrbitGeometry.box
-    let s = min(size.width / box.width, size.height / box.height)
+    let s = KOrbitGeometry.scale(in: size)
     guard s > 0 else { return }
     let cx = size.width / 2
     let cy = size.height / 2
@@ -168,20 +239,9 @@ public struct KOrbit: View, Equatable {
     gc.fill(Path(CGRect(x: cx - you / 2, y: cy - you / 2, width: you, height: you)), with: .color(theme.ink))
 
     // them
-    let t = date.timeIntervalSince1970
     for (order, item) in items.enumerated() {
-      let angle: Double
-      if reduceMotion {
-        angle = item.a0
-      } else {
-        let phase = t.truncatingRemainder(dividingBy: item.period) / item.period
-        angle = item.a0 + item.dir * 2 * Double.pi * phase
-      }
-      let r = KOrbitGeometry.radius(letters: item.ring)
-      let x = cx + r * s * CGFloat(cos(angle))
-      let y = cy + r * squash * s * CGFloat(sin(angle))
-      let side = KOrbitGeometry.faceSide(letters: item.ring) * s
-      let box = CGRect(x: x - side / 2, y: y - side / 2, width: side, height: side)
+      let box = KOrbitGeometry.faceBox(item, in: size, at: date, still: reduceMotion)
+      let side = box.width
       let opacity = running ? arrivals.opacity(item.id, order: order, at: date) : 1
       guard opacity > 0 else { continue }
       if item.stamp {

@@ -51,6 +51,11 @@ import SwiftUI
  TO ANSWER" shows only those): the band folds and the list scrolls to where the band pins, so
  the first row sits right under it rather than behind it.
 
+ THE ORBIT TAKES TAPS (owner's audit, 2026-11-10). Open, a tap on a stranger's face (or within
+ 24pt of it, the nearest wins: KOrbit) opens that correspondence through the same onRow the
+ rows use, so TS sees one action and takes one route. A tap on empty sky does nothing; folded,
+ the orbit takes no taps at all. VoiceOver still skips the drawing: the rows are its way in.
+
  THE IDENTITY SWITCH (identity Phase 1) changes data here, never the layout: a pen pal's row, a
  folded face and an orbit face carry their frosted window (KFrost, square) with the courier name
  and its ♀/♂ mark and star sign (KPersonRow, KFoldRow, KOrbit), and `legendFrost` turns the PEN
@@ -674,12 +679,14 @@ struct KKindredsBand: View {
           open: open,
           active: content.active,
           chrome: chrome,
-          legendHeight: $legendHeight
+          legendHeight: $legendHeight,
+          // a face on the open orbit opens that correspondence, exactly as its row does
+          onFace: { id in actions.onRow(id) }
         )
         .padding(.horizontal, KPersonRow.inset)
         .offset(y: open ? Self.orbitTopOpen : Self.orbitTopFolded)
-        // H: pointer-events none; a stray tap on the open orbit does nothing
-        .allowsHitTesting(false)
+        // only the open orbit takes taps (its faces); folded it is a watermark behind the chips
+        .allowsHitTesting(open)
       }
       .overlay(alignment: .bottom) {
         chipRow
@@ -747,12 +754,14 @@ struct KKindredsOrbitBlock: View {
   let active: Bool
   @ObservedObject var chrome: KScrollModel
   @Binding var legendHeight: CGFloat
+  /// a face on the open orbit was tapped, with the correspondence's id
+  let onFace: (String) -> Void
 
   var body: some View {
     // folded, the watermark fades out over the first 80pt of scroll (H: clamp(0, 1 - sc/80, 1))
     let fade = max(0, min(1, 1 - chrome.offset / 80))
     VStack(spacing: 0) {
-      KOrbit(theme: theme, items: orbit, active: active && (open || fade > 0))
+      KOrbit(theme: theme, items: orbit, active: active && (open || fade > 0), onTap: open ? onFace : nil)
         .equatable()
       legend
         .opacity(open ? 1 : 0)
