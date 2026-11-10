@@ -13,7 +13,7 @@ import { t, useLang } from "../lib/i18n";
 import { useAuth } from "../lib/auth";
 import { speakAs, useWrenName } from "../lib/wren-name";
 import { useEntitlement } from "../lib/entitlement";
-import { IAP_READY, iapGetPackages, iapPurchase, iapRestore, type IapPackage } from "../lib/iap";
+import { IAP_READY, iapGetPackages, iapPurchase, iapRestoreOutcome, type IapPackage } from "../lib/iap";
 import { claimReceipt, receiptKey } from "../lib/fc-receipt";
 import { clearCofounderCache } from "../lib/cofounder-seats";
 import { openPrivacy, openTerms } from "../lib/legal";
@@ -278,10 +278,13 @@ export function PaywallBody({
   const restore = async () => {
     if (busy) return;
     setBusy(true);
-    const ok = await iapRestore();
+    const outcome = await iapRestoreOutcome();
+    const ok = outcome === "restored";
     setBusy(false);
     await refresh();
-    Alert.alert(ok ? t("pw.restored") : t("pw.nothingRestore"), ok ? t("pw.restoredBody") : t("pw.nothingRestoreBody"));
+    // only the journal book came back (bought once, 2026-11-10; as usePaywall's restore says it)
+    if (outcome === "book") Alert.alert(t("pw.restored"), t("bkb.restored"));
+    else Alert.alert(ok ? t("pw.restored") : t("pw.nothingRestore"), ok ? t("pw.restoredBody") : t("pw.nothingRestoreBody"));
   };
 
   // the pass stays under the receipt (FC2 §4.2)

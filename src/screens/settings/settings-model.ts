@@ -442,7 +442,7 @@ export function buildSettingsView(f: SettingsFacts, t: TFn): SettingsView {
 /* ── restore ───────────────────────────────────────────────────────────── */
 
 /** What a restore came back with (lib/iap iapRestoreOutcome): First Class found on this Apple
-    ID, nothing found, or no answer at all (offline, the App Store unreachable, or a build that
+    ID, only the journal book found (the one-time purchase), nothing found, or no answer at all (offline, the App Store unreachable, or a build that
     can't reach purchases). */
 export type { RestoreOutcome };
 
@@ -452,6 +452,9 @@ export function restoreAlert(o: RestoreOutcome, t: TFn): { title: string; body: 
   switch (o) {
     case "restored":
       return { title: t("set.restored"), body: t("set.restoredBody") };
+    // only the journal book came back (bought once, 2026-11-10): say that, not "First Class"
+    case "book":
+      return { title: t("set.restored"), body: t("bkb.restored") };
     case "nothing":
       return { title: t("set.nothingRestore"), body: t("set.nothingRestoreBody") };
     default:

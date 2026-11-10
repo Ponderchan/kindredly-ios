@@ -32,8 +32,10 @@ import SwiftUI
  - idle: the app's primary key (a capsule in ind, System 600 16, the mark in white; bg in
    Midnight, where white on its pale ind is under 3:1);
  - busy: the book is being written: a spinner before "Binding…", and the key takes no tap;
- - locked: the reader is not First Class: the same key with the small wax-gold tag the app puts
-   on locked things (Make-your-face's "1ST" on its Another key); the tap is TS's (the paywall).
+ - locked: the reader has neither First Class nor the book bought once (2026-11-10): the same
+   key with the small wax-gold tag the app puts on locked things (Make-your-face's "1ST" on its
+   Another key); the tap is TS's (its own two-way sheet, "Just the book" or First Class, drawn
+   over this page by components/LeaveSheet; or the paywall when the store has no book to sell).
  While the book is still being read the key is dimmed and takes no tap.
 
  AN EMPTY JOURNAL (no page in either range): no preview, no range, no switch: one line and a
@@ -134,7 +136,7 @@ public final class KJournalBookActions {
   /// the range was chosen: 0 this month, 1 this year
   public var onRange: (Int) -> Void = { _ in }
   public var onInkSaver: (Bool) -> Void = { _ in }
-  /// the main key (TS: export for a member, the paywall for anyone else)
+  /// the main key (TS: export for a member or the book's owner; for anyone else its sheet, or the paywall)
   public var onMake: () -> Void = {}
   /// the quiet link: the free text file
   public var onWords: () -> Void = {}

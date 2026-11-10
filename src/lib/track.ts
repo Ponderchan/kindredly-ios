@@ -60,6 +60,10 @@ export type PaywallSource =
   | "settings_row"
   | "paper" // the compose key on a First Class paper (letter papers, 2026-10-20)
   | "make_face" // Make your own face: the First Class card after the free face (2026-10-26)
+  /* the journal book's export page (2026-11-10): the paywall its key opens, AND the one-time
+     book bought on that page's own sheet. The second is told apart by fare "book" on
+     purchase_started / _done / _failed; gate_hit with this source counts the sheet's showings */
+  | "journal_book"
   | "unknown";
 
 export function track(name: EventName, props: Record<string, string | number | boolean> = {}): void {

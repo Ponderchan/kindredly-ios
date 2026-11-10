@@ -233,6 +233,7 @@ const facts = (over: Partial<SettingsFacts> = {}): SettingsFacts => ({
 /* ── restore's answers ── */
 {
   ok("restored", restoreAlert("restored", t).title === "set.restored");
+  ok("only the journal book came back: restored, and it says the book, not First Class", restoreAlert("book", t).title === "set.restored" && restoreAlert("book", t).body === "bkb.restored");
   ok("nothing found", restoreAlert("nothing", t).title === "set.nothingRestore");
   ok("a failure is its own message, never nothing-to-restore", restoreAlert("failed", t).title === "set.restoreFail" && restoreAlert("failed", t).body === "set.push.saveFail");
   ok("purchases unreachable: the failure, never nothing-to-restore", restoreAlert("unavailable", t).title === "set.restoreFail");

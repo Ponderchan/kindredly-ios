@@ -4,7 +4,7 @@ import { t, useLang } from "../../lib/i18n";
 import { speakAs, useWrenName } from "../../lib/wren-name";
 import { useEntitlement } from "../../lib/entitlement";
 import { useFares } from "../../lib/fares";
-import { IAP_READY, iapPurchase, iapRestore, type IapPackage } from "../../lib/iap";
+import { IAP_READY, iapPurchase, iapRestoreOutcome, type IapPackage } from "../../lib/iap";
 import { clearCofounderCache, fetchSeatsLeft } from "../../lib/cofounder-seats";
 import { openPrivacy, openTerms } from "../../lib/legal";
 import { track, type PaywallSource } from "../../lib/track";
@@ -13,6 +13,7 @@ import { buildPaywallView, type Fare, type PaywallView, type ReceiptFacts } from
 import { claimReceipt, receiptKey } from "../../lib/fc-receipt";
 import "../../data/strings-me4a";
 import "../../data/strings-stamps2"; // cs2.pw.*: the custom stamps row's sub, the Cofounder gold-edge perk
+import "../../data/strings-book-buy"; // bkb.restored: Restore purchases, when only the journal book came back
 
 /* THE FIRST CLASS PAGE'S HOOK (Me 4a, ME4A §2.3). Gathers the facts —
    RevenueCat's fares (lib/fares, one fetch per launch), the seats left
@@ -163,10 +164,14 @@ export function usePaywall({
   const restore = useCallback(async () => {
     if (busy) return;
     setBusy(true);
-    const ok = await iapRestore();
+    const outcome = await iapRestoreOutcome();
+    const ok = outcome === "restored";
     setBusy(false);
     await ent.refresh();
-    Alert.alert(ok ? t("pw.restored") : t("pw.nothingRestore"), ok ? t("pw.restoredBody") : t("pw.nothingRestoreBody"));
+    // only the journal book came back (bought once, 2026-11-10): say that, never "nothing to
+    // restore" to someone who paid for it. Every other answer reads as it did.
+    if (outcome === "book") Alert.alert(t("pw.restored"), t("bkb.restored"));
+    else Alert.alert(ok ? t("pw.restored") : t("pw.nothingRestore"), ok ? t("pw.restoredBody") : t("pw.nothingRestoreBody"));
   }, [busy, ent]);
 
   const manage = useCallback(() => {

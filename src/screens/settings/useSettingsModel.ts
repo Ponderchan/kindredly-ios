@@ -38,6 +38,7 @@ import "../../data/strings-step5-me"; // fc.firstMark, on the banner's stamp
 import "../../data/strings-fc2"; // fc2.ap.*: System, Light, Dark
 import "../../data/strings-audit-notes"; // set.export*
 import "../../data/strings-book-screen"; // bk.set.sub
+import "../../data/strings-book-buy"; // bkb.restored (Restore purchases, when only the journal book came back)
 import { exportablePages, shareJournalExport } from "../../lib/journal-export-file";
 import { JOURNAL_BOOK_ROUTE, journalBookPageThere } from "../journal-book/available";
 
@@ -258,8 +259,9 @@ export function useSettingsModel(): SettingsModel {
     restoringRef.current = true;
     setRestoring(true);
     const outcome = await iapRestoreOutcome();
-    // First Class came back: say so everywhere now (Membership, the banner, Me), not at the next launch
-    if (outcome === "restored") await refreshEntitlement().catch((e) => console.warn("[settings] entitlement refresh after restore:", e));
+    // First Class came back: say so everywhere now (Membership, the banner, Me), not at the next launch.
+    // The journal book bought once came back: the export page's key unlocks now (lib/entitlement bookOwned)
+    if (outcome === "restored" || outcome === "book") await refreshEntitlement().catch((e) => console.warn("[settings] entitlement refresh after restore:", e));
     restoringRef.current = false;
     setRestoring(false);
     const a = restoreAlert(outcome, t);

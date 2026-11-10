@@ -21,10 +21,15 @@ const facts = (over: Partial<Facts> = {}): Facts => ({
   kind: "year",
   busy: false,
   premium: true,
+  bookOwned: false,
   settled: true,
   wordsPages: 12,
   ...over,
 });
+/** the book as a store answered it */
+const offer = { productId: "io.kindredly.app.journalbook", priceString: "$4.99", raw: { identifier: "book" } };
+type Tap = Parameters<typeof M.makeIntent>[0];
+const tap = (over: Partial<Tap> = {}): Tap => ({ settled: true, premium: false, bookOwned: false, busy: false, offer: null, ...over });
 
 /* ── the range ── */
 {
@@ -51,13 +56,36 @@ const facts = (over: Partial<Facts> = {}): Facts => ({
 
 /* ── a tap on the key ── */
 {
-  ok("a member: export", M.makeIntent({ settled: true, premium: true, busy: false }) === "export");
-  ok("not a member, answered: the paywall", M.makeIntent({ settled: true, premium: false, busy: false }) === "paywall");
-  ok("membership not answered yet: wait, never the paywall on a guess", M.makeIntent({ settled: false, premium: false, busy: false }) === "wait");
-  ok("already known as a member before the answer settles: export", M.makeIntent({ settled: false, premium: true, busy: false }) === "export");
-  ok("busy: nothing, member or not", M.makeIntent({ settled: true, premium: true, busy: true }) === "none" && M.makeIntent({ settled: true, premium: false, busy: true }) === "none");
+  ok("a member: export", M.makeIntent(tap({ premium: true })) === "export");
+  ok("not a member, answered, and the store has no book to sell: the paywall, as before", M.makeIntent(tap()) === "paywall");
+  ok("membership not answered yet: wait, never the paywall on a guess", M.makeIntent(tap({ settled: false })) === "wait" && M.makeIntent(tap({ settled: false, offer })) === "wait");
+  ok("already known as a member before the answer settles: export", M.makeIntent(tap({ settled: false, premium: true })) === "export");
+  ok("busy: nothing, member or not", M.makeIntent(tap({ premium: true, busy: true })) === "none" && M.makeIntent(tap({ busy: true })) === "none" && M.makeIntent(tap({ busy: true, offer })) === "none");
   ok("the paywall is told where the reader came from", M.BOOK_PAYWALL === "/paywall?src=journal_book");
   ok("write a note opens the composer Notes' + opens", M.BOOK_WRITE === "/journal-entry");
+}
+
+/* ── the smaller door: the book bought once ── */
+{
+  ok("the book bought: export, First Class or not", M.makeIntent(tap({ bookOwned: true })) === "export" && M.makeIntent(tap({ bookOwned: true, premium: true })) === "export");
+  ok("the book bought: export without asking the store anything", M.makeIntent(tap({ bookOwned: true, offer: undefined })) === "export" && M.makeIntent(tap({ bookOwned: true, offer })) === "export");
+  ok("a member is never shown the sheet, whatever the store sells", M.makeIntent(tap({ premium: true, offer })) === "export");
+  ok("neither, and the store sells the book: the two-way sheet", M.makeIntent(tap({ offer })) === "choose");
+  ok("neither, and the store hasn't said yet: wait for it, no sheet and no paywall on a guess", M.makeIntent(tap({ offer: undefined })) === "wait");
+  ok("neither, and the store has no such product: the paywall exactly as before", M.makeIntent(tap({ offer: null })) === "paywall");
+
+  const c = M.bookChoice(offer, t);
+  ok("the sheet is titled by the key that raised it, with one line under it", c.title === "bk.make" && c.body === "bkb.sheet.body");
+  ok("the book's key carries the store's own price string, untouched", c.book === "bkb.sheet.book(price=$4.99)");
+  ok("another storefront's price goes in as it came", M.bookChoice({ ...offer, priceString: "5,99 €" }, t).book === "bkb.sheet.book(price=5,99 €)");
+  ok("the other key is First Class, and the way out is Not now", c.firstClass === "bkb.sheet.fc" && c.cancel === "mf.notNow");
+  ok("no price is written in the sheet's own words", !/[0-9$€¥£]/.test(c.title + c.body + c.firstClass + c.cancel));
+
+  ok("bought: the book is made at once", M.afterBuy({ ok: true }) === "export");
+  ok("backed out of the store's sheet: nothing, not even a word", M.afterBuy({ ok: false, cancelled: true }) === "nothing");
+  ok("it failed: one alert", M.afterBuy({ ok: false, error: "purchase-failed" }) === "alert" && M.afterBuy({ ok: false }) === "alert");
+  ok("the store took it and nothing was unlocked: an alert, never a silent nothing", M.afterBuy({ ok: false, error: "entitlement-missing" }) === "alert");
+  ok("the money events name this door and this product", M.BOOK_TRACK_SOURCE === "journal_book" && M.BOOK_TRACK_FARE === "book");
 }
 
 /* ── what the Swift page is told ── */
@@ -74,6 +102,8 @@ const facts = (over: Partial<Facts> = {}): Facts => ({
   ok("the lock is the app's own mark and VoiceOver's words for it", locked.strings.lockTag === "mf.result.lock" && locked.strings.lockA11y === "pp.a11y.fc");
   ok("the words link is free: there for a non-member too", locked.strings.words === "bk.words");
 
+  ok("the book bought once, not First Class: the plain key, no lock", M.bookView(facts({ premium: false, bookOwned: true }), t).makeState === "idle");
+  ok("the lock is only for a reader with neither", M.bookView(facts({ premium: true, bookOwned: true }), t).makeState === "idle" && M.bookView(facts({ premium: false, bookOwned: false }), t).makeState === "locked");
   ok("membership not answered: the plain key, not the lock", M.bookView(facts({ premium: false, settled: false }), t).makeState === "idle");
   ok("the PDF being written: busy, member or not", M.bookView(facts({ busy: true }), t).makeState === "busy" && M.bookView(facts({ busy: true, premium: false }), t).makeState === "busy");
 

@@ -8,8 +8,9 @@ import { JournalBookNative } from "../screens/journal-book/JournalBookNative";
 /* THE JOURNAL BOOK (journal book, 2026-11-10; .claude/journal-book/CONTRACT.md): the page
    Settings' "Export my journal" opens. A preview of the reader's own book (their private Notes,
    typeset as an A5 PDF on this phone: nothing leaves it), this month or this year, an ink saver,
-   the key that makes the PDF (First Class; anyone else goes to the paywall) and, one tap away,
-   the free text file Settings always gave.
+   the key that makes the PDF (First Class, or the book bought once; anyone else is offered both
+   on a small sheet, or goes to the paywall when the store has no book to sell: 2026-11-10,
+   lib/iap-book-core) and, one tap away, the free text file Settings always gave.
 
      /journal-book
 

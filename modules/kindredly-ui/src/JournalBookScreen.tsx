@@ -27,8 +27,8 @@ export type KJournalBookRange = "month" | "year";
     range's book; empty: no page in either range; failed: the journal could not be read */
 export type KJournalBookState = "loading" | "ready" | "empty" | "failed";
 
-/** the main key: idle, busy (the PDF is being written) or locked (not First Class: the wax-gold
-    tag, and the tap is the paywall's) */
+/** the main key: idle, busy (the PDF is being written) or locked (neither First Class nor the
+    book bought once: the wax-gold tag, and the tap is TS's: its two-way sheet, or the paywall) */
 export type KJournalBookMakeState = "idle" | "busy" | "locked";
 
 export type KJournalBookStrings = {

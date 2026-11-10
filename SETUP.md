@@ -127,6 +127,53 @@ This is `Linking.createURL("auth-callback")` with the `kindredly` scheme (see
 
 ---
 
+## 4b. The journal book, bought once (2026-11-10)
+
+The export page (`/journal-book`) makes the book for a First Class member. Someone who is not
+one can also buy **just the book**, once (`src/lib/iap-book-core.ts` says what it is). The code
+is in place and does nothing until the three things below exist: with no product, the key opens
+the paywall exactly as before. The app never shows a price of its own: it shows the store's
+localized price string, or it does not offer the book at all.
+
+1. **App Store Connect → the app → Monetization → In-App Purchases → +**
+   - Type: **Non-Consumable**
+   - Reference name: `Journal book (one-time)`
+   - Product ID: **`io.kindredly.app.journalbook`**. It must NOT contain `lifetime` or
+     `cofounder`: the web's RevenueCat webhook (`functions/api/webhook/revenuecat.js`
+     `planFromProduct`) would then write a lifetime First Class row and take a Cofounder seat.
+     With this id the webhook logs "a product we don't sell" and writes nothing, which is right.
+   - Price: suggested **$4.99** (under one month of First Class at $6.99, so it is a real
+     smaller door; not $0.99, which would price the membership's headline export as a trinket).
+     The owner's call; the app reads whatever is set.
+   - Localization (English U.S.): display name `Journal book`, description
+     `Make a book of your journal, as often as you like.`
+   - Review screenshot: the export page with the sheet up ("Just the book · $4.99 once").
+   - Review note: `Settings → Export my journal → Make my book (signed in, not First Class) →
+     "Just the book". A one-time purchase that unlocks exporting the user's own private journal
+     as a PDF made on the device. It does not unlock First Class. Restorable from Settings →
+     Restore purchases.`
+   - Submit it **with** the app version whose build carries the journal book page (add it under
+     "In-App Purchases and Subscriptions" on that version's page before sending for review).
+2. **RevenueCat**
+   - Products → add `io.kindredly.app.journalbook` (App Store).
+   - Entitlements → new entitlement, identifier **`journal_book`** (exactly;
+     `BOOK_ENTITLEMENT_ID`) → attach that product. Do NOT attach it to `plus`.
+   - Offerings → new offering, identifier **`book`** (exactly; `BOOK_OFFERING_ID`) → one
+     package (a custom package, identifier `book`) → that product. Leave the existing offering
+     as the **current/default** one: the First Class paywall reads the current offering, and the
+     book must never be in it.
+3. **Sandbox** (a TestFlight build or a dev build on a real phone, a sandbox Apple ID, an
+   account that is not First Class, a journal with a page this month): the key carries `1ST` →
+   tap → the sheet shows the store's price → buy → the sheet goes, `1ST` goes, the PDF is made
+   and the share sheet opens; tap the key again → exports with no sheet. Cancel the purchase →
+   nothing changes. Delete and reinstall, sign in, Settings → Restore purchases → "Your journal
+   book is back." and the key is unlocked. Check Today's cap and the First Class marks did NOT
+   change (the book makes nobody First Class), and that `/paywall` still lists only the
+   membership fares. If the purchase goes through and the key stays locked with an alert, the
+   product is not attached to the `journal_book` entitlement.
+
+---
+
 ## 5. EAS build
 
 ```bash

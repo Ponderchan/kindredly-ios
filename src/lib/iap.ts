@@ -1,9 +1,19 @@
 import { Platform } from "react-native";
+import { BOOK_ENTITLEMENT_ID, ownsBook, pickBookProduct, restoredWhat, type BookProduct } from "./iap-book-core";
+
+export { BOOK_ENTITLEMENT_ID, BOOK_OFFERING_ID } from "./iap-book-core";
+export type { BookProduct } from "./iap-book-core";
 
 /* RevenueCat abstraction (peekabug pattern): lazy-require the native module in
    try/catch so a missing module / no key => demo mode (no crash, no gating).
    Kindredly ties the RC app_user_id to the Supabase user id so web (Creem) and
-   iOS (Apple) entitlements unify in the same subscriptions table. */
+   iOS (Apple) entitlements unify in the same subscriptions table.
+
+   Two entitlements: "plus" is First Class (subscriptions and the lifetime fare, the CURRENT
+   offering); "journal_book" is the journal book bought once (2026-11-10, its own offering
+   "book"; see the block further down and ./iap-book-core). The second never touches the
+   subscriptions table: the web's RevenueCat webhook ignores a one-time product that is not the
+   lifetime fare, which is right, since the book makes nobody First Class. */
 
 export const ENTITLEMENT_ID = "plus";
 const RC_IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || "";
@@ -173,6 +183,79 @@ export async function iapPurchase(pkg: IapPackage): Promise<IapPurchaseResult> {
   }
 }
 
+/* THE JOURNAL BOOK, BOUGHT ONCE (new feature, 2026-11-10; the rules and the why are at the top
+   of ./iap-book-core). A second entitlement, "journal_book", carried by one non-consumable the
+   owner creates, read from RevenueCat's offering named "book". Three calls, all of them quiet
+   when purchases can't be reached: the export page then does what it did before (the paywall). */
+
+/** How long the page may wait for the store to say whether the book is for sale. A tap on the
+    key waits for this answer, so it has to come: after this long it is "no" (the paywall). */
+const BOOK_PRODUCT_WAIT_MS = 4000;
+
+/** The journal book as the store sells it, with the store's own localized price string; null
+    when the store has no such product for this build (not configured yet, no RevenueCat key,
+    offline, a simulator without StoreKit, no answer in time). Never a made-up price. */
+export async function iapBookProduct(): Promise<BookProduct | null> {
+  if (!IAP_READY) return null;
+  const P = load();
+  if (!P) return null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const late = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), BOOK_PRODUCT_WAIT_MS);
+    });
+    const offerings = await Promise.race([P.getOfferings(), late]);
+    if (!offerings) console.warn("[iap] the book's product: no answer from the store in time");
+    return pickBookProduct(offerings);
+  } catch (e) {
+    console.warn("[iap] the book's product:", e);
+    return null;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/** Buy the journal book: the product iapBookProduct() returned, so what is bought is what was
+    priced on screen. ok only when RevenueCat then says the "journal_book" entitlement is
+    active; a purchase the store took that unlocked nothing (the product isn't attached to the
+    entitlement in RevenueCat) is a failure with its own error, and is logged. */
+export async function iapBuyBook(product: BookProduct): Promise<IapPurchaseResult> {
+  if (!IAP_READY) return { ok: false, error: "not-configured" };
+  const P = load();
+  if (!P || !product.raw) return { ok: false, error: "not-configured" };
+  try {
+    const res = await P.purchasePackage(product.raw);
+    const ok = ownsBook(res?.customerInfo);
+    const tx = (res as any)?.transaction?.transactionIdentifier;
+    const pid = (res as any)?.productIdentifier ?? (res as any)?.transaction?.productIdentifier;
+    if (!ok) console.warn(`[iap] the book was bought but the "${BOOK_ENTITLEMENT_ID}" entitlement is not active: is the product attached to it in RevenueCat?`);
+    return {
+      ok,
+      ...(ok ? {} : { error: "entitlement-missing" }),
+      ...(typeof tx === "string" && tx ? { transactionId: tx } : {}),
+      ...(typeof pid === "string" && pid ? { productId: pid } : {}),
+    };
+  } catch (e: any) {
+    if (e?.userCancelled) return { ok: false, cancelled: true };
+    console.warn("[iap] buying the book:", e);
+    return { ok: false, error: e?.message || "purchase-failed" };
+  }
+}
+
+/** Whether the journal book was bought on this Apple ID (the entitlement alone; a First Class
+    member's book is lib/entitlement's to add). null when it can't be asked. */
+export async function iapCheckBook(): Promise<boolean | null> {
+  if (!IAP_READY) return null;
+  const P = load();
+  if (!P) return null;
+  try {
+    return ownsBook(await P.getCustomerInfo());
+  } catch (e) {
+    console.warn("[iap] the book's entitlement:", e);
+    return null;
+  }
+}
+
 /** The free trial First Class is in right now, as the App Store's own receipt says it (RevenueCat's
     customer info): the product, and when the trial ends — the day the first charge happens. Null
     when it isn't a trial, won't renew (so nothing will be charged), or can't be read (logged). The
@@ -195,12 +278,14 @@ export async function iapActiveTrial(): Promise<{ productId: string; endsAt: str
   }
 }
 
-/** What a restore came back with: First Class found on this Apple ID ("restored"), the App
-    Store answered and found nothing ("nothing"), no answer (offline, a StoreKit error:
-    "failed"), or purchases can't be reached by this build at all (no RevenueCat key or no
-    native module: "unavailable"). Settings tells the last two apart from "nothing": telling
-    someone who paid that nothing was found is the wrong sentence. */
-export type RestoreOutcome = "restored" | "nothing" | "failed" | "unavailable";
+/** What a restore came back with: First Class found on this Apple ID ("restored"), only the
+    journal book found ("book": the one-time purchase, 2026-11-10; First Class has the book in
+    it, so both found is "restored"), the App Store answered and found nothing ("nothing"), no
+    answer (offline, a StoreKit error: "failed"), or purchases can't be reached by this build
+    at all (no RevenueCat key or no native module: "unavailable"). Settings tells the last two
+    apart from "nothing": telling someone who paid that nothing was found is the wrong sentence,
+    and that goes for someone who paid for the book too. */
+export type RestoreOutcome = "restored" | "book" | "nothing" | "failed" | "unavailable";
 
 export async function iapRestoreOutcome(): Promise<RestoreOutcome> {
   if (!IAP_READY) return "unavailable";
@@ -208,7 +293,7 @@ export async function iapRestoreOutcome(): Promise<RestoreOutcome> {
   if (!P) return "unavailable";
   try {
     const info = await P.restorePurchases();
-    return succeeded(info) ? "restored" : "nothing";
+    return restoredWhat(info);
   } catch (e) {
     console.warn("[iap] restore:", e);
     return "failed";
