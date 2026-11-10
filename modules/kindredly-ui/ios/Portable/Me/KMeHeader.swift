@@ -354,10 +354,15 @@ struct KMeHeaderBody<Avatar: View>: View {
 /// Me's segmented control (owner, 2026-10-20): a soft track, corners 12, 38 tall at the default
 /// size; the chosen part is a raised sf pill (corners 9, a faint shadow) that slides to the tap,
 /// at once under Reduce Motion. System 15, semibold on the chosen part. Each part is a tab.
+///
+/// `disabled` (journal book, 2026-11-10: the export page's THIS MONTH / THIS YEAR, where a range
+/// with no page can't be chosen): those parts are drawn in faint and take no tap, and VoiceOver
+/// reads them dimmed. Empty everywhere else, so Me's control is as it was.
 struct KMeSegmented: View {
   let theme: KTheme
   let labels: [String]
   @Binding var selection: Int
+  var disabled: Set<Int> = []
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Namespace private var pill
@@ -366,6 +371,7 @@ struct KMeSegmented: View {
     HStack(spacing: 0) {
       ForEach(labels.indices, id: \.self) { i in
         let on = i == selection
+        let off = disabled.contains(i)
         SwiftUI.Button {
           guard !on else { return }
           if reduceMotion {
@@ -376,7 +382,7 @@ struct KMeSegmented: View {
         } label: {
           Text(labels[i])
             .kText(.system(15, on ? .semibold : .regular))
-            .foregroundStyle(on ? theme.ink : theme.sub)
+            .foregroundStyle(off ? theme.faint : (on ? theme.ink : theme.sub))
             .lineLimit(1)
             .minimumScaleFactor(0.7)
             .padding(.horizontal, 8)
@@ -392,6 +398,7 @@ struct KMeSegmented: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .disabled(off)
         .accessibilityAddTraits(on ? [.isSelected, .isButton] : .isButton)
       }
     }

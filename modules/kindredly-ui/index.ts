@@ -509,3 +509,13 @@ export { FREE_FLIGHT_OFF, KFreeFlightView, nativeFreeFlight, type KFreeFlightDat
 
 // journal book (2026-11-10): the model Swift draws as an A5 PDF, and the two native functions (contract .claude/journal-book/CONTRACT.md)
 export { hasJournalBook, renderJournalBook, type Book, type BookMedia, type BookMood, type BookPage } from "./src/JournalBook";
+// the journal book's export page (journal book, 2026-11-10), in Swift: src/screens/journal-book/JournalBookNative.tsx,
+// the route /journal-book (no switch: Settings opens it only on a binary that has the view)
+export {
+  KJournalBookView,
+  type KJournalBookMakeState,
+  type KJournalBookRange,
+  type KJournalBookState,
+  type KJournalBookStrings,
+  type KJournalBookViewProps,
+} from "./src/JournalBookScreen";

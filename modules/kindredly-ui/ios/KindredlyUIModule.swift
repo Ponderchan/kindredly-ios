@@ -215,6 +215,17 @@ public class KindredlyUIModule: Module {
     Function("hasJournalBook") { () -> Bool in
       true
     }
+    // Its export page (/journal-book, opened from Settings' "Export my journal"): the preview of
+    // the reader's own book, this month or this year, the ink saver, the key. Adapter in
+    // Adapters/KJournalBookView.swift, the page Portable/Book/KJournalBookScreen.swift;
+    // src/app/journal-book.tsx asks isKindredlyUIViewAvailable("KJournalBookView") first, so a
+    // binary with the functions above and not this view keeps Settings' plain text export.
+    // New files: a pod install before the build.
+    ExpoUIView(KJournalBookView.self) {
+      AsyncFunction("command") { (view: KJournalBookView, name: String, args: [String: Any]) in
+        view.props.commands.send(name, args)
+      }
+    }
 
     // The album (custom stamps, B): adapter appended to Adapters/KMeView.swift, the page to
     // Portable/Me/KStampsCard.swift; src/app/album.tsx
