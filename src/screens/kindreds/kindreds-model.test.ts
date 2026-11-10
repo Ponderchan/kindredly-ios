@@ -37,7 +37,8 @@ const M = await import("./kindreds-model.ts");
 const { whoBook } = await import("../../lib/stranger-who.ts");
 const { strangerName, strangerNamer } = await import("../../lib/stranger-name.ts");
 const { frostSpec } = await import("../../lib/frost.ts");
-const { DEMO_THREADS, DEMO_STATE_THREADS, DEMO_ROOM_SEEN } = await import("../../data/demo.ts");
+const { DEMO_THREADS, DEMO_STATE_THREADS, DEMO_ROOM_SEEN, DEMO_DETAILS } = await import("../../data/demo.ts");
+const { threadStateKind } = await import("../../lib/thread-state.ts");
 type Thread = import("../../lib/db").ThreadSummary;
 type Facts = import("./kindreds-model").KindredsFacts;
 
@@ -360,6 +361,37 @@ const rowOf = (v: ReturnType<typeof M.buildKindredsView>, id: string) => {
   ok("demo: kindreds with a seeded ledger show numbers", rowOf(v, "demo-juno")!.badge !== "" && rowOf(v, "demo-mira")!.badge === "2");
   ok("demo: a brass moment and a fold", Object.values(v.items).some((i) => i.type === "row" && i.row.tags.some((t) => t.tone === "brass")) && order.includes("fold"));
   ok("demo: the orbit has no kindreds", !v.orbit.some((o) => o.id === "demo-mira" || o.id === "demo-juno"));
+}
+
+/* ── the demo list and the demo conversations say the same turn (owner's audit, 2026-11-10:
+      "Starlit Doily" said YOUR TURN on its row and THEIR TURN in its chat header) ──
+   The row reads its turn off the summary (lastSenderMe); the chat header and the reader read
+   it off the conversation, with these very facts (useLettersModel, useReaderModel). Both go
+   through lib/thread-state threadStateKind, and on real data lastSenderMe is the server's
+   last_sender, the sender of the last message, so they are one fact. Only fixtures can split. */
+{
+  const rows = [...DEMO_THREADS, ...DEMO_STATE_THREADS];
+  type Detail = (typeof DEMO_DETAILS)[string];
+  const headerKind = (d: Detail) =>
+    threadStateKind({
+      mine: d.myCount,
+      theirs: d.otherCount,
+      revealed: d.revealed,
+      lastSenderMe: !d.messages.length || !!d.messages[d.messages.length - 1]?.mine,
+      iSigned: d.iSigned,
+      theirSigned: d.theirSigned,
+      gone: d.gone,
+    });
+  const split = rows.filter((r) => threadStateKind(r) !== headerKind(DEMO_DETAILS[r.id])).map((r) => r.id);
+  ok(`demo: every row's turn is the one its conversation's header shows${split.length ? ` (not ${split.join(", ")})` : ""}`, split.length === 0);
+  for (const id of ["demo-wren", "demo-quiet"]) {
+    const row = rows.find((r) => r.id === id)!;
+    const d = DEMO_DETAILS[id];
+    const last = d.messages[d.messages.length - 1];
+    ok(`demo: ${id}'s newest letter is theirs, and it is the line the row shows`, !last.mine && last.body.startsWith(row.preview) && row.lastSenderMe === false);
+    ok(`demo: ${id}'s counts match its letters, on the row and in the conversation`, d.myCount === d.messages.filter((m) => m.mine).length && d.otherCount === d.messages.filter((m) => !m.mine).length && row.mine === d.myCount && row.theirs === d.otherCount);
+    ok(`demo: ${id}'s newest letter is as old as the row says`, Math.abs(Date.parse(last.date) - row.lastAt) < 60_000);
+  }
 }
 
 /* ── faces for the native list ── */

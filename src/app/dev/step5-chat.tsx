@@ -48,7 +48,8 @@ import { setSignDemo, signDemo, subscribeSignDemo } from "../../screens/chat/sig
               demo-gone-penpal  a gone pen pal: the veil, ACCOUNT CLOSED
               demo-quiet      a short correspondence
      READER   the one-letter reader (ReaderNative → KReaderView, 2026-10-20):
-              demo-quiet      their opening on Kraft (letters.paper)
+              demo-quiet      their opening on Kraft (letters.paper; ?m=opening,
+                              since their newest letter is now a reply)
               demo-north      the opening on Airmail (?m=opening), and a
                               reply as the hero (plain: replies have no
                               paper), 10 letters between you
@@ -94,7 +95,7 @@ const FIXTURES: Fixture[] = [
   { id: "demo-quiet", variant: "letters", label: "LETTERS · QUIET" },
   // a pen-pal chat seen after names are traded: ChatHeader, or Swift's port of it with "chatheader" on (batch 3)
   { id: "demo-mira", variant: "letters", label: "LETTERS · NAMES TRADED" },
-  { id: "demo-quiet", variant: "reader", label: "READER · KRAFT" },
+  { id: "demo-quiet", variant: "reader", label: "READER · KRAFT", m: "opening" },
   { id: "demo-north", variant: "reader", label: "READER · AIRMAIL", m: "opening" },
   { id: "demo-north", variant: "reader", label: "READER · A REPLY" },
   { id: "demo-voice", variant: "reader", label: "READER · VOICE HERO", m: "opening" },

@@ -455,7 +455,19 @@ export const DEMO_PEN_ME = { v: 1 as const, w: 1000 as const, h: 320 as const, s
 /* canned conversations for the sample threads (thread/[id] falls back to
    these for demo- ids so browsing the preview isn't a dead end). Every
    pen pal's counts match its messages, so the band and the five-each-way
-   road read true; the opening letter is not a message and is not counted. */
+   road read true; the opening letter is not a message and is not counted.
+
+   THE LIST AND THE CONVERSATION SAY THE SAME TURN (owner's audit,
+   2026-11-10). The Kindreds row reads its turn off the summary above
+   (lastSenderMe), the chat header off the last letter here; on real data
+   those are one fact (the server's last_sender is the last message's
+   sender), but two fixtures disagreed: "demo-wren" and "demo-quiet" said
+   YOUR TURN on the list (their letter last) while their conversations
+   ended on the reader's own letter, so the header said THEIR TURN. The
+   store-mode rows are kept exactly as they were, so it is these two
+   conversations that changed: each now ends on THEIR letter, the one
+   the row's preview quotes, and its counts match its letters.
+   kindreds-model.test.ts checks every demo row against its conversation. */
 export const DEMO_DETAILS: Record<string, ThreadDetail> = {
   "demo-mira": {
     stamp: "off-chest",
@@ -491,11 +503,16 @@ export const DEMO_DETAILS: Record<string, ThreadDetail> = {
     other: "demo-wren",
     myCount: 1,
     otherCount: 1,
-    opening:
-      "You answered the one at your door. That tells me more than any form would.\n\nI read the way you wrote back — plainly, without performing. The post will suit you. Three streets are open tonight; write when something is true, not when it's polished.",
+    // the letter left at the door, the reader's answer, then their reply (the row's preview): their letter is the newest
+    opening: "This one was left at your door on purpose. Somebody read what you wrote, and wanted you to know it landed.",
     openingFromMe: false,
     messages: [
-      { body: "Thank you. I wasn't sure anyone was actually reading.", mine: true, date: iso(2 * H) },
+      { body: "Thank you. I wasn't sure anyone was actually reading.", mine: true, date: iso(3 * H) },
+      {
+        body: "You answered the one at your door. That tells me more than any form would.\n\nI read the way you wrote back — plainly, without performing. The post will suit you. Three streets are open tonight; write when something is true, not when it's polished.",
+        mine: false,
+        date: iso(2 * H),
+      },
     ],
   },
   "demo-blackberry": {
@@ -560,11 +577,16 @@ export const DEMO_DETAILS: Record<string, ThreadDetail> = {
     otherCount: 1,
     // letter papers (0041): the opening came on Kraft
     openingPaper: "kraft",
-    opening:
-      "I moved cities three weeks ago and I still haven't unpacked the box marked KITCHEN. I've been eating standing up, out of the one bowl I bothered to find.\n\nI think I'm waiting to be sure I'm staying before I let myself arrive.",
+    // their opening, the reader's question, then their answer (the row's preview): their letter is the newest
+    opening: "I think I'm waiting to be sure I'm staying before I let myself arrive.",
     openingFromMe: false,
     messages: [
-      { body: "It gets easier the third week. The bowl is the trick — wash it at night, and morning feels less like camping.", mine: true, date: iso(26 * H) },
+      { body: "Arrive where? Tell me about the place you're not sure of yet.", mine: true, date: iso(30 * H) },
+      {
+        body: "I moved cities three weeks ago and I still haven't unpacked the box marked KITCHEN. I've been eating standing up, out of the one bowl I bothered to find.",
+        mine: false,
+        date: iso(26 * H),
+      },
     ],
   },
   "demo-sent": {
