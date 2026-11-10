@@ -57,7 +57,7 @@ import "../data/strings-book"; // jb.*
    exportBook renders through Swift and opens the share sheet (React
    Native's own Share, as the text export does). The sheet's Cancel is not a
    failure. Every real failure is logged and thrown to the page, which says
-   so (jb.x.fail.*); nothing is swallowed. */
+   so (bk.fail, src/data/strings-book-screen.ts); nothing is swallowed. */
 
 export { rangeFor };
 export type { BookRange, BookRangeKind, BookResult };
@@ -204,7 +204,7 @@ let making: Promise<{ pages: number; uri: string } | null> | null = null;
 /** Make the book's PDF and hand it to the iOS share sheet. null: the range has no page (nothing
     was made). Resolves once the share sheet has closed, whatever the reader did there. REJECTS
     when the journal can't be read, this binary can't draw the book, the drawing fails or the
-    sheet can't open: the page says so (jb.x.fail.title / jb.x.fail.body). */
+    sheet can't open: the page says so (bk.fail). */
 export function exportBook(range: BookRange, inkSaver: boolean, opts: BookOptions = {}): Promise<{ pages: number; uri: string } | null> {
   if (making) return making;
   const run = (async () => {

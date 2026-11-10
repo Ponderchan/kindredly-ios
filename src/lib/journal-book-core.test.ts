@@ -491,8 +491,6 @@ eq("the book carries it, and the Letter font as given", [build([page(iso(2026, 1
   eq("strings-book.ts words every key of the book", Object.keys(WORDS).filter((k) => !keys.has(k)), []);
   const value = (k: string) => JSON.parse(new RegExp(`^\\s*"${k.replace(/\./g, "\\.")}":\\s*("(?:[^"\\\\]|\\\\.)*")`, "m").exec(en)?.[1] ?? '""');
   eq("…with the English this test builds with", Object.keys(WORDS).filter((k) => value(k) !== WORDS[k]), []);
-  const page = ["jb.x.title", "jb.x.month", "jb.x.year", "jb.x.noneMonth", "jb.x.noneYear", "jb.x.ink", "jb.x.ink.sub", "jb.x.make", "jb.x.making", "jb.x.fc.a11y", "jb.x.pageOf", "jb.x.words", "jb.x.empty", "jb.x.write", "jb.x.fail.title", "jb.x.fail.body"];
-  eq("…and the export page's keys, by the names KEYS.md promises", page.filter((k) => !keys.has(k)), []);
   ok("no exclamation marks (the app's voice)", !/!/.test([...keys].map(value).join(" ")));
 }
 

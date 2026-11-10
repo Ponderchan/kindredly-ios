@@ -4,11 +4,9 @@ import { strings } from "../lib/i18n";
    ────────────────────────────────────────────────────────────────────────
    Notes can already leave the phone as a plain text file, free (strings-audit-notes: set.export,
    jx.*). The BOOK is the First Class version: the reader's own pages typeset as an A5 PDF, made on
-   the phone. Two sets of words, one file:
+   the phone. This file holds the book's own words (the export page around it keeps its words in
+   strings-book-screen.ts, bk.*):
 
-   - jb.x.*  THE EXPORT PAGE (route /journal-book): its title, the THIS MONTH / THIS YEAR control,
-             the ink-saver switch, the key, the quiet link to the free text file, the empty states,
-             the failure alert. Resolved by the page with t().
    - jb.*    THE BOOK ITSELF: what is PRINTED on its pages (the cover, the year at a glance, each
              month's calendar and count, the small labels on a page, the back cover). Resolved by
              lib/journal-book and handed to Swift inside the model: Swift has no words of its own.
@@ -34,37 +32,6 @@ import { strings } from "../lib/i18n";
 strings(
   /* ── en · English ── */
   {
-    // ── THE EXPORT PAGE ──
-    // the page's title, under the back bar; sentence case, one line (about 26 characters)
-    "jb.x.title": "Your journal, as a book",
-    // the two halves of the segmented control: which stretch of the journal the book holds; mono capitals, at most 12 characters each
-    "jb.x.month": "THIS MONTH",
-    "jb.x.year": "THIS YEAR",
-    // the one quiet line shown where the preview would be when the picked half has no page (that half is disabled); a full sentence
-    "jb.x.noneMonth": "Nothing written this month yet.",
-    "jb.x.noneYear": "Nothing written this year yet.",
-    // the ink-saver switch's label (two words at most) …
-    "jb.x.ink": "Save ink",
-    // … and the line under it: what the switch does to the printed pages (white grounds; the colour stays in the big day numbers and the mood faces); one line, two short sentences at most
-    "jb.x.ink.sub": "White pages. The color stays in the numbers and the faces.",
-    // the main key: makes the PDF and opens the share sheet; at most about 14 characters
-    "jb.x.make": "Make my book",
-    // the same key while the PDF is being made (a book is bound); one word and an ellipsis
-    "jb.x.making": "Binding…",
-    // VoiceOver only: said after the key's own label for someone who is not a First Class member (the key carries the First Class mark and opens the paywall), like cp.voiceLocked.a11y
-    "jb.x.fc.a11y": "First Class only",
-    // under the preview: which rendered page is showing, of how many the preview holds; sentence case
-    "jb.x.pageOf": "Page {n} of {total}",
-    // the quiet text link under the key: the free export, the journal's words as one text file (exactly what "Export my journal" has always done); three words at most
-    "jb.x.words": "Just the words",
-    // the whole journal has no page of the reader's own: the one line shown instead of the preview (two short sentences) …
-    "jb.x.empty": "Nothing to bind yet. A book starts with one page.",
-    // … and the key under it, which opens a new note
-    "jb.x.write": "Write a note",
-    // the alert when the book couldn't be read, made or handed to the share sheet: its title (no blame, no jargon) …
-    "jb.x.fail.title": "The book didn't come together",
-    // … and its body: the journal itself is untouched, and trying again is the whole advice
-    "jb.x.fail.body": "Your pages are safe. Try again in a moment.",
 
     // ── THE BOOK: THE COVER ──
     // the cover's small line at the top: the app's name, never translated, capitals
