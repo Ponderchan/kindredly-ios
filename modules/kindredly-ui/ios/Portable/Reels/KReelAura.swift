@@ -48,22 +48,36 @@ enum KReelAura {
     var k: CGFloat = 1
     let maxW: CGFloat
     var body: some View {
+      /* every value is named and typed first, and the chain is cut in two: one long chain of
+         modifiers over optional lookups did not type-check "in reasonable time" on the cloud
+         build's compiler (EAS, 2026-11-10), though it did on this Mac's */
       let look = x.data.stickers["\(id)#\(i)"]
-      let fs = x.s * 0.04 * k
-      let pill = look?.pill ?? true
+      let fs: CGFloat = x.s * 0.04 * k
+      let pill: Bool = look?.pill ?? true
       let outerR: CGFloat = pill ? 999 : fs * 0.55
       let innerR: CGFloat = pill ? 999 : fs * 0.4
-      return Text(look?.name ?? "")
+      let name: String = look?.name ?? ""
+      let fg: Color = kReelColor(look?.fg ?? "#FFFFFF")
+      let bg: Color = kReelColor(look?.bg ?? "#5B55FF")
+      let edge: Color = kReelColor(look?.border ?? "#5B55FF")
+      let edgeW: CGFloat = max(1.5, fs * 0.12)
+      let tilt: Double = Double(look?.tilt ?? 0)
+      let shade: Color = navy.opacity(0.2)
+      let inner = RoundedRectangle(cornerRadius: innerR)
+      let outer = RoundedRectangle(cornerRadius: outerR)
+      let label = Text(name)
         .font(KReelFont.sys(fs, .bold))
-        .foregroundStyle(kReelColor(look?.fg ?? "#FFFFFF"))
+        .foregroundStyle(fg)
         .kReelFit()
         .padding(.horizontal, fs * 0.8)
         .padding(.vertical, fs * 0.32)
-        .background(RoundedRectangle(cornerRadius: innerR).fill(kReelColor(look?.bg ?? "#5B55FF")))
-        .overlay(RoundedRectangle(cornerRadius: innerR).strokeBorder(kReelColor(look?.border ?? "#5B55FF"), lineWidth: max(1.5, fs * 0.12)))
+        .background(inner.fill(bg))
+        .overlay(inner.strokeBorder(edge, lineWidth: edgeW))
+      let cut = outer.fill(Color.white).shadow(color: shade, radius: fs * 0.4, x: 0, y: fs * 0.3)
+      return label
         .padding(fs * 0.22)
-        .background(RoundedRectangle(cornerRadius: outerR).fill(Color.white).shadow(color: navy.opacity(0.2), radius: fs * 0.4, x: 0, y: fs * 0.3))
-        .rotationEffect(.degrees(look?.tilt ?? 0))
+        .background(cut)
+        .rotationEffect(.degrees(tilt))
         .frame(maxWidth: maxW, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
     }

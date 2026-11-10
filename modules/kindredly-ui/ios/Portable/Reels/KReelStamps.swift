@@ -260,16 +260,27 @@ enum KReelStamps {
       let ids = Array(x.list("all").prefix(36))
       return ZStack(alignment: .topLeading) {
         ForEach(0..<ids.count, id: \.self) { k in
-          let r = k / 6, col = k % 6
-          let inn = c.once(380, 120 + Double(r + col) * 55, KReelEase.outBack(1.6))
-          let wave = c.once(540, 1900 + Double(r + col) * 40, KReelEase.inOutQuad)
-          let tilt = Double(((r * 7 + col * 5) % 5) - 2) * 7
+          /* each number is named and typed before the chain: with the arithmetic inside the
+             modifiers this did not type-check "in reasonable time" on the cloud build's compiler
+             (EAS, Xcode 26.5, 2026-11-10), though it did on this Mac's */
+          let r: Int = k / 6
+          let col: Int = k % 6
+          let inn: Double = c.once(380, 120 + Double(r + col) * 55, KReelEase.outBack(1.6))
+          let wave: Double = c.once(540, 1900 + Double(r + col) * 40, KReelEase.inOutQuad)
+          let tilt: Double = Double(((r * 7 + col * 5) % 5) - 2) * 7
+          let grow: CGFloat = 0.5 + 0.5 * CGFloat(inn)
+          let turn: Double = tilt * (1 - inn)
+          let lift: CGFloat = (1 - CGFloat(inn)) * s * 0.08
+          let bob: CGFloat = CGFloat(sin(wave * .pi)) * tile * 0.18
+          let fade: Double = min(1, inn * 1.6)
+          let px: CGFloat = left + CGFloat(col) * cell + (cell - tile) / 2
+          let py: CGFloat = top + CGFloat(r) * cell + (cell - tileH) / 2
           KReelStamp(id: ids[k], width: tile)
-            .scaleEffect(0.5 + 0.5 * inn)
-            .rotationEffect(.degrees(tilt * (1 - inn)))
-            .offset(y: -(1 - CGFloat(inn)) * s * 0.08 - CGFloat(sin(wave * .pi)) * tile * 0.18)
-            .opacity(min(1, inn * 1.6))
-            .offset(x: left + CGFloat(col) * cell + (cell - tile) / 2, y: top + CGFloat(r) * cell + (cell - tileH) / 2)
+            .scaleEffect(grow)
+            .rotationEffect(.degrees(turn))
+            .offset(y: -lift - bob)
+            .opacity(fade)
+            .offset(x: px, y: py)
         }
         // how many there are
         Text("\(ids.count)")

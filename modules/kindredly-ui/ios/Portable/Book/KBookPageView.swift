@@ -101,7 +101,9 @@ public struct KBookPageView: View {
       for request in requests where out[request.uri] == nil {
         if Task.isCancelled { break }
         // the largest size a uri is asked at wins (Wren's mark and her back-cover picture)
-        let size = requests.filter { $0.uri == request.uri }.map(\.size).max { $0.width * $0.height < $1.width * $1.height } ?? request.size
+        let sizes: [CGSize] = requests.filter { $0.uri == request.uri }.map { $0.size }
+        let largest: CGSize? = sizes.max { (a: CGSize, b: CGSize) -> Bool in a.width * a.height < b.width * b.height }
+        let size: CGSize = largest ?? request.size
         if let made = KBookImages.thumbnail(request.uri, covering: size, scale: scale) {
           out[request.uri] = made
         }
