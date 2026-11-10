@@ -85,6 +85,20 @@ import SwiftUI
  sheet's words (labels.whoTitle). Nothing is drawn for it: the header looks as it did. The ⋯ menu
  is unchanged.
 
+ HER BIRTHDAY LETTER (owner's audit, 2026-11-10). The reader gave a birthday in onboarding and
+ was promised a letter on the day; on that day the first card is one from their courier
+ (card.wren, every word TS's: today-cards buildWrenCard). It is this card, not another view, so
+ the sheet, the insets, the type and the depth are a letter's (Plain paper): the docket holds her
+ own picture where a stranger's face is (who.face .bird: a snapshot TS captured, never a drawing;
+ in the old switch-off docket it stands where the mosaic does, at the mosaic's 28), the name the
+ reader gave her and the date, exactly as the header draws anyone; then her lines and her
+ sign-off (KWrenCardText, in KWrenLetter.swift: the reader's Letter font at the letter's tier,
+ stepping down until they fit, so there is nothing to unfold). No stamp (she pasted none; the row
+ keeps the stamp's height, so the letter starts where every letter does), no ⋯ (nothing to report
+ or block), no topic and no capsule (TS sends none, so the foot draws nothing). Her face and her
+ name take no tap: everyone knows who she is. It is passed like any card; its "Write back" goes
+ to her room (the desk routes it).
+
  VoiceOver reads the card as one element (TS's a11yLabel: who wrote it and when — "SEP.23 ·
  NO.7273" with the switch off, "Sunday Kite, she, Gemini. SEP.23" with it on — the topic, why the
  matcher chose it, the letter or what the voice letter is) with its moves as actions, in this order:
@@ -128,6 +142,8 @@ final class KLetterCardActions {
 
 struct KLetterCard: View, Equatable {
   static let mosaicCell: CGFloat = 4.8
+  /// the mosaic as the switch-off docket draws it: five cells and four gaps of 1 (28)
+  static let mosaicSide: CGFloat = 5 * mosaicCell + 4
   /// the face slot: 40 square, corners of 10 (a quarter of it, as the frosted window's)
   static let faceSlot: CGFloat = 40
   static let faceCorner: CGFloat = 10
@@ -164,7 +180,8 @@ struct KLetterCard: View, Equatable {
     guard !labels.whoTitle.isEmpty else { return false }
     switch card.who.face {
     case .mosaic, .frost: return true
-    case .veil, .frostVeil: return false
+    // her birthday letter: the reader's own courier, nobody to ask about
+    case .veil, .frostVeil, .bird: return false
     }
   }
 
@@ -211,7 +228,10 @@ struct KLetterCard: View, Equatable {
   private var content: some View {
     docket
     Group {
-      if card.isVoice {
+      if card.wren {
+        // her birthday letter: her lines and her sign-off, fitted to the card (nothing to unfold)
+        KWrenCardText(theme: paperTheme, card: card)
+      } else if card.isVoice {
         KCardVoiceBlock(theme: paperTheme, card: card, labels: labels, voice: voice) {
           actions.onAction(card.id, "voice")
         }
@@ -251,6 +271,9 @@ struct KLetterCard: View, Equatable {
           Group {
             if case let .mosaic(mask) = card.who.face {
               KMosaic(mask: mask, cell: Self.mosaicCell, gap: 1, color: paperTheme.ink)
+            } else if case .bird = card.who.face {
+              // her birthday letter: her picture where the mosaic stands, at the mosaic's size
+              KCardFaceSlot(theme: paperTheme, face: card.who.face, side: Self.mosaicSide)
             } else {
               KMosaic.veil(theme: paperTheme, cell: Self.mosaicCell, gap: 1)
             }
@@ -268,7 +291,10 @@ struct KLetterCard: View, Equatable {
       .onTapGesture { actions.onAction(card.id, "who") }
       // off (the veil, writing back, no words from TS), the touch is the deck's, as it always was
       .allowsHitTesting(!compact && Self.asksWho(card, labels))
-      KLetterCardStamp(theme: paperTheme, card: card, width: Self.stampWidth, actions: actions)
+      // her birthday letter carries no stamp (she pasted none)
+      if !card.wren {
+        KLetterCardStamp(theme: paperTheme, card: card, width: Self.stampWidth, actions: actions)
+      }
       if !card.menu.isEmpty {
         Menu {
           ForEach(card.menu) { item in
@@ -293,6 +319,9 @@ struct KLetterCard: View, Equatable {
         .accessibilityLabel(labels.more)
       }
     }
+    // with no stamp (her birthday letter) the row keeps the stamp's height, so her letter starts
+    // where every letter does
+    .frame(minHeight: card.wren ? KStampFrame.height(Self.stampWidth) : nil)
     // shrunk for the keyboard, the docket stops at xxxLarge so the letter keeps some lines
     .dynamicTypeSize(...(compact ? DynamicTypeSize.xxxLarge : DynamicTypeSize.accessibility2))
   }
@@ -437,7 +466,8 @@ struct KLetterCardAccessibilityActions: ViewModifier {
         if card.voiceReady {
           SwiftUI.Button(playing ? labels.pause : labels.play) { actions.onAction(card.id, "voice") }
         }
-      } else {
+      } else if !card.wren {
+        // (her birthday letter is fitted to the card: nothing to unfold)
         SwiftUI.Button(labels.unfoldA11y) { actions.onAction(card.id, "unfold") }
       }
       // what a tap on the face or the name asks: "Why can't I see who wrote this?"
@@ -463,7 +493,9 @@ struct KLetterCardAccessibilityActions: ViewModifier {
 /// The docket's 40 square face slot (identity-plan §9), drawn while the identity switch is on:
 /// the frosted window filling it, or the flat veil tile for a deleted account. It can also hold
 /// the mosaic at 28 in a 2pt ln edge (or the mosaic veil), §9's switch-off slot, though the
-/// switch-off docket draws the old header instead. Decorative: the card's one VoiceOver label
+/// switch-off docket draws the old header instead. On her birthday letter it holds the reader's
+/// own courier (.bird: her snapshot, fitted whole, on no tile; nothing until one is captured).
+/// Decorative: the card's one VoiceOver label
 /// names the writer. The reply box (KReplyDock) draws the same face smaller (`side` 22, and 30 in
 /// its full page's quote): everything in it scales with the side, the corners a quarter of it.
 struct KCardFaceSlot: View {
@@ -491,6 +523,8 @@ struct KCardFaceSlot: View {
         KFrost(theme: theme, spec: spec, size: side)
       case .frostVeil:
         KFrostVeil(theme: theme, size: side)
+      case let .bird(ref):
+        KImage(ref, size: CGSize(width: side, height: side), contentMode: .fit, placeholder: .clear)
       }
     }
     .frame(width: side, height: side)

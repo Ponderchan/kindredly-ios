@@ -443,6 +443,14 @@ export function TodayRN({ model }: { model: TodayModel }) {
   useLang();
   const { t: tk, dark, key: themeKey } = useTheme();
   const { view, act } = model;
+  /* her birthday letter (owner's audit, 2026-11-10) is the Swift desk's: this fallback has no card
+     for it and says so, so the model never offers it here and the desk stays exactly as it was
+     (without this the model would hold a birthday's desk at loading, waiting for a renderer) */
+  const wrenCardHost = act.wrenCardHost;
+  useEffect(() => {
+    wrenCardHost(false);
+    return () => wrenCardHost(null);
+  }, [wrenCardHost]);
   const insets = useScreenInsets();
   const win = useWindowDimensions();
   const navigation = useNavigation();

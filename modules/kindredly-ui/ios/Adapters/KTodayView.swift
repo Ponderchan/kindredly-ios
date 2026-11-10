@@ -45,6 +45,11 @@ import ExpoUI
    (five seconds; "" otherwise): the desk stands the Undo capsule over the band (strings.undo,
    strings.undoHint), and its tap is onTodayBringBack. strings.who* are the words of the sheet a
    card's face and name open (Portable's own sheet; with whoTitle "" they take no tap)
+ - wrenCard (owner's audit, 2026-11-10): her birthday letter (KTodayWrenCardRecord; an empty id is
+   none), which this file stands before `cards` as the first card. It passes through onTodayPass
+   with its own id, and its REPLY comes back as onTodayCardAction "wren". TS asks whether this
+   binary has the prop (getViewConfig's validAttributes) before it offers the letter, so the
+   prop's name is what an older binary is told apart by: don't rename it
 
  Commands (KCommandBus):
  - setText { target: "reply", value }   seed the reply field (the bound letter's draft)
@@ -64,7 +69,8 @@ import ExpoUI
  - onTodayReplyFocus { focused }        reply mode (the chat composers' A1, owner 2026-10-18): TS
                                         slides the tab bar away while it is true (another Host)
  - onTodayCardAction { letterId, action }   unfold | translate | report | block | voice | help (the
-                                            "who is this" sheet's link to the Help page)
+                                            "who is this" sheet's link to the Help page) | wren
+                                            (REPLY on her birthday letter: TS opens her room)
  - onTodayStampMenu { letterId, action }    a stranger's photo stamp, long-pressed: keep | report
 
  Unknown enum strings fall back rather than fail (a capsule kind this binary doesn't know draws
@@ -177,6 +183,48 @@ struct KTodayCardRecord: Record {
     m.replyPlaceholder = replyPlaceholder
     m.replyingTo = replyingTo
     m.paper = KPaper(key: paper)
+    return m
+  }
+}
+
+/// Her birthday letter (today-cards WrenCardVM with her picture; owner's audit, 2026-11-10): the
+/// card that stands before the day's letters on the reader's birthday. An empty id is none.
+struct KTodayWrenCardRecord: Record {
+  @Field var id: String = ""
+  /// her name, as the reader named her
+  @Field var name: String = ""
+  /// "NOV.10"
+  @Field var when: String = ""
+  /// the switch-off docket line ("NOV.10 · PIP"); "" with the identity switch on
+  @Field var postmark: String = ""
+  /// her lines, one per line
+  @Field var body: String = ""
+  /// "— Pip"
+  @Field var sign: String = ""
+  @Field var bodySize: Double = 21
+  @Field var bodyLine: Double = 33
+  /// the day's letters are done behind it: passing it ends the day
+  @Field var ends: Bool = false
+  @Field var a11yLabel: String = ""
+  /// her picture (an empty uri: none captured yet)
+  @Field var bird: KImageRefRecord = KImageRefRecord()
+
+  /// The card as the desk draws it, or nil for none.
+  var model: KLetterCardModel? {
+    guard !id.isEmpty else { return nil }
+    var m = KLetterCardModel()
+    m.id = id
+    m.wren = true
+    m.who = KCardWho(name: name, face: .bird(bird.ref))
+    m.when = when
+    m.postmark = postmark
+    m.body = body
+    m.sign = sign
+    m.bodySize = CGFloat(bodySize)
+    m.bodyLine = CGFloat(bodyLine)
+    m.bodyCenter = false
+    m.endsDay = ends
+    m.a11yLabel = a11yLabel
     return m
   }
 }
@@ -408,6 +456,9 @@ final class KTodayViewProps: KScreenProps {
   @Field var wren: KTodayWrenRecord = KTodayWrenRecord()
   /// undo after Next: the letter just passed while its Undo capsule is up, "" otherwise
   @Field var undoId: String = ""
+  /// her birthday letter, standing before `cards` (an empty id: none). TS probes for this prop by
+  /// name before offering the letter: keep the name
+  @Field var wrenCard: KTodayWrenCardRecord = KTodayWrenCardRecord()
 
   var onTodayPass = EventDispatcher()
   var onTodayBringBack = EventDispatcher()
@@ -496,7 +547,9 @@ struct KTodayView: ExpoSwiftUI.View {
     content.leftA11y = props.leftA11y
     content.desk = props.desk.map(\.tick)
     content.deskAt = props.deskAt
-    content.cards = props.cached("cards") { props.cards.map(\.model) }
+    let letters = props.cached("cards") { props.cards.map(\.model) }
+    // her birthday letter stands first, before the day's letters (it isn't one of them: not in rev's cards)
+    content.cards = props.wrenCard.model.map { [$0] + letters } ?? letters
     content.titleLocked = props.titleLocked
     content.freshUnfold = props.freshUnfold
     content.arrivalLine = props.arrivalLine

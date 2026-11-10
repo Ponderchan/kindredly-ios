@@ -10,7 +10,9 @@ import {
   type KTodayStrings,
   type KTodayWindow,
   type KTodayWren,
+  type KTodayWrenCard,
   type KTodayWrenLetter,
+  todayDrawsWrenCard,
 } from "../../../modules/kindredly-ui/src/Today";
 import { SurfaceHost } from "../../components/NativeSurface";
 import { useLetterFont, useTheme } from "../../lib/theme";
@@ -59,6 +61,12 @@ import type { TodayModel } from "./useTodayDesk";
      Undo capsule is up (the model counts the five seconds; the capsule's tap
      is bring back), and the words of the sheet a card's face and name open
      (the Help page's own; its link comes back as the card action "help");
+   - her birthday letter (owner's audit, 2026-11-10): this renderer tells the
+     model whether it can draw it (act.wrenCardHost: this binary's KTodayView
+     has the prop), and when the model then puts it up (view.wrenCard) sends
+     it as `wrenCard` with her own picture (her delight face, as when she is
+     tapped). Swift stands it before the cards; its pass and its REPLY (the
+     card action "wren") come back through the same events as any card's;
    - and the field's focus to the tab bar: writing back (the chat composers'
      A1, owner 2026-10-18) is the field having the keyboard, and while it
      does the floating tab bar slides away (useTabBarAway), since the
@@ -248,6 +256,34 @@ export function TodayNative({ model }: { model: TodayModel }) {
   const birds = useTodayBirds({ wilt: view.wren.wilt, stage: view.wren.stage });
   const wren = useSame<KTodayWren>({ rest: view.wren.rest, carry: view.wren.carry, reader: view.readerId != null, a11y: view.wren.a11y, name: view.wren.name });
 
+  /* her birthday letter: say once whether this binary's Swift desk can draw it (the model holds a
+     birthday's desk at loading until a renderer has spoken, and offers the letter only to one that
+     can); taken back when this renderer goes */
+  const wrenCardHost = act.wrenCardHost;
+  useEffect(() => {
+    wrenCardHost(todayDrawsWrenCard());
+    return () => wrenCardHost(null);
+  }, [wrenCardHost]);
+  const wc = view.wrenCard;
+  // with the identity switch on the card draws the §9 header (her picture, her name, the date); off, the old docket line
+  const wrenCard = useSame<KTodayWrenCard | null>(
+    wc
+      ? {
+          id: wc.id,
+          name: wc.name,
+          when: wc.when,
+          postmark: identity ? "" : wc.postmark,
+          body: wc.body,
+          sign: wc.sign,
+          bodySize: wc.bodySize,
+          bodyLine: wc.bodyLine,
+          ends: wc.ends,
+          a11yLabel: wc.a11yLabel,
+          bird: birds.delight ?? birds.idle,
+        }
+      : null,
+  );
+
   return (
     <View style={{ flex: 1 }}>
       <SurfaceHost field>
@@ -275,6 +311,7 @@ export function TodayNative({ model }: { model: TodayModel }) {
           hideBand={view.hideBand}
           wren={wren}
           undoId={view.undo}
+          wrenCard={wrenCard}
           onPass={act.pass}
           onBringBack={act.bringBack}
           onReplyOpen={act.replyOpen}

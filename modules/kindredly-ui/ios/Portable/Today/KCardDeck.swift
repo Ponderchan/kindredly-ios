@@ -64,6 +64,14 @@ import SwiftUI
  same bring back, asked for within five seconds of the pass: nothing new here. Tapped while the
  pass is still animating, the reverse simply waits for the end of the transition, as above.
 
+ HER BIRTHDAY LETTER (owner's audit, 2026-11-10) is one more card, the first in content.cards
+ (KLetterCardModel.wren), and the deck treats it as any card: the drag, NEXT, the reconcile (her
+ letter arriving in front of a shown card, or brought back by Undo, plays the brought-back
+ reverse). Three things differ on its pass, since it isn't one of the day's letters: NEXT's count
+ doesn't drop (no pendingLeft), it isn't remembered as the last letter passed (so the first of
+ what she brought back can still unfold after it), and the beat says "last" by the card's own
+ endsDay (TS: the day's letters are done behind it), not by whether a card follows.
+
  HOW THE MOTION IS BUILT. The card's pose (offset, scale, opacity) is the deck's state, applied
  inside the card's identity (.id(letter id)), so the finger and the out-animation move the view
  that is on screen. The card coming in is a new identity, and its starting pose is its insertion
@@ -384,13 +392,17 @@ struct KCardDeck: View {
     NSLog("[KCardDeck] pass %@ via %@ left=%ld", out.id, trigger.description, content.left)
     #endif
     let gen = begin()
-    deck.pendingLeft = max(0, content.left - 1)
+    // her birthday letter isn't one of the day's letters: the count stays, and it isn't "the last
+    // letter passed" (see the top)
+    if !out.wren {
+      deck.pendingLeft = max(0, content.left - 1)
+      box.lastPassed = out.id
+    }
     box.pending = out.id
-    box.lastPassed = out.id
     box.pendingSerial &+= 1
     let serial = box.pendingSerial
     actions.onPass(out.id)
-    deck.emit(.passed(last: next == nil))
+    deck.emit(.passed(last: out.wren ? out.endsDay && next == nil : next == nil))
     // Wren straightens up
     withAnimation(KTodayMotion.springBack) {
       motion.dragging = false

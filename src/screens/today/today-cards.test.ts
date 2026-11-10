@@ -3,7 +3,11 @@
    done, the relaunch), undo after Next (owner's audit, 2026-11-10: the five
    seconds, the most recent pass only, and how it follows every move on the
    saved day), Next's ring (the desk in reading order, an answered
-   letter kept in its place), left as the desk's own intersection, the seal held
+   letter kept in its place; and with her birthday letter standing before the
+   desk, owner's audit 2026-11-10: no tick for it, no letter of the desk on
+   screen), her birthday letter itself (its lines with the one counted line
+   and its forms for one, none and unknown, the card, its Undo; the day is
+   lib/birthday-core's own test), left as the desk's own intersection, the seal held
    against the desk, how a load deals, her counted letter and the window,
    how Wren rests on the band (her night hours, her hunger), the card both
    renderers draw (its who slot with the identity switch off — exactly
@@ -295,6 +299,59 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   const blocked = M.dropAuthor(M.markSeen(M.passLetter(M.markSeen(recOf(), "a").rec, "a"), "b").rec, "author-a");
   ok("ring: a passed letter whose writer was blocked stays read", show(ticks(blocked)) === "a:r,b:r,c:u@1");
   ok("ring: an empty desk is an empty ring", show(M.deskTicks(M.emptyDay(TODAY), [])) === "@0");
+
+  // her birthday letter stands before the desk (owner's audit, 2026-11-10): it has no tick, and no letter of the desk is on screen
+  const before = (r: import("./today-cards").DayRecord) => M.deskTicks(r, M.unpassed(r.desk, r.passed).map((l) => l.id), { before: true });
+  ok("ring, her letter first: a fresh desk is all unread, no place yet", show(before(recOf())) === "a:u,b:u,c:u@-1");
+  const mid = M.markSeen(M.passLetter(M.markSeen(recOf(), "a").rec, "a"), "b").rec;
+  ok("ring, her letter first: what went past stays read, a letter seen earlier too, the place is the last one past", show(before(mid)) === "a:r,b:r,c:u@0");
+  const midUnseen = M.passLetter(M.markSeen(recOf(), "a").rec, "a");
+  ok("ring, her letter first: the next letter isn't read until it has been on screen", show(before(midUnseen)) === "a:r,b:u,c:u@0");
+  const allGone = M.passLetter(M.passLetter(M.passLetter(recOf(), "a"), "b"), "c");
+  ok("ring, her letter first over a finished desk: every tick behind, the place on the last (Next shows its ✓)", show(before(allGone)) === "a:r,b:r,c:r@2");
+  ok("ring, her letter first: the same ids, in the same order, as without it", before(mid).desk.map((d) => d.id).join() === ticks(mid).desk.map((d) => d.id).join());
+  ok("ring, her letter first over an empty desk: an empty ring", show(M.deskTicks(M.emptyDay(TODAY), [], { before: true })) === "@-1");
+}
+
+/* ── her birthday letter (owner's audit, 2026-11-10) ── */
+{
+  ok("her card's id carries the year and is told from a letter's", M.wrenCardId(2026) === "wren-birthday-2026" && M.isWrenCardId("wren-birthday-2026") && !M.isWrenCardId("a") && !M.isWrenCardId("") && !M.isWrenCardId(null) && !M.isWrenCardId("demo-wren"));
+  ok("lines: hello, kept, cake, then the count", M.wrenCardLines(14, t).join("|") === "bd.hello|bd.kept|bd.cake|bd.under.N(n=14)");
+  ok("lines: two is the first plural", M.wrenCardLines(2, t)[3] === "bd.under.N(n=2)");
+  ok("lines: one has its own line, with no number in it", M.wrenCardLines(1, t)[3] === "bd.under.1");
+  ok("lines: none has its own line", M.wrenCardLines(0, t)[3] === "bd.under.0");
+  ok("lines: unknown (no desk to count) leaves the line out, never a guess", M.wrenCardLines(null, t).join("|") === "bd.hello|bd.kept|bd.cake");
+  ok("lines: three to five short sentences", [null, 0, 1, 15].every((n) => M.wrenCardLines(n, t).length >= 3 && M.wrenCardLines(n, t).length <= 5));
+
+  // the postmark formats an instant in the reader's zone: the card's date must be the birthday itself
+  const dayFmt = { t, postmark: (iso: string) => { const d = new Date(iso); return `${d.getMonth() + 1}/${d.getDate()}`; } };
+  const card = M.buildWrenCard({ name: "Pip", day: { y: 2026, m: 11, d: 10 }, under: 14, ends: false }, dayFmt);
+  ok("card: its id is the year's", card.id === "wren-birthday-2026");
+  ok("card: her name, as the reader named her", card.name === "Pip");
+  ok("card: the date is the birthday, like any letter's", card.when === "11/10");
+  ok("card: the switch-off docket line, the date and her name in capitals", card.postmark === "11/10 · PIP");
+  ok("card: the body is the lines, one per line", card.body === "bd.hello\nbd.kept\nbd.cake\nbd.under.N(n=14)" && card.lines.length === 4);
+  ok("card: signed with her whole name", card.sign === "bd.sign(name=Pip)");
+  ok("card: a letter's tier, never the telegram's 30pt", card.bodySize === 21 && card.bodyLine === 33);
+  ok("card: not the end of the day while letters wait under it", card.ends === false);
+  ok("card: VoiceOver hears who, when, the lines and the sign-off", card.a11yLabel === "wl.a11y(name=Pip). 11/10. bd.hello. bd.kept. bd.cake. bd.under.N(n=14). bd.sign(name=Pip)");
+  const twoWords = M.buildWrenCard({ name: "Sunday Kite", day: { y: 2027, m: 1, d: 1 }, under: 0, ends: true }, dayFmt);
+  ok("card: a two-word name, the first of January, a finished desk", twoWords.id === "wren-birthday-2027" && twoWords.when === "1/1" && twoWords.postmark === "1/1 · SUNDAY KITE" && twoWords.ends && twoWords.lines[3] === "bd.under.0");
+  const offline = M.buildWrenCard({ name: "Pip", day: { y: 2028, m: 2, d: 29 }, under: null, ends: false }, dayFmt);
+  ok("card: offline with nothing kept, three lines and still a letter's tier", offline.lines.length === 3 && offline.bodySize === 21 && offline.when === "2/29");
+  // real sentences end in a full stop: VoiceOver's label doesn't double it
+  const real = M.buildWrenCard({ name: "Pip", day: { y: 2026, m: 11, d: 10 }, under: 1, ends: false }, { ...dayFmt, t: (k: string, v?: Record<string, string | number>) => (k === "bd.sign" ? `— ${v?.name}` : k === "wl.a11y" ? `A letter from ${v?.name}` : `${k}.`) });
+  ok("card: VoiceOver's label has no doubled full stop", !real.a11yLabel.includes("..") && real.a11yLabel.startsWith("A letter from Pip. 11/10. bd.hello. ") && real.a11yLabel.endsWith("— Pip"));
+
+  // its Undo: the offer is hers, for five seconds, while a letter came up after it
+  const offer = { id: M.wrenCardId(2026), until: 1000 + M.UNDO_MS };
+  ok("undo: up for her letter while the desk is reading", M.wrenUndoOpen({ offer, phase: "reading", now: 2000 }));
+  ok("undo: gone when the five seconds are up", !M.wrenUndoOpen({ offer, phase: "reading", now: 1000 + M.UNDO_MS }));
+  ok("undo: not when hers was the last card (the day is done)", !M.wrenUndoOpen({ offer, phase: "done", now: 2000 }));
+  ok("undo: not while something is in the way", !M.wrenUndoOpen({ offer, phase: "reading", now: 2000, away: true }));
+  ok("undo: a stranger's offer is not hers, and none is none", !M.wrenUndoOpen({ offer: { id: "a", until: 9999 }, phase: "reading", now: 2000 }) && !M.wrenUndoOpen({ offer: null, phase: "reading", now: 2000 }));
+  // and the record's own rule never opens for her id (it was never on the record)
+  ok("undo: the record's rule doesn't know her letter", !M.undoOpen({ offer, rec: M.passLetter(recOf(), "a"), phase: "reading", now: 2000 }));
 }
 
 /* ── her letter ── */

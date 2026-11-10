@@ -58,6 +58,9 @@ public struct KCardWho: Equatable, Sendable {
     case veil
     /// a deleted account, switch on: the flat veil tile
     case frostVeil
+    /// her birthday letter (owner's audit, 2026-11-10): the reader's own courier, her picture as
+    /// TS captured it (she is never redrawn here); nil while none is captured yet (an empty slot)
+    case bird(KImageRef?)
   }
 
   /// "No. 7273", "Sunday Kite", UNSIGNED: one line, never truncated (the 165pt gate)
@@ -119,6 +122,19 @@ public struct KLetterCardModel: Identifiable, Equatable, Sendable {
   /// the paper the writer picked (KPaper(key:) of TS's id): Plain, the card as it always was, for
   /// none or anything unknown
   public var paper: KPaper = .plain
+  /// HER BIRTHDAY LETTER (owner's audit, 2026-11-10): this card is the reader's courier's own, the
+  /// first card on their birthday, not one of the day's letters. It is drawn on the same sheet
+  /// with her picture as the face (who.face .bird), her name and the date, her lines (`body`) and
+  /// her sign-off (`sign`) fitted to the card, and no stamp, no ⋯ and no foot; the face and the
+  /// name take no tap. A pass doesn't count against the day (no pendingLeft), and REPLY reports
+  /// the card action "wren" instead of opening the reply box (TS opens her room)
+  public var wren = false
+  /// her sign-off under her lines ("— Pip"); "" on every other card
+  public var sign = ""
+  /// her letter only: nothing comes after it and the day's letters are done, so passing it ends
+  /// the day (the deck's beat says last). False when it is alone over an offline desk: passing it
+  /// then shows the offline card, not the day's end
+  public var endsDay = false
 
   public init() {}
 }
@@ -301,7 +317,8 @@ public struct KTodayContent: Equatable, Sendable {
   public var left = 0
   /// VoiceOver for NEXT: "Next letter. 3 left today."
   public var leftA11y = ""
-  /// the letters not passed yet, the one on screen first
+  /// the letters not passed yet, the one on screen first. On the reader's birthday her letter
+  /// (KLetterCardModel.wren) stands first, before the day's letters; `left` and `desk` don't count it
   public var cards: [KLetterCardModel] = []
   /// today's whole desk in reading order for Next's ring: what went past first (passed or answered,
   /// in the order they came on screen), then the letter on screen, then the rest (up to 15)

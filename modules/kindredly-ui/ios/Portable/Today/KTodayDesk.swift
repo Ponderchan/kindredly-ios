@@ -94,6 +94,10 @@ import SwiftUI
    sheet with the Help page's own answer; its quiet link goes to TS as the card action "help"
    once the sheet is down. Wren on the band already answered a tap (she hops), so she is as
    she was.
+ - HER BIRTHDAY LETTER. On the reader's birthday TS puts a letter from their courier first in
+   content.cards (KLetterCardModel.wren; KLetterCard draws it on the same sheet). The desk treats
+   it as the card on screen in every way but one: REPLY (the band's, and VoiceOver's "Write
+   back") doesn't open the reply box, it reports the card action "wren", and TS opens her room.
  */
 
 // MARK: - Geometry
@@ -434,6 +438,11 @@ public struct KTodayDesk: View {
   /// REPLY and the card's "Write back": only for the card on screen, while it can be answered.
   private func reply(_ id: String) {
     guard id == deck.shownId, content.phase == .reading, deckEnabled else { return }
+    // her birthday letter: her room, never the reply box (there is no stranger to answer)
+    if shownCard?.wren == true {
+      actions.onCardAction(id, "wren")
+      return
+    }
     dock.reply.focus()
     deck.emit(.replyOpened)
     actions.onReplyOpen(id)

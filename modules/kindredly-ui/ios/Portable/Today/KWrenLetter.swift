@@ -565,3 +565,71 @@ private struct KWrenFootGlyph: Shape {
     return p
   }
 }
+
+/*
+ HER BIRTHDAY LETTER'S WORDS (owner's audit, 2026-11-10): the body of the letter card that stands
+ first on the reader's birthday (KLetterCard, card.wren; every word TS's, today-cards
+ buildWrenCard). Here, beside her evening letter, because it is hers: her lines, one sentence to a
+ line, in the reader's Letter font at the letter's own tier (TS's bodySize and bodyLine, as any
+ letter of its length: 21 on 33), set from the left, then her sign-off with her foot after it, as
+ she signs her evening letter.
+
+ A stranger's letter that doesn't fit is folded and opens in the reader. Hers is a handful of
+ lines and has no reader to open in, so it is fitted instead: tried at its tier, then at .9, .8
+ and .7 of it (the leading scaled with it), the first that fits the card's room wins, centred in
+ that room as a letter that fits is. If even the smallest doesn't fit (the largest text sizes on
+ a small phone) it scrolls in place at that size, so no word is ever cut; the text stops growing
+ at accessibility2, like the docket above it. VoiceOver reads the card's one label (KLetterCard).
+ */
+struct KWrenCardText: View {
+  /// the sizes tried, as shares of the letter's tier (21/33, then about 19/30, 17/26, 15/23)
+  static let steps: [CGFloat] = [1, 0.9, 0.8, 0.7]
+  /// between her last line and her sign-off, at the tier's own size
+  static let signGap: CGFloat = 14
+
+  let theme: KTheme
+  let card: KLetterCardModel
+
+  var body: some View {
+    ViewThatFits(in: .vertical) {
+      ForEach(Self.steps, id: \.self) { step in
+        letter(step)
+      }
+      // nothing fits: the smallest, scrolling in place (a different child from the last try above)
+      ScrollView(.vertical) {
+        letter(Self.steps.last ?? 1)
+      }
+      .scrollBounceBehavior(.basedOnSize)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+  }
+
+  /// her lines and her sign-off at one step of the tier, as tall as they are
+  private func letter(_ step: CGFloat) -> some View {
+    let size = (card.bodySize * step).rounded()
+    let line = card.bodySize > 0 ? card.bodyLine * size / card.bodySize : card.bodyLine
+    let style = KTextStyle.letterRead(size, lineHeight: size > 0 ? line / size : nil, place: .todayCard)
+    return VStack(alignment: .leading, spacing: Self.signGap * step) {
+      Text(card.body)
+        .kText(style)
+        .foregroundStyle(theme.ink)
+        .multilineTextAlignment(.leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
+      if !card.sign.isEmpty {
+        HStack(alignment: .center, spacing: 8) {
+          Text(card.sign)
+            .kText(style)
+            .foregroundStyle(theme.ink)
+            .fixedSize(horizontal: false, vertical: true)
+          KWrenFootGlyph()
+            .stroke(theme.ink, style: StrokeStyle(lineWidth: KWrenFootGlyph.lineWidth * step, lineCap: .round))
+            .frame(width: 20 * step, height: 16 * step)
+        }
+      }
+    }
+    // the letter's own side padding on the card (KCardText)
+    .padding(.horizontal, 10)
+  }
+}

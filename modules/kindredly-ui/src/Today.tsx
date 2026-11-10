@@ -1,4 +1,4 @@
-import { requireNativeView } from "expo";
+import { requireNativeView, requireOptionalNativeModule } from "expo";
 import { forwardRef, memo, useMemo, type Ref } from "react";
 import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
@@ -27,7 +27,15 @@ import { nativeFrost, type KFrost, type KImageRefProps, type KInsets, type KMark
 
    Owner's audit, 2026-11-10: `undoId` + strings.undo (the Undo capsule over the band for five
    seconds after a pass; its tap is onBringBack) and strings.who* (the sheet a card's face and name
-   open; its link comes back as the card action "help"). */
+   open; its link comes back as the card action "help").
+
+   Her birthday letter (owner's audit, 2026-11-10): `wrenCard`, a letter from the reader's courier
+   that Swift stands BEFORE `cards` as the card on screen (her own picture where a face is, her
+   name, the date, her lines and her sign-off, on the same letter sheet; no stamp, no ⋯, no foot).
+   It passes like any card (onPass with its id) and its REPLY comes back as the card action "wren"
+   (TS opens her room). It is not one of `cards`, so `left`, the ring and `rev` don't know it. A
+   binary built before it has no such prop and would never draw it, so TS only offers it after
+   todayDrawsWrenCard() says this binary's KTodayView takes it. */
 
 /** The one capsule slot at a card's foot. */
 export type KTodayCapsule = {
@@ -93,6 +101,29 @@ export type KTodayCard = {
   /** the letter's paper id ("plain", "grid", "kraft", "airmail", "receipt", "sticky", "riso"; src/data/papers.ts):
       Swift draws the card on it (KPaper); always present, "plain" (or anything unknown) is the card as it always was */
   paper: string;
+};
+
+/** Her birthday letter (today-cards WrenCardVM, with her picture): the card Swift stands before the day's letters. */
+export type KTodayWrenCard = {
+  /** "wren-birthday-2026": what onPass and the card action carry */
+  id: string;
+  /** her name, as the reader named her */
+  name: string;
+  /** "NOV.10" */
+  when: string;
+  /** the identity switch off: the docket line as the other cards draw it ("NOV.10 · PIP"); "" with it on */
+  postmark: string;
+  /** her lines, one per line */
+  body: string;
+  /** "— Pip", under the lines */
+  sign: string;
+  bodySize: number;
+  bodyLine: number;
+  /** nothing comes after it and the day's letters are done: passing it ends the day */
+  ends: boolean;
+  a11yLabel: string;
+  /** her picture (a BirdSnapshots capture: she is never redrawn in Swift); null while none is captured yet */
+  bird: KImageRefProps | null;
 };
 
 /** One letter of today's desk for Next's ring (today-cards DeskTick): Swift's band draws a tick per
@@ -218,8 +249,9 @@ export type KTodayCommands = Omit<KStandardCommands, "scrollTo" | "composer" | "
   playback: { key: string; playing: boolean; positionS: number; durationS: number; at: number; failed: boolean };
 };
 
-/** "help": the "who is this" sheet's quiet link (owner's audit, 2026-11-10); the sheet itself is Swift's own. */
-export type KTodayCardAction = "unfold" | "translate" | "report" | "block" | "voice" | "help";
+/** "help": the "who is this" sheet's quiet link (owner's audit, 2026-11-10); the sheet itself is Swift's own.
+    "wren": REPLY on her birthday letter (TS opens her room). */
+export type KTodayCardAction = "unfold" | "translate" | "report" | "block" | "voice" | "help" | "wren";
 
 export type KTodayViewProps = CommonViewModifierProps &
   KScreenBaseProps & {
@@ -252,6 +284,10 @@ export type KTodayViewProps = CommonViewModifierProps &
         counts the five seconds and every reason it goes early), "" otherwise. The capsule's tap is
         onBringBack. A binary without the capsule ignores it: the ⋯'s "Bring back the last letter" is still there */
     undoId?: string;
+    /** her birthday letter (owner's audit, 2026-11-10), standing before `cards` as the card on screen; null or
+        absent for none. Offer it only when todayDrawsWrenCard() is true: an older binary ignores the prop, and
+        TS would be waiting on a card nobody drew */
+    wrenCard?: KTodayWrenCard | null;
     onPass?: (letterId: string) => void;
     /** the ⋯'s Bring back the last letter, and the Undo capsule */
     onBringBack?: () => void;
@@ -282,11 +318,15 @@ type NativeBirds = { idle: NativeImageRef; curious: NativeImageRef; delight: Nat
 
 type Handlers = "onPass" | "onBringBack" | "onReplyOpen" | "onWindow" | "onArrivalDismiss" | "onReplyChange" | "onReplySend" | "onReplyFocus" | "onCardAction" | "onStampMenu";
 
-type NativeKTodayViewProps = Omit<KTodayViewProps, "letterFont" | "insets" | "rev" | "cards" | "birds" | Handlers> &
+/** Her birthday letter as the Swift record wants it: always present, an empty id for none. */
+type NativeWrenCard = Omit<KTodayWrenCard, "bird"> & { bird: NativeImageRef };
+
+type NativeKTodayViewProps = Omit<KTodayViewProps, "letterFont" | "insets" | "rev" | "cards" | "birds" | "wrenCard" | Handlers> &
   Required<Pick<KTodayViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
     cards: NativeCard[];
     birds: NativeBirds;
+    wrenCard: NativeWrenCard;
     onTodayPass?: Ev<{ letterId: string }>;
     onTodayBringBack?: Ev<Record<string, never>>;
     onTodayReplyOpen?: Ev<{ letterId: string }>;
@@ -333,6 +373,36 @@ export function nativeTodayBirds(b: KTodayBirds): NativeBirds {
   return { idle: nativeRef(b.idle), curious: nativeRef(b.curious), delight: nativeRef(b.delight), sleepy: nativeRef(b.sleepy), fly: nativeRef(b.fly), flyIsPerch: b.flyIsPerch };
 }
 
+const NO_WREN_CARD: NativeWrenCard = { id: "", name: "", when: "", postmark: "", body: "", sign: "", bodySize: 21, bodyLine: 33, ends: false, a11yLabel: "", bird: nativeRef(null) };
+
+/** Her birthday letter as the Swift record wants it (none is an empty id, never null). */
+export function nativeTodayWrenCard(c: KTodayWrenCard | null | undefined): NativeWrenCard {
+  return c ? { ...c, bird: nativeRef(c.bird) } : NO_WREN_CARD;
+}
+
+/* Whether this binary's KTodayView can draw her birthday letter: it has the `wrenCard` prop. The
+   same question isKindredlyUIViewAvailable asks of a view, asked of one prop: expo's getViewConfig
+   lists the props the Swift view declares (validAttributes; expo-modules-core CoreModule.swift,
+   SwiftUIViewDefinition.getSupportedPropNames). A binary built before the letter answers false, and
+   TS then never offers it (the desk is exactly as it was). Asked once: a binary can't gain a prop
+   while it runs. */
+type ExpoGlobal = { getViewConfig?: (moduleName: string, viewName?: string) => { validAttributes?: Record<string, unknown> } | null | undefined };
+let drawsWrenCard: boolean | undefined;
+export function todayDrawsWrenCard(): boolean {
+  if (drawsWrenCard !== undefined) return drawsWrenCard;
+  let there = false;
+  try {
+    if (requireOptionalNativeModule("KindredlyUI") != null) {
+      const expo = (globalThis as { expo?: ExpoGlobal }).expo;
+      there = expo?.getViewConfig?.("KindredlyUI", "KTodayView")?.validAttributes?.wrenCard != null;
+    }
+  } catch (e) {
+    console.log("[kindredly-ui] could not ask KTodayView for wrenCard, her birthday letter stays off:", e);
+  }
+  drawsWrenCard = there;
+  return there;
+}
+
 // the view's JS name is the Swift struct's name (ios/Adapters/KTodayView.swift)
 const NativeKTodayView = requireNativeView<NativeKTodayViewProps>("KindredlyUI", "KTodayView");
 
@@ -341,11 +411,12 @@ const NativeKTodayView = requireNativeView<NativeKTodayViewProps>("KindredlyUI",
     view, whose every props update re-converts the whole map. */
 export const KTodayView = memo(
   forwardRef<KScreenHandle, KTodayViewProps>(function KTodayView(
-    { modifiers, letterFont, insets, rev, cards, birds, onPass, onBringBack, onReplyOpen, onWindow, onArrivalDismiss, onReplyChange, onReplySend, onReplyFocus, onCardAction, onStampMenu, ...rest },
+    { modifiers, letterFont, insets, rev, cards, birds, wrenCard, onPass, onBringBack, onReplyOpen, onWindow, onArrivalDismiss, onReplyChange, onReplySend, onReplyFocus, onCardAction, onStampMenu, ...rest },
     ref,
   ) {
     const sent = useMemo(() => nativeTodayCards(cards), [cards]);
     const pictures = useMemo(() => nativeTodayBirds(birds), [birds]);
+    const wrenLetter = useMemo(() => nativeTodayWrenCard(wrenCard), [wrenCard]);
     return (
       <NativeKTodayView
         ref={ref}
@@ -359,6 +430,7 @@ export const KTodayView = memo(
         rev={rev ?? 0}
         cards={sent}
         birds={pictures}
+        wrenCard={wrenLetter}
         onTodayPass={onPass ? (e) => onPass(e.nativeEvent.letterId) : undefined}
         onTodayBringBack={onBringBack ? () => onBringBack() : undefined}
         onTodayReplyOpen={onReplyOpen ? (e) => onReplyOpen(e.nativeEvent.letterId) : undefined}

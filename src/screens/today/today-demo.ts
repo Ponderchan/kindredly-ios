@@ -21,7 +21,10 @@ import { useMemoryDay, type TodayDeps, type TodaySource } from "./useTodayDesk";
    lib/flags, never her Live Activity), and the words of the letters are
    written here (they are other people's letters, not UI). Nothing on this
    page reaches the account signed in: not its flags, not its put-away
-   desk, not the lock screen.
+   desk, not the lock screen. Her birthday letter (owner's audit,
+   2026-11-10) is the page's own switch too (DemoWorld.birthday): the
+   signed-in account's birthday is never read here, and the year it was
+   read is never kept.
 
    The letters: a telegram the matcher named (auras close), a letter in
    Spanish the matcher also named (the translate capsule wins the slot), a
@@ -93,6 +96,9 @@ export type DemoWorld = {
   night: boolean;
   /** the paper every letter on the desk is drawn on (PAPER on the dev page; plain = each letter's own, none of the fixtures has one) */
   paper: PaperId;
+  /** it is the reader's birthday (BIRTHDAY on the dev page): her letter stands before the desk until it is passed.
+      Always said here, true or false, so the fixtures never read the signed-in account's own birthday */
+  birthday: boolean;
 };
 
 const recordOf = (day: DemoDay): DayRecord => ({ ...emptyDay(deskDay()), desk: day.desk, passed: day.passed, dealtAt: day.desk.length ? Date.now() : null, doneAt: day.doneAt });
@@ -121,6 +127,8 @@ export function useDemoSource(day: DemoDay, world: DemoWorld): TodaySource {
     canPlay: world.stage !== "egg" && !world.wilt,
     // 23:00 stands in for the clock: her night hours
     hour: world.night ? 23 : undefined,
+    // BIRTHDAY stands in for the profile and the calendar
+    birthday: world.birthday,
     fresh,
     sent: true,
     settleArrival,
@@ -135,6 +143,7 @@ const away = (what: string) => Alert.alert("Dev page", what);
 
 /** The pretend world: replies answer as `reply()` says, translations come from the fixture, a report
     or a block never reaches the server (a block still clears the writer's letters, through `blocked`),
+    her birthday letter is never remembered as read, its REPLY only says where it would go,
     and the day's seal lives in a Set here — lib/flags and her Live Activity in memory — so done
     behaves as on the tab (once per day; again once the desk is reading again, as the model lifts
     a stale seal) while the real flags, the real put-away desk and the lock screen are never touched.
@@ -171,6 +180,11 @@ export function demoDeps({ reply, blocked, fed }: { reply: () => DemoReply; bloc
       if (sealedDays.delete(day)) console.log(`[step5-today] the desk is reading again: the seal on ${day} was stale, lifted in memory`);
     },
     openWindow: () => away("In the app this opens her game (Courier, ?play=1)."),
+    /* her birthday letter: never read as far as this page remembers (the real flag, the account's
+       own, is not touched), so turning BIRTHDAY off and on brings it back; a pass only says so */
+    birthdayRead: async () => false,
+    birthdayMark: (year, read) => console.log(`[step5-today] her birthday letter of ${year}: ${read ? "passed (the app would remember it was read)" : "brought back by Undo"}; nothing kept`),
+    openWrenRoom: () => away("In the app REPLY on her birthday letter opens her room (/room/wren)."),
     intercept: (action, letter) => {
       if (action === "report") {
         away("A report would go to the server with this letter's words. Nothing was sent.");

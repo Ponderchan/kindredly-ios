@@ -38,6 +38,11 @@ const TOPIC_TAG_NEUTRAL = "#B9B5D0";
    - her counted letter when the desk is done (W33: every number on it is a
      count the phone holds; a zero gets its own sentence) and the window to
      her game, with its sky by the hour;
+   - her birthday letter (owner's audit, 2026-11-10): on the reader's
+     birthday (lib/birthday-core) the first card is a letter from their
+     courier, not one of the day's letters: its words, its one counted
+     line, how its Undo is offered, and Next's ring while it stands before
+     the desk;
    - Wren at rest on the band: sleepy in her night hours, wilted while
      she's starving;
    - the seal: what the day's sealed flag means against the desk (a flag
@@ -270,15 +275,22 @@ export type DeskTick = { id: string; state: "unread" | "read" | "replied" };
  * passed, the one on screen first. The letter on screen counts as read; so
  * does one further on that was already on screen (a reload that dealt it
  * behind the current one); the rest are unread.
+ *
+ * `before` (owner's audit, 2026-11-10): her birthday letter stands before
+ * the desk, so none of the desk's letters is on screen. It has no tick (it
+ * isn't one of the day's letters): the first letter not passed is read only
+ * if it was on screen earlier, and the place is the last letter that went
+ * past (−1 when none has), so the ring shows the day exactly as far as the
+ * reader has got with it.
  */
-export function deskTicks(rec: Pick<DayRecord, "passed" | "answered" | "seen">, unpassedIds: readonly string[]): { desk: DeskTick[]; at: number } {
+export function deskTicks(rec: Pick<DayRecord, "passed" | "answered" | "seen">, unpassedIds: readonly string[], o: { before?: boolean } = {}): { desk: DeskTick[]; at: number } {
   const replied = new Set(rec.answered);
   const gone = new Set([...rec.passed, ...rec.answered]);
   const seen = new Set(rec.seen);
   const order = [...rec.seen.filter((id) => gone.has(id)), ...rec.passed.filter((id) => !seen.has(id)), ...rec.answered.filter((id) => !seen.has(id))];
   const behind = order.map((id): DeskTick => ({ id, state: replied.has(id) ? "replied" : "read" }));
-  const ahead = unpassedIds.map((id, i): DeskTick => ({ id, state: i === 0 || seen.has(id) ? "read" : "unread" }));
-  return { desk: [...behind, ...ahead], at: behind.length };
+  const ahead = unpassedIds.map((id, i): DeskTick => ({ id, state: (i === 0 && !o.before) || seen.has(id) ? "read" : "unread" }));
+  return { desk: [...behind, ...ahead], at: o.before ? behind.length - 1 : behind.length };
 }
 
 /** The day's deal is done: nothing joins the desk until the morning. An empty deal stays open, so a quiet morning can still fill. */
@@ -515,6 +527,119 @@ export type WindowVM = { canPlay: boolean; eyebrow: string; line: string; a11yLa
 export function buildWindow({ canPlay, name, countdown, sky }: { canPlay: boolean; name: string; countdown: string; sky: WindowSky }, t: TFn): WindowVM {
   const line = canPlay ? t("win.fly", { name }) : `${t("cod.nextPost", { name: name.toLocaleUpperCase() })} ${countdown}`;
   return { canPlay, eyebrow: t("cod.wholePost"), line, a11yLabel: canPlay ? t("ff.title") : line, a11yHint: canPlay ? t("ff.hint") : "", sky };
+}
+
+/* ── her birthday letter (owner's audit, 2026-11-10) ──────────────────── */
+
+/* THE READER GAVE A BIRTHDAY IN ONBOARDING, and the old run promised
+   "whoever hatches keeps it, and writes to you on the day". On that day
+   (lib/birthday-core: the phone's own calendar, once a year, nothing sent
+   anywhere) the FIRST card on Today is a letter from their courier: her own
+   picture where a stranger's face is, the name the reader gave her, the
+   date like any letter, a few lines in the reader's Letter font, signed.
+   A letter, not a banner.
+
+   It stands BEFORE the day's letters and is not one of them: it is not on
+   the desk record, not in the day's count, not on Next's ring and not in
+   "left" (deskTicks' `before`). It passes with NEXT or a swipe like any
+   card, and REPLY opens her room instead of a stranger's thread. It has no
+   ⋯ (nothing to report or block), no stamp, no topic and no capsule. If the
+   day's letters are already done it still comes first, and passing it ends
+   the day as passing a last letter does (`ends`).
+
+   EVERY NUMBER IS REAL (owner). Its one counted line says how many
+   strangers' letters are under it: the letters on today's desk not yet
+   passed, which the phone holds and which are, literally, the cards under
+   hers. One and none have their own lines; when the phone doesn't know (an
+   offline cold start with nothing kept: no desk at all) the line is left
+   out, never guessed. The desk waits for the day's deal before showing her
+   letter (useTodayDesk), so the line doesn't arrive after the letter. */
+
+/** her birthday letter's id is this and the year ("wren-birthday-2026"): never a letter's uuid */
+export const WREN_CARD = "wren-birthday";
+export const wrenCardId = (year: number): string => `${WREN_CARD}-${year}`;
+export const isWrenCardId = (id: string | null | undefined): boolean => !!id && id.startsWith(WREN_CARD + "-");
+
+/**
+ * Her birthday letter, line by line: hello, how she knows, the small joke,
+ * then how many strangers' letters wait under hers. `under` is that count
+ * (the desk's letters not passed), or null when the phone doesn't know:
+ * the line is then left out.
+ */
+export function wrenCardLines(under: number | null, t: TFn): string[] {
+  const out = [t("bd.hello"), t("bd.kept"), t("bd.cake")];
+  if (under != null) out.push(under <= 0 ? t("bd.under.0") : under === 1 ? t("bd.under.1") : t("bd.under.N", { n: under }));
+  return out;
+}
+
+export type WrenCardVM = {
+  id: string;
+  /** her name, as the reader named her: the card's name line */
+  name: string;
+  /** "NOV.10": the day, as any letter's date */
+  when: string;
+  /** the identity switch off: the docket line as the other cards draw it, "NOV.10 · PIP" */
+  postmark: string;
+  /** the lines, in order */
+  lines: string[];
+  /** the lines as the card's one text, a line each */
+  body: string;
+  /** "— Pip", under the lines */
+  sign: string;
+  /** the letter's tier (lib/weighted-count letterTier of the lines, as any letter's) */
+  bodySize: number;
+  bodyLine: number;
+  /** nothing comes after it and the day's letters are done: passing it ends the day (the done flow plays) */
+  ends: boolean;
+  /** what VoiceOver reads for the whole card: "A letter from Pip. NOV.10. …the lines… — Pip" */
+  a11yLabel: string;
+};
+
+/**
+ * Her birthday letter as the Swift desk draws it. `day` is the birthday (the
+ * reader's calendar day: the card's date), `under` the strangers' letters
+ * not yet passed (null when the phone has no desk to count), `ends` whether
+ * the day's letters are done behind it. Set from the left like a letter,
+ * whatever its length (never the telegram's centred block).
+ */
+export function buildWrenCard(
+  { name, day, under, ends }: { name: string; day: { y: number; m: number; d: number }; under: number | null; ends: boolean },
+  fmt: Pick<TodayFormat, "t" | "postmark">,
+): WrenCardVM {
+  const { t } = fmt;
+  // noon of the day on the reader's clock: the postmark formats an instant, and noon is still that day
+  const when = fmt.postmark(new Date(day.y, day.m - 1, day.d, 12).toISOString());
+  const lines = wrenCardLines(under, t);
+  const body = lines.join("\n");
+  const sign = t("bd.sign", { name });
+  // a letter's tier at the least (letterTier's telegram ends at 100): three short lines, or a compact
+  // language, would otherwise weigh in as a telegram, 30pt and centred
+  const tier = letterTier(Math.max(weightedCount(body), 101));
+  return {
+    id: wrenCardId(day.y),
+    name,
+    when,
+    postmark: `${when} · ${name.toLocaleUpperCase()}`,
+    lines,
+    body,
+    sign,
+    bodySize: tier.size,
+    bodyLine: tier.line,
+    ends,
+    a11yLabel: [t("wl.a11y", { name }), when, ...lines, sign].filter(Boolean).map((part) => part.replace(/[.。]$/, "")).join(". "),
+  };
+}
+
+/**
+ * Whether the Undo capsule is up for her letter: it was the last thing
+ * passed (the offer is hers), the five seconds haven't run out, the desk is
+ * reading (a letter came up after hers; when hers was the last card the day
+ * is done and there is no capsule), and nothing is in the way. Bringing it
+ * back only forgets, on this phone, that this year's was read.
+ */
+export function wrenUndoOpen(a: { offer: UndoOffer | null; phase: DeskPhase; now: number; away?: boolean }): boolean {
+  const { offer } = a;
+  return !!offer && isWrenCardId(offer.id) && !a.away && a.phase === "reading" && a.now < offer.until;
 }
 
 /* ── Wren at rest on the band ─────────────────────────────────────────── */

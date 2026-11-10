@@ -20,7 +20,9 @@ import { lastLetterDay, noteWrote, replanLocal } from "../../lib/local-push";
 import { bump } from "../../lib/usage-counters";
 import { track } from "../../lib/track";
 import { screenNow, translate } from "../../lib/wren";
-import { ARRIVAL_AT_KEY, ARRIVAL_FRESH, ARRIVAL_SENT, getFlags, isSealed, sealDay, unsealDay, unsetFlag } from "../../lib/flags";
+import { ARRIVAL_AT_KEY, ARRIVAL_FRESH, ARRIVAL_SENT, birthdayLetterRead, getFlags, isSealed, markBirthdayLetter, sealDay, unsealDay, unsetFlag } from "../../lib/flags";
+import { birthdayLetter, calendarDay, isBirthday, sameCalendarDay } from "../../lib/birthday-core";
+import { onStorageUserChange } from "../../lib/scoped-store";
 import { useAuth } from "../../lib/auth";
 import { SEND_BEAT_MS } from "../../lib/net";
 import { DAY_LETTERS, MAX_IN_FLIGHT, inFlight, rationPool, type FlightThread } from "../../lib/ration";
@@ -51,6 +53,7 @@ import "../../data/strings-step5-today";
 import "../../data/strings-today3d";
 import "../../data/strings-step5-platform"; // cmp.emoji
 import "../../data/strings-identity2"; // id2.sheet.undo: "Undo", in all nine (the Undo capsule after Next)
+import "../../data/strings-audit-bdayletter"; // bd.*: her birthday letter's lines
 import * as C from "./today-cards";
 
 /* THE TODAY TAB'S MODEL (10a step 5; Today 3d × 25b, 2026-10-16):
@@ -99,6 +102,37 @@ import * as C from "./today-cards";
      card now opens a small sheet there with the Help page's own two answers
      (hp.q2 / hp.a2, hp.q3 / hp.a3: no new words) and a quiet link to that
      page (the card action "help" → deps.openHelp).
+
+   HER BIRTHDAY LETTER (owner's audit, 2026-11-10). The reader gave a
+   birthday in onboarding and was promised a letter on the day; on that day
+   the first card on Today is one from their courier (today-cards
+   buildWrenCard has what it is; lib/birthday-core the day and the
+   once-a-year rule). What this file does about it:
+   - It is decided on the phone and nothing is sent: the birthday is the
+     profile's (auth's profile.dob, a guest's own answers included), the
+     calendar is the phone's, and the year it was read is a flag in the
+     account's bucket (deps.birthdayRead / birthdayMark; lib/flags).
+   - It is the view's, never the record's: view.wrenCard carries the letter
+     while it is up, view.cards stay the strangers' letters, and `left`,
+     Next's ring and her evening count don't know it. While it is up no
+     stranger's letter is on screen, so `current` is null: nothing is counted
+     seen, no read receipt goes, the reply is bound to nothing.
+   - It comes FIRST or not at all under a thumb: the day the rule reads is
+     taken when the tab is opened (and when the desk's day turns), never
+     mid-read at midnight; and while the phone hasn't yet said whether this
+     year's was read, or which renderer is drawing, the view says loading
+     rather than show a stranger's letter and then push hers in front.
+   - Only a renderer that can draw it gets it (act.wrenCardHost): the Swift
+     desk when this binary's KTodayView has the prop, never the React Native
+     fallback, which keeps the desk exactly as it was.
+   - The desk's first load is waited for (the loading card, as always), so
+     her counted line is there when the letter is; an offline cold start
+     shows it without that line. If the day's letters are done it still
+     comes first: the view says reading with her card alone.
+   - A pass marks the year read at once (it does not come back that day, or
+     on a relaunch) and starts the Undo capsule's five seconds like any
+     pass; Undo forgets the mark. REPLY is the card action "wren":
+     deps.openWrenRoom (her room, /room/wren).
 
    LEGACY: until integrate and rn-fallback rewire TodayNative / TodayRN /
    TodayOverlays, the view also carries what the step-5 scroll stack and
@@ -209,6 +243,9 @@ export type TodaySource = {
   demoAllowed: boolean;
   /** dev: the hour her face, her yawn and the window's sky read instead of the clock's (the dev page's NIGHT); never set in the app */
   hour?: number;
+  /** dev: whether today is the reader's birthday, instead of the profile and the calendar (the dev page's BIRTHDAY,
+      so the fixtures never read the signed-in account's date); never set in the app */
+  birthday?: boolean;
 };
 
 /** What the matcher answered: its writers' scores, and their letters (the narrowed second fetch). */
@@ -497,6 +534,12 @@ export type TodayDeps = {
   openWindow: () => void;
   /** the "who is this" sheet's quiet link: How It Works, in the Me tab's stack (absent on the dev page: the link does nothing there) */
   openHelp?: () => void;
+  /** whether this year's birthday letter was already read on this phone, for this account (lib/flags; never a server) */
+  birthdayRead: (year: number) => Promise<boolean>;
+  /** her birthday letter was passed (`read`), or brought back by Undo (not read): kept on the phone only */
+  birthdayMark: (year: number, read: boolean) => void;
+  /** REPLY on her birthday letter: her room (/room/wren) */
+  openWrenRoom: () => void;
   /** dev: a report or block that shouldn't reach the server; return true when handled */
   intercept?: (action: "report" | "block", letter: PoolLetter) => boolean;
   /** dev: pretend to be a guest (null: ask the session) */
@@ -537,6 +580,9 @@ export function useRealTodayDeps(): TodayDeps {
       },
       openWindow: () => router.push("/courier?play=1"),
       openHelp: () => router.push("/me/help"),
+      birthdayRead: birthdayLetterRead,
+      birthdayMark: (year, read) => void markBirthdayLetter(year, read),
+      openWrenRoom: () => router.push("/room/wren"),
     }),
     [router],
   );
@@ -607,6 +653,10 @@ export type TodayView = {
   feed: PoolLetter[];
   /** the letters not passed yet, the one on screen first (what both renderers draw) */
   cards: C.CardVM[];
+  /** her birthday letter while it stands before them (owner's audit, 2026-11-10), null otherwise. Only ever set for a
+      renderer that said it can draw it (act.wrenCardHost): it is then the card on screen, the phase is reading even
+      over a finished desk, and `current` is null */
+  wrenCard: C.WrenCardVM | null;
   /** letters on today's desk not yet passed (NEXT's number) */
   left: number;
   leftA11y: string;
@@ -614,7 +664,7 @@ export type TodayView = {
   desk: C.DeskTick[];
   /** the letter on screen's place in `desk` (desk.length once nothing is left) */
   deskAt: number;
-  /** the letter on screen */
+  /** the stranger's letter on screen (null while her birthday letter is: none of the desk's letters is up) */
   current: PoolLetter | null;
   /** the title has shrunk for the day: a letter was passed, or the desk is done */
   titleLocked: boolean;
@@ -710,6 +760,10 @@ export type TodayActions = {
   signedIn: () => void;
   /** a block held: every letter by that writer leaves the desk (the report flow calls it; so does the dev page) */
   blocked: (author: string) => void;
+  /** the renderer says whether it can draw her birthday letter (true: the Swift desk on a binary whose KTodayView
+      takes it; false: the React Native fallback, or an older binary; null: it went away). Until one has spoken, a
+      birthday holds the view at loading */
+  wrenCardHost: (can: boolean | null) => void;
 
   /* ── legacy (the step-5 scroll stack and the blind) ── */
   /** legacy: the stack settled on a page (cards.length = the blind) */
@@ -742,6 +796,9 @@ export type TodayModel = {
   sheets: { flightFull: boolean; needsAccount: boolean };
 };
 
+/** no cards, the same array each time (the view while her birthday letter is being decided) */
+const NO_CARDS: C.CardVM[] = [];
+
 /** the same minute keeps the same Date, so a tick inside it doesn't re-render the tab */
 const sameMinute = (a: Date, b: Date) => Math.floor(a.getTime() / 60000) === Math.floor(b.getTime() / 60000);
 
@@ -751,7 +808,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   const wren = useWrenName();
   const wrenRef = useRef(wren);
   wrenRef.current = wren;
-  const { isGuest: sessionGuest } = useAuth();
+  const { isGuest: sessionGuest, profile } = useAuth();
   const plusOpen = usePlusSheetOpen();
   const { full } = useLocalSearchParams<{ full?: string }>();
   // dev: /letters?full=1 pretends the pouch is full, to see the sheet without five real letters out
@@ -813,13 +870,73 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   const unpassedRef = useRef(unpassed);
   unpassedRef.current = unpassed;
 
+  /* ── her birthday letter: is it owed, and is it up (owner's audit, 2026-11-10; see the top) ── */
+  // the birthday, as the phone holds it: the account's, or a guest's own answer. Never sent anywhere from here
+  const dob = typeof profile?.dob === "string" ? (profile.dob as string) : null;
+  /* THE DAY THE RULE READS is taken when the tab is opened and when the desk's
+     day turns, never from the ticking clock: at midnight on the day, with a
+     stranger's letter under the thumb (or a reply half typed), nothing moves;
+     her letter is there the next time the tab is opened. */
+  const [calDay, setCalDay] = useState(() => calendarDay(new Date()));
+  const readCalDay = useCallback(() => {
+    const d = calendarDay(new Date());
+    setCalDay((cur) => (sameCalendarDay(cur, d) ? cur : d));
+  }, []);
+  useFocusEffect(readCalDay);
+  useEffect(readCalDay, [day, readCalDay]);
+  const birthday = source.birthday ?? isBirthday(dob, calDay);
+  /* the year this account's letter was last read on this phone: undefined
+     until the phone has answered (asked only on the day; asked again when the
+     account changes, since the flag is the account's own) */
+  const [readYear, setReadYear] = useState<number | null | undefined>(undefined);
+  const [bucket, setBucket] = useState(0);
+  useEffect(() => {
+    const off = onStorageUserChange(() => setBucket((n) => n + 1));
+    return () => {
+      off();
+    };
+  }, []);
+  const year = calDay.y;
+  useEffect(() => {
+    if (!birthday) return;
+    let live = true;
+    setReadYear(undefined);
+    void depsRef.current
+      .birthdayRead(year)
+      .then((read) => {
+        if (live) setReadYear(read ? year : null);
+      })
+      .catch((e) => {
+        console.warn("[today] birthday letter flag:", e);
+        if (live) setReadYear(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [birthday, year, bucket]);
+  // which renderer is drawing: true can draw her letter, false can't (it never gets one), null hasn't said
+  const [wrenHost, setWrenHost] = useState<boolean | null>(null);
+  const letterOwed = birthdayLetter({ birthday, year, readYear });
+  /* not decided yet (the phone hasn't said whether this year's was read, or
+     no renderer has said it can draw it): the view says loading, so no
+     stranger's letter comes on screen only to be pushed behind hers */
+  const wrenWait = wrenHost !== false && (letterOwed === "ask" || (letterOwed === "due" && wrenHost === null));
+  /* up: owed, drawable, and the desk's first load is in (her counted line
+     needs the desk; the loading card stands until then, as on any day) */
+  const wrenUp = letterOwed === "due" && wrenHost === true && phase !== "loading";
+  /** her letter, or the wait for it, has the screen: none of the desk's letters is on it */
+  const wrenFront = wrenWait || wrenUp;
+  /** the phase the renderers draw: loading while waiting, reading while her letter is up (over a finished desk too) */
+  const viewPhase: C.DeskPhase = wrenWait ? "loading" : wrenUp ? "reading" : phase;
+
   /* legacy: the step-5 stack's page. The new renderers never move it (it
      stays 0), so the letter on screen is the first not passed. */
   const [rawIdx, setIdx] = useState(0);
   const idx = Math.min(rawIdx, unpassed.length);
   const idxRef = useRef(idx);
   idxRef.current = idx;
-  const current = unpassed[idx] ?? null;
+  // her birthday letter in front: no stranger's letter is on screen (nothing counted seen, no read receipt, no reply bound)
+  const current = wrenFront ? null : unpassed[idx] ?? null;
   const currentRef = useRef(current);
   currentRef.current = current;
   const atEnd = idx >= unpassed.length;
@@ -1059,6 +1176,17 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [unpassed, xl, signals, voiceUrl, tk.sf, fmt, lang, bringBackNow],
   );
+  /* her birthday letter while it is up. `under` is the strangers' letters not passed, which are the
+     cards under hers (an offline cold start has no desk to count: the line is left out); `ends`,
+     that the day's letters are done behind it, so passing it ends the day */
+  const underCount = unpassed.length;
+  const wrenCard = useMemo(
+    () => (wrenUp ? C.buildWrenCard({ name: wren, day: calDay, under: phase === "offline" ? null : underCount, ends: phase === "done" }, fmt) : null),
+    [wrenUp, wren, calDay, phase, underCount, fmt],
+  );
+  /* read at the moment of a tap (the actions keep their identity) */
+  const wrenNow = useRef({ id: "", year, more: false });
+  wrenNow.current = { id: wrenCard?.id ?? "", year, more: phase === "reading" };
 
   /* ── the reply ── */
   const [sending, setSending] = useState(false);
@@ -1135,7 +1263,15 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     if (undoAway) setUndoOffer(null);
   }, [undoAway]);
   useFocusEffect(useCallback(() => () => setUndoOffer(null), []));
-  const undoId = undoOffer && C.undoOpen({ offer: undoOffer, rec, phase, now: Date.now(), away: undoAway }) ? undoOffer.id : "";
+  const undoOfferRef = useRef(undoOffer);
+  undoOfferRef.current = undoOffer;
+  // her birthday letter's offer is its own rule (it was never on the record); every other is the record's
+  const undoUp = !undoOffer
+    ? false
+    : C.isWrenCardId(undoOffer.id)
+      ? C.wrenUndoOpen({ offer: undoOffer, phase: viewPhase, now: Date.now(), away: undoAway })
+      : C.undoOpen({ offer: undoOffer, rec, phase, now: Date.now(), away: undoAway });
+  const undoId = undoOffer && undoUp ? undoOffer.id : "";
 
   const isGuest = () => depsRef.current.guest?.() ?? sessionGuest;
 
@@ -1285,6 +1421,11 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
         blurThen(() => depsRef.current.openHelp?.(), viewRef);
         return;
       }
+      // REPLY on her birthday letter (owner's audit, 2026-11-10): her room, not a stranger's thread
+      if (action === "wren") {
+        blurThen(() => depsRef.current.openWrenRoom(), viewRef);
+        return;
+      }
       const letter = feedRef.current.find((l) => l.id === letterId);
       if (!letter) return;
       const d = depsRef.current;
@@ -1356,6 +1497,17 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   const act = useMemo<TodayActions>(
     () => ({
       pass: (id) => {
+        /* her birthday letter (never on the record): this year's is read from now, on this phone only,
+           so it doesn't come back today or on a relaunch; and like any pass it can be undone for five
+           seconds while a letter comes up after it (when it was the last card the day is done) */
+        if (C.isWrenCardId(id)) {
+          const w = wrenNow.current;
+          if (id !== w.id) return;
+          setReadYear(w.year);
+          depsRef.current.birthdayMark(w.year, true);
+          if (w.more) setUndoOffer({ id, until: Date.now() + C.UNDO_MS });
+          return;
+        }
         // a pass that took starts the Undo capsule's five seconds (one that didn't leaves any offer as it was)
         let offer: C.UndoOffer | null = null;
         update((r) => {
@@ -1366,7 +1518,12 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
         if (offer) setUndoOffer(offer);
       },
       bringBack: () => {
-        update(C.bringBack);
+        // the last thing passed was her birthday letter: it comes back in front (the phone forgets this year's was read)
+        const offer = undoOfferRef.current;
+        if (offer && C.isWrenCardId(offer.id)) {
+          setReadYear(null);
+          depsRef.current.birthdayMark(wrenNow.current.year, false);
+        } else update(C.bringBack);
         setUndoOffer(null);
       },
       replyOpen: (id) => {
@@ -1397,6 +1554,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
         if (to) void send(to.id);
       },
       blocked: removeAuthor,
+      wrenCardHost: setWrenHost,
 
       // legacy
       settle: (i) => setIdx(Math.max(0, Math.min(i, unpassedRef.current.length))),
@@ -1471,11 +1629,13 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   // Next's ring: what went past, the letter on screen, the rest (Swift's band; the React Native band draws none)
   const { passed: recPassed, answered: recAnswered, seen: recSeen } = rec;
   const ticks = useMemo(
-    () => C.deskTicks({ passed: recPassed, answered: recAnswered, seen: recSeen }, unpassed.map((l) => l.id)),
-    [recPassed, recAnswered, recSeen, unpassed],
+    // her birthday letter in front: none of the desk's letters is on screen, and hers has no tick
+    () => C.deskTicks({ passed: recPassed, answered: recAnswered, seen: recSeen }, unpassed.map((l) => l.id), { before: wrenFront }),
+    [recPassed, recAnswered, recSeen, unpassed, wrenFront],
   );
   // only over letters she brought back, and only while the first three are up: a quiet day draws no arrival, in either renderer
-  const arrivalOpen = C.arrivalShows({ fresh: source.fresh, onDesk: left }) && phase === "reading" && rec.passed.length < C.ARRIVAL_LETTERS;
+  // not over her birthday letter either: "I brought back three" is about the strangers' letters, and waits for the first of them
+  const arrivalOpen = C.arrivalShows({ fresh: source.fresh, onDesk: left }) && phase === "reading" && rec.passed.length < C.ARRIVAL_LETTERS && !wrenFront;
   // her line goes by itself ARRIVAL_BUBBLE_MS after it first shows (owner, 2026-10-21: it stayed and couldn't be tapped away); settled, it never returns
   useEffect(() => {
     if (!arrivalOpen) return;
@@ -1493,11 +1653,14 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   };
 
   const view: TodayView = {
-    phase,
+    // her birthday letter in front: loading while it is being decided, reading while it is up
+    phase: viewPhase,
     loaded: source.loaded,
     demo,
     feed,
-    cards,
+    // nothing is drawn while it is being decided
+    cards: wrenWait ? NO_CARDS : cards,
+    wrenCard,
     left,
     leftA11y: left === 1 ? t("ld.left.a11y.1") : t("ld.left.a11y", { n: left }),
     desk: ticks.desk,

@@ -74,6 +74,14 @@ import "../../data/strings-today3d";
      the letter leaves) · OFFLINE · SUSPENDED · GUEST (the sign-up sheet).
      These change the world around the desk, never the desk (a pass
      survives them). RESET deals the day again;
+   - BIRTHDAY (owner's audit, 2026-11-10): it is the reader's birthday, whatever
+     the clock and the profile say. Her letter stands before the desk as the
+     first card in every DESK mode (over DONE, REOPENED and QUIET too, where
+     passing it ends the day; over OFFLINE without its counted line; LOADING
+     keeps the loading card). NEXT or a swipe passes it (Undo brings it back
+     while a letter came up after it), REPLY says where it would go (her
+     room). Nothing is remembered: off and on again brings it back. SWIFT
+     only (the React Native fallback never gets it);
    - PAPER · PLAIN: every letter on the desk drawn on one paper (letter
      papers, 2026-10-20), a tap moves to the next of the seven (plain, grid,
      kraft, airmail, receipt, sticky, riso, then plain again). Like PLAY it
@@ -118,6 +126,7 @@ function TodayLab() {
   const [pouch, setPouch] = useState(false);
   const [hungry, setHungry] = useState(false);
   const [night, setNight] = useState(false);
+  const [birthday, setBirthday] = useState(false);
   const [paper, setPaper] = useState<PaperId>("plain");
   const [reply, setReply] = useState<DemoReply>("ok");
   const [panel, setPanel] = useState(true);
@@ -145,7 +154,7 @@ function TodayLab() {
     [mode, round],
   );
   // the world around it: PLAY, POUCH, HUNGRY and NIGHT change these without touching the desk or what was passed
-  const world = useMemo<DemoWorld>(() => ({ flights: pouch ? 5 : 1, waiting: 2, stage: play ? "wren" : "egg", wilt: hungry, night, paper }), [pouch, play, hungry, night, paper]);
+  const world = useMemo<DemoWorld>(() => ({ flights: pouch ? 5 : 1, waiting: 2, stage: play ? "wren" : "egg", wilt: hungry, night, paper, birthday }), [pouch, play, hungry, night, paper, birthday]);
   const replyRef = useRef(reply);
   replyRef.current = reply;
   const source = useDemoSource(day, world);
@@ -227,6 +236,7 @@ function TodayLab() {
             <Chip label="POUCH" on={pouch} onPress={() => setPouch((v) => !v)} />
             <Chip label="HUNGRY" on={hungry} onPress={() => setHungry((v) => !v)} />
             <Chip label="NIGHT" on={night} onPress={() => setNight((v) => !v)} />
+            <Chip label="BIRTHDAY" on={birthday} onPress={() => setBirthday((v) => !v)} />
             <Chip label={`PAPER · ${paper.toUpperCase()}`} on={paper !== "plain"} onPress={() => setPaper((p) => PAPER_IDS[(PAPER_IDS.indexOf(p) + 1) % PAPER_IDS.length])} />
             {REPLIES.map((r) => (
               <Chip key={r} label={r.toUpperCase()} on={reply === r} onPress={() => setReply(r)} />
@@ -235,7 +245,7 @@ function TodayLab() {
             <Chip label="RESET REAL DAY" onPress={resetRealDay} />
           </Row>
           <Text style={{ ...PFM.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>
-            {`THEME ${themeLabel} (${key}) · ${swift && swiftAvailable ? "SWIFTUI" : "REACT NATIVE"}${swiftAvailable ? "" : " (no KTodayView in this build)"} · ${model.view.phase.toUpperCase()} · LEFT ${model.view.left}/${model.view.feed.length}`}
+            {`THEME ${themeLabel} (${key}) · ${swift && swiftAvailable ? "SWIFTUI" : "REACT NATIVE"}${swiftAvailable ? "" : " (no KTodayView in this build)"} · ${model.view.phase.toUpperCase()} · LEFT ${model.view.left}/${model.view.feed.length}${model.view.wrenCard ? " · HER BIRTHDAY LETTER" : ""}`}
           </Text>
         </View>
       ) : (
