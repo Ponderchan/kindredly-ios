@@ -335,7 +335,9 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   aura: true,
   auracard: true,
   courier: true,
-  makeface: false,
+  // on since 2026-11-10: it shipped behind a row for 1.2.6 and 1.2.7, and the first build without
+  // a row of its own (1.2.8 on TestFlight) lost the ＋ cell and hid the faces already made
+  makeface: true,
   // deliberately off: shipped dark in 1.2.6, switched on by a row after device testing
   onboarding: false,
   // the last Me pages (owner, 2026-10-27: "make Me all Swift")

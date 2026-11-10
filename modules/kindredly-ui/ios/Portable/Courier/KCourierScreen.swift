@@ -340,7 +340,9 @@ public struct KCourierScreen: View {
 
   @State private var logOpen = false
   @State private var tracking = false
-  @State private var rack: KCourierCell.Key?
+  /// the rack's open row. The page opens with LOOKS unfolded (owner on TestFlight 1.2.8, 2026-11-10);
+  /// the TS side starts on the same row so her coats are already pictured (CourierNative `rack`)
+  @State private var rack: KCourierCell.Key? = .looks
   /// the page has scrolled past the cover: the status strip wears the page's colour
   @State private var pastCover = false
   /// Free Flight is on the cover (Swift's game; see KFreeFlight.swift)

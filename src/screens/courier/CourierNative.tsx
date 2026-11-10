@@ -80,7 +80,8 @@ export function CourierNative({
   const heroBirds = useBirdImageRefs(heroPoses, { wilt: view.hero.wilt });
 
   /* the rack's open row only */
-  const [rack, setRack] = useState<"looks" | "dress" | "">("");
+  /* starts on LOOKS, as the Swift page does (owner on TestFlight 1.2.8, 2026-11-10: the rack is open when the page opens) */
+  const [rack, setRack] = useState<"looks" | "dress" | "">("looks");
   const rackPoses = useMemo(() => (rack === "looks" ? m.skins.map(rackSkinPose) : rack === "dress" ? m.pieces.map(rackAccessoryPose) : []), [rack, m.skins, m.pieces]);
   const rackBirds = useBirdImageRefs(rackPoses);
   const fcBird = useBirdImageRef(view.firstClass.pose);

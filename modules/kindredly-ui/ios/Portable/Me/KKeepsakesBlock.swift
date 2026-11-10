@@ -116,7 +116,9 @@ struct KLookTile: View {
   }
 
   private var border: Color {
-    if tile.selected { return theme.ln }
+    // the chosen look wears the pen ring, as the courier page's rack does (owner on TestFlight 1.2.8,
+    // 2026-11-10: "still a black frame"; rule B keeps ink frames off controls)
+    if tile.selected { return theme.ind }
     switch tile.id {
     case "beanie": return theme.lav
     case "scarf": return scarfFill
@@ -131,7 +133,7 @@ struct KLookTile: View {
 
   private var labelColor: Color {
     if tile.locked { return KBrand.goldText }
-    return tile.selected ? theme.ink : theme.sub
+    return tile.selected ? theme.ind : theme.sub
   }
 
   var body: some View {

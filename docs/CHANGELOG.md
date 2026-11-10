@@ -38,6 +38,13 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 ## Unreleased
 
+Fixed after the first TestFlight build of 1.0.9 (b41, owner's notes 2026-11-10)
+- Make your own face and the faces you already made are back in Edit profile on a new build without anyone switching them on. [switch: makeface, now on by default]
+- Me: the look Wren is wearing is ringed in the pen colour, not a black frame.
+- The courier's page opens with her looks already unfolded.
+- Settings: the row for her name says "Courier's name", with her name beside it, in all nine languages.
+
+
 New (owner's audit, 2026-11-10; all need the next binary unless tagged)
 - The journal book can be bought once, without First Class: a non-member's tap on Make my book offers "Just the book · {price} once" beside First Class; bought, it exports any month or year for good and restores with Restore purchases. It appears only once the store returns the product (App Store Connect + RevenueCat: SETUP.md §4b). [server: none] [store: io.kindredly.app.journalbook, entitlement journal_book, offering book]
 - Your own stamps can leave the app (First Class): in the album, a stamp's sheet has Save as sticker (a PNG with a see-through ground, the toothed cut kept) and MADE BY YOU has Print a sheet (an A4 PDF at real stamp size with cut lines; only stamps that passed the check).
