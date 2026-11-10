@@ -7,6 +7,7 @@ import { SurfaceHost } from "../../components/NativeSurface";
 import { ReportSheet } from "../../components/ReportMenu";
 import { useSignatureHold, type HoldAnchor } from "../../components/SignatureHold";
 import { useReportFlow } from "../../lib/report-flow";
+import { useThreadMute } from "../../lib/thread-mute";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
 import { t, useLang } from "../../lib/i18n";
@@ -51,7 +52,12 @@ import "../../data/strings-step5-platform"; // rp.menu.a11y, vo.play, vo.pause
    (SignatureHold): Swift reports the slot it was held in, measured here
    from the view holding the Host, and VoiceOver's two actions on it.
    A block lands on Kindreds. Looking at the page doesn't mark anything
-   read. */
+   read.
+
+   MUTE (owner's audit, 2026-11-10; the "threadmute" switch, off): with it
+   on, the ⋯'s card carries Mute / Unmute above Report and Block, the same
+   answer the conversation shows (lib/thread-mute). Off, for a guest or on
+   a demo thread, the card is what it was. */
 
 function useSameContent<T>(value: T): T {
   const kept = useRef<{ json: string; value: T } | null>(null);
@@ -91,6 +97,8 @@ export function KindredPageNative({ id }: { id?: string }) {
     snapshot: theirLatest(detail?.messages, detail?.openingFromMe ? null : detail?.opening),
     onBlocked: toKindreds,
   });
+  // Mute / Unmute in the ⋯'s card (null while the switch is off, for a guest, on a demo thread)
+  const mute = useThreadMute(id, { demo: !!id?.startsWith("demo-"), someone: !report.nobody });
 
   const writing = useMemo(() => (detail ? writingOf(detail) : null), [detail]);
   const read = useMemo(() => (detail && writing ? readCorrespondent(writing.theirs, detail.revealed) : null), [detail, writing]);
@@ -159,7 +167,8 @@ export function KindredPageNative({ id }: { id?: string }) {
   const strings = useSameContent<KKindredPageStrings>({
     title: view.title,
     backLabel: t("a11y.back"),
-    moreLabel: view.moreLabel,
+    // the ⋯ offers more than report and block once Mute is there
+    moreLabel: view.moreLabel && mute.moreLabel ? mute.moreLabel : view.moreLabel,
     offlineTitle: t("net.offline.title"),
     offlineBody: t("net.offline.body"),
     missingBody: t("fail.closed.body"),
@@ -238,7 +247,7 @@ export function KindredPageNative({ id }: { id?: string }) {
         />
       </SurfaceHost>
       {/* the ⋯'s card, just under the bar (ReportSheet's own default place) */}
-      <ReportSheet flow={report} />
+      <ReportSheet flow={report} mute={mute.item} />
       {/* the card under a held signature (window-level) */}
       {hold.sheet}
     </View>

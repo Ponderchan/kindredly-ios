@@ -52,7 +52,18 @@ import "../data/strings-step5-platform"; // rp.menu.a11y
    asks for (SignatureHold used to assume 200pt). The answer line takes
    VoiceOver's focus when it appears, so "it didn't go through" is heard —
    accessibilityLiveRegion is Android-only. A working row reads its words,
-   busy, instead of "…". */
+   busy, instead of "…".
+
+   MUTE, ABOVE THEM (owner's audit, 2026-11-10; the "threadmute" switch,
+   off). For a friend, report and block were all hammer: a conversation's
+   and a kindred page's ⋯ can carry one more row first, Mute / Unmute with
+   the system's bell.slash / bell (lib/thread-mute; the caller passes
+   `mute`). It is not part of the report flow: the row calls the caller and
+   the card closes. No `mute`, no row: the card is exactly what it was. */
+
+/** The ⋯ card's extra first row (lib/thread-mute's item): its word, the system glyph for what a
+    tap does, and the tap. */
+export type ReportSheetMute = { label: string; icon: "bell.slash" | "bell"; onPress: () => void };
 
 /** Draws a report flow's stages: the three choices, the one-line answer,
     the block question. Render it once per screen, anywhere — it is a
@@ -61,8 +72,9 @@ import "../data/strings-step5-platform"; // rp.menu.a11y
     when it is about one thing in particular (identity Phase 2: "Report
     this signature", id2.rp.signature); rp.menu.report otherwise.
     `onDismiss` runs once the card's Modal has finished going (iOS) — a
-    caller inside another sheet waits for it before closing that sheet. */
-export function ReportSheet({ flow, top, reportLabel, onDismiss }: { flow: ReportFlow; top?: number; reportLabel?: string; onDismiss?: () => void }) {
+    caller inside another sheet waits for it before closing that sheet.
+    `mute` adds the Mute / Unmute row above the others (null or absent: none). */
+export function ReportSheet({ flow, top, reportLabel, onDismiss, mute }: { flow: ReportFlow; top?: number; reportLabel?: string; onDismiss?: () => void; mute?: ReportSheetMute | null }) {
   useLang();
   const wren = useWrenName();
   const insets = useSafeAreaInsets();
@@ -71,9 +83,9 @@ export function ReportSheet({ flow, top, reportLabel, onDismiss }: { flow: Repor
   const win = useWindowDimensions();
   const scale = PixelRatio.getFontScale();
   const cardW = scale > 1.3 ? Math.min(win.width - 32, 320) : 236;
-  // measured once drawn; before that, three rows at their grown height
+  // measured once drawn; before that, three rows (four with Mute) at their grown height
   const [cardH, setCardH] = useState<number | null>(null);
-  const estH = 8 + 3 * Math.max(48, 15.5 * Math.min(scale, 1.6) * 1.3 + 24) + 9;
+  const estH = 8 + (mute ? 4 : 3) * Math.max(48, 15.5 * Math.min(scale, 1.6) * 1.3 + 24) + 9;
   const wantTop = top ?? insets.top + 50;
   const cardTop = Math.max(insets.top + 8, Math.min(wantTop, win.height - (cardH ?? estH) - insets.bottom - 8));
   const answer = stage === "sent" ? t("rp.reported", { wren }) : stage === "failed" ? t("rp.failed") : stage === "blockFailed" ? t("rp.blockFailed") : null;
@@ -97,7 +109,14 @@ export function ReportSheet({ flow, top, reportLabel, onDismiss }: { flow: Repor
   const red = dark ? dangerInk(tk.ink, STATIC_P.post) : STATIC_P.post;
 
   // `working`: this row shows "…" while busy (its label is still what VoiceOver says)
-  const Row = ({ label, icon, tone = "ink", working = false, onPress }: { label: string; icon: "flag" | "ban" | "none"; tone?: "ink" | "red"; working?: boolean; onPress: () => void }) => (
+  // the Mute row's tap: the caller's toggle, and the card goes (it is not a stage of the flow)
+  const onMute = () => {
+    if (busy) return;
+    mute?.onPress();
+    flow.close();
+  };
+
+  const Row = ({ label, icon, tone = "ink", working = false, onPress }: { label: string; icon: "flag" | "ban" | "bell" | "bell.slash" | "none"; tone?: "ink" | "red"; working?: boolean; onPress: () => void }) => (
     <Pressable
       onPress={onPress}
       disabled={busy}
@@ -117,6 +136,14 @@ export function ReportSheet({ flow, top, reportLabel, onDismiss }: { flow: Repor
           <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={STATIC_P.post} strokeWidth={1.8} strokeLinecap="round">
             <Circle cx={12} cy={12} r={9} />
             <Line x1={5.6} y1={5.6} x2={18.4} y2={18.4} />
+          </Svg>
+        )}
+        {(icon === "bell" || icon === "bell.slash") && (
+          // the React Native card's stand-in for the system bell (the Swift card draws the SF Symbol)
+          <Svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={tk.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            <Path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9" />
+            <Path d="M10 20.5a2.2 2.2 0 0 0 4 0" />
+            {icon === "bell.slash" && <Line x1={4} y1={3.5} x2={20} y2={21.5} />}
           </Svg>
         )}
       </View>
@@ -168,6 +195,7 @@ export function ReportSheet({ flow, top, reportLabel, onDismiss }: { flow: Repor
         </>
       ) : (
         <>
+          {!!mute && <Row label={mute.label} icon={mute.icon} onPress={onMute} />}
           <Row label={reportLabel ?? t("rp.menu.report")} working icon="flag" onPress={() => void flow.report()} />
           <Row label={t("rp.menu.block")} icon="ban" tone="red" onPress={() => flow.askBlock()} />
           <View style={{ height: 1, backgroundColor: tk.line, marginVertical: 4 }} />
@@ -191,6 +219,8 @@ export function ReportSheet({ flow, top, reportLabel, onDismiss }: { flow: Repor
                 stage={stage}
                 answer={answer ?? t("rp.blockFailed")}
                 reportLabel={reportLabel ?? t("rp.menu.report")}
+                mute={mute ?? null}
+                onMute={onMute}
                 blockInk={red}
                 top={cardTop}
                 width={cardW}
@@ -230,6 +260,8 @@ function ReportCardSwift({
   stage,
   answer,
   reportLabel,
+  mute,
+  onMute,
   blockInk,
   top,
   width,
@@ -240,6 +272,9 @@ function ReportCardSwift({
   stage: Exclude<ReportStage, null | "block">;
   answer: string;
   reportLabel: string;
+  /** the Mute / Unmute row above Report (a binary whose card predates it draws none) */
+  mute: ReportSheetMute | null;
+  onMute: () => void;
   blockInk: string;
   top: number;
   width: number;
@@ -271,6 +306,7 @@ function ReportCardSwift({
   const onAction = (a: KReportMenuAction) => {
     if (a === "report") void flow.report();
     else if (a === "block") flow.askBlock();
+    else if (a === "mute") onMute();
     else flow.close();
   };
 
@@ -286,6 +322,8 @@ function ReportCardSwift({
           theme={theme}
           menu={stage === "menu"}
           report={reportLabel}
+          mute={mute?.label ?? ""}
+          muteIcon={mute?.icon ?? ""}
           block={t("rp.menu.block")}
           never={t("rp.menu.never")}
           answer={answer}

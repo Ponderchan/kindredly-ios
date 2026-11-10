@@ -108,6 +108,8 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   ok("the two Me pieces' keys are there and on", ME_PIECES.every((k) => entries[k] === true));
   // the wrapped monthly report (2026-10-31): off until the owner approves the pairing table
   ok("the wrapped report's key is there and off", entries.reportwrapped === false);
+  // mute a correspondence (owner's audit, 2026-11-10): off until thread_mutes exists and the push sender reads it
+  ok("the thread-mute key is there and off", "threadmute" in entries && entries.threadmute === false);
   // the last React Native a reader can see (2026-11-09): on after the simulator pass, except the
   // four that need real media to test, off until a device pass
   const LAST_ON = ["launch", "authcallback", "hatch", "obchick", "obroutebird", "obflight", "kindredsempty", "wardrobesheet", "plush", "composewren", "notewren", "facewren", "myavatar", "faceready", "ratingsheet", "fcreceipt", "chatheader", "inflight", "reels", "freeflight"];
@@ -115,7 +117,7 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   const LAST_RN = [...LAST_ON, ...LAST_OFF];
   ok("the last pieces' keys: twenty on", LAST_ON.every((k) => entries[k] === true));
   ok("the last pieces' keys: the four media pieces off", LAST_OFF.every((k) => entries[k] === false));
-  ok("nothing else is in the table", Object.keys(entries).length === LAST_RN.length + NINE.length + ME4A.length + AURA.length + ME_LAST.length + SMALL.length + NOTE_PAGES.length + CHAT_OVERLAYS.length + SHEETS.length + TODAY_OVERLAYS.length + MOMENTS.length + COMPOSE_PIECES.length + ME_PIECES.length + 11);
+  ok("nothing else is in the table", Object.keys(entries).length === LAST_RN.length + NINE.length + ME4A.length + AURA.length + ME_LAST.length + SMALL.length + NOTE_PAGES.length + CHAT_OVERLAYS.length + SHEETS.length + TODAY_OVERLAYS.length + MOMENTS.length + COMPOSE_PIECES.length + ME_PIECES.length + 12);
 }
 
 /* ── the crash breadcrumb ── */

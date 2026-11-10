@@ -304,7 +304,18 @@ import {
                   KCourierCard in KMeView's courier frame; Wren is her
                   snapshot (lib/bird-images card-*), never redrawn
      auraart      the Aura card's picture on Me and in the aura room
-                  (AuraArtSlot / AuraScene) — KAuraArt in the card's slot */
+                  (AuraArtSlot / AuraScene) — KAuraArt in the card's slot
+
+   Mute a correspondence (owner's audit, 2026-11-10): a new feature, not a
+   port, kept here the way makeface is so a row (or the dev lab's chip)
+   turns it on. OFF until a row does: it needs the thread_mutes table and
+   the push sender skipping muted threads first, and a binary whose report
+   card and chat header draw it (target that binary's version, not '*').
+   Off, the ⋯ menus are exactly as they were:
+
+     threadmute   Mute / Unmute above Report and Block in a conversation's
+                  and a kindred page's ⋯, and the bell.slash beside a muted
+                  name in the conversation header (lib/thread-mute) */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
   room: true,
@@ -404,6 +415,8 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   freeflight: true,
   // the wrapped monthly report (2026-10-31): OFF until the owner approves the pairing table
   reportwrapped: false,
+  // mute a correspondence (owner's audit, 2026-11-10): OFF until thread_mutes exists and the push sender reads it
+  threadmute: false,
 };
 
 /** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages, a kindred's page, Wren's room, the five small pages and three Notes pages (the `surface` prop of NativeSurface) */

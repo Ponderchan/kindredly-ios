@@ -222,6 +222,10 @@ public struct KReportMenuContent: Equatable {
   public var menu = true
   /// "Report" (or "Report this signature")
   public var report = ""
+  /// the Mute / Unmute row above Report (owner's audit, 2026-11-10); "" for no row
+  public var mute = ""
+  /// its system glyph: "bell.slash" (a tap mutes) or "bell" (a tap lets it ring again)
+  public var muteIcon = ""
   public var block = ""
   public var never = ""
   /// the answer line (sent, failed, block failed)
@@ -249,7 +253,14 @@ public struct KReportMenuContent: Equatable {
  its dim. The answer line takes VoiceOver's focus 350ms after it appears, so "it didn't go
  through" is heard and Done is the next swipe.
 
- Actions: "report", "block", "close".
+ MUTE (owner's audit, 2026-11-10, behind TS's "threadmute" switch): for a friend, report and block
+ were all hammer, so a conversation's and a kindred page's card can carry one row above them,
+ Mute / Unmute, in ink with the system's bell.slash / bell at the other glyphs' size and weight.
+ TS words it and says which glyph (content.mute, content.muteIcon); "" draws no row and the card
+ is exactly what it was. It is not a stage of the report flow: the press goes to TS, which
+ toggles and closes the card.
+
+ Actions: "report", "block", "close", "mute".
  */
 public struct KReportMenuCard: View {
   let theme: KTheme
@@ -267,6 +278,9 @@ public struct KReportMenuCard: View {
   public var body: some View {
     VStack(alignment: .leading, spacing: 0) {
       if content.menu {
+        if !content.mute.isEmpty {
+          row(content.mute, icon: .symbol(content.muteIcon.isEmpty ? "bell.slash" : content.muteIcon), key: "mute")
+        }
         row(content.report, icon: .flag, working: true, key: "report")
         row(content.block, icon: .ban, ink: content.blockInk, key: "block")
         rule.padding(.vertical, 4)
@@ -308,7 +322,11 @@ public struct KReportMenuCard: View {
     Rectangle().fill(theme.line).frame(height: 1)
   }
 
-  private enum Icon { case flag, ban }
+  private enum Icon {
+    case flag, ban
+    /// a system glyph, drawn in ink (the Mute row's bell)
+    case symbol(String)
+  }
 
   private func row(_ label: String, icon: Icon?, ink: Color? = nil, working: Bool = false, key: String) -> some View {
     Button {
@@ -319,6 +337,12 @@ public struct KReportMenuCard: View {
           switch icon {
           case .some(.flag): KReportFlag().stroke(theme.ink, style: Self.iconStroke)
           case .some(.ban): KReportBan().stroke(content.banInk, style: Self.iconStroke)
+          case let .some(.symbol(name)):
+            // the system's own glyph, at the drawn ones' size and about their line weight; it
+            // keeps its size as the row's words grow, as they do
+            Image(systemName: name)
+              .font(.system(size: 15, weight: .regular))
+              .foregroundStyle(theme.ink)
           case .none: Color.clear
           }
         }

@@ -23,7 +23,8 @@ import ExpoUI
 
  KReportMenuView (a Host as wide as the card plus `room` each side, matchContents vertical)
  - menu, report, block, never, answer, done, busy, blockInk, banInk (#RRGGBB), room
- Events: onRmAction { key: "report" | "block" | "close" }
+ - mute ("" = no row), muteIcon ("bell.slash" | "bell"): the Mute / Unmute row above Report
+ Events: onRmAction { key: "report" | "block" | "close" | "mute" }
 
  KSignUpSheetView (fills its Host, as the leave sheet)
  - title, reason, email, notYet, closeLabel, apple, appleWhite, busy ("" | "apple" | "email"),
@@ -112,6 +113,8 @@ struct KLeaveSheetView: ExpoSwiftUI.View {
 final class KReportMenuViewProps: KScreenProps {
   @Field var menu: Bool = true
   @Field var report: String = ""
+  @Field var mute: String = ""
+  @Field var muteIcon: String = ""
   @Field var block: String = ""
   @Field var never: String = ""
   @Field var answer: String = ""
@@ -127,6 +130,8 @@ final class KReportMenuViewProps: KScreenProps {
     var c = KReportMenuContent()
     c.menu = menu
     c.report = report
+    c.mute = mute
+    c.muteIcon = muteIcon
     c.block = block
     c.never = never
     c.answer = answer

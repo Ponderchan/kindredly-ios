@@ -82,13 +82,18 @@ export function KLeaveSheetView({ modifiers, body, cancel, onKey, onCancel, ...r
 }
 
 /** What a press on the report card asks for. */
-export type KReportMenuAction = "report" | "block" | "close";
+export type KReportMenuAction = "report" | "block" | "close" | "mute";
 
 export type KReportMenuViewProps = CommonViewModifierProps &
   Pick<KScreenBaseProps, "theme"> & {
     /** true: the three choices; false: the answer line and Done */
     menu: boolean;
     report: string;
+    /** the Mute / Unmute row above Report (owner's audit, 2026-11-10): its word, "" (or absent)
+        for no row. A binary whose card predates the row ignores both props and draws none. */
+    mute?: string;
+    /** the row's system glyph: "bell.slash" | "bell" */
+    muteIcon?: string;
     block: string;
     never: string;
     answer: string;

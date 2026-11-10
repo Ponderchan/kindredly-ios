@@ -1625,6 +1625,79 @@ export async function blockUser(targetUser: string): Promise<true | null> {
   }
 }
 
+/* ── Mute a correspondence (owner's audit, 2026-11-10; the "threadmute" switch, off) ──
+   The ⋯ of a conversation offered only Report and Block: for a friend whose
+   pushes are simply too many tonight, that is all hammer. A muted
+   correspondence sends THIS reader no push notifications; nothing else
+   changes, and the other person is never told.
+
+   Pushes are sent by the server, so the mute is a row the server reads:
+     public.thread_mutes (user_id uuid default auth.uid(), thread_id uuid,
+       created_at timestamptz default now(), primary key (user_id, thread_id))
+   with RLS letting a user read, insert and delete only their own rows (the
+   migration is in the web repo; the push sender skips a recipient who has a
+   row for the thread the push is about). Until that table exists the switch
+   stays off and nothing here is called (lib/thread-mute).
+
+   NOTHING IS SWALLOWED (a catch that returned null has cost whole days
+   here): a read that fails throws, saying why, and a write that fails logs
+   why, records the reason for alertFail (noteFail) and answers false. */
+
+/** Every thread this reader has muted. Throws when it can't be read (no client, no account, the
+    table missing, the network): the caller keeps what it knew and logs the reason. */
+export async function loadMutedThreads(): Promise<Set<string>> {
+  if (!supabaseReady) throw new Error("[mutes] not read: no Supabase client in this build");
+  const me = await uid();
+  if (!me) throw new Error("[mutes] not read: no signed-in account to read mutes for");
+  const { data, error } = await supabase!.from("thread_mutes").select("thread_id").eq("user_id", me);
+  if (error) throw new Error(`[mutes] not read: ${error.message || error.code || "the server refused"}`);
+  /* "none" asked with the anon key (an expired token whose refresh failed) is not "none muted":
+     the policies are `to authenticated`, so that read answers no rows and no error (sessionCheck) */
+  if (!data?.length) {
+    const why = unconfirmedEmpty(await sessionCheck(), me);
+    if (why) throw new Error(`[mutes] not read: an empty answer without a live session (${why})`);
+  }
+  const out = new Set<string>();
+  for (const row of data ?? []) {
+    const id = (row as { thread_id?: unknown }).thread_id;
+    if (typeof id === "string" && id) out.add(id);
+  }
+  return out;
+}
+
+/** Mute (a row) or unmute (no row) one thread for this reader. True when the server took it;
+    false when it didn't, with the reason logged and kept for alertFail (lastWriteFail). Muting
+    twice is not an error (the row is simply there). */
+export async function setThreadMuted(threadId: string, muted: boolean): Promise<boolean> {
+  const what = muted ? "mute" : "unmute";
+  if (!threadId) {
+    clearFail();
+    console.warn(`[mutes] ${what} not saved: no thread`);
+    return false;
+  }
+  const me = await writer();
+  if (!me) {
+    console.warn(`[mutes] ${what} not saved: ${lastWriteFail() ?? "no client or no signed-in account"}`);
+    return false;
+  }
+  try {
+    const { error } = muted
+      ? // on conflict do nothing: an insert policy is all it needs (no update policy on this table)
+        await supabase!.from("thread_mutes").upsert({ user_id: me, thread_id: threadId }, { onConflict: "user_id,thread_id", ignoreDuplicates: true })
+      : await supabase!.from("thread_mutes").delete().eq("user_id", me).eq("thread_id", threadId);
+    if (error) {
+      console.warn(`[mutes] ${what} not saved:`, error.message || error.code || error);
+      noteFail(error);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.warn(`[mutes] ${what} not saved:`, e);
+    noteFail(e);
+    return false;
+  }
+}
+
 /* ── a letter to us ─────────────────────────────────────────────────────
    Not a thread: support is not a correspondence, and giving the company a
    row in Kindreds would dress it as a kindred and feed it into counts a

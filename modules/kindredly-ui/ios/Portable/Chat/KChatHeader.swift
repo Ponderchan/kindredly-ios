@@ -57,6 +57,11 @@ import SwiftUI
    than clip. None for a deleted account or the kindreds chat (TS sends none).
  - ··· Report or block (TS opens ReportSheet: it rises from here), 22 in ink, in a 44 target;
    none when there is nobody on the other side to report.
+ - MUTED (owner's audit, 2026-11-10; TS's "threadmute" switch): while this reader has muted the
+   correspondence, a small bell.slash sits after the name (and after the mark and the sign), 6pt
+   on, the system's glyph at 13 in sub, growing with the name. Like the marks it never gives
+   way: a long name is the one that is cut. It takes no touch (Unmute is in the ⋯), and VoiceOver
+   hears it in TS's label ("…, Muted"). All three headers draw it (A2, B and the revealed one).
 
  Every tap leaves the screen or covers it, so they all go to TS (actions.onDock: back, page,
  more), which lets go of the keyboard first (blurThen). The header grows with Dynamic Type up to
@@ -152,6 +157,9 @@ struct KChatHeader: View {
             .foregroundStyle(theme.ink)
             .lineLimit(1)
           KWhoMarks(mark: model.mark, sign: model.sign, size: Self.markSize, color: theme.sub)
+          if model.muted {
+            KChatMutedBell(theme: theme)
+          }
         }
         if !model.sub.isEmpty {
           Text(model.sub)
@@ -181,6 +189,27 @@ struct KChatHeader: View {
     }
   }
 
+}
+
+/// A muted correspondence's bell.slash after its name in the header (owner's audit, 2026-11-10):
+/// the system's glyph, 6pt after the name (or the marks), in sub, on the name's baseline, growing
+/// with Dynamic Type as the name does. Never read on its own (TS's header label says "Muted").
+struct KChatMutedBell: View {
+  let theme: KTheme
+  /// the glyph's size at the default text size: 13 beside the 18pt name, 12 beside the 16pt one
+  var size: CGFloat = 13
+
+  /// Dynamic Type's factor for body text (1 at the default size), as KWhoMarks grows
+  @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
+
+  var body: some View {
+    Image(systemName: "bell.slash")
+      .font(.system(size: size * scale, weight: .medium))
+      .foregroundStyle(theme.sub)
+      .padding(.leading, KWhoMarks.afterName)
+      .fixedSize()
+      .accessibilityHidden(true)
+  }
 }
 
 /// The pen-pal chat's progress band under the header's rule (live 1.0.4's; ReachBand is its React
@@ -418,10 +447,15 @@ struct KChatHeaderRevealed: View {
       KFace(theme: theme, source: model.face, size: Self.face, stamp: KMemberStamp(model.stamp))
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: 2) {
-        Text(model.name)
-          .kText(.system(16, .semibold))
-          .foregroundStyle(theme.ink)
-          .lineLimit(1)
+        HStack(alignment: .firstTextBaseline, spacing: 0) {
+          Text(model.name)
+            .kText(.system(16, .semibold))
+            .foregroundStyle(theme.ink)
+            .lineLimit(1)
+          if model.muted {
+            KChatMutedBell(theme: theme, size: 12)
+          }
+        }
         if !model.sub.isEmpty {
           Text(model.sub)
             .kText(.mono(10, .semibold, tracking: 0.1))

@@ -703,6 +703,9 @@ public struct KChatHeaderModel: Equatable, Sendable {
   /// Native ChatHeader's "letters" variant (KChatHeader draws KChatHeaderRevealed), with `room`
   /// true for the round `face`
   public var revealed = false
+  /// this reader muted the correspondence (owner's audit, 2026-11-10; TS's "threadmute" switch):
+  /// a small bell.slash after the name (TS's a11yLabel says "Muted")
+  public var muted = false
 
   public init() {}
 }

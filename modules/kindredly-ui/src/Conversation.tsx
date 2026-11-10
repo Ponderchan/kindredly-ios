@@ -331,6 +331,10 @@ export type KChatHeader = {
       tall, the round `face` at 36, the name in 600 16, `sub` in its tone, no rule), with `room`
       true. Absent = false. Send it only where the binary has KChatHeaderView. */
   revealed?: boolean;
+  /** this reader muted the correspondence (owner's audit, 2026-11-10; lib/thread-mute): a small
+      bell.slash after the name, in all three headers. Say "Muted" in `a11yLabel` yourself (the
+      glyph is never read). Absent = false; a binary from before it draws nothing. */
+  muted?: boolean;
 };
 
 /** The pen-pal chat's progress band (build-items bandFacts):
@@ -513,9 +517,10 @@ type NativeDock = {
 };
 /* the header as Swift's record: the face flattened, no mark or sign as "", no window as NO_FROST
    (a @Field record can't take null) */
-type NativeHeader = Omit<KChatHeader, "face" | "frost" | "mark" | "sign" | "identity" | "band" | "stamp" | "revealed"> & {
+type NativeHeader = Omit<KChatHeader, "face" | "frost" | "mark" | "sign" | "identity" | "band" | "stamp" | "revealed" | "muted"> & {
   show: boolean;
   revealed: boolean;
+  muted: boolean;
   stamp: string;
   faceKind: KChatFace["kind"];
   faceUri: string;
@@ -536,6 +541,7 @@ const NO_IMAGE: NativeImage = { uri: "", key: "", kind: "image" };
 const NO_HEADER: NativeHeader = {
   show: false,
   revealed: false,
+  muted: false,
   room: false,
   faceKind: "placeholder",
   faceUri: "",
@@ -676,11 +682,12 @@ export function nativeChatDock(d: KChatDock): NativeDock {
 /** The header as Swift's record (the face flattened): show false for none. */
 export function nativeChatHeader(h: KChatHeader | null | undefined): NativeHeader {
   if (!h) return NO_HEADER;
-  const { face, frost, mark, sign, identity, band, stamp, revealed, ...rest } = h;
+  const { face, frost, mark, sign, identity, band, stamp, revealed, muted, ...rest } = h;
   return {
     ...rest,
     show: true,
     revealed: !!revealed,
+    muted: !!muted,
     stamp: stamp ?? "",
     faceKind: face.kind,
     faceUri: face.uri,

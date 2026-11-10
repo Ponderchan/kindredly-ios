@@ -11,6 +11,7 @@ import { LeaveSheet } from "../../components/LeaveSheet";
 import { SignSheet } from "./SignSheet";
 import { ReportSheet } from "../../components/ReportMenu";
 import { useReportFlow } from "../../lib/report-flow";
+import { useThreadMute, type ThreadMute } from "../../lib/thread-mute";
 import { WrenBird } from "../../components/WrenBird";
 import { getLang, hasString, t, useLang } from "../../lib/i18n";
 import { scrimColor, useLetterFamily, useTheme } from "../../lib/theme";
@@ -85,7 +86,15 @@ import { shelfSaysKey, shelfTitleOf, shelfWhoOf } from "./song-shelf";
      bug 2), moment photos signed and keyed by their storage path, Wren's
      dock snapshots;
    · blurThen before every Alert, picker, sheet and push, so the keyboard
-     of a SwiftUI field never strands over the next thing. */
+     of a SwiftUI field never strands over the next thing.
+
+   MUTE (owner's audit, 2026-11-10; the "threadmute" switch, off): with it
+   on, the ⋯ card of both conversations carries Mute / Unmute above Report
+   and Block (lib/thread-mute; ReportSheet `mute`), and the Swift header
+   shows a small bell.slash after the name while muted (withMute). Off, for
+   a guest, on a demo thread or with nobody on the other side, nothing here
+   changes. The React Native header a revealed pen-pal chat keeps while
+   "chatheader" is off (ChatHeader) has its own ⋯ and offers no Mute. */
 
 /** the voice opening's playback key */
 const VOICE_KEY = "voice:opening";
@@ -165,6 +174,16 @@ function withStamp(h: KChatHeader, stamp: string): KChatHeader {
   if (!stamp) return h;
   const spoken = stampSpoken(stamp, t);
   return { ...h, stamp, a11yLabel: h.a11yLabel ? `${h.a11yLabel}, ${spoken}` : spoken };
+}
+
+/** A header for a correspondence that offers Mute (lib/thread-mute): its ⋯ named for more than
+    report and block, and, while muted, the bell.slash after the name and "Muted" at the end of
+    VoiceOver's label. The header unchanged when Mute isn't offered. */
+function withMute(h: KChatHeader, mute: ThreadMute): KChatHeader {
+  if (!mute.item) return h;
+  const moreLabel = h.moreLabel && mute.moreLabel ? mute.moreLabel : h.moreLabel;
+  if (!mute.muted) return { ...h, moreLabel };
+  return { ...h, moreLabel, muted: true, a11yLabel: h.a11yLabel ? `${h.a11yLabel}, ${mute.spoken}` : mute.spoken };
 }
 
 function useOpeningVoice(detail: ThreadDetail | null, isDemo: boolean) {
@@ -283,15 +302,17 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
   const faceSource = useFaceSource(threadFaceInput({ other: detail?.other, otherFace: detail?.otherFace, revealed: true, theirs: detail?.otherCount ?? 0, gone: detail?.gone }));
   const face: KChatFace = detail ? faceRecord(faceSource) : NO_FACE;
   const report = useReportFlow({ context: "thread", targetUser: detail?.gone ? undefined : detail?.other || undefined, refId: id, snapshot: m.theirLatest, onBlocked: m.onBlocked });
+  // Mute / Unmute in the ⋯, and the header's bell.slash (null and false while the switch is off)
+  const mute = useThreadMute(id, { demo: m.isDemo, someone: !report.nobody });
   const subtitle = detail?.revealedAt ? t("rm.kindredSince", { date: dLong(detail.revealedAt).toUpperCase() }) : archNameThird(m.read?.archetype?.id);
   // C2: the kindred's stamp when they are a member (never once gone)
   const stampOf = useMemberStamps([detail?.other]);
   const stamp = detail && !detail.gone ? stampOf(detail.other) : "";
   const header = useMemo<KChatHeader>(
-    () => withStamp(roomHeader({ t, locale: m.locale, name: m.name, sub: subtitle, face, canReport: !report.nobody }), stamp),
+    () => withMute(withStamp(roomHeader({ t, locale: m.locale, name: m.name, sub: subtitle, face, canReport: !report.nobody }), stamp), mute),
     // face is a fresh record each render; its fields are what change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [m.name, subtitle, face.kind, face.uri, face.key, face.overscan, face.mask, report.nobody, lang, stamp],
+    [m.name, subtitle, face.kind, face.uri, face.key, face.overscan, face.mask, report.nobody, lang, stamp, mute],
   );
   const headerTop = topInset ?? safe.top;
   const insets = useMemo(() => ({ top: headerTop, bottom: safe.bottom, tabBarRoom: 0 }), [headerTop, safe.bottom]);
@@ -383,7 +404,7 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
       </SurfaceHost>
 
       {/* the Swift header's ⋯: the card drops just under it */}
-      <ReportSheet flow={report} top={headerTop + 62} />
+      <ReportSheet flow={report} top={headerTop + 62} mute={mute.item} />
       <PhotoLightbox photo={m.photoFull} onClose={() => m.setPhotoFull(null)} />
       <SongShelf open={m.shelf} onClose={() => m.setShelf(false)} songs={m.songs} songSays={m.songSays} name={m.name} />
       <RoomIntroduction m={m} />
@@ -517,6 +538,8 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
   const revealedSwift = useSwiftPiece("chatheader", !!detail?.revealed) && !!detail?.revealed;
   const swiftHeader = !detail?.revealed || revealedSwift;
   const report = useReportFlow({ context: "thread", targetUser: detail?.gone ? undefined : detail?.other || undefined, refId: id, snapshot: m.theirLatest, onBlocked: m.onBlocked });
+  // Mute / Unmute in the ⋯, and the header's bell.slash (null and false while the switch is off)
+  const mute = useThreadMute(id, { demo: m.isDemo, someone: !report.nobody });
   // C2: the pen pal's stamp when they are a member (membership only, never who; never once gone)
   const stampOf = useMemberStamps([detail?.other]);
   const stamp = detail && !detail.gone ? stampOf(detail.other) : "";
@@ -526,8 +549,8 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
   );
   const revealedFace: KChatFace = revealedSwift ? faceRecord(revealedFaceSource) : NO_FACE;
   const header = useMemo<KChatHeader | null>(
-    () =>
-      revealedSwift
+    () => {
+      const h = revealedSwift
         ? withStamp(revealedLettersHeader({ t, name: m.name, face: revealedFace, state: m.state, canOpenPage: m.canOpenPage, canReport: !report.nobody }), stamp)
         : swiftHeader
         ? withStamp({
@@ -547,7 +570,9 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
             // the identity switch: a deleted pen pal's veil is the flat veil tile, square like the windows
             identity: m.identity,
           }, stamp)
-        : null,
+        : null;
+      return h ? withMute(h, mute) : null;
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       swiftHeader,
@@ -569,6 +594,7 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
       report.nobody,
       lang,
       stamp,
+      mute,
     ],
   );
   const headerTop = topInset ?? safe.top;
@@ -665,7 +691,7 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
 
       {/* the Swift header's ⋯: the card drops just under it (the revealed header's where
           ReportMenu's own card dropped: its default top) */}
-      {revealedSwift ? <ReportSheet flow={report} /> : swiftHeader ? <ReportSheet flow={report} top={headerTop + 62} /> : null}
+      {revealedSwift ? <ReportSheet flow={report} mute={mute.item} /> : swiftHeader ? <ReportSheet flow={report} top={headerTop + 62} mute={mute.item} /> : null}
       {/* the KDock door's sheet: identity on, the signing sheet; off, today's ENCLOSE IT confirmation */}
       {m.identity ? (
         <SignSheet m={m} />
