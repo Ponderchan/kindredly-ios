@@ -235,6 +235,31 @@ public class KindredlyUIModule: Module {
       }
     }
 
+    // Exporting the stamps a reader made (stamp export, 2026-11-10; First Class): one stamp as a
+    // see-through PNG sticker, all of them as printable A4 sheets. JS decides which stamps
+    // qualify, the file names, the paging and the words (src/lib/stamp-export-core.ts) and sends
+    // a job as JSON; Portable/Stamps/KStampExport.swift draws it off the main thread with the
+    // photo stamp's own cut (KPhotoStamp), loads each picture through the store every view uses
+    // (KImageStore: a file:// from disk, a signed link fetched once), writes Caches/<fileStem>.png
+    // or .pdf over an older one and answers its file:// uri. A job that is not one, a picture that
+    // can't be had and a file that can't be written reject the promise with a sentence that says
+    // which (KStampExportError). hasStampExport is how JS knows this binary can
+    // (modules/kindredly-ui/src/StampExport.ts). A new file in Portable/Stamps: a pod install
+    // before the build.
+    AsyncFunction("renderStampSticker") { (json: String) async throws -> String in
+      let job = try KStampStickerJob.decode(json: json)
+      let url = try await KStampExport.sticker(job, loader: KImageStore.shared)
+      return url.absoluteString
+    }
+    AsyncFunction("renderStampSheet") { (json: String) async throws -> String in
+      let job = try KStampSheetJob.decode(json: json)
+      let url = try await KStampExport.sheet(job, loader: KImageStore.shared)
+      return url.absoluteString
+    }
+    Function("hasStampExport") { () -> Bool in
+      true
+    }
+
     // The name-trading ceremony's signed ritual (owner, 2026-10-26; 1.0.7): one piece of the React
     // Native introduction sheet, behind the "ceremony" switch (src/components/
     // IntroductionRitualNative.tsx). Adapters/KIntroRitualView.swift, Portable/Chat/KIntroRitual.swift.
