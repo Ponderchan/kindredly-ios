@@ -64,6 +64,8 @@ export type BirdPose =
   | StagePose
   // Wren's room in Swift (screens/wren-room/WrenRoomNative): the empty room's curious official bird
   | "officialCurious"
+  // the journal book's back cover (lib/journal-book): the brand bird, large enough for print
+  | "bookBack"
   // the introduction sheet in Swift (components/IntroductionNative): her at the top, the courier on the road
   | "intro44"
   | "introCourier26"
@@ -337,6 +339,12 @@ export const BIRD_POSES: Record<BirdPose, BirdPoseSpec> = {
      round(64 × .62) = 40 — the brand bird, pinned like "official" (the header's face, as on her
      Kindreds row). Not base: captured only while the room asks. */
   officialCurious: { size: 40, mood: "curious", stage: "wren", skin: "sticker", accessory: "none", mark: null },
+  /* The journal book's back cover (journal book, 2026-11-10; lib/journal-book useBookWren): the
+     brand bird, pinned like "official" — the book is the reader's, the mark on its back is the
+     press's — but at 120, because the page is PRINTED: she sits about 118pt wide on an A5 sheet,
+     and the 48pt "official" capture would come out soft on paper. Not base: captured only while
+     the export page asks. */
+  bookBack: { size: 120, mood: "content", stage: "wren", skin: "sticker", accessory: "none", mark: null },
   /* The introduction sheet in Swift ("introritual"): React Native's WrenBird over her letter (44,
      content, grown, her look) and the courier flying each letter on the mosaic ritual's road (26,
      delight, flying, the sticker coat, her stage). Not base: captured only while the sheet asks. */

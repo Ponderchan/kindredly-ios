@@ -183,7 +183,9 @@ function exchangeOnce(code: string, flowId?: string): Promise<{ error: string | 
   return p;
 }
 
-const LOCAL_PROFILE_KEY = "kindredly_profile_local";
+/* exported for the journal book (2026-11-10): lib/journal-book reads the pen name outside React,
+   from this same copy, when it builds the book's cover */
+export const LOCAL_PROFILE_KEY = "kindredly_profile_local";
 
 /* "THAT'S ALREADY AN ACCOUNT." How Supabase says a link can't happen because
    the identity or the email belongs to another user: an error code on a

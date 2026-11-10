@@ -506,3 +506,6 @@ export { KReelView, REEL_OFF, nativeReel, type KReelSpec, type KReelViewProps, t
 // batch 3: Free Flight — the game in Swift ("freeflight", off by default), drawn by KCourierView on
 // its cover from its `flight` record; KFreeFlightView is the game alone (the binary's marker)
 export { FREE_FLIGHT_OFF, KFreeFlightView, nativeFreeFlight, type KFreeFlightData, type KFreeFlightStrings, type KFreeFlightViewProps, type NativeFreeFlight } from "./src/FreeFlight";
+
+// journal book (2026-11-10): the model Swift draws as an A5 PDF, and the two native functions (contract .claude/journal-book/CONTRACT.md)
+export { hasJournalBook, renderJournalBook, type Book, type BookMedia, type BookMood, type BookPage } from "./src/JournalBook";

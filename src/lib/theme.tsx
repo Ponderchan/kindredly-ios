@@ -63,6 +63,13 @@ const KEY = "kindredly_theme"; // {"appearance":"…"} as JSON (older builds: { 
    the default until then. */
 const LETTER_KEY = "kindredly_letter_font"; // "newsreader" | "system" | "garamond" | "sfmono"
 
+/** The reader's Letter font as the phone has it stored, for code that runs outside React (journal
+    book, 2026-11-10: lib/journal-book reads it when it builds the book). Screens use
+    useLetterFont(). Rejects when storage can't be read; nothing stored is the default. */
+export async function storedLetterFont(): Promise<LetterFontKey> {
+  return letterFontKey(await AsyncStorage.getItem(LETTER_KEY));
+}
+
 export { APPEARANCES, type Appearance } from "../theme/themes";
 
 export {
