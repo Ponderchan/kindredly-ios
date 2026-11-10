@@ -91,6 +91,9 @@ public enum KLineGlyph: String, CaseIterable, Sendable {
   case noteList
   /// a desk calendar, its header solid, with room for three mood squares (KNotesCalendarButton draws them)
   case noteCalendar
+  /// a magnifier, round lens and a short handle: the Notes header's search key (owner's audit, 2026-11-10),
+  /// drawn to sit beside the view and calendar keys at their stroke
+  case noteSearch
 
   // ── Me, Settings and Edit profile (H:71, 72, 81, 91) ──
   /// the pencil (Edit profile, write back)
@@ -366,6 +369,7 @@ enum KLineGlyphTable {
     case .noteGrid: return Drawing(stroke: [.d("M5.75 4H8.25A1.75 1.75 0 0 1 10 5.75V8.25A1.75 1.75 0 0 1 8.25 10H5.75A1.75 1.75 0 0 1 4 8.25V5.75A1.75 1.75 0 0 1 5.75 4Z"), .d("M15.75 4H18.25A1.75 1.75 0 0 1 20 5.75V8.25A1.75 1.75 0 0 1 18.25 10H15.75A1.75 1.75 0 0 1 14 8.25V5.75A1.75 1.75 0 0 1 15.75 4Z"), .d("M5.75 14H8.25A1.75 1.75 0 0 1 10 15.75V18.25A1.75 1.75 0 0 1 8.25 20H5.75A1.75 1.75 0 0 1 4 18.25V15.75A1.75 1.75 0 0 1 5.75 14Z"), .d("M15.75 14H18.25A1.75 1.75 0 0 1 20 15.75V18.25A1.75 1.75 0 0 1 18.25 20H15.75A1.75 1.75 0 0 1 14 18.25V15.75A1.75 1.75 0 0 1 15.75 14Z")])
     case .noteList: return Drawing(stroke: [.d("M10.5 6H20.5"), .d("M10.5 12H18"), .d("M10.5 18H19.25")], fill: [.d("M4.2 4.2H5.8A1 1 0 0 1 6.8 5.2V6.8A1 1 0 0 1 5.8 7.8H4.2A1 1 0 0 1 3.2 6.8V5.2A1 1 0 0 1 4.2 4.2Z"), .d("M4.2 10.2H5.8A1 1 0 0 1 6.8 11.2V12.8A1 1 0 0 1 5.8 13.8H4.2A1 1 0 0 1 3.2 12.8V11.2A1 1 0 0 1 4.2 10.2Z"), .d("M4.2 16.2H5.8A1 1 0 0 1 6.8 17.2V18.8A1 1 0 0 1 5.8 19.8H4.2A1 1 0 0 1 3.2 18.8V17.2A1 1 0 0 1 4.2 16.2Z")])
     case .noteCalendar: return Drawing(stroke: [.d("M6 5H18A3 3 0 0 1 21 8V17.5A3 3 0 0 1 18 20.5H6A3 3 0 0 1 3 17.5V8A3 3 0 0 1 6 5Z"), .d("M8 2.5V6M16 2.5V6")], fill: [.d("M6 5H18A3 3 0 0 1 21 8V10H3V8A3 3 0 0 1 6 5Z")])
+    case .noteSearch: return Drawing(stroke: [.circle(10.75, 10.75, r: 6.75), .d("M15.75 15.75L20.5 20.5")])
 
     case .pen: return Drawing(stroke: [.d("M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z")])
     case .sliders:

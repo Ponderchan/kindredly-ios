@@ -34,6 +34,23 @@ import SwiftUI
 
  The two buttons (owner 10-20: "有点小" beside the bold title): 40pt soft circles, their drawings
  ~20% bigger than the first 34pt keys, each inside a 44pt hit square (KNotesHeaderKey).
+
+ SEARCH (owner's audit, 2026-11-10: no way to find an old page). A third key of the same make, a
+ magnifier, sits before the two; a tap swaps the row for the system's search row and raises the
+ keyboard:
+
+   NOTES                                [⌕] [▤] [▦]
+   ( ⌕ search your pages            ⊗ )   Cancel     a rounded field on the theme's soft (corners
+                                                     10, 36 tall), the magnifier and the ⊗ in mute
+                                                     and faint, Cancel in ind at the system's 17
+
+ TS filters the pages as the reader types (notes-model searchPages) and sends them as the list's
+ notes; this row only holds the field and says what was typed. While it is up the header never
+ hides (the field is the way out), the view and calendar keys are away, and Cancel — or escape —
+ closes it. THE FIELD STAYS MOUNTED, clear and untouchable, while the title row shows: a focused
+ SwiftUI field taken off screen is the crash KField.swift describes, so closing only blurs and
+ empties it. Its handle (KFieldController) lives in the driver, as long as the view does. A bundle
+ from before the audit sends no search words: no key, no row, the header as it was.
  */
 
 /// Whether the header is hidden and which note the chip shows. Fed by the screen every scroll frame
@@ -67,6 +84,8 @@ public final class KNotesScrollState: ObservableObject {
   private var anchor: CGFloat = 0
   private var phase: ScrollPhase = .idle
   private var voiceOver = false
+  /// the header is the search row: it never hides, as under VoiceOver
+  private var searching = false
 
   public init() {}
 
@@ -107,6 +126,12 @@ public final class KNotesScrollState: ObservableObject {
     apply()
   }
 
+  /// The search row is up (or gone again): while it is, the header stays.
+  func setSearching(_ on: Bool) {
+    searching = on
+    apply()
+  }
+
   /// The topmost note on screen, worked out by the screen; nil (none counted as visible, as in the
   /// moment a layout changes) keeps the one before, so the chip never blinks out over a long page.
   func visible(top: String?) {
@@ -122,7 +147,7 @@ public final class KNotesScrollState: ObservableObject {
   private func apply() {
     var hide = headerHidden
     let y = offset
-    if voiceOver || y < hideAt {
+    if voiceOver || searching || y < hideAt {
       hide = false
       anchor = y
     } else if !readerScrolling {
@@ -163,6 +188,10 @@ struct KNotesHeaderBar: View {
   let recentGroups: [KMoodGroup]
   /// the empty state's header: the title and JUST YOU, never moving
   let empty: Bool
+  /// the search row's words and whether it is up (KNotesSearch; no words: no search)
+  let search: KNotesSearch
+  /// the search field's handle (the driver's)
+  let searchField: KFieldController
   @ObservedObject var chrome: KScrollModel
   @ObservedObject var state: KNotesScrollState
   let actions: KNotesActions
@@ -173,33 +202,54 @@ struct KNotesHeaderBar: View {
     let y = empty ? 0 : max(0, chrome.offset)
     let height = min(Self.fullHeight, max(48, Self.fullHeight - 0.6 * y))
     let scale = min(22, max(15, 22 - 0.22 * y)) / 22
-    let hidden = !empty && state.headerHidden
-    HStack(alignment: .center, spacing: 12) {
-      Text(strings.title)
-        .kText(Self.title)
-        .foregroundStyle(theme.ink)
-        .lineLimit(1)
-        .minimumScaleFactor(0.7)
-        .scaleEffect(scale, anchor: .leading)
-        .accessibilityAddTraits(.isHeader)
-      Spacer(minLength: 0)
-      if empty {
-        Text(strings.justYou)
-          .kText(Self.justYou)
-          .foregroundStyle(theme.sub)
+    // the search row takes the title row's place (never on the empty page: nothing to search)
+    let searching = search.available && search.on && !empty
+    let hidden = !empty && !searching && state.headerHidden
+    ZStack {
+      HStack(alignment: .center, spacing: 12) {
+        Text(strings.title)
+          .kText(Self.title)
+          .foregroundStyle(theme.ink)
           .lineLimit(1)
-      } else {
-        // 4 between the 44pt hit squares: the 40pt circles stand 8 apart
-        HStack(spacing: 4) {
-          KNotesViewButton(theme: theme, layout: layout, label: strings.viewLabel(layout), a11yName: strings.viewA11y, y: y) {
-            actions.onCycleView()
-          }
-          KNotesCalendarButton(theme: theme, open: calendarOpen, groups: recentGroups, a11yName: strings.calendarA11y) {
-            actions.onCalendarToggle(!calendarOpen)
+          .minimumScaleFactor(0.7)
+          .scaleEffect(scale, anchor: .leading)
+          .accessibilityAddTraits(.isHeader)
+        Spacer(minLength: 0)
+        if empty {
+          Text(strings.justYou)
+            .kText(Self.justYou)
+            .foregroundStyle(theme.sub)
+            .lineLimit(1)
+        } else {
+          // 4 between the 44pt hit squares: the 40pt circles stand 8 apart
+          HStack(spacing: 4) {
+            if search.available {
+              KNotesSearchButton(theme: theme, a11yName: search.button) {
+                actions.onSearch(true)
+              }
+            }
+            KNotesViewButton(theme: theme, layout: layout, label: strings.viewLabel(layout), a11yName: strings.viewA11y, y: y) {
+              actions.onCycleView()
+            }
+            KNotesCalendarButton(theme: theme, open: calendarOpen, groups: recentGroups, a11yName: strings.calendarA11y) {
+              actions.onCalendarToggle(!calendarOpen)
+            }
           }
         }
       }
+      .opacity(searching ? 0 : 1)
+      .allowsHitTesting(!searching)
+      .accessibilityHidden(searching)
+
+      // always in the tree where there is search: a focused field is never taken off screen
+      if search.available {
+        KNotesSearchRow(theme: theme, search: search, active: searching, field: searchField, actions: actions)
+          .opacity(searching ? 1 : 0)
+          .allowsHitTesting(searching)
+          .accessibilityHidden(!searching)
+      }
     }
+    .animation(.easeInOut(duration: 0.18), value: searching)
     .padding(.horizontal, 22)
     .frame(height: height)
     .frame(maxWidth: .infinity)
@@ -217,6 +267,133 @@ struct KNotesHeaderBar: View {
 enum KNotesHeaderKey {
   static let circle: CGFloat = 40
   static let hit: CGFloat = 44
+}
+
+/// The search key (owner's audit, 2026-11-10): 40 round on the theme's soft like the two beside it,
+/// a magnifier in the same hand and stroke, icon only. A tap asks TS to open the search row.
+struct KNotesSearchButton: View {
+  let theme: KTheme
+  let a11yName: String
+  let action: () -> Void
+
+  var body: some View {
+    SwiftUI.Button(action: action) {
+      KLineIcon(.noteSearch, size: 22, lineWidth: 2, color: theme.ink)
+        .frame(width: KNotesHeaderKey.circle, height: KNotesHeaderKey.circle)
+        .background(Circle().fill(theme.soft))
+        .frame(width: KNotesHeaderKey.hit, height: KNotesHeaderKey.hit)
+        .contentShape(Rectangle())
+    }
+    .buttonStyle(KFadePressStyle())
+    .accessibilityLabel(a11yName)
+  }
+}
+
+/// The search row (see SEARCH at the top of the file): the rounded field with its magnifier and
+/// its ⊗, and Cancel. `active` is whether it is the row on show; the field itself is always here.
+/// It reports what the reader types (never what a setText put there); TS does the finding.
+struct KNotesSearchRow: View {
+  let theme: KTheme
+  let search: KNotesSearch
+  let active: Bool
+  let field: KFieldController
+  let actions: KNotesActions
+
+  /// the field holds something: the ⊗ shows (the field's own words aren't published)
+  @State private var hasText = false
+
+  var body: some View {
+    HStack(spacing: 12) {
+      HStack(spacing: 6) {
+        Image(systemName: "magnifyingglass")
+          .font(.system(size: 15, weight: .medium))
+          .foregroundStyle(theme.mute)
+          .accessibilityHidden(true)
+        KField(
+          theme: theme,
+          controller: field,
+          placeholder: search.placeholder,
+          axis: .horizontal,
+          lines: nil,
+          returnSends: false,
+          autocapitalize: false,
+          autocorrect: false,
+          accessibilityLabel: search.placeholder,
+          onChange: { text in
+            hasText = !text.isEmpty
+            actions.onSearchQuery(text)
+          },
+          // the keyboard's return key: the words are already found, the keyboard just goes
+          onSubmit: { _ in field.blur() }
+        )
+        .frame(maxWidth: .infinity, alignment: .leading)
+        if hasText {
+          SwiftUI.Button {
+            clear()
+            field.focus()
+          } label: {
+            Image(systemName: "xmark.circle.fill")
+              .font(.system(size: 16))
+              .foregroundStyle(theme.faint)
+              .frame(width: 36, height: 44)
+              .contentShape(Rectangle())
+          }
+          .buttonStyle(KFadePressStyle())
+          .accessibilityLabel(search.clear)
+          // a 44pt target in a 36pt field: its room is given back so the field keeps its height
+          .padding(.vertical, -4)
+          .padding(.trailing, -8)
+        }
+      }
+      .padding(.leading, 10)
+      .padding(.trailing, 8)
+      .frame(minHeight: 36)
+      .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(theme.soft))
+
+      SwiftUI.Button {
+        close()
+      } label: {
+        Text(search.cancel)
+          .kText(.system(17))
+          .foregroundStyle(theme.ind)
+          .lineLimit(1)
+          .fixedSize()
+          .frame(minHeight: 44)
+          .contentShape(Rectangle())
+      }
+      .buttonStyle(KFadePressStyle())
+    }
+    .accessibilityAction(.escape) { close() }
+    .onChange(of: active) { _, on in
+      if on {
+        // the row has just come up: the keyboard with it
+        field.focus()
+      } else {
+        // closed (Cancel, or TS closed it): the field lets go and starts empty next time
+        field.blur()
+        if !field.text.isEmpty { field.clear() }
+        hasText = false
+      }
+    }
+    .onAppear {
+      // a view rebuilt while a search is on: the field shows what TS is filtering by, keyboard down
+      if active, field.text.isEmpty, !search.query.isEmpty { field.setText(search.query) }
+      hasText = !field.text.isEmpty
+    }
+  }
+
+  /// the ⊗: an empty field (a setText isn't reported, so TS is told here)
+  private func clear() {
+    field.clear()
+    hasText = false
+    actions.onSearchQuery("")
+  }
+
+  /// Cancel: the keyboard down first, then TS takes the row away (and the list comes back)
+  private func close() {
+    field.blur()
+    actions.onSearch(false)
+  }
 }
 
 /// The view button: 40 round like the calendar beside it, the current view's icon only (owner,

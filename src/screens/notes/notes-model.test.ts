@@ -309,6 +309,44 @@ const NOW = new Date(2026, 9, 16, 15, 0); // Friday 16 October 2026, 15:00
   eq("pages this month", M.pagesThisMonth([...days, page("s", at(2026, 9, 30))], NOW), 7);
 }
 
+/* ── search (owner's audit, 2026-11-10) ───────────────────────────────── */
+{
+  eq("folding: lower case, accents dropped, spaces as one", M.foldForSearch("  Café  CRÈME\n brûlée "), "cafe creme brulee");
+  eq("folding: full-width letters as plain ones", M.foldForSearch("ＡＢＣ１２３"), "abc123");
+  eq("folding: nothing is nothing", [M.foldForSearch(""), M.foldForSearch(null), M.foldForSearch("   ")], ["", "", ""]);
+  ok("folding keeps the Japanese voiced mark (か is not が)", M.foldForSearch("が") !== M.foldForSearch("か"));
+
+  const pages = [
+    page("walk", at(2026, 10, 14), { body: "Walked to the Café by the river.\nIt rained.", mood: "sleepy" }),
+    page("zh", at(2026, 10, 13), { body: "今天下雨了，我没有带伞。", mood: "group-low" }),
+    page("ja", at(2026, 10, 12), { body: "今日は雨が降っていました。", mood: "cheerful" }),
+    page("ko", at(2026, 10, 11), { body: "오늘은 비가 왔어요.", mood: "calm" }),
+    page("photo", at(2026, 10, 10), { type: "photo", body: "", mood: "heartbroken", media: ["a.jpg"] }),
+    page("nomood", at(2026, 10, 9), { body: "nothing chosen here", mood: undefined as never }),
+  ];
+  const ids = (q: string) => M.searchPages(pages, q, fmt).map((p) => p.id);
+
+  ok("nothing typed keeps every page, the same array", M.searchPages(pages, "", fmt) === pages && M.searchPages(pages, "   ", fmt) === pages);
+  eq("a word in the words", ids("river"), ["walk"]);
+  eq("any case", ids("WALKED"), ["walk"]);
+  eq("without the accent", ids("cafe"), ["walk"]);
+  eq("with the accent", ids("café"), ["walk"]);
+  eq("across a line break, as one space", ids("river. it rained"), ["walk"]);
+  eq("a part of a word (a plain substring)", ids("alk"), ["walk"]);
+  eq("Chinese, no spaces to split on", ids("下雨"), ["zh"]);
+  eq("Japanese", ids("雨が降"), ["ja"]);
+  eq("Korean", ids("비가"), ["ko"]);
+  eq("Korean, a syllable still being typed (its first letters)", ids("오느"), ["ko"]);
+  eq("the mood's name, in the reader's language", ids("sleepy"), ["walk"]);
+  eq("the mood's group name: the face's group and a group alone", ids("low"), ["zh", "photo"]);
+  eq("a page with no words is found by its mood", ids("heartbroken"), ["photo"]);
+  eq("a page that stored no mood isn't found by the colour it is drawn in", ids("calm"), ["ko"]);
+  eq("its words still find it", ids("nothing chosen"), ["nomood"]);
+  eq("no match is no pages", ids("zebra"), []);
+  eq("the order is the list's", M.searchPages(pages, "a", fmt).map((p) => p.id), pages.filter((p) => M.searchPages([p], "a", fmt).length).map((p) => p.id));
+  ok("the pages aren't touched", pages.length === 6 && pages[0].body.startsWith("Walked"));
+}
+
 /* ── the evening question ─────────────────────────────────────────────── */
 {
   const base = { prefsUnreadable: false, dailyLine: false, morningQuestion: false, notifyOn: true, answered: false, pages: 1 };

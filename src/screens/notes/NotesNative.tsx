@@ -3,7 +3,8 @@ import { View } from "react-native";
 import { useFocusEffect, useNavigation } from "expo-router";
 import { File, Paths } from "expo-file-system";
 import { useKCommands, useRev, type KScreenHandle } from "../../../modules/kindredly-ui";
-import { KNotesView, type KNotesCommands, type KNotesMonthRecord, type KNotesNote, type KNotesPalette, type KNotesStrings } from "../../../modules/kindredly-ui/src/Notes";
+import { KNotesView, type KNotesCommands, type KNotesMonthRecord, type KNotesNote, type KNotesPalette, type KNotesSearch, type KNotesStrings } from "../../../modules/kindredly-ui/src/Notes";
+import { blurThen } from "../../lib/keyboard";
 import { SurfaceHost } from "../../components/NativeSurface";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
@@ -46,6 +47,16 @@ import type { NotesModel } from "./useNotesModel";
    Until the journal has been read and the remembered view is known, it
    draws the page colour only, so the first frame is the right view with
    the right notes (no flash of the empty state, no crossfade of views).
+
+   SEARCH (owner's audit, 2026-11-10): the header's magnifier key asks the
+   model to open the search row (act.setSearch), every edit of the field
+   comes back (act.searchQuery) and the model's `notes` become the pages
+   that match, so the window, the cards and the taps are the ones above.
+   While the row is up Wren's line and the evening rows are held back (they
+   aren't results), and opening a result first tells the field to let go of
+   the keyboard ('blur', then the keyboard app-wide) so the page isn't
+   pushed under it. The row's words go as one small record (`search`); a
+   binary from before the audit ignores it and has no key.
 
    THE CALENDAR closes when the tab loses focus (a push, another tab): the
    overlay never waits behind another page. That rule is this renderer's
@@ -306,6 +317,23 @@ export function NotesNative({ model }: { model: NotesModel }) {
     };
   }, [s]);
 
+  /* ── search: the row's words and state, and a result opened with the keyboard put away first ── */
+  const searching = model.search.open;
+  const search = useMemo<KNotesSearch>(
+    () => ({ on: searching, query: model.search.query, button: s.searchA11y, placeholder: s.searchPlaceholder, cancel: s.searchCancel, clear: s.searchClear, none: s.searchNone }),
+    [searching, model.search.query, s],
+  );
+  const searchingRef = useRef(searching);
+  searchingRef.current = searching;
+  const open = useCallback(
+    (id: string) => {
+      // delayMs 0: the page can slide in while the keyboard drops
+      if (searchingRef.current) blurThen(() => actRef.current.open(id), ref, { delayMs: 0 });
+      else actRef.current.open(id);
+    },
+    [],
+  );
+
   const onEvening = useCallback(
     (answer: "yes" | "no" | "off") => {
       if (answer === "yes") act.eveningYes();
@@ -332,14 +360,18 @@ export function NotesNative({ model }: { model: NotesModel }) {
         view={model.view}
         calendarOpen={model.calendarOpen}
         recentGroups={model.recentGroups}
-        wrenLine={model.wrenLine ?? ""}
+        // her line and the evening rows aren't results: held back while the search row is up
+        wrenLine={searching ? "" : (model.wrenLine ?? "")}
         wrenFirst={model.wrenFirst}
         bird={bird}
         birdMini={birdMini}
-        evening={model.evening.state}
+        evening={searching ? "none" : model.evening.state}
         eveningBusy={model.evening.busy}
         palette={PALETTE}
-        onOpen={act.open}
+        search={search}
+        onSearch={act.setSearch}
+        onSearchQuery={act.searchQuery}
+        onOpen={open}
         onViewCycle={act.cycleView}
         onCalendarToggle={act.setCalendar}
         onCalendarMonth={act.calendarMonth}

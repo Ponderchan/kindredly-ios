@@ -57,6 +57,19 @@ import { weightedCount } from "../../lib/weighted-count";
    first weekday follows the language (format FIRST_WEEKDAY, owner
    question 11), and so do the weekday letters and the month's title.
 
+   SEARCH (owner's audit, 2026-11-10: there was no way to find an old page).
+   searchPages keeps the pages whose words hold what was typed, as a plain
+   substring — no word-splitting, so Chinese, Japanese and Korean (which
+   write no spaces) are found the same way as English — after both sides
+   are folded (foldForSearch): lower case, Latin accents dropped ("cafe"
+   finds "café"; the Japanese voiced marks and Korean syllables are left
+   as written), full-width forms as their plain ones, any run of spaces or
+   line breaks as one space. A page is also found by its mood's name in the
+   reader's language — the face's ("Sleepy") and its group's ("Tired") —
+   but only a mood the page really stored: a page with none is never found
+   by "Calm", the colour it is merely drawn in. Nothing typed keeps every
+   page. It never reorders: the hits are the same pages in the same order.
+
    THE EVENING QUESTION. decideEvening keeps the old card's exact order
    (EveningAsk.tsx before step 5), with the one owner-rule change the
    critic found: its off row must be reachable with no pages at all,
@@ -328,6 +341,35 @@ export function buildNote(e: JournalEntry, fmt: NotesFormat): NoteVM {
 /** Every page, newest first and one per id, as NoteVMs. */
 export function buildNotes(entries: readonly JournalEntry[], fmt: NotesFormat): NoteVM[] {
   return orderPages(entries).map((e) => buildNote(e, fmt));
+}
+
+/* ── search ────────────────────────────────────────────────────────────── */
+
+/** Text as search compares it: lower case, Latin accents dropped (only the combining marks of
+    U+0300–036F: the Japanese voiced marks stay, so か never finds が), compatibility forms folded
+    (full-width ＡＢＣ as abc), runs of white space as one space, trimmed. */
+export function foldForSearch(s: string | null | undefined): string {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** The pages that hold `query`: in their words, or as the name of the mood they stored (the face's
+    and its group's, in the reader's language). A plain folded substring; an empty query keeps every
+    page (the same array). Order kept; never mutates. */
+export function searchPages<T extends Pick<JournalEntry, "body" | "mood">>(entries: readonly T[], query: string, fmt: Pick<NotesFormat, "t" | "moodLabel">): readonly T[] {
+  const q = foldForSearch(query);
+  if (!q) return entries;
+  return entries.filter((e) => {
+    if (foldForSearch(e.body).includes(q)) return true;
+    // the mood's name counts only for a mood the page stored (moodLabel is "" for none)
+    const name = fmt.moodLabel(e.mood);
+    if (!name) return false;
+    return foldForSearch(name).includes(q) || foldForSearch(fmt.t(`mood.group.${moodGroup(e.mood)}`)).includes(q);
+  });
 }
 
 /* ── the waveform ──────────────────────────────────────────────────────── */

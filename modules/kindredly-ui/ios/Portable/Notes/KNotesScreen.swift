@@ -52,7 +52,37 @@ is shorter by an estimate of the cards' heights (KNotesScreen.masonry); at acces
  changes past the header's full shrink) and KNotesScrollState (hidden or not, the top note), read
  only by the header, the chip and the caption: the screen itself, and its LazyVStack, never redraw
  as the list scrolls.
+
+ SEARCH (owner's audit, 2026-11-10; the row itself is KNotesHeader's). While the search row is up
+ the notes TS sends are the pages that match what was typed — the same cards, opening the same
+ pages — with Wren's line and the evening rows left out by TS; nothing matching is one quiet line
+ where the first card would be. Each new query starts its results from the top; a drag on the
+ list puts the keyboard away (the results under it can be reached). The list remembers what was
+ on top when the row came up and goes back there when it closes: the top of the list if the
+ reader was at the top, otherwise that note under the header.
  */
+
+/// The search row's words and state, from TS (owner's audit, 2026-11-10). No `button` word means a
+/// bundle from before search: no key and no row.
+public struct KNotesSearch: Equatable, Sendable {
+  /// the header is the search row
+  public var on = false
+  /// what TS is filtering by (the field's own words live in the field; this seeds a rebuilt one)
+  public var query = ""
+  /// VoiceOver's name for the magnifier key
+  public var button = ""
+  public var placeholder = ""
+  public var cancel = ""
+  /// VoiceOver's name for the field's ⊗
+  public var clear = ""
+  /// the one line when nothing matches
+  public var none = ""
+
+  public init() {}
+
+  /// this bundle knows search
+  public var available: Bool { !button.isEmpty }
+}
 
 /// Every word of the screen that isn't on a note (TS's NotesStrings).
 public struct KNotesStrings: Equatable, Sendable {
@@ -143,6 +173,8 @@ public struct KNotesContent: Equatable, Sendable {
   public var evening: KNotesEvening = .none
   public var eveningBusy = false
   public var palette = KNotesEmptyPalette(keyText: .clear, keyVoice: .clear, tape: .clear, sticker: .clear)
+  /// the search row (its words, whether it is up, what is being looked for)
+  public var search = KNotesSearch()
 
   public init() {}
 
@@ -186,6 +218,10 @@ public final class KNotesActions {
   public var onEmptyWrite: (String) -> Void = { _ in }
   /// the list nears the end of the window and more notes lie past it
   public var onReachEnd: () -> Void = {}
+  /// the magnifier key (true) or Cancel / escape (false): TS shows or hides the search row
+  public var onSearch: (Bool) -> Void = { _ in }
+  /// what the reader typed in the search field (every edit; "" from the ⊗)
+  public var onSearchQuery: (String) -> Void = { _ in }
 
   public init() {}
 }
@@ -210,6 +246,9 @@ public final class KNotesDriver: ObservableObject {
   @Published private(set) var scrollRequest: ScrollRequest?
   /// the page just sealed, popping in (TS's 'popIn' command); nil once it has
   @Published private(set) var fresh: KNoteFresh?
+  /// The search field's handle: as long-lived as the view, so the field is blurred by command
+  /// (TS's 'blur', before a page is pushed over a keyboard) and by the adapter before the view goes.
+  public let searchField = KFieldController()
 
   private var serial = 0
 
@@ -302,6 +341,8 @@ final class KNotesBox {
   var settleToken = 0
   /// Wren's line or the evening rows are on screen: the reader is at the top
   var extrasVisible = false
+  /// where the list was when the search row came up: the note on top, nil for the top of the list
+  var searchAnchor: String?
 }
 
 /// One row of the list: a note, or two side by side in Grid.
@@ -349,6 +390,9 @@ public struct KNotesScreen: View {
   /// the fade over the bottom: the tab bar's room + 78, never less than the mock's 176
   private var fadeHeight: CGFloat { max(KBottomFade.defaultHeight, tabBarRoom + 78) }
 
+  /// the search row is the header (never on the empty page, never for a bundle without search)
+  private var searching: Bool { content.search.available && content.search.on && !content.empty }
+
   public var body: some View {
     ZStack(alignment: .top) {
       VStack(spacing: 0) {
@@ -367,6 +411,8 @@ public struct KNotesScreen: View {
             calendarOpen: content.calendarOpen,
             recentGroups: content.recentGroups,
             empty: content.empty,
+            search: content.search,
+            searchField: driver.searchField,
             chrome: chrome,
             state: scrollState,
             actions: actions
@@ -398,8 +444,10 @@ public struct KNotesScreen: View {
     .ignoresSafeArea(.keyboard)
     .onAppear {
       scrollState.setVoiceOver(voiceOver)
+      scrollState.setSearching(searching)
       scrollState.hideAt = content.layout == .card ? KNotesScrollState.hideAfter : 60
     }
+    .onChange(of: searching) { _, on in scrollState.setSearching(on) }
     .onChange(of: content.layout) { _, layout in
       scrollState.hideAt = layout == .card ? KNotesScrollState.hideAfter : 60
     }
@@ -453,7 +501,17 @@ public struct KNotesScreen: View {
             }
           }
           eveningRow
-          if columns == 2 {
+          if searching && content.notes.isEmpty {
+            // nothing matches: one quiet line where the first card would be
+            Text(content.search.none)
+              .kText(.system(15, lineHeight: 22.0 / 15.0))
+              .foregroundStyle(theme.sub)
+              .multilineTextAlignment(.center)
+              .fixedSize(horizontal: false, vertical: true)
+              .frame(maxWidth: .infinity)
+              .padding(.horizontal, 24)
+              .padding(.top, 48)
+          } else if columns == 2 {
             masonry
           } else {
             ForEach(rows) { row in
@@ -470,6 +528,8 @@ public struct KNotesScreen: View {
         .padding(.horizontal, 16)
       }
       .scrollIndicators(.hidden)
+      // the search field's keyboard goes when the reader takes the list (there is no other field here)
+      .scrollDismissesKeyboard(.immediately)
       .contentMargins(.top, Self.topMargin, for: .scrollContent)
       .contentMargins(.bottom, bottom, for: .scrollContent)
       .kScrollChrome(chrome)
@@ -520,6 +580,28 @@ public struct KNotesScreen: View {
       }
       .onChange(of: content.layout) { _, _ in
         reanchor(proxy)
+      }
+      .onChange(of: searching) { _, on in
+        if on {
+          // where the reader was: the note on top, or the very top (Wren's line, the evening rows)
+          box.searchAnchor = box.extrasVisible ? nil : scrollState.topNoteId
+        } else {
+          // the whole list is back (the same props brought it): back to where it was
+          let anchor = box.searchAnchor
+          box.searchAnchor = nil
+          DispatchQueue.main.async {
+            if let anchor, let row = rowId(for: anchor) {
+              scroll(proxy, to: row, animated: false)
+            } else {
+              scroll(proxy, to: firstId(self.rows), animated: false)
+            }
+          }
+        }
+      }
+      .onChange(of: content.search.query) { _, _ in
+        // a new query's results start from their top (one turn later, so the new rows exist)
+        guard searching else { return }
+        DispatchQueue.main.async { scroll(proxy, to: content.notes.first?.id, animated: false) }
       }
     }
   }

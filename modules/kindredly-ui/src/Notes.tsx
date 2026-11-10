@@ -11,7 +11,8 @@ import type { KImageRefProps, KInsets, KScreenBaseProps, KScreenHandle, KStandar
    header is hidden, which note is on top.
 
    It is a whole screen: put it alone in one @expo/ui <Host style={{flex:1}}> (SurfaceHost in
-   src/components/NativeSurface.tsx; ignoreSafeArea "all" — it has no text field), and only after
+   src/components/NativeSurface.tsx; ignoreSafeArea "all" — its one field, the header's search
+   field, sits at the top and needs no keyboard room), and only after
    isKindredlyUIViewAvailable("KNotesView") and the "notes" NativeSurface switch say so. Outside a
    Host it is a RedBox in dev and a CRASH in a release build. Its ref is a KScreenHandle: give it
    `commands.ref` from useKCommands<KNotesCommands> (commands.ts).
@@ -113,6 +114,24 @@ export type KNotesStrings = {
   neGroupNames: string[];
 };
 
+/** The header's search row (owner's audit, 2026-11-10): its words, whether it is up, and what TS is
+    filtering `notes` by. Swift draws the magnifier key only when `button` has a word, shows the
+    row while `on`, and reports every edit (onSearchQuery); TS does the finding. A binary from
+    before it ignores the prop: no key, nothing else changes. */
+export type KNotesSearch = {
+  on: boolean;
+  /** what was typed (the field's own words live in Swift; this seeds a rebuilt view) */
+  query: string;
+  /** VoiceOver's name for the magnifier key */
+  button: string;
+  placeholder: string;
+  cancel: string;
+  /** VoiceOver's name for the field's ⊗ */
+  clear: string;
+  /** the one line when nothing matches */
+  none: string;
+};
+
 /** The empty state's fixed colours ("#RRGGBB"). */
 export type KNotesPalette = { keyText: string; keyVoice: string; tape: string; sticker: string };
 
@@ -163,6 +182,12 @@ export type KNotesViewProps = CommonViewModifierProps &
     evening: KNotesEvening;
     eveningBusy: boolean;
     palette: KNotesPalette;
+    /** the header's search row; left out: no search key */
+    search?: KNotesSearch;
+    /** the magnifier key (true), Cancel or escape (false) */
+    onSearch?: (open: boolean) => void;
+    /** every edit of the search field ("" from its ⊗) */
+    onSearchQuery?: (text: string) => void;
     onOpen?: (id: string) => void;
     onViewCycle?: () => void;
     onCalendarToggle?: (open: boolean) => void;
@@ -202,6 +227,9 @@ type NativeKNotesViewProps = Omit<
   | "onCompose"
   | "onReachEnd"
   | "onEmptyWrite"
+  | "search"
+  | "onSearch"
+  | "onSearchQuery"
 > &
   Required<Pick<KNotesViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
@@ -219,7 +247,13 @@ type NativeKNotesViewProps = Omit<
     onNotesCompose?: Ev<{ kind: "text" | "voice" }>;
     onNotesReachEnd?: Ev<Record<string, never>>;
     onNotesEmptyWrite?: Ev<{ group: KNotesGroup }>;
+    search: KNotesSearch;
+    onNotesSearch?: Ev<{ open: boolean }>;
+    onNotesSearchQuery?: Ev<{ text: string }>;
   };
+
+/** no search: every word empty, so Swift draws no key (a record field can't be left out) */
+const NO_SEARCH: KNotesSearch = { on: false, query: "", button: "", placeholder: "", cancel: "", clear: "", none: "" };
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
 const NO_IMAGE: NativeImage = { uri: "", key: "", kind: "image" };
@@ -260,6 +294,9 @@ export const KNotesView = forwardRef<KScreenHandle, KNotesViewProps>(function KN
     onCompose,
     onReachEnd,
     onEmptyWrite,
+    search,
+    onSearch,
+    onSearchQuery,
     ...rest
   },
   ref,
@@ -292,6 +329,10 @@ export const KNotesView = forwardRef<KScreenHandle, KNotesViewProps>(function KN
       onNotesCompose={onCompose ? (e) => onCompose(e.nativeEvent.kind) : undefined}
       onNotesReachEnd={onReachEnd ? () => onReachEnd() : undefined}
       onNotesEmptyWrite={onEmptyWrite ? (e) => onEmptyWrite(e.nativeEvent.group) : undefined}
+      // the search key only where both of its events are heard
+      search={search && onSearch && onSearchQuery ? search : NO_SEARCH}
+      onNotesSearch={onSearch ? (e) => onSearch(e.nativeEvent.open) : undefined}
+      onNotesSearchQuery={onSearchQuery ? (e) => onSearchQuery(e.nativeEvent.text) : undefined}
     />
   );
 });

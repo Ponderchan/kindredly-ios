@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import ExpoModulesCore
 import ExpoUI
 
@@ -11,8 +12,10 @@ import ExpoUI
  Built as every step-5 screen is (KScreenProps.swift): the props subclass KScreenProps (theme,
  letterFont, insets, rev, commands), the view is registered with ExpoUIView and the "command"
  AsyncFunction (KindredlyUIModule.swift), and it MUST sit in an @expo/ui <Host>: one Host for the
- whole screen, never one per row. It has no text field. Pictures (photos, video frames, her bird)
- load through the shared KImageStore that kScreenEnvironment installs.
+ whole screen, never one per row. Its one text field is the header's search field (owner's audit,
+ 2026-11-10), so the view is an ExpoSwiftUI.FocusableView: before it is taken off screen the
+ keyboard is let go (KField.swift, the focus/unmount crash). Pictures (photos, video frames, her
+ bird) load through the shared KImageStore that kScreenEnvironment installs.
 
  Props, beyond KScreenProps (insets.top = the status bar the screen draws its strip for,
  insets.tabBarRoom = the floating bar the bottom fade and the last note clear):
@@ -38,8 +41,12 @@ import ExpoUI
  - bird, birdMini: her snapshots ({ uri, key }; uri "" until captured)
  - evening: none | ask | on; eveningBusy
  - palette: { keyText, keyVoice, tape, sticker } as "#RRGGBB" (the empty state's fixed colours)
+ - search: { on, query, button, placeholder, cancel, clear, none } — the header's search row
+   (owner's audit, 2026-11-10): its words, whether it is up, and what TS is filtering `notes` by.
+   A bundle from before it sends none (button ""): no magnifier, the header as it was.
 
  Commands (KCommandBus):
+ - blur {} (and reset {}) — the search field lets go of the keyboard (before TS pushes a page)
  - month { key, title, lead, days: [{ n, label, group ("" for none), icon, targetId, future, today,
    a11y }], counts: [String × 4], footer, footerA11y, legendA11y: [String × 4], canPrev,
    canNext } — the calendar's month, one at a time
@@ -62,6 +69,8 @@ import ExpoUI
  - onNotesReachEnd {}              the list nears the end of the window
  - onNotesEmptyWrite { group }     Notes E1: the draft card under a chosen mood (calm | happy |
                                    tired | low)
+ - onNotesSearch { open }          the magnifier key (true), Cancel or escape (false)
+ - onNotesSearchQuery { text }     every edit of the search field ("" from its ⊗)
 
  Unknown enum strings fall back rather than fail (a kind or a view this binary doesn't know
  draws as text / card, a group as calm, an evening as none). This file imports ExpoUI, whose public
@@ -225,6 +234,30 @@ struct KNotesPaletteRecord: Record {
   }
 }
 
+/// The header's search row (owner's audit, 2026-11-10); every field "" / false from a bundle
+/// that sends none.
+struct KNotesSearchRecord: Record {
+  @Field var on: Bool = false
+  @Field var query: String = ""
+  @Field var button: String = ""
+  @Field var placeholder: String = ""
+  @Field var cancel: String = ""
+  @Field var clear: String = ""
+  @Field var none: String = ""
+
+  var search: KNotesSearch {
+    var s = KNotesSearch()
+    s.on = on
+    s.query = query
+    s.button = button
+    s.placeholder = placeholder
+    s.cancel = cancel
+    s.clear = clear
+    s.none = none
+    return s
+  }
+}
+
 final class KNotesViewProps: KScreenProps {
   @Field var strings: KNotesStringsRecord = KNotesStringsRecord()
   @Field var notes: [KNoteRecord] = []
@@ -240,7 +273,10 @@ final class KNotesViewProps: KScreenProps {
   @Field var evening: String = "none"
   @Field var eveningBusy: Bool = false
   @Field var palette: KNotesPaletteRecord = KNotesPaletteRecord()
+  @Field var search: KNotesSearchRecord = KNotesSearchRecord()
 
+  var onNotesSearch = EventDispatcher()
+  var onNotesSearchQuery = EventDispatcher()
   var onNotesOpen = EventDispatcher()
   var onNotesViewCycle = EventDispatcher()
   var onNotesCalendarToggle = EventDispatcher()
@@ -270,6 +306,8 @@ final class KNotesViewProps: KScreenProps {
     a.onCompose = { [weak self] kind in self?.onNotesCompose(["kind": kind]) }
     a.onReachEnd = { [weak self] in self?.onNotesReachEnd() }
     a.onEmptyWrite = { [weak self] group in self?.onNotesEmptyWrite(["group": group]) }
+    a.onSearch = { [weak self] open in self?.onNotesSearch(["open": open]) }
+    a.onSearchQuery = { [weak self] text in self?.onNotesSearchQuery(["text": text]) }
     return a
   }()
 
@@ -282,6 +320,9 @@ final class KNotesViewProps: KScreenProps {
       driver.setPlayback(Self.playback(args))
     case "popIn":
       if let id = args.kString("key"), !id.isEmpty { driver.popIn(id) }
+    case KCommandName.blur, KCommandName.reset:
+      // the search field lets go (TS is about to push a page over it)
+      driver.searchField.blur()
     case KCommandName.scrollTo:
       let animated = args.kBool("animated") ?? true
       switch args.kString("key") {
@@ -369,6 +410,7 @@ struct KNotesView: ExpoSwiftUI.View {
     content.evening = KNotesEvening(rawValue: props.evening) ?? .none
     content.eveningBusy = props.eveningBusy
     content.palette = props.palette.palette
+    content.search = props.search.search
     let insets = props.insets
     return KNotesScreen(
       theme: props.kTheme,
@@ -382,5 +424,15 @@ struct KNotesView: ExpoSwiftUI.View {
     .onKCommand(props.commands) { name, args in
       props.handle(name, args)
     }
+  }
+}
+
+/// The search field is never torn down as first responder (KField.swift; as KEditFieldView does).
+extension KNotesView: ExpoSwiftUI.FocusableView {
+  func forceResignFirstResponder() {
+    if props.driver.searchField.isFocused {
+      _ = UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+    props.driver.searchField.blur()
   }
 }

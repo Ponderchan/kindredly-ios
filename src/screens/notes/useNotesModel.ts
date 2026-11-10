@@ -24,6 +24,7 @@ import {
   pagesThisMonth,
   parseStoredView,
   recentGroups,
+  searchPages,
   stepMonth,
   ymOf,
   type EveningShow,
@@ -35,6 +36,7 @@ import {
 } from "./notes-model";
 import "../../data/strings-step5-notes";
 import "../../data/strings-notes-empty";
+import "../../data/strings-audit-notes"; // jt.search.*
 
 /* THE NOTES TAB'S MODEL (10a step 5), shared by both renderers: the SwiftUI
    screen (NotesNative) and the React Native fallback (NotesRN) draw exactly
@@ -77,6 +79,15 @@ import "../../data/strings-notes-empty";
      the start, another note replaces it, it pauses when the tab loses
      focus, when the view changes and when the calendar opens (List and the
      calendar leave no play mark on screen to pause it with);
+   - search (owner's audit, 2026-11-10): open or not and what was typed. While
+     it is open with something typed, `notes` is the pages that match
+     (notes-model searchPages: their words, or their mood's name) — the same
+     NoteVMs, in the same order — and everything else (the empty state, the
+     calendar, her lines, the lookups a tap makes) still reads every page.
+     Opening it closes the calendar; closing it forgets the words; a journal
+     that empties while it is open closes it. Only the SwiftUI header can
+     open it (the React Native fallback has no search key), so for the
+     fallback `notes` is always every page;
    - where every tap goes.
    The dev page (app/dev/step5-notes) passes `demo` instead: its own pages
    and evening state, nothing read or written, and every way out reported
@@ -136,6 +147,16 @@ export type NotesStrings = {
   neTime: string;
   /** Notes E1: VoiceOver on the draft card */
   neA11yCard: string;
+  /** search: VoiceOver's name for the magnifier key */
+  searchA11y: string;
+  /** search: the field's placeholder */
+  searchPlaceholder: string;
+  /** search: Cancel, beside the field */
+  searchCancel: string;
+  /** search: VoiceOver's name for the field's ⊗ */
+  searchClear: string;
+  /** search: the one line when nothing matches */
+  searchNone: string;
 };
 
 /** The dev page's stand-ins: its own pages and evening state, nothing read or written. */
@@ -169,6 +190,10 @@ export type NotesActions = {
   /** Notes E1: the draft card under a chosen mood: the composer, that mood chosen, its follow-up
       as the empty page's placeholder */
   writeEmpty: (group: MoodGroup) => void;
+  /** the magnifier key (true: the search row, the calendar closed) or Cancel (false: the words forgotten) */
+  setSearch: (open: boolean) => void;
+  /** what the reader typed in the search field */
+  searchQuery: (query: string) => void;
 };
 
 export type NotesModel = {
@@ -176,7 +201,10 @@ export type NotesModel = {
   loaded: boolean;
   /** loaded, and no page to show (or the dev ?empty=1) */
   empty: boolean;
+  /** the pages on show: every page, or (search open, something typed) the ones that match */
   notes: NoteVM[];
+  /** the search row: open or not, and what was typed */
+  search: { open: boolean; query: string };
   view: NotesView;
   /** the remembered view has been read: draw from now on, animate changes from now on */
   viewReady: boolean;
@@ -298,8 +326,25 @@ export function useNotesModel(opts: { demo?: NotesDemo; forceEmpty?: boolean } =
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const fmt = useMemo(() => notesFormat(), [lang, today]);
-  const notes = useMemo(() => buildNotes(all, fmt), [all, fmt]);
-  const empty = (__DEV__ && !!opts.forceEmpty) || (loaded && notes.length === 0);
+  // every page; `notes` below is what is on show (these, or the ones a search finds)
+  const allNotes = useMemo(() => buildNotes(all, fmt), [all, fmt]);
+  const empty = (__DEV__ && !!opts.forceEmpty) || (loaded && allNotes.length === 0);
+
+  /* ── search: the same NoteVMs, only the ones whose page matches ── */
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const notes = useMemo(() => {
+    if (!searchOpen || !query.trim()) return allNotes;
+    const hits = new Set(searchPages(all, query, fmt).map((e) => e.id));
+    return allNotes.filter((n) => hits.has(n.id));
+  }, [allNotes, all, fmt, searchOpen, query]);
+  // nothing left to search (the last page torn out from a result): the row goes
+  useEffect(() => {
+    if (empty && searchOpen) {
+      setSearchOpen(false);
+      setQuery("");
+    }
+  }, [empty, searchOpen]);
 
   const nowDate = useMemo(() => new Date(now), [now]);
   const bounds = useMemo(() => monthBounds(all, nowDate), [all, nowDate]);
@@ -336,7 +381,7 @@ export function useNotesModel(opts: { demo?: NotesDemo; forceEmpty?: boolean } =
     if (!demo && empty) setSawEmpty(true);
   }, [demo, empty]);
   const showsFirst = useWrenOnce(NOTES_FIRST_BUBBLE, !demo && sawEmpty && loaded && !empty && realPages > 0);
-  const showsLine = useWrenOnce("sealed", !demo && !sawEmpty && loaded && !empty && notes.length > 0);
+  const showsLine = useWrenOnce("sealed", !demo && !sawEmpty && loaded && !empty && allNotes.length > 0);
   const wrenFirst = !demo && showsFirst;
   const wrenLine = demo ? (demo.wrenLine ? speakAs(t("jt.said"), wren) : null) : showsFirst ? t("ne.wren") : showsLine ? speakAs(t("jt.said"), wren) : null;
 
@@ -388,6 +433,11 @@ export function useNotesModel(opts: { demo?: NotesDemo; forceEmpty?: boolean } =
       // re-read on focus and when the app comes back (now)
       neTime: `${fmt.day(nowDate.toISOString())} · ${fmt.time(nowDate.toISOString())}`,
       neA11yCard: t("ne.a11yCard"),
+      searchA11y: t("jt.search.a11y"),
+      searchPlaceholder: t("jt.search.ph"),
+      searchCancel: t("ml.cancel"),
+      searchClear: t("jt.search.clear"),
+      searchNone: t("jt.search.none"),
     }),
     // lang: every word follows the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -397,8 +447,9 @@ export function useNotesModel(opts: { demo?: NotesDemo; forceEmpty?: boolean } =
   /* ── the taps ── */
   const wrenFirstRef = useRef(wrenFirst);
   wrenFirstRef.current = wrenFirst;
-  const notesRef = useRef(notes);
-  notesRef.current = notes;
+  // every page, whatever a search is showing: a tap looks its note up here
+  const notesRef = useRef(allNotes);
+  notesRef.current = allNotes;
   const boundsRef = useRef(bounds);
   boundsRef.current = bounds;
   const go = useCallback(
@@ -474,6 +525,13 @@ export function useNotesModel(opts: { demo?: NotesDemo; forceEmpty?: boolean } =
         }
         go("/journal-entry");
       },
+      setSearch: (open) => {
+        // the search row takes the header: the calendar's key is away, so the calendar is too
+        if (open) setCalendarOpen(false);
+        else setQuery("");
+        setSearchOpen(open);
+      },
+      searchQuery: (q) => setQuery(q),
     }),
     [go, toggle, pauseVoice, evening.yes, evening.no, evening.turnOff],
   );
@@ -482,6 +540,7 @@ export function useNotesModel(opts: { demo?: NotesDemo; forceEmpty?: boolean } =
     loaded,
     empty,
     notes,
+    search: { open: searchOpen, query },
     view,
     viewReady,
     calendarOpen,
