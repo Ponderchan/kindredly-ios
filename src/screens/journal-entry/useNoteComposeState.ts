@@ -8,7 +8,7 @@ import { blurThen } from "../../lib/keyboard";
 import { WREN_OPENERS, byLang } from "../../data/content";
 import type { Lang } from "../../data/stamps";
 import { isNamedMood, type MoodId } from "../../data/moods";
-import { addEntry, loadJournal, persistMedia, persistMediaMany } from "../../lib/journal";
+import { addEntry, loadJournal, persistMedia, persistMediaMany, updateEntry, type JournalEntry } from "../../lib/journal";
 import { journalSpark } from "../../lib/journal-sparks";
 import { leaveSealed, takeMood, takePicked, takeSpark } from "../../lib/journal-handoff";
 import { todaysMorningLine } from "../../lib/local-push";
@@ -16,6 +16,8 @@ import { storeMode, storePhotos } from "../../lib/dev-store";
 import type { SelfComposeState } from "../../components/SelfCompose";
 import {
   cardAction,
+  editChanged,
+  editSeed,
   entryType,
   hasMediaOn,
   pageHasSomething,
@@ -39,7 +41,20 @@ import type { MoodGroup } from "../../data/moods";
    view (re)attaches (NoteComposeNative).
 
    Everything that covers the page — the image picker, an Alert, the frame viewer — first takes the
-   keyboard from the Swift field (blurThen with the view's ref). */
+   keyboard from the Swift field (blurThen with the view's ref).
+
+   EDITING A SEALED PAGE (owner's audit, 2026-11-10; `editing`, the stored page, fixed for the
+   page's life — the route reads it before it mounts this). The page opens holding what the page
+   holds (note-compose-model editSeed) and none of a new page's handoffs (the roll's pictures, the
+   empty Notes' mood, her question); the save key replaces the stored page (lib/journal
+   updateEntry: same id, date and place) instead of adding one, pops no card into Notes and does
+   not count as writing today (her evening line is about today's page, not an old one mended).
+   - The page's own files are handed back as they are; only a picture, film or take added here is
+     copied into the journal's folder, and its copy is remembered (`copies`), so saving again
+     after a save that failed never copies it twice. Files taken off the page are removed by
+     updateEntry, after the save has landed.
+   - What the leave guard hears as "something on the page" is whether anything CHANGED
+     (editChanged): ✕ on a page opened and left alone just closes it. */
 
 export type Photo = { uri: string; ratio: number };
 
@@ -48,16 +63,24 @@ export function useNoteComposeState({
   setText,
   onState,
   viewRef,
+  editing,
 }: {
   text: string;
   setText: (t: string) => void;
   onState?: (s: SelfComposeState) => void;
   viewRef: RefObject<KScreenHandle | null>;
+  /** the sealed page being changed (the route's `edit`); none: a new page */
+  editing?: JournalEntry | null;
 }) {
+  // what the page opened with, once (an edit); null on a new page
+  const seed = useRef(editing ? editSeed(editing) : null).current;
+  const editId = editing?.id ?? null;
   const [pIdx, setPIdx] = useState(0);
   const [panel, setPanel] = useState<NotePanel>("none");
   const [spark, setSpark] = useState(() => t("js.1"));
   useEffect(() => {
+    // a sealed page has its words: no question is asked of it, and none is taken from a new page
+    if (seed) return;
     const handed = takeSpark();
     if (handed) {
       setSpark(handed);
@@ -70,18 +93,21 @@ export function useNoteComposeState({
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [att, setAtt] = useState<NoteMedia | null>(null);
-  const [mediaUri, setMediaUri] = useState<string | null>(null);
-  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [att, setAtt] = useState<NoteMedia | null>(seed?.att ?? null);
+  const [mediaUri, setMediaUri] = useState<string | null>(seed?.mediaUri ?? null);
+  // a stored picture's shape isn't kept; the picker's fallback stands in (the viewer fits it anyway)
+  const [photos, setPhotos] = useState<Photo[]>(() => (seed ? seed.photos.map((uri) => ({ uri, ratio: 0.8 })) : []));
   const [viewer, setViewer] = useState<number | null>(null);
-  const [dur, setDur] = useState(0);
+  const [dur, setDur] = useState(seed?.dur ?? 0);
   const [busy, setBusy] = useState(false);
   const [sealed, setSealed] = useState(false);
   // the mood chosen on the empty Notes page arrives chosen (Notes E1); the page still opens with
   // the keyboard down (the design: both ways in)
   const [mood, setMood] = useState<MoodId | null>(() => {
+    if (seed) return seed.mood;
     const m = takeMood();
     return m && isNamedMood(m) ? (m as MoodId) : null;
   });
@@ -89,12 +115,14 @@ export function useNoteComposeState({
   const openers = byLang(WREN_OPENERS.journal, getLang() as Lang);
   const hasMedia = hasMediaOn(att, photos.length, mediaUri);
   const hasSomething = pageHasSomething(text, att, photos.length, mediaUri);
+  // an edit: what the ✕ would throw away is what changed, not what the page holds
+  const changed = seed ? editChanged(seed, { text, mood, att, photos: photos.map((p) => p.uri), mediaUri }) : hasSomething;
 
   const tellState = useRef(onState);
   tellState.current = onState;
   useEffect(() => {
-    tellState.current?.({ hasSomething, busy, sealed });
-  }, [hasSomething, busy, sealed]);
+    tellState.current?.({ hasSomething: changed, busy, sealed });
+  }, [changed, busy, sealed]);
 
   // sealed: the page shows the send-off, which goes back to Notes itself (NoteComposeNative)
 
@@ -146,6 +174,8 @@ export function useNoteComposeState({
   const armed = useRef(false);
   useFocusEffect(
     useCallback(() => {
+      // a sealed page opens with what it holds: none of a new page's ways in
+      if (seed) return;
       if (__DEV__ && storeMode && demo && !armed.current) {
         armed.current = true;
         if (storePhotos.length) {
@@ -199,10 +229,54 @@ export function useNoteComposeState({
     }
   };
 
+  /* AN EDIT'S FILES. The page's own (exactly the paths it opened with) stay where they are; one
+     added here is copied in once and its copy kept for a retry. null: the copy failed. */
+  const copies = useRef(new Map<string, string>()).current;
+  const kept = async (uri: string, ext: string): Promise<string | null> => {
+    if (seed && (seed.photos.includes(uri) || seed.mediaUri === uri)) return uri;
+    const had = copies.get(uri);
+    if (had) return had;
+    const copy = await persistMedia(uri, ext);
+    if (copy) copies.set(uri, copy);
+    return copy;
+  };
+
+  /* the save key on an edit: the stored page replaced (same id, date and place); the page stays
+     open, words and all, when the journal couldn't take it */
+  const saveEdit = async (id: string, body: string, chosen: MoodId) => {
+    let edit: Parameters<typeof updateEntry>[1];
+    if (att === "photo" && photos.length) {
+      const uris: string[] = [];
+      for (const p of photos) {
+        const u = await kept(p.uri, "jpg");
+        if (u) uris.push(u);
+      }
+      if (!uris.length) return fail(t("sc.failPhotos"));
+      // the composer keeps the cover first
+      edit = { type: "photo", body, mood: chosen, media: uris, coverIndex: 0, mediaUri: uris[0] };
+    } else {
+      let file: string | undefined;
+      if ((att === "voice" || att === "video") && mediaUri) {
+        file = (await kept(mediaUri, att === "video" ? "mp4" : "m4a")) || undefined;
+        if (!file) return fail(t("sc.failMedia"));
+      }
+      edit = { type: entryType(att, photos.length, !!file), body, mood: chosen, mediaUri: file, dur: dur || undefined };
+    }
+    try {
+      await updateEntry(id, edit);
+    } catch (e) {
+      console.warn("[note-compose] the journal didn't save the changed page:", e);
+      return fail(t("cp.fail.generic"));
+    }
+    setBusy(false);
+    setSealed(true);
+  };
+
   const seal = async (words: string, chosen: MoodId) => {
     setBusy(true);
     setPanel("none");
     const body = words.trim();
+    if (editId) return saveEdit(editId, body, chosen);
     if (att === "photo" && photos.length) {
       const uris = await persistMediaMany(
         photos.map((p) => p.uri),
@@ -313,6 +387,8 @@ export function useNoteComposeState({
     hasSomething,
     busy,
     sealed,
+    /** a sealed page is being changed (the save key's words, the page's own date) */
+    editing: !!seed,
     act,
   };
 }

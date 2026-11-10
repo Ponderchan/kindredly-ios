@@ -27,6 +27,8 @@ import { MOOD_GROUP_KEY, moodArtKey, moodGroup, moodLabel, moodName } from "../.
 import "../../data/strings-a11y-compose";
 import "../../data/strings-step5-notes";
 import "../../data/strings-note-compose";
+import "../../data/strings-audit-notes";
+import type { JournalEntry } from "../../lib/journal";
 import { cardsOn, chosenFaceOf, openGroupFor, panelGroups, sealAction } from "./note-compose-model";
 import { useNoteComposeState, type NoteComposeState } from "./useNoteComposeState";
 
@@ -48,7 +50,14 @@ import { useNoteComposeState, type NoteComposeState } from "./useNoteComposeStat
      the island keeps only what is still React Native;
    - Wren herself in Swift (batch 3, "notewren", off by default): her content snapshot at 30
      (lib/bird-images note30) goes as the `wren` prop and Swift draws it, still, as the island
-     drew her; the island stays, empty. */
+     drew her; the island stays, empty.
+
+   EDITING A SEALED PAGE (owner's audit, 2026-11-10; `editing`, from the route's `edit`): the same
+   view, told nothing new — the page's own date at the top and in the send-off where a new page
+   says today's, "Save changes" on the key where a new page says "Seal it here", the plain
+   placeholder instead of her question — so it works on every binary that has this composer. The
+   words arrive as a new page's demo seed does (the route's `text`, sent when the view attaches);
+   the mood, the pictures and the film are the state's (useNoteComposeState, editSeed). */
 
 function useSameContent<T>(value: T): T {
   const kept = useRef<{ json: string; value: T } | null>(null);
@@ -66,6 +75,7 @@ export function NoteComposeNative({
   onClose,
   onState,
   viewRef,
+  editing,
 }: {
   text: string;
   setText: (t: string) => void;
@@ -75,13 +85,15 @@ export function NoteComposeNative({
   onClose: () => void;
   onState?: (s: SelfComposeState) => void;
   viewRef: RefObject<KScreenHandle | null>;
+  /** the sealed page being changed; none: a new page */
+  editing?: JournalEntry | null;
 }) {
   useLang();
   const { key: theme } = useTheme();
   const letterFont = useLetterFont();
   const insets = useScreenInsets();
   const { width } = useWindowDimensions();
-  const state = useNoteComposeState({ text, setText, onState, viewRef });
+  const state = useNoteComposeState({ text, setText, onState, viewRef, editing });
 
   // the words TS holds, for a view that (re)attaches
   const latest = useRef(text);
@@ -145,17 +157,18 @@ export function NoteComposeNative({
     [leave],
   );
 
-  const date = new Date().toLocaleString(localeTag(), { month: "short", day: "numeric" }).toLowerCase();
+  // the page's day: today on a new page, its own on a sealed one being changed
+  const date = (editing ? new Date(editing.date) : new Date()).toLocaleString(localeTag(), { month: "short", day: "numeric" }).toLowerCase();
   const strings = useSameContent<KNoteComposeStrings>({
     date,
     justForMe: t("je.justForMe"),
     closeLabel: t("wren.trackClose"),
     editorLabel: t("nc.editor"),
-    placeholder: state.hasMedia || state.att === "voice" ? t("sc.ph") : state.spark,
+    placeholder: state.editing || state.hasMedia || state.att === "voice" ? t("sc.ph") : state.spark,
     plusLabel: t("nc.plus"),
     moodEmptyLabel: t("sc.askMood"),
-    sealLabel: t("sc.seal"),
-    sealingLabel: t("sc.sealing"),
+    sealLabel: state.editing ? t("nc.edit.save") : t("sc.seal"),
+    sealingLabel: state.editing ? t("nc.edit.saving") : t("sc.sealing"),
     sealHint: t("nc.moodFirst"),
     // "KEPT · OCT 26": the send-off's own word, without its full stop, and the page's date
     keptLine: `${t("so.kept").replace(/[.。!！]+$/u, "")} · ${date}`.toLocaleUpperCase(localeTag()),

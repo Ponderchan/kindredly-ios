@@ -1,7 +1,8 @@
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { Alert, View, useWindowDimensions } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { KIsland, useKCommands, useRev, type KInsets, type KScreenHandle, type KThemeKey, type LetterFontKey } from "../../../modules/kindredly-ui";
+import { KIsland, isKindredlyUIViewAvailable, useKCommands, useRev, type KInsets, type KScreenHandle, type KThemeKey, type LetterFontKey } from "../../../modules/kindredly-ui";
+import { nativeOn } from "../../lib/surfaces";
 import { KNotePageView, type KNotePageCommands, type KNotePagePhoto, type KNotePageState, type KNotePageStrings } from "../../../modules/kindredly-ui/src/NotePages";
 import type { KNoteFilmData } from "../../../modules/kindredly-ui/src/MediaPieces";
 import type { KVoiceSlotAction } from "../../../modules/kindredly-ui/src/VoicePieces";
@@ -21,8 +22,9 @@ import { journalImage } from "../notes/NotesNative";
 import { DetailVideo } from "./DetailVideo";
 import { NoteVoiceDriver, type NoteVoiceLink } from "./NoteVoiceDriver";
 import { useSwiftIsland, type IslandRenderer } from "../../components/swift-island";
-import { dateLine, pageView } from "./note-page-model";
+import { canEditPage, dateLine, pageView } from "./note-page-model";
 import "../../data/strings-step5-notes";
+import "../../data/strings-audit-notes"; // jd.edit
 import "../../data/strings-step5-kitrn"; // a11y.back
 import "../../data/strings-a11y-compose"; // sc.a11y.photo, sc.a11y.photoHint
 
@@ -45,7 +47,17 @@ import "../../data/strings-a11y-compose"; // sc.a11y.photo, sc.a11y.photoHint
      KAudioCardRow in the voice slot, its player kept here (NoteVoiceDriver,
      the `voice` command, onVoice back); "notefilm" hands the page the film's
      url (swiftFilm: KNoteFilm, DetailVideo's rules). While a piece's crash
-     breadcrumb is on its way to the disk neither renderer draws it. */
+     breadcrumb is on its way to the disk neither renderer draws it;
+   - EDIT (owner's audit, 2026-11-10): the ⋯ gains Edit above Delete on a
+     real page (note-page-model canEditPage; composerCanEdit below). It opens
+     the composer filled with this page (/journal-entry?edit=<id>), and the
+     read on focus above shows the saved page when the composer closes. A
+     binary from before this has no Edit item (its Swift ignores canEdit and
+     the label); nothing else changes for it. */
+
+/** The composer that can change a sealed page is the SwiftUI one: its switch on ("journalentry",
+    strikes and kill rows included) and its view in this binary. Asked when the page is drawn. */
+export const composerCanEdit = (): boolean => nativeOn("journalentry") && isKindredlyUIViewAvailable("KNoteComposeView");
 
 function useSameContent<T>(value: T): T {
   const kept = useRef<{ json: string; value: T } | null>(null);
@@ -160,6 +172,11 @@ export function NotePageNative({ id }: { id: string }) {
         const cur = live.current;
         if (cur) router.push({ pathname: "/compose", params: { seed: cur.body } });
       },
+      // the composer, holding this page; its save replaces it (read again here on focus)
+      edit: () => {
+        const cur = live.current;
+        if (cur && !isDemo) router.push({ pathname: "/journal-entry", params: { edit: cur.id } });
+      },
       // after the menu has closed, as on the React Native page
       remove: () => setTimeout(confirmDelete, 0),
       photo: (i: number) => {
@@ -172,7 +189,7 @@ export function NotePageNative({ id }: { id: string }) {
         if (a === "toggle") voiceLink.toggle?.();
       },
     }),
-    [goBack, router, confirmDelete, makeCover, voiceLink],
+    [goBack, router, confirmDelete, makeCover, voiceLink, isDemo],
   );
 
   const view = useMemo(() => (e ? pageView(e, isDemo) : null), [e, isDemo]);
@@ -185,6 +202,7 @@ export function NotePageNative({ id }: { id: string }) {
         backLabel: t("a11y.back"),
         moreLabel: t("jd.more"),
         driftLabel: t("jd.driftThis"),
+        editLabel: t("jd.edit"),
         deleteLabel: t("jd.delete"),
         dateLine: e ? dateLine(date, moodLabel(e.mood), isDemo) : "",
         notFound: t("jd.notFound"),
@@ -238,6 +256,7 @@ export function NotePageNative({ id }: { id: string }) {
         pure={view?.pure ?? false}
         drifted={view?.drifted ?? ""}
         canDrift={view?.canDrift ?? false}
+        canEdit={!!e && canEditPage(isDemo, composerCanEdit())}
         photos={photos}
         canSetCover={view?.canSetCover ?? false}
         coverHint={view?.coverHint ?? false}
@@ -262,6 +281,7 @@ export function NotePageNative({ id }: { id: string }) {
 type Act = {
   back: () => void;
   drift: () => void;
+  edit: () => void;
   remove: () => void;
   photo: (i: number) => void;
   cover: (i: number) => void;
@@ -283,6 +303,8 @@ type SurfaceProps = {
   pure: boolean;
   drifted: string;
   canDrift: boolean;
+  /** the ⋯ offers Edit */
+  canEdit: boolean;
   photos: KNotePagePhoto[];
   canSetCover: boolean;
   coverHint: boolean;
@@ -320,6 +342,7 @@ const PageSurface = memo(function PageSurface(p: SurfaceProps) {
         pure={p.pure}
         drifted={p.drifted}
         canDrift={p.canDrift}
+        canEdit={p.canEdit}
         photos={p.photos}
         canSetCover={p.canSetCover}
         coverHint={p.coverHint}
@@ -329,6 +352,7 @@ const PageSurface = memo(function PageSurface(p: SurfaceProps) {
         onVoice={act.voice}
         onBack={act.back}
         onDrift={act.drift}
+        onEdit={act.edit}
         onDelete={act.remove}
         onPhoto={act.photo}
         onCover={act.cover}

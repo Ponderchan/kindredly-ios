@@ -7,7 +7,7 @@
      node src/screens/note-page/note-page-model.test.ts
    The model imports types only, so nothing needs stubbing. */
 
-import { canDriftPage, dateLine, dayPages, galleryOrder, pagePhotos, pageView } from "./note-page-model.ts";
+import { canDriftPage, canEditPage, dateLine, dayPages, galleryOrder, pagePhotos, pageView } from "./note-page-model.ts";
 import type { JournalEntry } from "../../lib/journal";
 
 let fails = 0;
@@ -39,6 +39,11 @@ ok("a sample never drifts", !canDriftPage(page({ body: "I said no today" }), tru
 ok("two characters don't", !canDriftPage(page({ body: " ok " }), false));
 ok("three do", canDriftPage(page({ body: "yes" }), false));
 ok("a photo page with words stays in the room", !canDriftPage(page({ type: "photo", body: "the light on the wall" }), false));
+
+/* ── Edit in the ⋯ (owner's audit, 2026-11-10) ── */
+ok("a real page, the SwiftUI composer there: Edit", canEditPage(false, true));
+ok("a sample is never editable", !canEditPage(true, true));
+ok("no composer that can change a page: no Edit", !canEditPage(false, false));
 
 /* ── the date line ── */
 ok("date and mood", dateLine("WED, OCT 14", "Sleepy", false) === "WED, OCT 14 · Sleepy");

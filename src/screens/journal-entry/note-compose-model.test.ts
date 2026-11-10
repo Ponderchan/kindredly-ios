@@ -84,6 +84,50 @@ const shy = groups[0].faces[4];
 ok("a face's art key", shy.artKey === "mood-shy");
 ok("a face's tile name is cased, its VoiceOver name isn't", shy.name === "N:SHY" && shy.a11yLabel === "n:shy");
 
+// ── editing a sealed page (owner's audit, 2026-11-10) ──
+{
+  const words = M.editSeed({ type: "text", body: "I said no today", mood: "shy" });
+  ok("a page of words opens with its words and mood, no media", words.text === "I said no today" && words.mood === "shy" && words.att === null && words.photos.length === 0 && words.mediaUri === null);
+  ok("a group alone opens as the group", M.editSeed({ type: "text", body: "x", mood: "group-low" }).mood === "group-low");
+  ok("a page with no stored mood opens with none (the save key asks)", M.editSeed({ type: "text", body: "x" }).mood === null);
+  ok("an unknown mood opens with none", M.editSeed({ type: "text", body: "x", mood: "zzz" }).mood === null);
+  ok("a page from before kinds is a page of words", M.editSeed({ body: "old" }).att === null);
+
+  const album = M.editSeed({ type: "photo", body: "", mood: "calm", media: ["a", "b", "c"], coverIndex: 2, mediaUri: "c" });
+  ok("an album opens cover first, the rest as stored", album.att === "photo" && album.photos.join() === "c,a,b");
+  ok("a cover index past the album is the first", M.editSeed({ type: "photo", media: ["a", "b"], coverIndex: 9 }).photos.join() === "a,b");
+  ok("a page from before albums opens with its one picture", M.editSeed({ type: "photo", mediaUri: "only" }).photos.join() === "only");
+  ok("a photo page with no pictures left opens as words", M.editSeed({ type: "photo", body: "w" }).att === null);
+
+  const voice = M.editSeed({ type: "voice", body: "", mood: "tired", mediaUri: "v.m4a", dur: 74 });
+  ok("a voice page opens with its recording and length", voice.att === "voice" && voice.mediaUri === "v.m4a" && voice.dur === 74 && voice.photos.length === 0);
+  ok("a film opens with its file", M.editSeed({ type: "video", mediaUri: "f.mp4" }).att === "video");
+  ok("a voice page whose file is gone opens as words", M.editSeed({ type: "voice", body: "w" }).att === null);
+
+  // ✕ asks only over real edits
+  const now = (o: object = {}) => ({ text: words.text, mood: words.mood, att: words.att, photos: words.photos, mediaUri: words.mediaUri, ...o });
+  ok("just opened: nothing changed", !M.editChanged(words, now()));
+  ok("a word changed", M.editChanged(words, now({ text: "I said yes today" })));
+  ok("a space at the end isn't a change (the save trims it)", !M.editChanged(words, now({ text: "I said no today \n" })));
+  ok("another mood is a change", M.editChanged(words, now({ mood: "calm" })));
+  ok("an empty Recorder opened and left isn't a change", !M.editChanged(words, now({ att: "voice" })));
+  ok("a recording made is a change", M.editChanged(words, now({ att: "voice", mediaUri: "new.m4a" })));
+  ok("a picture added to a page of words is a change", M.editChanged(words, now({ att: "photo", photos: ["p"] })));
+
+  const anow = (o: object = {}) => ({ text: album.text, mood: album.mood, att: album.att, photos: album.photos, mediaUri: album.mediaUri, ...o });
+  ok("an album just opened: nothing changed", !M.editChanged(album, anow()));
+  ok("a picture taken off is a change", M.editChanged(album, anow({ photos: ["c", "a"] })));
+  ok("another cover (the order) is a change", M.editChanged(album, anow({ photos: ["a", "c", "b"] })));
+  ok("a picture swapped for another is a change", M.editChanged(album, anow({ photos: ["c", "a", "x"] })));
+  ok("every picture taken off is a change", M.editChanged(album, anow({ att: null, photos: [] })));
+
+  const vnow = (o: object = {}) => ({ text: voice.text, mood: voice.mood, att: voice.att, photos: voice.photos, mediaUri: voice.mediaUri, ...o });
+  ok("a voice page just opened: nothing changed", !M.editChanged(voice, vnow()));
+  ok("words added to a voice page are a change", M.editChanged(voice, vnow({ text: "what I said" })));
+  ok("the recording cleared is a change", M.editChanged(voice, vnow({ mediaUri: null })));
+  ok("another recording is a change", M.editChanged(voice, vnow({ mediaUri: "v2.m4a" })));
+}
+
 if (fails) {
   console.log(`\n${fails} failed`);
   process.exit(1);

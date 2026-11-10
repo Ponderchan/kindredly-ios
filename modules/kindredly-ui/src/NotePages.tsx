@@ -33,6 +33,8 @@ export type KNotePageStrings = {
   /** VoiceOver for the ⋯ */
   moreLabel: string;
   driftLabel: string;
+  /** the ⋯ menu's Edit, above Delete (owner's audit, 2026-11-10; a binary from before it ignores it) */
+  editLabel: string;
   deleteLabel: string;
   /** the date, the mood's name, " · SAMPLE", in capitals */
   dateLine: string;
@@ -73,6 +75,9 @@ export type KNotePageViewProps = CommonViewModifierProps &
     /** the line that left; "" for none */
     drifted: string;
     canDrift: boolean;
+    /** the ⋯ offers Edit (a real page whose composer can change it); a binary from before the
+        owner's audit of 2026-11-10 ignores it and shows no Edit */
+    canEdit?: boolean;
     photos: KNotePagePhoto[];
     canSetCover: boolean;
     coverHint: boolean;
@@ -87,6 +92,8 @@ export type KNotePageViewProps = CommonViewModifierProps &
     onVoice?: (action: KVoiceSlotAction) => void;
     onBack?: () => void;
     onDrift?: () => void;
+    /** Edit in the ⋯ (shown only with canEdit) */
+    onEdit?: () => void;
     onDelete?: () => void;
     onPhoto?: (index: number) => void;
     onCover?: (index: number) => void;
@@ -101,12 +108,14 @@ export type KNotePageCommands = KStandardCommands & {
   voice: Pick<KVoiceSlotCommand, "showCard" | "card" | "island">;
 };
 
-type NativeKNotePageViewProps = Omit<KNotePageViewProps, "letterFont" | "insets" | "rev" | "photos" | "onBack" | "onDrift" | "onDelete" | "onPhoto" | "onCover" | "swiftFilm" | "onVoice"> &
+type NativeKNotePageViewProps = Omit<KNotePageViewProps, "letterFont" | "insets" | "rev" | "photos" | "onBack" | "onDrift" | "onEdit" | "onDelete" | "onPhoto" | "onCover" | "swiftFilm" | "onVoice" | "canEdit"> &
   Required<Pick<KNotePageViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
     photos: (Omit<KNotePagePhoto, "image"> & { image: NativeImage })[];
+    canEdit: boolean;
     onNpBack?: None;
     onNpDrift?: None;
+    onNpEdit?: None;
     onNpDelete?: None;
     onNpPhoto?: Ev<{ index: number }>;
     onNpCover?: Ev<{ index: number }>;
@@ -118,7 +127,7 @@ const NativeKNotePageView = requireNativeView<NativeKNotePageViewProps>("Kindred
 
 /** The bare SwiftUI journal page. Only inside an @expo/ui <Host>. */
 export const KNotePageView = forwardRef<KScreenHandle, KNotePageViewProps>(function KNotePageView(
-  { modifiers, letterFont, insets, rev, photos, onBack, onDrift, onDelete, onPhoto, onCover, swiftFilm, onVoice, ...rest },
+  { modifiers, letterFont, insets, rev, photos, onBack, onDrift, onEdit, onDelete, onPhoto, onCover, swiftFilm, onVoice, canEdit, ...rest },
   ref,
 ) {
   // a Swift record can't take null: no picture is an empty ref
@@ -135,6 +144,9 @@ export const KNotePageView = forwardRef<KScreenHandle, KNotePageViewProps>(funct
       photos={sent}
       onNpBack={onBack ? () => onBack() : undefined}
       onNpDrift={onDrift ? () => onDrift() : undefined}
+      // Edit only where there is something to hear it
+      canEdit={!!canEdit && !!onEdit}
+      onNpEdit={onEdit ? () => onEdit() : undefined}
       onNpDelete={onDelete ? () => onDelete() : undefined}
       onNpPhoto={onPhoto ? (e) => onPhoto(e.nativeEvent.index) : undefined}
       onNpCover={onCover ? (e) => onCover(e.nativeEvent.index) : undefined}

@@ -1,6 +1,7 @@
 import { scoped as AsyncStorage, scopedTo, storageOwner } from "./scoped-store";
 import { Directory, File, Paths } from "expo-file-system";
 import type { MoodId } from "../data/moods";
+import { editedPage, filesDropped, type PageEdit } from "./journal-edit";
 
 /* Journal is LOCAL-ONLY: entries in AsyncStorage, media files copied into the
    app's document directory ("Sealed on this device" — literally). Only an
@@ -238,6 +239,55 @@ export async function addEntry(input: {
     void (require("./local-push") as typeof import("./local-push")).noteWrote("notes").catch((e: unknown) => console.warn("[journal] noteWrote:", e));
   } catch (e) {
     console.warn("[journal] local-push unavailable:", e);
+  }
+  return next;
+}
+
+/* A SEALED PAGE CAN BE CHANGED (owner's audit, 2026-11-10: the page's ⋯ had
+   only Delete, so a typo meant tearing the page out and writing it again
+   under today's date). The composer opens filled with the page and saves
+   through here; the rules are lib/journal-edit's (pure, tested):
+
+   - the page is REPLACED IN PLACE: same id, same date and time, same place
+     in the stored list, its drifted line and anything else stored on it
+     untouched — only its kind, words, mood and media are the edit's;
+   - a page that isn't there any more (torn out on another screen while the
+     composer was open) is never written back as a new one: this throws, and
+     nothing is saved;
+   - MEDIA: the caller hands in files that already live in the journal's
+     folder — the page's own, left where they are (never copied again), and
+     any new ones it copied in with persistMedia. Only after the save has
+     landed are the files the page no longer shows removed, and only those
+     no saved page names any more (journal-edit filesDropped), so a save
+     that fails leaves every picture the stored page points at where it was.
+     A new copy made for a save that then failed is the caller's to keep for
+     its retry (useNoteComposeState does), so sealing again never copies it
+     twice.
+   Throws like every change (rewrite); the caller says so and keeps the
+   composer open. */
+export async function updateEntry(id: string, edit: PageEdit): Promise<JournalEntry[]> {
+  let before: Partial<JournalEntry> | undefined;
+  let stored: unknown[] = [];
+  const next = await rewrite((pages) => {
+    before = pages.find((e): e is Partial<JournalEntry> => isPage(e, id));
+    if (!before) throw new Error("journal: the page being changed isn't there any more; nothing written");
+    const after = editedPage(before as Record<string, unknown>, edit);
+    // the copy the screens show is the first one met (old data can repeat an id): that one is replaced
+    let done = false;
+    stored = pages.map((e) => {
+      if (done || !isPage(e, id)) return e;
+      done = true;
+      return after;
+    });
+    return stored;
+  });
+  // best-effort, and only now that the save has landed: the files the page no longer shows
+  for (const name of filesDropped(before, stored)) {
+    try {
+      new File(journalDir(), name).delete();
+    } catch {
+      /* fine: a file left behind is not a page lost */
+    }
   }
   return next;
 }

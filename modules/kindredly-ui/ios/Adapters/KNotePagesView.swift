@@ -13,14 +13,17 @@ import ExpoUI
  names ambiguous, so nothing of that kind is written here.
 
  KNotePageView (modules/kindredly-ui/src/NotePages.tsx, src/screens/note-page/NotePageNative.tsx)
- - strings: { backLabel, moreLabel, driftLabel, deleteLabel, dateLine, notFound, oneLineOut,
-   tomorrowStranger, coverHint, photoHint, makeCover }
+ - strings: { backLabel, moreLabel, driftLabel, editLabel, deleteLabel, dateLine, notFound,
+   oneLineOut, tomorrowStranger, coverHint, photoHint, makeCover }
  - state: loading | ready | missing (an unknown one reads as loading)
  - kind: text | photo | voice | video; group, icon (the mood); body, pure, drifted, canDrift
+ - canEdit: the ⋯ offers Edit, above Delete (owner's audit, 2026-11-10; a bundle from before it
+   sends neither the flag nor editLabel, and the menu is as it was)
  - photos: [{ id, index, image (KImageRefRecord), a11y }] in drawing order, the cover first
  - canSetCover, coverHint, voice, film
  - children: <KIsland name="voice"> (AudioCard), <KIsland name="film"> (the player)
- Events: onNpBack {}, onNpDrift {}, onNpDelete {}, onNpPhoto { index }, onNpCover { index }
+ Events: onNpBack {}, onNpDrift {}, onNpEdit {}, onNpDelete {}, onNpPhoto { index },
+ onNpCover { index }
  Batch 3 (2026-11-09), each behind its own switch, the island kept for when it is off:
  - the voice card ("notevoice"): the voice slot is KVoiceSlot (Portable/Voice), the island alone
    until TS sends the `voice` command { showCard, card: { look, playing, label }, island } (the
@@ -55,6 +58,7 @@ struct KNotePageStringsRecord: Record {
   @Field var backLabel: String = ""
   @Field var moreLabel: String = ""
   @Field var driftLabel: String = ""
+  @Field var editLabel: String = ""
   @Field var deleteLabel: String = ""
   @Field var dateLine: String = ""
   @Field var notFound: String = ""
@@ -69,6 +73,7 @@ struct KNotePageStringsRecord: Record {
     s.backLabel = backLabel
     s.moreLabel = moreLabel
     s.driftLabel = driftLabel
+    s.editLabel = editLabel
     s.deleteLabel = deleteLabel
     s.dateLine = dateLine
     s.notFound = notFound
@@ -99,6 +104,7 @@ final class KNotePageViewProps: KScreenProps {
   @Field var pure: Bool = false
   @Field var drifted: String = ""
   @Field var canDrift: Bool = false
+  @Field var canEdit: Bool = false
   @Field var photos: [KNotePagePhotoRecord] = []
   @Field var canSetCover: Bool = false
   @Field var coverHint: Bool = false
@@ -116,6 +122,7 @@ final class KNotePageViewProps: KScreenProps {
 
   var onNpBack = EventDispatcher()
   var onNpDrift = EventDispatcher()
+  var onNpEdit = EventDispatcher()
   var onNpDelete = EventDispatcher()
   var onNpPhoto = EventDispatcher()
   var onNpCover = EventDispatcher()
@@ -124,6 +131,7 @@ final class KNotePageViewProps: KScreenProps {
     let a = KNotePageActions()
     a.onBack = { [weak self] in self?.onNpBack() }
     a.onDrift = { [weak self] in self?.onNpDrift() }
+    a.onEdit = { [weak self] in self?.onNpEdit() }
     a.onDelete = { [weak self] in self?.onNpDelete() }
     a.onPhoto = { [weak self] index in self?.onNpPhoto(["index": index]) }
     a.onCover = { [weak self] index in self?.onNpCover(["index": index]) }
@@ -141,6 +149,7 @@ final class KNotePageViewProps: KScreenProps {
     c.pure = pure
     c.drifted = drifted
     c.canDrift = canDrift
+    c.canEdit = canEdit
     c.photos = cached("photos") {
       var seen = Set<String>()
       return photos.compactMap { r in

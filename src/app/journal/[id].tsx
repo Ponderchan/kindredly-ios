@@ -18,8 +18,10 @@ import { PhotoLightbox } from "../../components/PhotoLightbox";
 import { MoodChip, moodColors } from "../../screens/notes/notes-glyphs";
 import { DetailVideo } from "../../screens/note-page/DetailVideo";
 import { NativeSurface } from "../../components/NativeSurface";
-import { NotePageNative } from "../../screens/note-page/NotePageNative";
+import { NotePageNative, composerCanEdit } from "../../screens/note-page/NotePageNative";
+import { canEditPage } from "../../screens/note-page/note-page-model";
 import "../../data/strings-step5-notes";
+import "../../data/strings-audit-notes"; // jd.edit
 import "../../data/strings-step5-kitrn"; // a11y.back
 
 /* the ink on the drift highlight: the highlight is pale in every theme, so
@@ -28,7 +30,10 @@ import "../../data/strings-step5-kitrn"; // a11y.back
 const ON_HIGHLIGHT = "#1E1B35";
 
 /* A single journal page — the sealed room, one page at a time. Read it, let a
-   line drift, or tear it out. Sample pages are read-only.
+   line drift, change it (Edit in the ⋯: owner's audit, 2026-11-10 — the
+   composer opens holding the page and its save replaces it; real pages only,
+   where the SwiftUI composer will be drawn) or tear it out. Sample pages are
+   read-only.
 
    Same surface and same plate as the tabs: white, rules doing the separation,
    mono for what the system files, the system font for what you wrote. The mood
@@ -162,6 +167,7 @@ function JournalDetailRN() {
      whole page goes, to the letter desk, or nothing does. */
   const canDrift = !isDemo && pure && e.body.trim().length >= 3;
   const drift = () => router.push({ pathname: "/compose", params: { seed: e.body } });
+  const canEdit = canEditPage(isDemo, composerCanEdit());
 
   // the page stays neutral — the mood lives in its face, not the background
   return (
@@ -182,6 +188,8 @@ function JournalDetailRN() {
             modifiers={[menuIndicator("hidden"), accessibilityLabel(t("jd.more"))]}
           >
             {canDrift ? <Button label={t("jd.driftThis")} systemImage="paperplane" onPress={drift} /> : null}
+            {/* Edit (owner's audit, 2026-11-10): a real page, where the SwiftUI composer will open it */}
+            {canEdit ? <Button label={t("jd.edit")} systemImage="pencil" onPress={() => router.push({ pathname: "/journal-entry", params: { edit: e.id } })} /> : null}
             <Button label={t("jd.delete")} systemImage="trash" role="destructive" onPress={() => setTimeout(confirmDelete, 0)} />
           </Menu>
         </Host>

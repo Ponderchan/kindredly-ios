@@ -21,7 +21,12 @@ import type { JournalEntry } from "../../lib/journal";
      when there is more than one picture to choose from.
    - The date line is the page's date, its mood's name after it (never for
      a page that stored no mood), and " · SAMPLE" on a sample, as written.
-   - One day's pages are every page of that local day, oldest first. */
+   - One day's pages are every page of that local day, oldest first.
+   - EDIT (owner's audit, 2026-11-10): the ⋯ offers Edit, above Delete, on a
+     real page where the SwiftUI composer will be the one drawn — it is the
+     only composer that can change a sealed page (the React Native one would
+     seal a second page). A sample is never editable: it is ours, not the
+     reader's, and lives in data/demo, not in the journal. */
 
 /** A photo page's pictures, as stored. [] on every other kind. */
 export function pagePhotos(e: Pick<JournalEntry, "type" | "media" | "mediaUri">): string[] {
@@ -43,6 +48,12 @@ export function galleryOrder(n: number, coverIndex: number | null | undefined): 
 /** The page may leave for the letter desk: a real text page with words to carry. */
 export function canDriftPage(e: Pick<JournalEntry, "type" | "body">, isDemo: boolean): boolean {
   return !isDemo && e.type === "text" && (e.body || "").trim().length >= 3;
+}
+
+/** The ⋯ offers Edit: a real page, on a phone whose composer can change one (the SwiftUI composer:
+    its switch on and its view in the binary — the caller's to say). */
+export function canEditPage(isDemo: boolean, composerCanEdit: boolean): boolean {
+  return !isDemo && composerCanEdit;
 }
 
 /** The line under the mood: the date, the mood's name, and " · SAMPLE" on a sample. */

@@ -11,7 +11,9 @@ import SwiftUI
    ‹                                         ⋯     the back chevron (KBackChevron) and iOS's own
                                                    pull-down menu from the ⋯ (an SF Symbol 19 in a
                                                    42 box, 20 from the right): Let This Drift Out
-                                                   (a real words-only page), Delete (destructive)
+                                                   (a real words-only page), Edit (a real page:
+                                                   owner's audit, 2026-11-10; TS opens the composer
+                                                   holding this page), Delete (destructive)
                      [☺ 52]                        the mood on its group's tile (52, corners 16,
                ▢ WED, OCT 14 · SLEEPY              face 32 at 1.75), the date line under it in SF
                                                    Mono 500 11 in sub, after a small calendar glyph
@@ -69,6 +71,8 @@ public struct KNotePageStrings: Equatable, Sendable {
   /// VoiceOver: the ⋯
   public var moreLabel = ""
   public var driftLabel = ""
+  /// the menu's Edit, above Delete
+  public var editLabel = ""
   public var deleteLabel = ""
   /// the date, the mood's name, " · SAMPLE", in capitals as TS sends them
   public var dateLine = ""
@@ -100,6 +104,8 @@ public struct KNotePageContent: Equatable, Sendable {
   public var drifted = ""
   /// the menu offers Let This Drift Out
   public var canDrift = false
+  /// the menu offers Edit (a real page whose composer can change it)
+  public var canEdit = false
   /// in drawing order, the cover first
   public var photos: [KNotePagePhoto] = []
   /// a hold makes a picture the cover (a real page)
@@ -118,6 +124,8 @@ public struct KNotePageContent: Equatable, Sendable {
 public final class KNotePageActions {
   public var onBack: () -> Void = {}
   public var onDrift: () -> Void = {}
+  /// Edit in the menu (TS opens the composer holding this page)
+  public var onEdit: () -> Void = {}
   /// Delete in the menu (TS asks first)
   public var onDelete: () -> Void = {}
   /// a picture tapped: its index in the album
@@ -213,6 +221,12 @@ public struct KNotePageScreen<Voice: View, Film: View>: View {
       if content.canDrift {
         SwiftUI.Button(action: actions.onDrift) {
           Label(content.strings.driftLabel, systemImage: "paperplane")
+        }
+      }
+      // above Delete; never without its word (a bundle from before the audit sends none)
+      if content.canEdit && !content.strings.editLabel.isEmpty {
+        SwiftUI.Button(action: actions.onEdit) {
+          Label(content.strings.editLabel, systemImage: "pencil")
         }
       }
       SwiftUI.Button(role: .destructive, action: actions.onDelete) {

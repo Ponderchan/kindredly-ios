@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
@@ -12,6 +12,8 @@ import { useP } from "../lib/theme";
 import { SelfCompose, type SelfComposeState } from "../components/SelfCompose";
 import { localeTag } from "../lib/format";
 import "../data/strings-step5-notes";
+import "../data/strings-audit-notes";
+import { loadJournal, type JournalEntry } from "../lib/journal";
 import { CloseGlyph } from "../components/10a/BackChevron";
 import type { KScreenHandle } from "../../modules/kindredly-ui";
 import { NativeSurface } from "../components/NativeSurface";
@@ -37,15 +39,50 @@ import { NoteComposeNative } from "../screens/journal-entry/NoteComposeNative";
      capsule and panel, SEAL IT HERE, the seal moment), its state in screens/journal-entry;
    - the React Native page below (this header and components/SelfCompose), as it shipped: the
      remote switch's fallback.
-   Both hold their words in `text` here and report what the page holds to the same guard. */
+   Both hold their words in `text` here and report what the page holds to the same guard.
+
+   EDITING A SEALED PAGE (owner's audit, 2026-11-10): /journal-entry?edit=<page id>, from the
+   journal page's ⋯ (Edit). The page is read first — nothing is drawn but the paper until it is,
+   so the composer mounts already holding its words, mood and media — and handed to the SwiftUI
+   composer, whose save replaces it (lib/journal updateEntry). A page that isn't there (torn out
+   meanwhile) or a sample just goes back. Only the SwiftUI composer can change a page: the React
+   Native one would seal a NEW page, so the journal page offers Edit only where the SwiftUI
+   composer will be drawn (note-page-model canEditPage), and if this route still lands on the
+   fallback with `edit` it goes back rather than write a second page. The guard below asks only
+   over real changes (the state reports what changed, not what the page holds), with its own
+   sentence. */
 export default function JournalEntryRoute() {
   useLang();
   const P = useP();
   const router = useRouter();
   const navigation = useNavigation();
-  const { demo } = useLocalSearchParams<{ demo?: string }>();
+  const { demo, edit } = useLocalSearchParams<{ demo?: string; edit?: string }>();
   const [text, setText] = useState(__DEV__ && storeMode && demo ? DEMO_TEXT[getLang()].line : "");
   const goBack = useCallback(() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/journal")), [router]);
+
+  // the sealed page being changed, read once before anything is drawn
+  const editId = typeof edit === "string" && edit.length > 0 ? edit : null;
+  const [editing, setEditing] = useState<JournalEntry | null>(null);
+  useEffect(() => {
+    if (!editId) return;
+    let alive = true;
+    void loadJournal().then((all) => {
+      if (!alive) return;
+      const page = editId.startsWith("demo-") ? null : all.find((e) => e.id === editId);
+      if (!page) {
+        console.warn("[journal-entry] the page to edit isn't in the journal; going back");
+        goBack();
+        return;
+      }
+      setText(page.body);
+      setEditing(page);
+    });
+    return () => {
+      alive = false;
+    };
+    // goBack: the router's, stable enough for a read made once per id
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editId]);
 
   /* Same guard as the letter desk, minus the draft. A sealed page has no
      draft shelf — and it shouldn't get one here: this room's whole promise is
@@ -80,9 +117,16 @@ export default function JournalEntryRoute() {
     else goBack();
   };
 
-  const native = () => <NoteComposeNative text={text} setText={setText} onDone={goBack} onClose={goBack} onState={setPage} viewRef={viewRef} />;
+  const native = () => <NoteComposeNative text={text} setText={setText} onDone={goBack} onClose={goBack} onState={setPage} viewRef={viewRef} editing={editing} />;
 
-  const fallback = () => (
+  // an edit is waiting for its page: the paper only
+  if (editId && !editing) return <View style={{ flex: 1, backgroundColor: P.paper }} />;
+
+  const fallback = () =>
+    editId ? (
+      // the React Native composer can only seal a new page: an edit that lands here goes back
+      <CannotEdit onLeave={goBack} />
+    ) : (
     <SafeAreaView style={{ flex: 1, backgroundColor: P.paper }}>
       {/* One line, not two. The date was a headline of its own below the
           header, which gave the page two beginnings — and a date is a label,
@@ -109,7 +153,7 @@ export default function JournalEntryRoute() {
       </View>
       <SelfCompose text={text} setText={setText} onDone={goBack} onState={setPage} />
     </SafeAreaView>
-  );
+    );
 
   return (
     <View style={{ flex: 1, backgroundColor: P.paper }}>
@@ -118,7 +162,7 @@ export default function JournalEntryRoute() {
       <LeaveSheet
         open={leaving}
         title={t("je.leaveTitle")}
-        body={text.trim() ? t("je.leaveBody") : t("je.leaveBodyMedia")}
+        body={editId ? t("je.edit.leaveBody") : text.trim() ? t("je.leaveBody") : t("je.leaveBodyMedia")}
         actions={[{ label: t("cp.leave.discard"), kind: "destructive", onPress: discard }]}
         onCancel={() => {
           caught.current = null;
@@ -127,4 +171,16 @@ export default function JournalEntryRoute() {
       />
     </View>
   );
+}
+
+/* An edit that reached the React Native composer (the "journalentry" switch off, or the SwiftUI
+   page threw): that composer would seal a second page, so this leaves at once, said in the log. */
+function CannotEdit({ onLeave }: { onLeave: () => void }) {
+  useEffect(() => {
+    console.warn("[journal-entry] a page can only be edited in the SwiftUI composer; going back");
+    onLeave();
+    // once, on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
 }
