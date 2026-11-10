@@ -794,6 +794,8 @@ struct KKindredsBand: View {
         .offset(y: open ? Self.orbitTopOpen : Self.orbitTopFolded)
         // only the open orbit takes taps (its faces); folded it is a watermark behind the chips
         .allowsHitTesting(open)
+        // no watermark behind the search field: its rings would show past the field's ends
+        .opacity(driver.searching ? 0 : 1)
       }
       .overlay(alignment: .bottom) {
         // both stay mounted (a focused field is never taken off screen); the one not in use is
