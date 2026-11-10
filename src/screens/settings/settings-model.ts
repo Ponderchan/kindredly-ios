@@ -27,7 +27,16 @@ import type { FirstClass4aVM } from "../me/me-model";
      (the endonym with its flag, never translated);
    - THE QUIET: the notifications-off notice when iOS won't let anything
      through, then exactly two switches — Notifications (hidden until read)
-     and the 8 o'clock knock — then Moments you kept and Unsent letters;
+     and the 8 o'clock knock — then Moments you kept, Unsent letters and,
+     directly under it, Export my journal (owner's audit, 2026-11-10: the
+     journal lives only on this phone and there was no way to take it out).
+     Its sub-line says where the journal lives and, honestly, that the file
+     is the words only (photos and recordings stay in the app). A tap writes
+     the file and opens the share sheet (the hook; lib/journal-export). With
+     no page yet the row says so and does nothing (a display row); while the
+     file is being written it reads … and a second tap does nothing; until
+     the journal has been counted it is the live row (the tap itself reads
+     the journal and says if there is nothing);
    - FIRST CLASS: membership, restore (… while it runs), manage;
    - HELP, SAFETY (report / block stays reachable: Apple);
    - the two exits in red, delete with its subline;
@@ -47,6 +56,7 @@ export type SettingsRowKey =
   | "knock"
   | "lore"
   | "drafts"
+  | "exportJournal"
   | "membership"
   | "restore"
   | "manage"
@@ -157,6 +167,11 @@ export type SettingsFacts = {
   /** the 4a First Class card (me-model buildFirstClass4a, with the store's trial) */
   firstClass: FirstClass4aVM;
   restoring: boolean;
+  /** how many pages an export would hold (the reader's own, no samples); null until counted, or
+      when the journal couldn't be read (the row stays live: the tap says what happened) */
+  journalPages?: number | null;
+  /** the export file is being written */
+  exporting?: boolean;
   version: VersionFacts;
 };
 
@@ -322,6 +337,16 @@ export function quietNotice(perm: SettingsFacts["perm"], t: TFn): SettingsNotice
   return { text: t("set.push.off"), action: perm === "ask" ? t("set.push.offAsk") : t("set.push.offOpen") };
 }
 
+/** Export my journal, under Unsent letters. No page yet: a display row that says so (and does
+    nothing). Otherwise a link whose sub-line says the journal lives only on this phone and that
+    the file is the words only; … and no chevron while the file is being written. */
+export function exportRow(f: Pick<SettingsFacts, "journalPages" | "exporting">, t: TFn): SettingsRowVM {
+  const base = { key: "exportJournal" as const, symbol: "square.and.arrow.up", glyph: "doc" as const, label: t("set.export") };
+  if (f.journalPages === 0) return row({ ...base, sub: t("set.export.none"), chevron: false, kind: "display" });
+  const busy = !!f.exporting;
+  return row({ ...base, sub: t("set.export.sub"), value: busy ? "…" : "", chevron: !busy, busy });
+}
+
 /* ── the page ──────────────────────────────────────────────────────────── */
 
 export function buildSettingsView(f: SettingsFacts, t: TFn): SettingsView {
@@ -341,6 +366,7 @@ export function buildSettingsView(f: SettingsFacts, t: TFn): SettingsView {
     row({ key: "knock", symbol: "bell", glyph: "bell", label: t("set.knock.title"), sub: t("set.knock.sub"), chevron: false, kind: "toggle", on: f.knock }),
     row({ key: "lore", symbol: "heart", glyph: "heart", label: t("lore.head") }),
     row({ key: "drafts", symbol: "doc.text", glyph: "draft", label: t("set.drafts") }),
+    exportRow(f, t),
   ];
 
   const firstClass: SettingsRowVM[] = [

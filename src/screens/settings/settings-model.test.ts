@@ -99,19 +99,45 @@ const facts = (over: Partial<SettingsFacts> = {}): SettingsFacts => ({
 {
   const v = buildSettingsView(facts(), t);
   const quiet = v.groups[1];
-  ok("the quiet: notifications, the knock, moments you kept, unsent letters", quiet.rows.map((r) => r.key).join(",") === "notify,knock,lore,drafts");
+  ok("the quiet: notifications, the knock, moments you kept, unsent letters, export my journal", quiet.rows.map((r) => r.key).join(",") === "notify,knock,lore,drafts,exportJournal");
   ok("exactly two switches on the whole page", v.groups.flatMap((g) => g.rows).filter((r) => r.kind === "toggle").length === 2);
   ok("the switches show their state", quiet.rows[0].on === true && quiet.rows[1].on === false);
   ok("the switches keep their subs (never the mock's merged sentence)", quiet.rows[0].sub === "set.notify.sub{wren:Pip}" && quiet.rows[1].sub === "set.knock.sub");
   ok("a switch has no chevron", quiet.rows[0].chevron === false && quiet.rows[1].chevron === false);
   ok("permission granted: no notice", quiet.notice === null);
   const unread = buildSettingsView(facts({ notifyOn: null }), t).groups[1];
-  ok("Notifications hidden until the phone answers (never flashes the wrong way)", unread.rows.map((r) => r.key).join(",") === "knock,lore,drafts");
+  ok("Notifications hidden until the phone answers (never flashes the wrong way)", unread.rows.map((r) => r.key).join(",") === "knock,lore,drafts,exportJournal");
   const ask = quietNotice("ask", t);
   ok("never asked: the notice offers iOS's question", ask?.text === "set.push.off" && ask.action === "set.push.offAsk");
   ok("refused: the notice opens Settings", quietNotice("settings", t)?.action === "set.push.offOpen");
   ok("unknown: say nothing", quietNotice(null, t) === null);
   ok("the notice sits on THE QUIET", buildSettingsView(facts({ perm: "settings" }), t).groups[1].notice?.action === "set.push.offOpen");
+}
+
+/* ── export my journal (owner's audit, 2026-11-10) ── */
+{
+  const rowOf = (over: Partial<SettingsFacts> = {}) => {
+    const rows = buildSettingsView(facts(over), t).groups[1].rows;
+    return { rows, r: rows.find((x) => x.key === "exportJournal")! };
+  };
+  const { rows, r } = rowOf({ journalPages: 12 });
+  ok("it sits directly under Unsent letters", rows.findIndex((x) => x.key === "exportJournal") === rows.findIndex((x) => x.key === "drafts") + 1);
+  ok("pages to export: a link with its chevron", r.kind === "link" && r.chevron && !r.busy && r.value === "");
+  ok("its label, and the sub-line that says where the journal lives and that it is the words only", r.label === "set.export" && r.sub === "set.export.sub");
+  ok("it shares in place: no route of its own", ROW_ROUTES.exportJournal === undefined);
+  ok("it has an SF Symbol and a fallback glyph", r.symbol === "square.and.arrow.up" && r.glyph === "doc");
+
+  const none = rowOf({ journalPages: 0 }).r;
+  ok("an empty journal: the row says there is nothing yet and does nothing", none.kind === "display" && !none.chevron && none.sub === "set.export.none" && none.label === "set.export");
+
+  const unknown = rowOf({ journalPages: null }).r;
+  ok("not counted yet (or unreadable): the live row, never 'nothing to export'", unknown.kind === "link" && unknown.sub === "set.export.sub");
+  ok("facts from before the row draw it live too", rowOf().r.kind === "link");
+
+  const busy = rowOf({ journalPages: 12, exporting: true }).r;
+  ok("while the file is written: … and no second tap", busy.busy && busy.value === "…" && !busy.chevron && busy.kind === "link");
+  ok("an empty journal is never busy", !rowOf({ journalPages: 0, exporting: true }).r.busy);
+  ok("still exactly two switches with the row there", buildSettingsView(facts({ journalPages: 3 }), t).groups.flatMap((g) => g.rows).filter((x) => x.kind === "toggle").length === 2);
 }
 
 /* ── appearance ── */

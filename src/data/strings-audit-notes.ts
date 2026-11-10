@@ -9,12 +9,13 @@ import { strings } from "../lib/i18n";
    strings() requires; fr de it ja ko are optional and left out until they are written.
 
    Reused, no new copy: jd.delete, jd.more, je.leaveTitle, cp.leave.discard, so.kept (the edit's
-   send-off: "KEPT · OCT 14"), sc.ph, sc.journalTitle, cp.fail.generic, ml.cancel (the search
-   field's Cancel).
+   send-off: "KEPT · OCT 14"), sc.ph, sc.journalTitle (also the exported file's title),
+   cp.fail.generic, ml.cancel (the search field's Cancel), and in the exported file Notes' own
+   words for what a page holds: jt.pictures, jt.picture, jp.say, jt.aVideo.
 
    Imported for its side effect by the screens that say these lines: the journal page
    (NotePageNative, app/journal/[id]), the composer (NoteComposeNative, app/journal-entry), Notes
-   (useNotesModel) and Settings (useSettingsModel). */
+   (useNotesModel), Settings (useSettingsModel) and the export (lib/journal-export-file). */
 
 strings(
   /* ── en · English ── */
@@ -38,6 +39,21 @@ strings(
     "jt.search.clear": "Clear search",
     // the one quiet line under the search field when no page holds what was typed; centred, may wrap to two lines
     "jt.search.none": "No page has those words.",
+
+    // EXPORT THE JOURNAL
+    // Settings, THE QUIET, the row directly under "Unsent letters" (set.drafts): its label, sentence case like the rows around it
+    "set.export": "Export my journal",
+    // the line under that label (two or three lines at most, like set.notify.sub): where the journal lives, and — it must stay honest —
+    // that the file holds the words only; photos, voice notes and films are NOT in it
+    "set.export.sub": "Your journal lives only on this phone. This saves its words as one file; photos, voice and films stay in the app.",
+    // the same line when the journal has no page yet: the row then does nothing
+    "set.export.none": "Your journal lives only on this phone. Nothing to export yet.",
+    // INSIDE THE EXPORTED FILE (a Markdown text file the reader opens elsewhere), under the title "Journal" (sc.journalTitle):
+    // {date} is the day it was saved, written out in full in the reader's language ("Tuesday, November 10, 2026").
+    // It must say plainly that the file is the words only and that pictures and recordings are still in the app
+    "jx.intro": "Saved from Kindredly on {date}. The words only: photos, voice notes and films stay in the app.",
+    // in the file, before a page's line that drifted out (the line itself follows on the same line); ends with a colon or the language's own
+    "jx.drifted": "A line that drifted out:",
   },
   /* ── es ── */
   {},

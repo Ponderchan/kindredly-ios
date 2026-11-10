@@ -6,7 +6,13 @@ import { editedPage, filesDropped, type PageEdit } from "./journal-edit";
 /* Journal is LOCAL-ONLY: entries in AsyncStorage, media files copied into the
    app's document directory ("Sealed on this device" — literally). Only an
    opted-in text line ever leaves, anonymously, into the shared morning pool
-   (db.insertMorningFragment). Media types: text | photo | voice | video. */
+   (db.insertMorningFragment). Media types: text | photo | voice | video.
+
+   Owner's audit, 2026-11-10, both still local-only: a sealed page can be
+   changed (updateEntry below), and the journal's words can be taken out as
+   one text file — written in the app's cache and handed to the iOS share
+   sheet, so it leaves only by the reader's own hand (readJournal below,
+   lib/journal-export-file). The app itself still sends nothing. */
 
 const KEY = "kindredly_journal";
 
@@ -191,6 +197,18 @@ export async function loadJournal(): Promise<JournalEntry[]> {
     console.warn("[journal] couldn't read the journal:", err);
     return [];
   }
+}
+
+/** for the export (lib/journal-export-file; owner's audit, 2026-11-10): the
+    pages, or a rejection when the journal can't be read. Never "none" for a
+    journal that failed to read — an export of nothing would tell the reader
+    their journal is empty. Reads only; writes nothing, not even the count. */
+export async function readJournal(): Promise<JournalEntry[]> {
+  const store = scopedTo(await storageOwner());
+  const { pages, unreadable, vanished } = await readStored(store);
+  if (unreadable !== undefined) throw new Error("journal: the stored journal didn't parse");
+  if (vanished) throw new Error("journal: storage answered nothing where the journal had pages");
+  return showAll(pages);
 }
 
 /** every change goes through here: read as stored, change, save. Throws

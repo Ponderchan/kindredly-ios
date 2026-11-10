@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Alert, Linking } from "react-native";
+import { Alert, Linking, Share } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
 import { STORE_OF_BINARY } from "../../lib/update-prompt-core";
@@ -36,6 +36,8 @@ import {
 import "../../data/strings-step5-settings";
 import "../../data/strings-step5-me"; // fc.firstMark, on the banner's stamp
 import "../../data/strings-fc2"; // fc2.ap.*: System, Light, Dark
+import "../../data/strings-audit-notes"; // set.export*
+import { exportablePages, writeJournalExport } from "../../lib/journal-export-file";
 
 /* SETTINGS' LOGIC, for both renderers (10a step 5). Everything settings.tsx
    did, plus 10a's APPEARANCE, in one hook: SettingsNative (SwiftUI) and
@@ -65,7 +67,16 @@ import "../../data/strings-fc2"; // fc2.ap.*: System, Light, Dark
      restore" for a failure — and refreshes First Class after a restore, so
      Membership and the banner change without a relaunch;
    - sign out, and delete account through the sheet (the route draws both
-     sheets as window-level modals, above the floating tab bar). */
+     sheets as window-level modals, above the floating tab bar);
+   - Export my journal (owner's audit, 2026-11-10): the journal's words are
+     written into one text file in the cache (lib/journal-export-file) and
+     handed to the iOS share sheet with React Native's own Share, so the
+     reader can save it to Files, AirDrop it or mail it. Nothing is sent
+     anywhere by the app; photos and recordings are not in the file, as the
+     row's sub-line says. The row's count is read on every focus; a journal
+     with no page says so and the tap does nothing; a journal that can't be
+     read, or a file that can't be written, is said as a failure — never as
+     an empty journal. One export at a time (the row reads … meanwhile). */
 
 /** The binary's own version (expo-application), the store's label beside it (owner question 7). */
 export function versionFacts(): VersionFacts {
@@ -136,10 +147,21 @@ export function useSettingsModel(): SettingsModel {
   const notifyBusy = useRef(false);
   const restoringRef = useRef(false);
   const deletingRef = useRef(false);
+  /* Export my journal: how many pages it would hold (null until counted, or when the journal
+     couldn't be read: the row stays live and the tap says what happened), and the file being written */
+  const [journalPages, setJournalPages] = useState<number | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const exportingRef = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
       let alive = true;
+      exportablePages()
+        .then((n) => alive && setJournalPages(n))
+        .catch((e) => {
+          console.warn("[settings] the journal wasn't counted for the export row:", e);
+          if (alive) setJournalPages(null);
+        });
       morningKnockEnabled()
         .then((on) => alive && !knockBusy.current && setKnock(on))
         .catch((e) => console.warn("[settings] the knock switch wasn't read:", e));
@@ -177,14 +199,39 @@ export function useSettingsModel(): SettingsModel {
           cofounderNo,
           firstClass: buildFirstClass4a({ premium, cofounderNo, wren, trial: trialLabel(trial, t) }, meFormat()),
           restoring,
+          journalPages,
+          exporting,
           version,
         },
         t,
       ),
     // lang: every word follows the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [handle, dob, language, wren, appearance, letterFont, perm, notifyOn, knock, premium, cofounderNo, trial, restoring, version, lang],
+    [handle, dob, language, wren, appearance, letterFont, perm, notifyOn, knock, premium, cofounderNo, trial, restoring, journalPages, exporting, version, lang],
   );
+
+  /* EXPORT MY JOURNAL: write the words to one file, then the share sheet (see the top comment).
+     The share sheet's own Cancel is not a failure; a journal with no page just updates the row. */
+  const onExport = useCallback(async () => {
+    if (exportingRef.current) return;
+    exportingRef.current = true;
+    setExporting(true);
+    try {
+      const file = await writeJournalExport();
+      if (!file) {
+        setJournalPages(0);
+        return;
+      }
+      setJournalPages(file.pages);
+      await Share.share({ url: file.uri });
+    } catch (e) {
+      console.warn("[settings] the journal wasn't exported:", e);
+      Alert.alert(t("set.export"), t("cp.fail.generic"));
+    } finally {
+      exportingRef.current = false;
+      setExporting(false);
+    }
+  }, []);
 
   const onRestore = useCallback(async () => {
     if (restoringRef.current) return;
@@ -302,6 +349,9 @@ export function useSettingsModel(): SettingsModel {
         case "restore":
           void onRestore();
           return;
+        case "exportJournal":
+          void onExport();
+          return;
         case "manage":
           void Linking.openURL(SETTINGS_LINKS.manage).catch((e) => console.warn("[settings] manage:", e));
           return;
@@ -324,7 +374,7 @@ export function useSettingsModel(): SettingsModel {
           return; // the age row, or a key from a later model: nothing to do
       }
     },
-    [router, onRestore, onSignOut],
+    [router, onRestore, onSignOut, onExport],
   );
 
   const act = useMemo<SettingsActions>(
