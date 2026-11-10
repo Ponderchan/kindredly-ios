@@ -8,7 +8,7 @@ import { strings } from "../lib/i18n";
    store's price, or First Class. These are that sheet's words, and the one line Restore
    purchases says when the book is what came back.
 
-   ENGLISH ONLY for now: t() falls back to English, and the other eight languages are written
+   ENGLISH FIRST (the eight blocks below were written natively on 2026-11-10; this note is how the file began): t() falls back to English, and the other eight languages are written
    natively after this (as each language, never translated; the comment on each key says what it
    is, where it sits and how long it may be). The three empty blocks are es, pt and id, which
    strings() requires.
@@ -45,7 +45,60 @@ strings(
     // and no First Class. Its title is "Restored". One short sentence, like set.restoredBody ("Your First Class is back.")
     "bkb.restored": "Your journal book is back.",
   },
-  /* ── es ── */ {},
-  /* ── pt ── */ {},
-  /* ── id ── */ {},
+  /* ── es · Español (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "bkb.sheet.body": "Pagas una vez y es tuyo: haz tu libro de cualquier mes o año, las veces que quieras.",
+    "bkb.sheet.book": "Solo el libro · {price} una vez",
+    "bkb.sheet.fc": "Primera Clase · el libro y más",
+    "bkb.restored": "El libro de tu diario ha vuelto.",
+  },
+  /* ── pt · Português (Brasil) (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "bkb.sheet.body": "Pague uma vez e é seu: faça seu livro de qualquer mês ou ano, quantas vezes quiser.",
+    "bkb.sheet.book": "Só o livro · {price} uma vez",
+    "bkb.sheet.fc": "Primeira Classe · o livro e mais",
+    "bkb.restored": "O livro do seu diário voltou.",
+  },
+  /* ── id · Bahasa Indonesia (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "bkb.sheet.body": "Sekali bayar, jadi milikmu: buat bukumu untuk bulan atau tahun mana pun, sesering yang kamu mau.",
+    "bkb.sheet.book": "Bukunya saja · {price} sekali bayar",
+    "bkb.sheet.fc": "Kelas Utama · buku dan lainnya",
+    "bkb.restored": "Buku jurnalmu kembali.",
+  },
+  /* ── fr · Français (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "bkb.sheet.body": "Un seul paiement et il est à toi : crée ton livre pour le mois ou l'année de ton choix, aussi souvent que tu veux.",
+    "bkb.sheet.book": "Le livre seul · {price} en une fois",
+    "bkb.sheet.fc": "Première classe · le livre inclus",
+    "bkb.restored": "Ton livre est de retour.",
+  },
+  /* ── de · Deutsch (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "bkb.sheet.body": "Einmal zahlen, für immer deins: Mach dein Buch für jeden Monat, jedes Jahr, so oft du willst.",
+    "bkb.sheet.book": "Nur das Buch · einmalig {price}",
+    "bkb.sheet.fc": "Erste Klasse · das Buch und mehr",
+    "bkb.restored": "Dein Buch zum Tagebuch ist zurück.",
+  },
+  /* ── it · Italiano (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "bkb.sheet.body": "Un solo pagamento, tuo per sempre: crea il tuo libro per qualsiasi mese o anno, tutte le volte che vuoi.",
+    "bkb.sheet.book": "Solo il libro · {price} una tantum",
+    "bkb.sheet.fc": "Prima classe · il libro e non solo",
+    "bkb.restored": "Il libro del tuo diario è tornato.",
+  },
+  /* ── ja · 日本語 (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "bkb.sheet.body": "一度のお支払いで、ずっとあなたのもの。どの月も、どの年も、何度でも本にできます。",
+    "bkb.sheet.book": "本だけ · {price}を一度だけ",
+    "bkb.sheet.fc": "ファーストクラス · 本もふくめて、ぜんぶ",
+    "bkb.restored": "日記の本が戻りました。",
+  },
+  /* ── ko · 한국어 (written natively, then a blind native edit, 2026-11-10) ── */
+  {
+    "bkb.sheet.body": "한 번 결제로 영원히 당신 것. 어느 달이든, 어느 해든, 몇 번이든 책으로 만들 수 있어요.",
+    "bkb.sheet.book": "책만 · {price} 한 번 결제",
+    "bkb.sheet.fc": "퍼스트 클래스 · 책까지 전부",
+    "bkb.restored": "일기 책이 돌아왔어요.",
+  },
 );
