@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { KIsland, useKCommands, useRev, type KScreenHandle } from "../../../modules/kindredly-ui";
 import {
   KEditProfileView,
+  type KEditProfileBirthdaySet,
   type KEditProfileCommands,
   type KEditProfileFace,
   type KEditProfileLetters,
@@ -38,7 +39,10 @@ import type { EditProfileModel } from "./useEditProfileModel";
    "makeface" switch on, the strip starts with Make your own face's ＋ cell
    (`make`, onMake) and the faces Wren made, their pictures the files
    lib/made-faces downloaded (keyed made:<id>). With the "myavatar" switch on (batch 3, off by
-   default; lib/my-face), your face goes to Swift as `myFace` and the island stays empty. */
+   default; lib/my-face), your face goes to Swift as `myFace` and the island stays empty.
+   While the account has no birthday (owner's audit, 2026-11-10) the view carries `birthdaySet`,
+   sent as its own record: Swift makes the Birthday row a button over a date wheel in an iOS
+   sheet, and its answer goes to the model (act.birthday), which asks once more and decides. */
 
 /** The same value back while its content is the same (JSON), so a rebuilt but unchanged record
     keeps its identity and isn't re-sent to Swift. */
@@ -113,10 +117,12 @@ export function EditProfileNative({ model }: { model: EditProfileModel }) {
   const selectedFace = view.selectedFace;
   const letters = useSameContent<KEditProfileLetters | null>(view.letters);
   const make = useSameContent<KEditProfileMake | null>(view.make);
+  // the birthday wheel, only while no birthday is set (null: the row shown, never edited)
+  const birthdaySet = useSameContent<KEditProfileBirthdaySet | null>(view.birthdaySet);
   // your face in Swift, when "myavatar" is on (null: the island, as before)
   const myFace = useMyFace(avatar);
   // over every record AND the small values: Swift converts the whole page once per rev
-  const rev = useRev(strings, rows, faces, note, pronounOptions, pronounSelected, selectedFace, letters, make);
+  const rev = useRev(strings, rows, faces, note, pronounOptions, pronounSelected, selectedFace, letters, make, birthdaySet);
 
   return (
     <SurfaceHost>
@@ -135,6 +141,8 @@ export function EditProfileNative({ model }: { model: EditProfileModel }) {
         note={note}
         letters={letters}
         make={make}
+        birthdaySet={birthdaySet}
+        onBirthday={act.birthday}
         myFace={myFace}
         onMake={act.make}
         onBack={act.back}

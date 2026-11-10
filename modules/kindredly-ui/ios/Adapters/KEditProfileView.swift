@@ -28,6 +28,9 @@ import ExpoUI
    draws no group, and markShown false (they / unset) no mark row
  - make: Make your own face's ＋ cell { present, tag, firstClass, a11y }; present false (the
    "makeface" switch off) draws none. A made face is one of `faces` ("made-<uuid>")
+ - birthdaySet: the Birthday row as a button and its wheel sheet, only while the account has no
+   birthday (owner's audit, 2026-11-10) { present, hint, title, body, key, once, closeLabel,
+   todayY, todayM (1–12), todayD, minYear, locale }; present false keeps the row shown only
  The records are converted once per rev (useRev in TS).
 
  Children: one <KIsland name="avatar"> (112 × 112): AvatarImage, which draws every kind of face
@@ -52,6 +55,8 @@ import ExpoUI
  - onEditNoteSee {}             the new-faces note: See new faces (TS puts the note away; Swift
                                 scrolls to the strip once the note-less props arrive)
  - onEditNoteKeep {}            the new-faces note: Keep mine
+ - onEditBirthday { y, m, d }   the birthday wheel's key, once its sheet is down (m 1–12); TS asks
+                                once more, then saves the date or applies onboarding's block
 
  This file imports ExpoUI, whose public Button, Text and Image would make bare names ambiguous,
  so nothing of that kind is written here.
@@ -151,6 +156,41 @@ struct KEditMakeRecord: Record {
   }
 }
 
+/// The Birthday row as a button and its wheel sheet; present false keeps the row shown only.
+struct KEditBirthdaySetRecord: Record {
+  @Field var present: Bool = false
+  @Field var hint: String = ""
+  @Field var title: String = ""
+  @Field var body: String = ""
+  @Field var key: String = ""
+  @Field var once: String = ""
+  @Field var closeLabel: String = ""
+  @Field var todayY: Int = 0
+  /// 1–12
+  @Field var todayM: Int = 1
+  @Field var todayD: Int = 1
+  @Field var minYear: Int = 0
+  @Field var locale: String = ""
+
+  var birthdaySet: KEditBirthdaySet? {
+    // no today, no wheel: it could not say where to rest or where to end
+    guard present, todayY > 0, (1...12).contains(todayM), (1...31).contains(todayD) else { return nil }
+    var b = KEditBirthdaySet()
+    b.hint = hint
+    b.title = title
+    b.body = body
+    b.key = key
+    b.once = once
+    b.closeLabel = closeLabel
+    b.todayY = todayY
+    b.todayM = todayM
+    b.todayD = todayD
+    b.minYear = minYear
+    b.locale = locale
+    return b
+  }
+}
+
 final class KEditProfileViewProps: KScreenProps {
   @Field var strings: KEditProfileStringsRecord = KEditProfileStringsRecord()
   @Field var faces: [KEditFaceRecord] = []
@@ -161,6 +201,7 @@ final class KEditProfileViewProps: KScreenProps {
   @Field var note: KEditNoteRecord = KEditNoteRecord()
   @Field var letters: KEditLettersRecord = KEditLettersRecord()
   @Field var make: KEditMakeRecord = KEditMakeRecord()
+  @Field var birthdaySet: KEditBirthdaySetRecord = KEditBirthdaySetRecord()
   /// batch 3 ("myavatar"): your face, drawn instead of the "avatar" island while `on`
   @Field var myFace: KMyFaceRecord = KMyFaceRecord()
 
@@ -176,6 +217,7 @@ final class KEditProfileViewProps: KScreenProps {
   var onEditCourierName = EventDispatcher()
   var onEditNoteSee = EventDispatcher()
   var onEditNoteKeep = EventDispatcher()
+  var onEditBirthday = EventDispatcher()
 
   /// The scroll requests: as long-lived as the view, like `commands`.
   let driver = KEditProfileDriver()
@@ -195,6 +237,7 @@ final class KEditProfileViewProps: KScreenProps {
     a.onCourierName = { [weak self] in self?.onEditCourierName() }
     a.onNoteSee = { [weak self] in self?.onEditNoteSee() }
     a.onNoteKeep = { [weak self] in self?.onEditNoteKeep() }
+    a.onBirthday = { [weak self] y, m, d in self?.onEditBirthday(["y": y, "m": m, "d": d]) }
     return a
   }()
 
@@ -224,6 +267,7 @@ final class KEditProfileViewProps: KScreenProps {
       c.pronounOptions = pronounOptions.filter { !$0.id.isEmpty }.map { KEditPronounOption(id: $0.id, label: $0.label) }
       c.pronounSelected = pronounSelected
       c.birthday = rows.birthday.row
+      c.birthdaySet = birthdaySet.birthdaySet
       c.letters = letters.letters
       c.courierHeader = strings.courierHeader
       c.courier = rows.courier.row

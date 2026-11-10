@@ -11,6 +11,13 @@ import { nativeMyFace, type KMyFaceData } from "./LastIslands";
    Swift draws them and reports taps, and TS saves each field on its own (with the identity switch
    on, ON YOUR LETTERS' two switches too: `letters`, onShowMark, onShowSign).
 
+   A BIRTHDAY, SET ONCE (owner's audit, 2026-11-10): while the account has no birthday the model
+   sends `birthdaySet` (the row's hint and the wheel sheet's words, today, the oldest year, the
+   locale) and Swift makes the Birthday row a button that opens a date wheel in an iOS sheet;
+   its key answers onBirthday(y, m 1–12, d) once the sheet is down, and TS asks once more and
+   decides. null (a birthday exists) keeps the row "shown, never edited". A binary from before
+   this ignores the prop, and the row stays as it was.
+
    It is a whole screen: put it alone in one @expo/ui <Host style={{flex:1}}> (SurfaceHost in
    src/components/NativeSurface.tsx; ignoreSafeArea "all" — it has no text field: the pen name and
    the courier's name are edited on a React Native page), and only after
@@ -73,6 +80,22 @@ export type KEditProfileNote = {
     (FREE · ONCE / 1ST CLASS), the gold look once the free face is spent, VoiceOver's name. */
 export type KEditProfileMake = { tag: string; firstClass: boolean; a11y: string };
 
+/** The Birthday row as a button and its wheel sheet (edit-profile-model BirthdaySetVM); null once a
+    birthday is set. */
+export type KEditProfileBirthdaySet = {
+  hint: string;
+  title: string;
+  body: string;
+  key: string;
+  once: string;
+  closeLabel: string;
+  /** today (month 1–12): where the wheel rests, and its last day */
+  today: { y: number; m: number; d: number };
+  minYear: number;
+  /** BCP-47, for the wheel's month names */
+  locale: string;
+};
+
 /** The Edit profile view's commands: scrollTo the top or the face strip. */
 export type KEditProfileCommands = {
   scrollTo: { key: "top" | "faces"; animated?: boolean };
@@ -95,6 +118,10 @@ export type KEditProfileViewProps = CommonViewModifierProps &
     make?: KEditProfileMake | null;
     /** the ＋ cell */
     onMake?: () => void;
+    /** no birthday yet: the row is a button and opens the wheel; null (one is set) keeps it shown only */
+    birthdaySet?: KEditProfileBirthdaySet | null;
+    /** the wheel's answer, once its sheet is down (month 1–12); nothing is saved until TS has asked once more */
+    onBirthday?: (y: number, m: number, d: number) => void;
     onBack?: () => void;
     onPhoto?: () => void;
     onRandom?: () => void;
@@ -120,6 +147,20 @@ type None = Ev<Record<string, never>>;
 type NativeImage = { uri: string; key: string; kind: "image" | "videoPoster" };
 type NativeNote = { present: boolean; title: string; body: string; see: string; keep: string; faces: NativeImage[] };
 type NativeMake = { present: boolean; tag: string; firstClass: boolean; a11y: string };
+type NativeBirthdaySet = {
+  present: boolean;
+  hint: string;
+  title: string;
+  body: string;
+  key: string;
+  once: string;
+  closeLabel: string;
+  todayY: number;
+  todayM: number;
+  todayD: number;
+  minYear: number;
+  locale: string;
+};
 type NativeLetters = {
   present: boolean;
   header: string;
@@ -142,6 +183,8 @@ type NativeKEditProfileViewProps = Omit<
   | "letters"
   | "make"
   | "onMake"
+  | "birthdaySet"
+  | "onBirthday"
   | "onShowMark"
   | "onShowSign"
   | "onBack"
@@ -162,6 +205,8 @@ type NativeKEditProfileViewProps = Omit<
     note: NativeNote;
     letters: NativeLetters;
     make: NativeMake;
+    birthdaySet: NativeBirthdaySet;
+    onEditBirthday?: Ev<{ y: number; m: number; d: number }>;
     onEditBack?: None;
     onEditMake?: None;
     onEditPhoto?: None;
@@ -183,6 +228,14 @@ const NO_NOTE: NativeNote = { present: false, title: "", body: "", see: "", keep
 
 const NO_MAKE: NativeMake = { present: false, tag: "", firstClass: false, a11y: "" };
 const nativeMake = (m: KEditProfileMake | null | undefined): NativeMake => (m ? { present: true, tag: m.tag, firstClass: !!m.firstClass, a11y: m.a11y } : NO_MAKE);
+
+const NO_BIRTHDAY_SET: NativeBirthdaySet = { present: false, hint: "", title: "", body: "", key: "", once: "", closeLabel: "", todayY: 0, todayM: 0, todayD: 0, minYear: 0, locale: "" };
+
+/** The birthday wheel as the Swift record wants it (present false for none: a @Field record can't take null). */
+export function nativeEditBirthdaySet(b: KEditProfileBirthdaySet | null | undefined): NativeBirthdaySet {
+  if (!b) return NO_BIRTHDAY_SET;
+  return { present: true, hint: b.hint, title: b.title, body: b.body, key: b.key, once: b.once, closeLabel: b.closeLabel, todayY: b.today.y, todayM: b.today.m, todayD: b.today.d, minYear: b.minYear, locale: b.locale };
+}
 
 const NO_LETTERS: NativeLetters = { present: false, header: "", markShown: false, markLabel: "", markNote: "", markOn: false, signLabel: "", signNote: "", signOn: true };
 
@@ -213,7 +266,7 @@ const NativeKEditProfileView = requireNativeView<NativeKEditProfileViewProps>("K
 /** The bare SwiftUI screen. Only inside an @expo/ui <Host>; its ref takes commands. Pass the
     records memoised with a rev from useRev over all of them, and the avatar island as a child. */
 export const KEditProfileView = forwardRef<KScreenHandle, KEditProfileViewProps>(function KEditProfileView(
-  { modifiers, letterFont, insets, rev, faces, note, letters, make, onMake, onBack, onPhoto, onRandom, onFace, onPen, onPronoun, onShowMark, onShowSign, onCourierName, onNoteSee, onNoteKeep, myFace, ...rest },
+  { modifiers, letterFont, insets, rev, faces, note, letters, make, onMake, birthdaySet, onBirthday, onBack, onPhoto, onRandom, onFace, onPen, onPronoun, onShowMark, onShowSign, onCourierName, onNoteSee, onNoteKeep, myFace, ...rest },
   ref,
 ) {
   // the converted records follow their source's identity
@@ -221,6 +274,7 @@ export const KEditProfileView = forwardRef<KScreenHandle, KEditProfileViewProps>
   const sentNote = useMemo(() => nativeEditNote(note), [note]);
   const sentLetters = useMemo(() => nativeEditLetters(letters), [letters]);
   const sentMake = useMemo(() => nativeMake(make), [make]);
+  const sentBirthdaySet = useMemo(() => nativeEditBirthdaySet(birthdaySet), [birthdaySet]);
   const sentMyFace = useMemo(() => nativeMyFace(myFace), [myFace]);
   return (
     <NativeKEditProfileView
@@ -237,7 +291,9 @@ export const KEditProfileView = forwardRef<KScreenHandle, KEditProfileViewProps>
       note={sentNote}
       letters={sentLetters}
       make={sentMake}
+      birthdaySet={sentBirthdaySet}
       myFace={sentMyFace}
+      onEditBirthday={onBirthday ? (e) => onBirthday(Number(e.nativeEvent.y), Number(e.nativeEvent.m), Number(e.nativeEvent.d)) : undefined}
       onEditMake={onMake ? () => onMake() : undefined}
       onEditBack={onBack ? () => onBack() : undefined}
       onEditPhoto={onPhoto ? () => onPhoto() : undefined}

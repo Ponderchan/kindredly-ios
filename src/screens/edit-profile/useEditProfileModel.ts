@@ -14,15 +14,21 @@ import { zodiacFromDob } from "../../lib/zodiac";
 import { FACES, getFace, type AuraAvatarDef } from "../../data/aura-avatar-lib";
 import { makeFaceHref, setMadeFaceWorn, useMadeFaceStore, useMakeFaceOn } from "../../lib/make-face";
 import { isMadeFaceId, madeFaceState, type MadeFaceRecord } from "../../lib/make-face-core";
+import { replanLocal } from "../../lib/local-push";
+import { dayOf, dobString, gate, validDob } from "../onboarding/flow";
+import * as ageBlock from "../onboarding/device-block";
 import {
   NEW_FACES_FLAG,
+  birthdayEditable,
   buildEditView,
   createSaveQueue,
   facePool,
   isPronounId,
   randomFace,
   resolvePronoun,
+  setBirthdayOutcome,
   showNewFacesNote,
+  type BirthdayWheelFacts,
   type EditFormat,
   type EditView,
   type PronounId,
@@ -31,6 +37,8 @@ import {
 import "../../data/strings-step5-settings";
 import "../../data/strings-identity";
 import "../../data/strings-make-face";
+import "../../data/strings-onboarding2"; // ob2.birthday.before (the wheel sheet's line)
+import "../../data/strings-audit-birthday"; // bd.* (the wheel sheet, the confirmation)
 
 /* EDIT PROFILE'S LOGIC, for both renderers (10a step 5). The page is its
    own now (owner), pushed in the Me tab's stack, and each field saves on
@@ -72,7 +80,31 @@ import "../../data/strings-make-face";
      cell opens /make-face?from=me, which decides its own first screen (the
      free face, the First Class card, or a guest's sign-in) and saves the face
      it makes; the faces Wren made sit first in the strip and are picked like
-     a portrait (lib/made-faces keeps which one is worn). */
+     a portrait (lib/made-faces keeps which one is worn).
+   - A BIRTHDAY, SET ONCE (owner's audit, 2026-11-10; the rule is in
+     edit-profile-model). Only an account with none gets the wheel. The
+     wheel's answer (act.birthday) is asked once more by the system's alert,
+     naming the date and saying it can't be changed afterwards; then
+     ONBOARDING'S OWN gate decides (screens/onboarding/flow gate, the very
+     function screen 3 calls):
+       · an adult's date goes where onboarding's goes — auth.saveProfile
+         { dob: "YYYY-MM-DD" } (flow dobString), at once through the queue —
+         and her lines are re-planned, so a birthday inside the next
+         fourteen mornings gets its knock (lib/local-push);
+       · an under-18 date is never saved, and gets onboarding's block, the
+         same in every part: the phone remembers it in the same storage with
+         the same one correction (device-block rememberBlock: "Wrong year?
+         Change it" once, then for good), the session on this phone ends,
+         and the person lands on onboarding's own "Not yet." screen, with
+         its own words (ob2.underage.*) — onboarding's run reads the block
+         and shows it, so nothing about the block is written twice.
+       Ending the session is what makes the block hold here: onboarding
+       only shows its block to a run that isn't finished, and an account
+       that finished onboarding is otherwise waved straight to Today
+       (flow enter, app/index). A guest's session is dropped by onboarding's
+       gate too (flow "drop-session"); a real account is only signed out on
+       this phone — nothing on the account is changed or deleted, and the
+       birthday stays unset. */
 
 const FIELD_ROUTE = { pen: "/me/edit-field?f=pen", courier: "/me/edit-field?f=courier" } as const;
 
@@ -91,6 +123,8 @@ export type EditActions = {
   noteKeep: () => void;
   /** the strip's ＋ cell: Make your own face (switch on) */
   make?: () => void;
+  /** the birthday wheel's answer (month 1–12), only while no birthday is set: asks once more, then saves or blocks */
+  birthday: (y: number, m: number, d: number) => void;
 };
 
 export type EditProfileModel = {
@@ -203,15 +237,80 @@ export function useEditProfileModel(): EditProfileModel {
   const showMark: unknown = profile?.showMark;
   const showSign: unknown = profile?.showSign;
   const sign = useMemo(() => zodiacFromDob(dob), [dob]);
+  /* the birthday wheel's facts, only while there is no birthday: today on the reader's calendar
+     (read again on every visit, so a page left open over midnight isn't a day behind for long)
+     and the locale its months are named in */
+  const [todayKey, setTodayKey] = useState(() => new Date().toDateString());
+  useFocusEffect(
+    useCallback(() => {
+      setTodayKey(new Date().toDateString());
+    }, []),
+  );
+  const wheel = useMemo<BirthdayWheelFacts | undefined>(() => {
+    if (!birthdayEditable(dob)) return undefined;
+    const now = new Date();
+    return { today: { y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() }, locale: localeTag() };
+    // todayKey: a new day; lang: the wheel's month names follow the reader's language
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dob, todayKey, lang]);
   const view = useMemo(
     () =>
       buildEditView(
-        { handle, dob, pronoun, wren, avatarId, photo: !!photo, pool, newFacesNote: noteShows, letters: { identity, showMark, showSign, sign }, make },
+        { handle, dob, pronoun, wren, avatarId, photo: !!photo, pool, newFacesNote: noteShows, letters: { identity, showMark, showSign, sign }, make, wheel },
         fmt,
       ),
     // lang: every word follows the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [handle, dob, pronoun, wren, avatarId, photo, pool, noteShows, fmt, lang, identity, showMark, showSign, sign, make],
+    [handle, dob, pronoun, wren, avatarId, photo, pool, noteShows, fmt, lang, identity, showMark, showSign, sign, make, wheel],
+  );
+
+  /* ── a birthday, set once (see the top) ── */
+  const dobRef = useRef(dob);
+  dobRef.current = dob;
+  const signOutRef = useRef(auth.signOut);
+  signOutRef.current = auth.signOut;
+  const settingBirthday = useRef(false);
+  const setBirthday = useCallback(
+    (y: number, m: number, d: number) => {
+      // never over a birthday that exists; one answer at a time
+      if (!birthdayEditable(dobRef.current) || settingBirthday.current) return;
+      const b = { y, m: m - 1, d }; // flow's Dob: month 0–11
+      if (!validDob(b)) return;
+      // the wheel not turned (this year or later): nothing, as onboarding's key stays dim
+      if (setBirthdayOutcome({ current: dobRef.current, verdict: gate(b, dayOf(new Date())) }) === "nothing") return;
+      const decide = () => {
+        if (settingBirthday.current) return;
+        // the gate again, at the moment of the yes (a confirmation left open over midnight)
+        const outcome = setBirthdayOutcome({ current: dobRef.current, verdict: gate(b, dayOf(new Date())) });
+        if (outcome === "save") {
+          void q.now({ dob: dobString(b) }).then(() => replanLocal({ force: true }));
+          return;
+        }
+        if (outcome !== "block") return;
+        settingBirthday.current = true;
+        void (async () => {
+          try {
+            // onboarding's block, the same in every part (see the top): the same storage first…
+            await ageBlock.rememberBlock(false);
+            // …then what waits is sent (a face picked a moment ago is the account's to keep)…
+            await q.flush();
+            // …the session on this phone ends, and onboarding's own run shows its own block
+            await signOutRef.current();
+          } catch (e) {
+            console.warn("[edit-profile] the under-18 block:", e);
+          } finally {
+            settingBirthday.current = false;
+          }
+          router.replace("/onboarding" as never);
+        })();
+      };
+      // the system's own confirm, naming the date: nothing is saved before it
+      Alert.alert(t("bd.confirm.title", { date: birthdayFormat(y, m, d) }), t("bd.confirm.body"), [
+        { text: t("bd.confirm.no"), style: "cancel" },
+        { text: t("bd.confirm.yes"), onPress: decide },
+      ]);
+    },
+    [q, router],
   );
 
   const putNoteAway = useCallback(() => {
@@ -304,8 +403,9 @@ export function useEditProfileModel(): EditProfileModel {
         void q.flush();
         router.push(makeFaceHref("me") as never);
       },
+      birthday: setBirthday,
     }),
-    [q, router, pool, avatarId, pickFace, pronoun, putNoteAway],
+    [q, router, pool, avatarId, pickFace, pronoun, putNoteAway, setBirthday],
   );
 
   return {

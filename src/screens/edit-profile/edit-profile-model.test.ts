@@ -4,7 +4,9 @@
    portraits only, the one-field page's rules (pen 20, courier 16 as
    lib/wren-name cuts, Wren reserved but never for the name she already
    has, empty never saved), the birthday read as a calendar date, the rows
-   (birthday shown, never edited; no courier pronoun row), and the save
+   (birthday shown, never edited — and, for an account with none, set ONCE
+   through the wheel on onboarding's own gate: owner's audit, 2026-11-10;
+   no courier pronoun row), and the save
    queue (merged, each save handed over at once in call order, never
    behind another's network trip, flushed on leaving), and identity Phase
    1: ON YOUR LETTERS only with the switch on (the mark's switch for she /
@@ -21,11 +23,14 @@
 
 import { readFileSync } from "node:fs";
 import {
+  BIRTHDAY_WHEEL_YEARS,
   COURIER_NAME_MAX,
   FIELD_SPECS,
   NEW_FACES_FLAG,
   NONE,
   PEN_NAME_MAX,
+  birthdayEditable,
+  birthdaySetView,
   birthdayValue,
   buildEditView,
   checkField,
@@ -41,6 +46,7 @@ import {
   showsSign,
   randomFace,
   resolvePronoun,
+  setBirthdayOutcome,
   showNewFacesNote,
   type EditFacts,
   type EditFormat,
@@ -118,6 +124,29 @@ ok("a birthday in the reader's form", birthdayValue("1991-11-01", fmt) === "1991
 ok("no birthday: —", birthdayValue(null, fmt) === NONE && birthdayValue("", fmt) === NONE);
 ok("a bad date: —", birthdayValue("1991-13-01", fmt) === NONE);
 
+/* ── a birthday, set once (owner's audit, 2026-11-10) ── */
+ok("a birthday that exists is never editable", !birthdayEditable("1991-11-01"));
+ok("no birthday: editable (null, undefined, '')", birthdayEditable(null) && birthdayEditable(undefined) && birthdayEditable(""));
+ok("something stored that is no date: editable, as the row shows —", birthdayEditable("1991-13-01") && birthdayEditable("soon"));
+ok("an adult's date is saved", setBirthdayOutcome({ current: null, verdict: "adult" }) === "save");
+ok("an under-18 date is the block, never a save", setBirthdayOutcome({ current: null, verdict: "minor" }) === "block");
+ok("the wheel not turned: nothing", setBirthdayOutcome({ current: "", verdict: "unanswered" }) === "nothing");
+ok(
+  "a birthday that exists is never written over, whatever the answer",
+  setBirthdayOutcome({ current: "1991-11-01", verdict: "adult" }) === "nothing" && setBirthdayOutcome({ current: "1991-11-01", verdict: "minor" }) === "nothing",
+);
+const flowText = readFileSync(new URL("../onboarding/flow.ts", import.meta.url), "utf8");
+ok("the wheel goes back as far as onboarding's (flow WHEEL_YEARS)", new RegExp(`export const WHEEL_YEARS = ${BIRTHDAY_WHEEL_YEARS};`).test(flowText));
+ok("the verdicts are onboarding's gate's three", /export type Gate = "unanswered" \| "adult" \| "minor";/.test(flowText));
+{
+  const wheel = { today: { y: 2026, m: 11, d: 10 }, locale: "en-US" };
+  const set = birthdaySetView(null, wheel, t);
+  ok("the sheet's words: the row's own title, onboarding's line, the key, the once line, the ✕", set?.title === "ep.birthday" && set.body === "ob2.birthday.before" && set.key === "bd.sheet.key" && set.once === "bd.sheet.once" && set.closeLabel === "wren.trackClose" && set.hint === "bd.row.hint");
+  ok("the wheel: today, a hundred years of them, the reader's locale", JSON.stringify(set?.today) === JSON.stringify(wheel.today) && set?.minYear === 1927 && set.locale === "en-US");
+  ok("a birthday set: no button, no sheet", birthdaySetView("1991-11-01", wheel, t) === null);
+  ok("no wheel facts (a caller that never asked): no button", birthdaySetView(null, undefined, t) === null);
+}
+
 /* ── the page ── */
 const facts = (over: Partial<EditFacts> = {}): EditFacts => ({
   handle: "maynaa",
@@ -143,6 +172,11 @@ const facts = (over: Partial<EditFacts> = {}): EditFacts => ({
   ok("no pen name: —", buildEditView(facts({ handle: " " }), fmt).pen.value === NONE);
   ok("pronouns: she / he / they, the one held selected", v.pronoun.options.map((o) => o.id).join(",") === "she,he,they" && v.pronoun.selected === "she" && v.pronoun.value === "pr.she");
   ok("the birthday is a value only", v.birthday.value === "1991/11/1" && !("options" in v.birthday));
+  const wheel = { today: { y: 2026, m: 11, d: 10 }, locale: "en-US" };
+  ok("a birthday set: shown, never edited (no button, even with the wheel's facts)", v.birthdaySet === null && buildEditView(facts({ wheel }), fmt).birthdaySet === null);
+  const none = buildEditView(facts({ dob: null, wheel }), fmt);
+  ok("no birthday: the row shows — and is the wheel's button", none.birthday.value === NONE && none.birthdaySet?.key === "bd.sheet.key");
+  ok("no birthday, no wheel facts: the row as it was", buildEditView(facts({ dob: null }), fmt).birthdaySet === null);
   ok("YOUR COURIER: her name only (no pronoun row, owner question 13)", v.courierHeader === "me.sec.courier" && v.courier.label === "ep.name" && v.courier.value === "Pip");
   ok("the footer is the private note", v.footer === "ep.privateNote");
   ok("no note unless asked", v.note === null);

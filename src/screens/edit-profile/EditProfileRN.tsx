@@ -23,7 +23,13 @@ import type { EditProfileModel } from "./useEditProfileModel";
    only), with the identity switch on ON YOUR LETTERS (the ♀/♂ switch for
    she / he, the star sign's), ep.privateNote (id.ep.privateNote with the
    switch on), YOUR COURIER (her name). Clears the floating tab bar, under
-   the bottom fade. */
+   the bottom fade.
+
+   NOT HERE: setting a birthday once (owner's audit, 2026-11-10). The Swift
+   page opens a date wheel in an iOS sheet for an account with no birthday
+   (view.birthdaySet); this fallback has no date wheel to open (the app
+   carries no React Native date picker, and none is added), so its Birthday
+   row stays what it was: shown, "—" for none, not a button. */
 
 /** YOU and YOUR COURIER's headers: 4 in from the group (H:92; Settings' are 10) */
 const EDIT_HEADER_INSET = 4;

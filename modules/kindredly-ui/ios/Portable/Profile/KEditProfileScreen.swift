@@ -18,6 +18,7 @@ import SwiftUI
    Pen name                    maynaa  ›   opens the one-field page
    Pronouns                  she / her  ›   a menu: she / he / they, saved at once
    Birthday                1 November 1991  shown, never edited: no chevron, no button
+   Birthday                              —  ›   only while there is none: opens the date wheel (below)
    ON YOUR LETTERS                          identity switch on only (identity Phase 1):
    Show ♀ on your letters            (●)    the mark's switch, she / he only, its note under it
    Star sign on your letters         (●)    the sign's switch, your sign named under it
@@ -35,6 +36,18 @@ import SwiftUI
  and the header sits under it, outside the scroll view (sticky, H:90). One ScrollView over a
  VStack: the avatar island must not sit in a lazy container. 16 from the edges, blocks 12 apart;
  the strip runs edge to edge. The page clears the floating tab bar and the bottom fade.
+
+ A BIRTHDAY, SET ONCE (owner's audit, 2026-11-10). "Shown, never edited" stays the rule for a
+ birthday that exists. An account with none saw "—" it could not tap; for that account only, TS
+ sends `birthdaySet`, and the row is a button with the chevron every editable row has. It opens
+ an iOS sheet (the system's: grabber, rise, dim, drag down; exactly as tall as what it holds, as
+ the new reader's sheet is) holding iOS's own date wheel, in the reader's language, from the
+ oldest year TS allows up to today. The wheel rests on today, as onboarding's does, and the key
+ stays dim until a year before this one is under the band (onboarding's "not answered yet").
+ The key closes the sheet and, once it is down, hands the date to TS (onBirthday), which asks
+ once more with the system's alert and decides what the date does: nothing here knows the 18+
+ rule or saves anything. The date picked is kept while the page lives, so a "Go back" in that
+ alert finds the wheel where it was left.
 
  The note's "See new faces" tells TS (which puts the note away for good) and scrolls the strip
  to the top of the view ONCE THE NOTE HAS GONE: the note sits above the strip, so a scroll aimed
@@ -91,6 +104,29 @@ public struct KEditLetters: Equatable, Sendable {
   public init() {}
 }
 
+/// The Birthday row as a button and its wheel sheet, only while the account has no birthday.
+public struct KEditBirthdaySet: Equatable, Sendable {
+  /// VoiceOver's hint on the row
+  public var hint = ""
+  /// the sheet: its title, the line under it, the key under the wheel, the small line under the key
+  public var title = ""
+  public var body = ""
+  public var key = ""
+  public var once = ""
+  /// VoiceOver's name for the ✕
+  public var closeLabel = ""
+  /// today on the reader's calendar (month 1–12): where the wheel rests, and its last day
+  public var todayY = 0
+  public var todayM = 1
+  public var todayD = 1
+  /// the oldest year on the wheel
+  public var minYear = 0
+  /// BCP-47, for the wheel's month names (the app's language, not the phone's)
+  public var locale = ""
+
+  public init() {}
+}
+
 /// The one-time note for a legacy portrait.
 public struct KEditNewFacesNote: Equatable, Sendable {
   public var title = ""
@@ -130,6 +166,8 @@ public struct KEditProfileContent: Equatable, Sendable {
   public var pronounOptions: [KEditPronounOption] = []
   public var pronounSelected = ""
   public var birthday = KEditRow()
+  /// no birthday yet: the row is a button over the date wheel; nil once one is set (shown, never edited)
+  public var birthdaySet: KEditBirthdaySet?
   /// ON YOUR LETTERS, between YOU and the footer; nil while the identity switch is off
   public var letters: KEditLetters?
   /// YOUR COURIER
@@ -165,6 +203,8 @@ public final class KEditProfileActions {
   /// the note's two buttons
   public var onNoteSee: () -> Void = {}
   public var onNoteKeep: () -> Void = {}
+  /// the birthday wheel's answer, once its sheet is down: year, month (1–12), day
+  public var onBirthday: (Int, Int, Int) -> Void = { _, _, _ in }
 
   public init() {}
 }
@@ -221,6 +261,12 @@ public struct KEditProfileScreen<Avatar: View>: View {
   @State private var box = KEditProfileBox()
   /// "See new faces" was pressed: the strip is scrolled to once the note has gone
   @State private var facesAfterNote = false
+  /// the birthday wheel's sheet is up
+  @State private var birthdayOpen = false
+  /// the date under the wheel's band, kept while the page lives (nil: never turned, it rests on today)
+  @State private var birthdayPicked: Date?
+  /// the key was pressed: the date goes to TS once the sheet is down
+  @State private var birthdayAnswer: Date?
 
   /// - Parameters:
   ///   - topInset: the status bar's height (the Host ignores safe areas)
@@ -317,6 +363,35 @@ public struct KEditProfileScreen<Avatar: View>: View {
     }
     .background { theme.bg.ignoresSafeArea() }
     .ignoresSafeArea(.keyboard)
+    // ── the birthday wheel (only while no birthday is set): an iOS sheet; its answer is handed
+    // to TS once the sheet is down, so TS's alert shows over a clear page ──
+    .sheet(
+      isPresented: Binding(
+        // a birthday that arrived meanwhile (TS stops sending birthdaySet) takes the sheet down
+        get: { birthdayOpen && content.birthdaySet != nil },
+        set: { birthdayOpen = $0 }
+      ),
+      onDismiss: {
+        guard let date = birthdayAnswer else { return }
+        birthdayAnswer = nil
+        let parts = KBirthdayWheelSheet.calendar.dateComponents([.year, .month, .day], from: date)
+        guard let y = parts.year, let m = parts.month, let d = parts.day else { return }
+        actions.onBirthday(y, m, d)
+      }
+    ) {
+      if let set = content.birthdaySet {
+        KBirthdayWheelSheet(theme: theme, set: set, picked: $birthdayPicked) { date in
+          birthdayAnswer = date
+          birthdayOpen = false
+        } onClose: {
+          birthdayOpen = false
+        }
+      }
+    }
+    .onChange(of: content.birthdaySet == nil) { _, gone in
+      // a birthday now exists: the wheel is never offered again
+      if gone { birthdayOpen = false }
+    }
   }
 
   private func scroll(_ proxy: ScrollViewProxy, to target: KEditProfileDriver.Target, animated: Bool) {
@@ -412,8 +487,19 @@ public struct KEditProfileScreen<Avatar: View>: View {
       .menuOrder(.fixed)
       .menuStyle(.button)
       .buttonStyle(KFadePressStyle())
-      // shown, never edited: no chevron, and no button for VoiceOver to press
-      SoftPlainRow(theme: theme, label: content.birthday.label, value: content.birthday.value, chevron: false, divider: false)
+      if let set = content.birthdaySet {
+        // no birthday yet: the row opens the wheel, once (see the top)
+        SwiftUI.Button {
+          birthdayOpen = true
+        } label: {
+          SoftPlainRow(theme: theme, label: content.birthday.label, value: content.birthday.value, divider: false)
+        }
+        .buttonStyle(KFadePressStyle())
+        .accessibilityHint(set.hint)
+      } else {
+        // shown, never edited: no chevron, and no button for VoiceOver to press
+        SoftPlainRow(theme: theme, label: content.birthday.label, value: content.birthday.value, chevron: false, divider: false)
+      }
     }
   }
 
@@ -440,6 +526,104 @@ public struct KEditProfileScreen<Avatar: View>: View {
         SoftPlainRow(theme: theme, label: content.courier.label, value: content.courier.value, divider: false)
       }
       .buttonStyle(KFadePressStyle())
+    }
+  }
+}
+
+// MARK: - The birthday wheel
+
+/// The date wheel in an iOS sheet, for an account with no birthday (owner's audit, 2026-11-10):
+/// the sheets' own header (title, round ✕) and body line, iOS's wheel in the reader's language,
+/// the filled key (dim until a year before this one is under the band: onboarding's "not
+/// answered yet"), and the line that says it is set once. The system draws the grabber, the rise,
+/// the dim and the drag down; the sheet is as tall as what it holds, and scrolls if the text size
+/// makes that taller than the screen. It decides nothing: the key hands the date back.
+struct KBirthdayWheelSheet: View {
+  /// Gregorian, in the phone's own time zone: the wheel, its range and the answer read the same days
+  static var calendar: Calendar {
+    var c = Calendar(identifier: .gregorian)
+    c.timeZone = .current
+    return c
+  }
+
+  let theme: KTheme
+  let set: KEditBirthdaySet
+  /// the date under the band, kept by the page (nil: never turned)
+  @Binding var picked: Date?
+  let onSet: (Date) -> Void
+  let onClose: () -> Void
+
+  /// the content's own height, measured; a guess until then so the first frame isn't empty
+  @State private var height: CGFloat = 470
+  @AccessibilityFocusState private var titleFocused: Bool
+
+  private var today: Date {
+    Self.calendar.date(from: DateComponents(year: set.todayY, month: set.todayM, day: set.todayD, hour: 12)) ?? Date()
+  }
+
+  private var oldest: Date {
+    // TS sends a hundred years of them (onboarding's wheel); a bad value falls back to the same
+    let year = set.minYear > 0 && set.minYear <= set.todayY ? set.minYear : set.todayY - 99
+    return min(Self.calendar.date(from: DateComponents(year: year, month: 1, day: 1, hour: 12)) ?? today, today)
+  }
+
+  /// what the wheel shows: the date picked, inside the range; today until it is turned
+  private var date: Date { min(max(picked ?? today, oldest), today) }
+
+  /// a year before this one is under the band (TS's gate reads the answer again: this only dims the key)
+  private var answered: Bool { Self.calendar.component(.year, from: date) < set.todayY }
+
+  var body: some View {
+    ScrollView(.vertical) {
+      VStack(spacing: 0) {
+        KSheetChrome.Header(theme: theme, title: set.title, closeLabel: set.closeLabel, titleFocus: $titleFocused, onClose: onClose)
+        KSheetChrome.Body(theme: theme, text: set.body)
+          .fixedSize(horizontal: false, vertical: true)
+        DatePicker(
+          set.title,
+          selection: Binding(get: { date }, set: { picked = $0 }),
+          in: oldest...today,
+          displayedComponents: .date
+        )
+        .datePickerStyle(.wheel)
+        .labelsHidden()
+        .environment(\.locale, set.locale.isEmpty ? Locale.current : Locale(identifier: set.locale))
+        .environment(\.calendar, Self.calendar)
+        // the wheel's own type follows the theme's light or dark, as the page does
+        .environment(\.colorScheme, theme.isDark ? .dark : .light)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 8)
+        KSheetChrome.Key(theme: theme, kind: .primary, label: set.key, dimmed: answered ? nil : 0.4) {
+          guard answered else { return }
+          onSet(date)
+        }
+        .disabled(!answered)
+        .padding(.horizontal, KSheetChrome.keyInset)
+        .padding(.top, 8)
+        Text(set.once)
+          .kText(.system(13, lineHeight: 18 / 13))
+          .foregroundStyle(theme.mute)
+          .multilineTextAlignment(.center)
+          .fixedSize(horizontal: false, vertical: true)
+          .frame(maxWidth: .infinity)
+          .padding(.horizontal, 24)
+          .padding(.top, 12)
+      }
+      .padding(.top, KSheetChrome.topPad)
+      .padding(.bottom, KSheetChrome.bottomPad)
+      .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
+    }
+    .scrollBounceBehavior(.basedOnSize)
+    .scrollIndicators(.hidden)
+    .presentationDetents([.height(height)])
+    .presentationDragIndicator(.visible)
+    .presentationBackground(theme.sf)
+    .onAppear {
+      // VoiceOver to the title once the sheet is up
+      Task { @MainActor in
+        try? await Task.sleep(for: .milliseconds(450))
+        titleFocused = true
+      }
     }
   }
 }

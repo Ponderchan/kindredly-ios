@@ -9,7 +9,8 @@
      pronoun (she → f, he → m, they → all, as onboarding does), the one-time
      note for the six legacy portraits over it (owner question 12);
    - YOU: Pen name ›, Pronouns (a she / he / they menu), Birthday (shown,
-     never edited: no chevron, not a button), ep.privateNote under them;
+     never edited: no chevron, not a button — but see A BIRTHDAY, SET ONCE
+     below for an account that has none), ep.privateNote under them;
    - YOUR COURIER: Name › (owner question 13: no courier pronoun row).
    Pen name and Name open the one-field page (edit-field), where going back
    saves. A face or a photo applies at once; the account hears about it
@@ -37,6 +38,25 @@
    as "only used in how the app talks about you"; the sign's starts on),
    a live preview of how a stranger sees them, and one Done. Either way the
    two values are saved, so it never comes back on any phone.
+
+   A BIRTHDAY, SET ONCE (owner's audit, 2026-11-10). "Shown, never edited"
+   stays the rule for a birthday that exists: it carries the 18+ gate. But
+   an account with NO birthday (older accounts, some sign-in paths) saw "—",
+   could not tap it, and the star sign's switch under it said "Shows once
+   your birthday is set": a dead end. So when, and only when, the row shows
+   "—" (birthdayEditable: nothing stored, or nothing that is a date) the
+   view carries `birthdaySet`: the row gets its chevron and opens a date
+   wheel in an iOS sheet, resting on today as onboarding's wheel does, its
+   key dim until a year is turned. Before anything is saved the system asks
+   once more, naming the date, and says it can't be changed afterwards.
+   What the answer does is setBirthdayOutcome below, on the verdict of
+   ONBOARDING'S OWN gate (screens/onboarding/flow gate(): no second rule):
+   an adult's date is saved where onboarding saves it (user_metadata.dob,
+   through auth.saveProfile) and the row is "shown, never edited" from then
+   on, with the star sign named under its switch; an under-18 date is never
+   saved and gets onboarding's block (the hook: device-block's storage, the
+   session ended, onboarding's own "Not yet." screen and words). A birthday
+   that already exists is never written over, whatever asks.
 
    Both renderers draw exactly this view (EditProfileNative in SwiftUI,
    EditProfileRN as the remote switch's fallback); the hook
@@ -157,7 +177,14 @@ export type EditFacts = {
   newFacesNote: boolean;
   /** Make your own face: absent while its switch is off */
   make?: MakeFacts;
+  /** what the birthday wheel needs (today, the reader's locale); absent = the row is never a button */
+  wheel?: BirthdayWheelFacts;
 };
+
+/** Today on the reader's own calendar (month 1–12) and the locale the wheel names its months in. */
+export type BirthdayWheelFacts = { today: { y: number; m: number; d: number }; locale: string };
+/** How many years the wheel goes back: onboarding's (screens/onboarding/flow WHEEL_YEARS). Kept equal by the test. */
+export const BIRTHDAY_WHEEL_YEARS = 100;
 
 /** What the ＋ cell knows: the free face is spent, and the faces made (avatar ids, newest first). */
 export type MakeFacts = { used: boolean; made: readonly string[] };
@@ -188,6 +215,24 @@ export type LetterToggleVM = { label: string; note: string; on: boolean };
 /** ON YOUR LETTERS: the mark's switch (null for they / unset) and the sign's. */
 export type LettersVM = { header: string; mark: LetterToggleVM | null; sign: LetterToggleVM };
 
+/** The Birthday row as a button, and its wheel sheet (only while no birthday is set). */
+export type BirthdaySetVM = {
+  /** VoiceOver's hint on the row */
+  hint: string;
+  /** the sheet: its title, the line under it, the key under the wheel, the small line under the key, the ✕ */
+  title: string;
+  body: string;
+  key: string;
+  once: string;
+  closeLabel: string;
+  /** today (month 1–12): where the wheel rests, and its last day */
+  today: { y: number; m: number; d: number };
+  /** the oldest year on the wheel */
+  minYear: number;
+  /** BCP-47, for the wheel's month names */
+  locale: string;
+};
+
 export type EditView = {
   title: string;
   backLabel: string;
@@ -206,6 +251,8 @@ export type EditView = {
   pen: EditRowVM;
   pronoun: EditRowVM & { options: PronounOptionVM[]; selected: PronounId };
   birthday: EditRowVM;
+  /** no birthday yet: the row is a button that opens the wheel; null once one is set (shown, never edited) */
+  birthdaySet: BirthdaySetVM | null;
   /** identity switch on: ON YOUR LETTERS, between YOU and the footer; null while it is off */
   letters: LettersVM | null;
   courierHeader: string;
@@ -223,6 +270,48 @@ export function birthdayValue(dob: string | null | undefined, fmt: Pick<EditForm
   const d = Number(hit[3]);
   if (m < 1 || m > 12 || d < 1 || d > 31) return NONE;
   return fmt.birthday(y, m, d);
+}
+
+/* ── a birthday, set once (owner's audit, 2026-11-10) ───────────────────── */
+
+/** May a birthday be set here? Only while the row shows "—": nothing stored, or nothing that reads
+    as a date. A birthday that exists is shown, never edited. */
+export function birthdayEditable(dob: string | null | undefined): boolean {
+  return birthdayValue(dob, { birthday: () => "set" }) === NONE;
+}
+
+/** The row as a button and its sheet's words, or null when a birthday exists (or the hook gave no wheel). */
+export function birthdaySetView(dob: string | null | undefined, wheel: BirthdayWheelFacts | undefined, t: TFn): BirthdaySetVM | null {
+  if (!wheel || !birthdayEditable(dob)) return null;
+  return {
+    hint: t("bd.row.hint"),
+    title: t("ep.birthday"),
+    // onboarding's own line under its wheel's headline: what the date is for, and that it stays private
+    body: t("ob2.birthday.before"),
+    key: t("bd.sheet.key"),
+    once: t("bd.sheet.once"),
+    closeLabel: t("wren.trackClose"),
+    today: wheel.today,
+    minYear: wheel.today.y - (BIRTHDAY_WHEEL_YEARS - 1),
+    locale: wheel.locale,
+  };
+}
+
+/** Onboarding's gate's three answers (screens/onboarding/flow Gate), written out: this file imports nothing at runtime. */
+export type BirthdayVerdict = "unanswered" | "adult" | "minor";
+
+/**
+ * What an answer on the wheel does, on the verdict of onboarding's own gate for that date:
+ * - a birthday already exists → nothing, ever (it is never written over);
+ * - unanswered (the wheel not turned: this year or later, or no real day) → nothing, as
+ *   onboarding's key stays dim;
+ * - minor → the block, exactly onboarding's (the hook does it); the date is not saved;
+ * - adult → save it.
+ */
+export function setBirthdayOutcome(f: { current: string | null | undefined; verdict: BirthdayVerdict }): "nothing" | "block" | "save" {
+  if (!birthdayEditable(f.current)) return "nothing";
+  if (f.verdict === "minor") return "block";
+  return f.verdict === "adult" ? "save" : "nothing";
 }
 
 /* ── what strangers see beside your courier name (identity Phase 1) ─────── */
@@ -356,6 +445,7 @@ export function buildEditView(f: EditFacts, fmt: EditFormat): EditView {
       selected: f.pronoun,
     },
     birthday: { label: t("ep.birthday"), value: birthdayValue(f.dob, fmt) },
+    birthdaySet: birthdaySetView(f.dob, f.wheel, t),
     letters: on && f.letters ? lettersView(f.pronoun, f.letters, t) : null,
     courierHeader: t("me.sec.courier"),
     courier: { label: t("ep.name"), value: f.wren },

@@ -21,7 +21,7 @@ import { setDevIdentityPreview, useIdentityOn } from "../../lib/identity";
 import { frostSpec } from "../../lib/frost";
 import { strangerName } from "../../lib/stranger-name";
 import { zodiacFromDob } from "../../lib/zodiac";
-import { postmark } from "../../lib/format";
+import { localeTag, postmark } from "../../lib/format";
 import { getLang } from "../../lib/i18n";
 import "../../data/strings-identity";
 import type { EditActions, EditProfileModel } from "../../screens/edit-profile/useEditProfileModel";
@@ -58,7 +58,11 @@ import "../../data/strings-step5-me";
      NAME, NO DOB;
    - Edit: FACE (a portrait / a legacy portrait: the new-faces note / an
      old drawn face / none: the mosaic / a photo-less fallback), PRONOUN
-     (the pool follows it), NOTE (force the note), NO NAME, NO DOB;
+     (the pool follows it), NOTE (force the note), NO NAME, NO DOB (no
+     birthday: the Swift page's Birthday row opens the date wheel — owner's
+     audit, 2026-11-10 — and the wheel's answer is shown on this page only,
+     never asked again, saved or blocked as the real page does; toggle NO
+     DOB to clear it);
      NAMES (the identity switch previewed on for this run of the app, never
      saved, lib/identity setDevIdentityPreview: ON YOUR LETTERS appears,
      its two switches this page's own state, and the hint and the footer
@@ -121,7 +125,10 @@ function SettingsLab() {
   const away = useCallback((where: string) => Alert.alert("Dev page", `In the app this ${where}.`), []);
   const wren = "Pip";
   const handle = noName ? "" : "maynaa";
-  const dob = noDob ? null : "1999-03-04";
+  // NO DOB: no birthday, so Edit's Birthday row opens the wheel (owner's audit, 2026-11-10); the wheel's
+  // answer is kept on this page only (turn NO DOB off and on to clear it)
+  const [wheelDob, setWheelDob] = useState<string | null>(null);
+  const dob = noDob ? wheelDob : "1999-03-04";
 
   const settings = useMemo<SettingsModel>(() => {
     const facts: SettingsFacts = {
@@ -186,6 +193,8 @@ function SettingsLab() {
         pool,
         newFacesNote: forceNote || (picked == null && faceMode === "legacy"),
         letters: { identity: names, showMark: showMark ?? undefined, showSign: showSign ?? undefined, sign: zodiacFromDob(dob) },
+        // the birthday wheel's facts (only used while there is no birthday: NO DOB)
+        wheel: { today: { y: new Date().getFullYear(), m: new Date().getMonth() + 1, d: new Date().getDate() }, locale: localeTag() },
       },
       { t, birthday: (y, m, d) => new Intl.DateTimeFormat(undefined, { year: "numeric", month: "long", day: "numeric" }).format(new Date(y, m - 1, d)) },
     );
@@ -201,6 +210,12 @@ function SettingsLab() {
       courierName: () => away("opens /me/edit-field?f=courier"),
       noteSee: () => setForceNote(false),
       noteKeep: () => setForceNote(false),
+      // the wheel's answer: the app asks once more, then saves an adult's date or applies onboarding's
+      // under-18 block (and signs out); here the date is only shown on this page, whatever its year
+      birthday: (y, m, d) => {
+        setWheelDob(`${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`);
+        away("asks once more (the system alert), then saves the date — or, under 18, remembers the block, signs out and shows onboarding's “Not yet.”. Here it is only shown on this page");
+      },
     };
     return { view: v, pool, avatar: { id: avatarId, photo: null, seed: "dev-step5-settings" }, act };
     // lang: the words follow the reader's language
@@ -255,7 +270,7 @@ function SettingsLab() {
               <Chip label="GARAMOND" on={garamond} onPress={() => setGaramond((v) => !v)} />
               <Chip label="BUSY" on={busy} onPress={() => setBusy((v) => !v)} />
               <Chip label="NO NAME" on={noName} onPress={() => setNoName((v) => !v)} />
-              <Chip label="NO DOB" on={noDob} onPress={() => setNoDob((v) => !v)} />
+              <Chip label="NO DOB" on={noDob} onPress={() => { setWheelDob(null); setNoDob((v) => !v); }} />
             </Row>
           ) : (
             <Row>
@@ -275,7 +290,7 @@ function SettingsLab() {
               ))}
               <Chip label="NOTE" on={forceNote} onPress={() => setForceNote((v) => !v)} />
               <Chip label="NO NAME" on={noName} onPress={() => setNoName((v) => !v)} />
-              <Chip label="NO DOB" on={noDob} onPress={() => setNoDob((v) => !v)} />
+              <Chip label="NO DOB" on={noDob} onPress={() => { setWheelDob(null); setNoDob((v) => !v); }} />
               <Chip label="NAMES" on={names} onPress={() => setDevIdentityPreview(!names)} />
               <Chip label="ID NOTE" on={idNote} onPress={() => setIdNote(true)} />
             </Row>
