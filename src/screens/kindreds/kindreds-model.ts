@@ -469,13 +469,13 @@ export function kindredWas(
     width folded, runs of space as one. Compatibility-decomposed so an accent can be dropped, then
     recomposed, so Hangul and a kana's voiced mark (が is not か) stay whole letters. */
 export function searchKey(s: string): string {
-  return s
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .normalize("NFC")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
+  let folded = s;
+  try {
+    folded = s.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").normalize("NFC");
+  } catch {
+    // an engine without normalize: the search still works, accents and width then count
+  }
+  return folded.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 /** Does any of these words contain the query? `query` is already a searchKey; "" finds nothing. */
