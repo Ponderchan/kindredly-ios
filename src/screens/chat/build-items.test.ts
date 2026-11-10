@@ -128,8 +128,19 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   ok("their fold half: copy, translate, keep, report", actKeys(B.foldHalfMenu(half, menuCtx({ canTranslate: () => true }))) === "copy,translate,keep,report");
   ok("a fold half's translation is keyed by half:<id>", actKeys(B.foldHalfMenu(half, menuCtx({ trans: { "half:f2": { text: "hi", shown: true } } }))).includes("original"));
   ok("my fold half: copy only", actKeys(B.foldHalfMenu({ ...half, mine: true }, menuCtx())) === "copy");
-  ok("letters theirs: copy, translate, report — no reply, no take back", actKeys(B.letterMenu(theirs, "t1", c)) === "copy,translate,report");
-  ok("letters mine: copy", actKeys(B.letterMenu({ ...fresh }, "m1", menuCtx())) === "copy");
+  // keep, from pen-pal letters too (owner's audit, 2026-11-10): the room's item, in the room's place
+  ok("letters theirs: copy, translate, keep, report — no reply, no take back", actKeys(B.letterMenu(theirs, "t1", c)) === "copy,translate,keep,report");
+  ok("letters mine: copy, keep (a posted letter is posted: no take back)", actKeys(B.letterMenu({ ...fresh }, "m1", menuCtx())) === "copy,keep");
+  ok("letters: the opening keeps too (no id: no report)", actKeys(B.letterMenu(opening, "opening", menuCtx())) === "copy,keep");
+  ok("letters: keep is the room's item (title, glyph, not destructive)", (() => {
+    const k = B.letterMenu(theirs, "t1", c).find((a) => a.key === "keep");
+    const r = B.lineMenu(theirs, "t1", c).find((a) => a.key === "keep");
+    return !!k && !!r && k.title === r.title && k.icon === r.icon && k.destructive === false;
+  })());
+  ok("letters: keep stays on a demo row and with nobody on the other side (it never leaves the phone)", actKeys(B.letterMenu(theirs, "t1", { ...c, isDemo: true, otherExists: false })) === "copy,translate,keep");
+  ok("letters: nothing on a letter taken back, or one with no words (a voice opening)", B.letterMenu({ ...theirs, recalledAt: "x" }, "t1", c).length === 0 && B.letterMenu({ ...opening, body: "" }, "opening", c).length === 0);
+  ok("a kept letter of theirs is filed under the name the reader knows them by", B.keptLetterWho(theirs, "No. 5422", "You") === "No. 5422" && B.keptLetterWho(theirs, "Sunday Kite", "You") === "Sunday Kite");
+  ok("a kept letter of the reader's own is filed under You", B.keptLetterWho(fresh, "No. 5422", "You") === "You");
 
   // readable, not actionable (owner): a gone, missing or expired room offers nothing that writes
   const shut = menuCtx({ canWrite: false, canTranslate: (b) => b.startsWith("hola") });
@@ -212,7 +223,7 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   const shown = B.buildRoomItems(B.roomStream(cConv, []), roomCtx(captioned, { voice, trans: { opening: { text: "hi, a voice", shown: true } } }))[0];
   ok("room voice: the caption's translation shows under it", shown.translation === "shown" && shown.translationText === "hi, a voice" && shown.menu.some((a) => a.key === "original"));
   const lettersVoice = B.buildLetterItems(cConv, { ...roomCtx(captioned, { name: "No. 4481", ...tr }), time, voice })[0];
-  ok("letters voice: opens the reader, the letter's menu", lettersVoice.tappable && actKeys(lettersVoice.menu) === "copy,translate");
+  ok("letters voice: opens the reader, the letter's menu (keep with it, as the room's caption has)", lettersVoice.tappable && actKeys(lettersVoice.menu) === "copy,translate,keep");
   ok("letters voice: VoiceOver hears whose it is", lettersVoice.a11yLabel.startsWith("No. 4481, hola"));
   const bare = B.buildRoomItems(B.roomStream(B.conversation({ ...d, opening: "" }), []), roomCtx(d, { voice }))[0];
   ok("a voice opening without a caption has no menu", bare.kind === "voice" && bare.menu.length === 0);

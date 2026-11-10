@@ -307,17 +307,31 @@ export function pickMenu(f: Fold, c: MenuCtx): KMenuAction[] {
   return !f.mine && canReport(f.id, c) ? [act("report", c.t("mm.report"), "flag", true)] : [];
 }
 
-/** A pen-pal letter: copy; theirs translate and report. A posted letter is posted: no take back,
-    no quoting. */
+/** A pen-pal letter: copy and keep; theirs translate and report too. A posted letter is posted:
+    no take back, no quoting.
+    KEEP (owner's audit, 2026-11-10): a kindred's room could keep a line in lore and a pen-pal
+    correspondence could only copy one, though the letters before names are often the ones worth
+    keeping. No comment anywhere recorded a decision that lore is for kindreds only (the room's
+    menu simply grew first), so a letter keeps the room's item, in the room's place (after
+    translate, before report), on their letters and on the reader's own. */
 export function letterMenu(m: ThreadMessage, key: string, c: MenuCtx): KMenuAction[] {
   if (!m.body || m.recalledAt) return [];
   const acts: KMenuAction[] = [act("copy", c.t("mm.copy"), "doc.on.doc")];
   if (!m.mine) {
     const tr = translateAct(key, m.body, c);
     if (tr) acts.push(tr);
-    if (canReport(m.id, c)) acts.push(act("report", c.t("mm.report"), "flag", true));
   }
+  acts.push(act("keep", c.t("mm.keep"), "bookmark"));
+  if (!m.mine && canReport(m.id, c)) acts.push(act("report", c.t("mm.report"), "flag", true));
   return acts;
+}
+
+/** Whose name a kept pen-pal letter is filed under in Lore (lore.from, "FROM {name}"): theirs as
+    the reader knows them at that moment (their No., or the courier name with the identity switch
+    on; the traded name in a revealed thread seen as letters), the reader's own letter under
+    `you` (mm.you). */
+export function keptLetterWho(m: ThreadMessage, name: string, you: string): string {
+  return m.mine ? you : name;
 }
 
 /* ── rows ─────────────────────────────────────────────────────────────── */

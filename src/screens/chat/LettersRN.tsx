@@ -52,7 +52,7 @@ import { useOpeningVoiceRN } from "./VoiceOpeningRN";
      ChatHeader;
    · the letter cards (head line, the words in the reader's Letter font,
      the time; the day as a day rule), a tap opening the reader on THAT
-     letter, a long press its menu (copy; theirs translate and report — a
+     letter, a long press its menu (copy, keep; theirs translate and report — a
      posted letter is posted: no take back, no quoting);
    · the dock: the sign door above the status line, the slow note in the
      dock instead of a toast under the keyboard (spec bug 8), the reply bar

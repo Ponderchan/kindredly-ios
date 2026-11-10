@@ -8,6 +8,8 @@ import { useWhoBook } from "../../lib/who";
 import { lastWriteFail, reportContent, sendThreadMessage, signThread, signThreadV2, theirLatest, type PenSignature, type ThreadMessage } from "../../lib/db";
 import { chatSeenRule, useThreadDetail } from "../../lib/thread-detail";
 import { copyText } from "../../lib/clipboard";
+import { saveToLore } from "../../lib/lore";
+import { sheetWords } from "../../components/sheet-chrome";
 import { offerTranslate } from "../../lib/lang-guess";
 import { track } from "../../lib/track";
 import { armRatingAsk } from "../../lib/rating-ask";
@@ -21,7 +23,7 @@ import { useWrenName } from "../../lib/wren-name";
 import { alertFail, isRefusal } from "../../lib/fail";
 import { useSlow } from "../../components/ui";
 import type { KChatPart } from "../../../modules/kindredly-ui/src/Conversation";
-import { conversation, isOpening, lettersComposer, type ComposerFacts, type MenuCtx } from "./build-items";
+import { conversation, isOpening, keptLetterWho, lettersComposer, type ComposerFacts, type MenuCtx } from "./build-items";
 import { introduceOnce, noteDayLabel, useCeremony, useCorrespondentRead, usePendingLines, useTakeBackClock, useTranslations, type ChatUi } from "./useRoomModel";
 import { afterSign, demoSignResult, nameToSave, setSignDemo, signDemo, type SignOutcome } from "./sign-sheet";
 import { penFaceOrNull } from "../../lib/pen-signature";
@@ -39,9 +41,16 @@ import "../../data/strings-identity2";
    The SwiftUI conversation (ConversationNative) and the React Native
    fallback (LettersRN) both sit on it.
 
-   Before names these are letters, not chat: copy, translate, report — no
+   Before names these are letters, not chat: copy, translate, keep, report — no
    taking back (a posted letter is posted) and no quoting (a letter is
-   answered whole). */
+   answered whole).
+
+   KEEP A LETTER (owner's audit, 2026-11-10): a long press keeps a letter in
+   lore, theirs or the reader's own, exactly as a kindred's room keeps a
+   line: the same question (rm.keep.*), the same local shelf (lib/lore),
+   filed under the name the reader knows them by at that moment (their No.,
+   or the courier name with the identity switch on; "You" for the reader's
+   own letter). build-items letterMenu says why it was added. */
 
 /* how long a sheet's transparent window takes to go before another window (an alert, the
    ceremony's page sheet) may rise in its place */
@@ -123,6 +132,9 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
     [book, detail],
   );
   const name = detail?.revealed ? detail.otherName || t("cm.kindred") : pal ? pal.name : "…";
+  // read when a kept letter is filed (the name as it reads at that moment)
+  const nameRef = useRef(name);
+  nameRef.current = name;
   /* the same sentence the list row shows — and ACCOUNT CLOSED for a gone pen pal, never a turn
      that can't be taken (spec bug 6) */
   const state = useMemo(
@@ -296,6 +308,26 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
     [ui, wren],
   );
 
+  /* long-press keeps a letter in your lore, as a kindred's room keeps a line (useRoomModel keep):
+     asked once, saved on this phone only */
+  const keep = useCallback(
+    (m: ThreadMessage) => {
+      const who = keptLetterWho(m, nameRef.current, t("mm.you"));
+      ui.thenModal(() =>
+        Alert.alert(t("rm.keep.title"), t("rm.keep.body"), [
+          { text: sheetWords(t("set.neverMind")), style: "cancel" },
+          {
+            text: t("rm.keep.do"),
+            onPress: () => {
+              if (id) void saveToLore({ threadId: id, who, body: m.body, prompt: null, said: m.date });
+            },
+          },
+        ]),
+      );
+    },
+    [id, ui],
+  );
+
   const targets = useMemo(() => {
     const map = new Map<string, { msg: ThreadMessage; index: number }>();
     conv.forEach((m, index) => map.set(lines.keyOf(m), { msg: m, index }));
@@ -312,9 +344,10 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
       if (action === "copy") void copyText(m.body);
       else if (action === "translate") void translateLine(key, m.body);
       else if (action === "original") hideTranslation(key);
+      else if (action === "keep") keep(m);
       else if (action === "report") void reportLetter(m);
     },
-    [translateLine, hideTranslation, reportLetter],
+    [translateLine, hideTranslation, keep, reportLetter],
   );
 
   /** A tapped letter opens the reader on THAT letter: by its id (or "opening"), with the index as

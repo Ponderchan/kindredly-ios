@@ -3,14 +3,19 @@ import { scoped as AsyncStorage } from "./scoped-store";
 /* LORE — the moments you chose to keep from a correspondence.
    Local-only, account-scoped, never uploaded: a saved moment is a private
    clipping, the same promise the journal makes. The old plan assumed this
-   needed a server table; it never did — lore is personal by definition. */
+   needed a server table; it never did — lore is personal by definition.
+
+   Kept from a kindred's room (a line of theirs, an opened fold, a sky
+   postcard) and, since the owner's audit of 2026-11-10, from a pen-pal
+   correspondence before names too (a letter of theirs or the reader's
+   own): useRoomModel keep, useLettersModel keep. */
 
 const KEY = "kindredly_lore";
 
 export interface LoreEntry {
   id: string;
   threadId: string;
-  who: string; // their name as it read when saved
+  who: string; // their name as it read when saved (a pen pal's No. or courier name; "You" for the reader's own letter)
   body: string;
   prompt?: string | null; // a question fold's prompt, when it was one
   at: string; // ISO — when saved
