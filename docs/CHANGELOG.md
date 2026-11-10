@@ -43,6 +43,7 @@ Fixed after the first TestFlight build of 1.0.9 (b41, owner's notes 2026-11-10)
 - Me: the look Wren is wearing is ringed in the pen colour, not a black frame.
 - The courier's page always shows her wardrobe: it opens on Looks, and Looks / Dress switch the row (it no longer folds shut).
 - Settings: the row for her name says "Courier's name", with her name beside it, in all nine languages.
+- The + : the bar now really grows upward and shrinks back (it used to jump to its full height in one frame), and the two rows can no longer come down from the top of the screen.
 
 
 New (owner's audit, 2026-11-10; all need the next binary unless tagged)

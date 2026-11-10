@@ -987,6 +987,21 @@ public struct KTabStage: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   /// the new reader's sheet: the choice tapped, held until the sheet has gone down
   @State private var chosen: String?
+  /* THE + OPENS ONE PASS AFTER THE HOST IS THE WHOLE SCREEN (owner on TestFlight 1.2.8,
+     2026-11-10: "not as smooth as P2; sometimes Write a letter and Daily note come down from
+     the top"). While the + is closed the Host is only the bar's strip; to open, React Native
+     makes it the whole screen and then sets panelOpen. If that resize and the opening reach
+     SwiftUI in one pass, the bar's own animations (its height, its tray) also animate where
+     everything sits, from the strip's layout, whose top is the top of the screen. React Native
+     already waits a layout event and a frame before it opens, but its layout event can come
+     before the native view has really been resized, so the race was narrowed, not closed.
+     Here it is closed: this view watches its own height, and what it shows as open is the
+     prop held back until that height is the screen's, and then one more turn of the run loop,
+     so the resize is laid out, unanimated, before anything opens. Closing is never held back. */
+  @State private var stageTall = false
+  @State private var shownOpen = false
+  /// an opening is waiting for its turn of the run loop; a close that arrives first cancels it
+  @State private var opening = false
 
   /// - Parameters:
   ///   - items, selectedIndex, plusLabel, closeLabel, onSelect, onPlus: the bar's (KTabBar)
@@ -1044,7 +1059,7 @@ public struct KTabStage: View {
 
   public var body: some View {
     let gap = KTabBarMetrics.bottomGap(safeAreaBottom: safeAreaBottom)
-    let open = isPanelOpen
+    let open = shownOpen
     // the new reader's sheet is the system's, with the system's dim: this stage draws none for it
     let dims = open && style != .sheet
     // with Reduce Motion the 10a sheet only fades: no rise, no overshoot
@@ -1061,8 +1076,27 @@ public struct KTabStage: View {
           Rectangle().fill(.ultraThinMaterial).opacity(KDim.growBlur)
         }
       }
-      .opacity(dims ? 1 : 0)
-      .animation(KMotion.dimFade, value: dims)
+      // only the dim's opacity is animated. This colour is the stage's frame: with an
+      // .animation(_:value:) on it, its SIZE was animated too when the Host grew from the bar's
+      // strip to the whole screen in the pass that opened the +, and everything hung from its
+      // bottom edge (the bar, the tray's rows) rode down from the top of the screen (owner on
+      // TestFlight 1.2.8, 2026-11-10; the same thing b32 showed before the Host was made to grow
+      // first, which narrowed the race without closing it)
+      .animation(KMotion.dimFade) { $0.opacity(dims ? 1 : 0) }
+      // the stage is the Host's size: taller than any bar's strip means the whole screen
+      .onGeometryChange(for: Bool.self) { $0.size.height > 320 } action: { stageTall = $0 }
+      .onChange(of: isPanelOpen && stageTall, initial: true) { _, want in
+        if want {
+          opening = true
+          DispatchQueue.main.async {
+            if opening { shownOpen = true }
+            opening = false
+          }
+        } else {
+          opening = false
+          shownOpen = false
+        }
+      }
       .contentShape(Rectangle())
       .onTapGesture(perform: onDismiss)
       .allowsHitTesting(dims)

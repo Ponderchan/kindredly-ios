@@ -352,8 +352,12 @@ public struct KTabBar: View {
           .dynamicTypeSize(...DynamicTypeSize.xxLarge)
           .fixedSize(horizontal: false, vertical: true)
           .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { trayHeight = $0 }
-          .opacity(grown ? 1 : 0)
-          .animation(reduceMotion ? KMotion.publishReduced : grown ? KMotion.trayIn : KMotion.trayOut, value: grown)
+          // ONLY the opacity is animated (owner on TestFlight 1.2.8, 2026-11-10: "sometimes Write a
+          // letter and Daily note come down from the top"). An .animation(_:value:) here also
+          // animated where the tray sits: when the Host grew from the bar's strip to the whole screen
+          // in the same pass that `grown` flipped, the rows travelled from the old layout, whose top
+          // is the top of the screen. Scoped to the closure, a change of place is never animated.
+          .animation(reduceMotion ? KMotion.publishReduced : grown ? KMotion.trayIn : KMotion.trayOut) { $0.opacity(grown ? 1 : 0) }
           .allowsHitTesting(grown)
           .accessibilityHidden(!grown)
           .padding(.bottom, KTabBarMetrics.height)
@@ -362,13 +366,21 @@ public struct KTabBar: View {
     }
     // bottom edge fixed: the frame grows upward and the tab row stays at its foot
     .frame(height: barHeight, alignment: .bottom)
-    // keyed to the height, not to open or closed: a tray measured a pass late (a third row
-    // arriving with the opening) or changing while open still travels, never jumps
-    .animation(reduceMotion ? nil : KMotion.barGrow, value: barHeight)
     .frame(maxWidth: .infinity)
     .background { KGlassFace(tone: tone) }
     .clipShape(shape)
     .background { KOuterShadow(shadows: tone.shadow, shape: shape) }
+    // THE GROWTH (P2: .45s, the bottom edge fixed). Keyed to the height, not to open or closed:
+    // a tray measured a pass late, or a third row arriving, still travels. It sits OUTSIDE the
+    // glass face, the clip and the shadow, because an animation only moves what it wraps: put
+    // straight after the frame (as it was until 2026-11-10) it wrapped the rows and the tab row,
+    // which don't move, and left the glass, its corners and its shadow to jump to the new height
+    // in one frame. Frame by frame on the simulator the bar popped open and popped shut; that,
+    // more than anything, is what the owner saw as "not as smooth as P2". (A scoped
+    // .animation { $0.frame(height:) } does not animate a frame either.) Wrapping the whole bar
+    // also means it would move the bar if its place in the Host changed in the same pass, which
+    // is why KTabStage opens the + only one pass after the Host has grown (`shownOpen` there).
+    .animation(reduceMotion ? nil : KMotion.barGrow, value: barHeight)
     .environment(\.colorScheme, theme.isDark ? .dark : .light)
     .onChange(of: selectedIndex) { _, _ in pending = nil }
     // out of the way for the publish sheet: down 160, or with Reduce Motion a fade
@@ -625,22 +637,31 @@ struct KGlassPlus: View {
 
   var body: some View {
     let disc = Circle()
+    // Every animation here is scoped to one effect (the turn, a fade), never .animation(_:value:)
+    // on the disc: that also animated where the disc sits, and when the Host grew to the whole
+    // screen in the pass that opened the +, the disc could ride in from the old layout
+    // (owner on TestFlight 1.2.8, 2026-11-10). The disc goes from ind to ink as ink fading in
+    // over ind, which draws the same blend.
     ZStack {
-      mark.opacity(turns || !isOpen ? 1 : 0)
+      mark.animation(turn) { $0.opacity(turns || !isOpen ? 1 : 0) }
       if !turns {
-        mark.rotationEffect(.degrees(45)).opacity(isOpen ? 1 : 0)
+        mark.rotationEffect(.degrees(45)).animation(turn) { $0.opacity(isOpen ? 1 : 0) }
       }
     }
       .frame(width: 46, height: 46)
-      .background(disc.fill(isOpen ? theme.ink : theme.ind))
+      .background {
+        ZStack {
+          disc.fill(theme.ind)
+          disc.fill(theme.ink).animation(turn) { $0.opacity(isOpen ? 1 : 0) }
+        }
+      }
       .overlay(
         disc.strokeBorder(
           LinearGradient(colors: [Color.white.opacity(0.35), Color.white.opacity(0)], startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.2)),
           lineWidth: 1
         )
       )
-      .rotationEffect(.degrees(turns && isOpen ? 45 : 0))
-      .animation(turn, value: isOpen)
+      .animation(turn) { $0.rotationEffect(.degrees(turns && isOpen ? 45 : 0)) }
       .kSoftShadows([KSoftShadow(y: 6, blur: 16, spread: -6, color: theme.ind.opacity(0.7))], in: disc)
       .accessibilityHidden(true)
   }
