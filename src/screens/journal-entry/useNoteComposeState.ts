@@ -15,6 +15,7 @@ import { todaysMorningLine } from "../../lib/local-push";
 import { storeMode, storePhotos } from "../../lib/dev-store";
 import type { SelfComposeState } from "../../components/SelfCompose";
 import {
+  albumToSave,
   cardAction,
   editChanged,
   editSeed,
@@ -252,8 +253,9 @@ export function useNoteComposeState({
         if (u) uris.push(u);
       }
       if (!uris.length) return fail(t("sc.failPhotos"));
-      // the composer keeps the cover first
-      edit = { type: "photo", body, mood: chosen, media: uris, coverIndex: 0, mediaUri: uris[0] };
+      // an album left alone keeps its stored order and cover; a changed one is the composer's, cover first
+      const album = seed && editing ? albumToSave(uris, seed, editing) : { media: uris, coverIndex: 0 };
+      edit = { type: "photo", body, mood: chosen, media: album.media, coverIndex: album.coverIndex, mediaUri: album.media[album.coverIndex] };
     } else {
       let file: string | undefined;
       if ((att === "voice" || att === "video") && mediaUri) {

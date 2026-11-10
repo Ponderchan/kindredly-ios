@@ -121,6 +121,16 @@ ok("a face's tile name is cased, its VoiceOver name isn't", shy.name === "N:SHY"
   ok("a picture swapped for another is a change", M.editChanged(album, anow({ photos: ["c", "a", "x"] })));
   ok("every picture taken off is a change", M.editChanged(album, anow({ att: null, photos: [] })));
 
+  // the album an edit saves
+  const stored = { media: ["a", "b", "c"], coverIndex: 2 };
+  ok("an album left as it opened is saved as it was stored (order and cover)", JSON.stringify(M.albumToSave(album.photos, album, stored)) === JSON.stringify({ media: ["a", "b", "c"], coverIndex: 2 }));
+  ok("a picture taken off: the composer's order, the first the cover", JSON.stringify(M.albumToSave(["c", "a"], album, stored)) === JSON.stringify({ media: ["c", "a"], coverIndex: 0 }));
+  ok("another cover: the composer's order, the first the cover", JSON.stringify(M.albumToSave(["a", "c", "b"], album, stored)) === JSON.stringify({ media: ["a", "c", "b"], coverIndex: 0 }));
+  ok("a picture added: the composer's order", JSON.stringify(M.albumToSave(["c", "a", "b", "new"], album, stored)) === JSON.stringify({ media: ["c", "a", "b", "new"], coverIndex: 0 }));
+  ok("a stored cover index past the album is the first", M.albumToSave(album.photos, album, { media: ["a", "b", "c"], coverIndex: 9 }).coverIndex === 0);
+  const single = M.editSeed({ type: "photo", mediaUri: "only" });
+  ok("a page from before albums gets one", JSON.stringify(M.albumToSave(single.photos, single, {})) === JSON.stringify({ media: ["only"], coverIndex: 0 }));
+
   const vnow = (o: object = {}) => ({ text: voice.text, mood: voice.mood, att: voice.att, photos: voice.photos, mediaUri: voice.mediaUri, ...o });
   ok("a voice page just opened: nothing changed", !M.editChanged(voice, vnow()));
   ok("words added to a voice page are a change", M.editChanged(voice, vnow({ text: "what I said" })));

@@ -151,6 +151,17 @@ export function editChanged(seed: EditSeed, now: EditNow): boolean {
   return false;
 }
 
+/** The album an edit saves. The composer keeps the cover first, so pictures the reader added, took
+    off or reordered are saved in the composer's order with the first as the cover. An album left
+    exactly as it opened is saved AS IT WAS STORED — its own order and cover index — so changing
+    only the words never reshuffles the pictures (the Notes card draws them in stored order). */
+export function albumToSave(now: readonly string[], seed: EditSeed, stored: { media?: string[]; coverIndex?: number }): { media: string[]; coverIndex: number } {
+  const untouched = !!stored.media?.length && now.length === seed.photos.length && now.every((u, i) => u === seed.photos[i]);
+  if (!untouched || !stored.media) return { media: [...now], coverIndex: 0 };
+  const ci = stored.coverIndex;
+  return { media: [...stored.media], coverIndex: typeof ci === "number" && Number.isInteger(ci) && ci >= 0 && ci < stored.media.length ? ci : 0 };
+}
+
 export type NoteFace = { id: FaceId; name: string; artKey: string; path: string; a11yLabel: string };
 export type NoteGroup = { group: MoodGroup; name: string; faces: NoteFace[] };
 
