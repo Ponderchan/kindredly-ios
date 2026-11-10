@@ -429,9 +429,26 @@ export const KMeView = forwardRef<KScreenHandle, KMeViewProps>(function KMeView(
 
    A whole screen: alone in one @expo/ui <Host style={{flex:1}}> (SurfaceHost), only after
    isKindredlyUIViewAvailable("KStampAlbumView") says so. Outside a Host it is a RedBox in dev and
-   a CRASH in a release build. ── */
+   a CRASH in a release build.
 
-export type KAlbumActionKey = "write" | "rename" | "recolour" | "filter" | "delete" | "remove" | "report" | "retry";
+   EXPORTING (stamp export, 2026-11-10; First Class): the sheet may carry "Save as sticker" (the
+   action key "sticker") and MADE BY YOU's head one small action, "Print a sheet" (strings.sheet,
+   onSheet). Both are sent only on a binary that can export (src/lib/stamp-export
+   stampExportAvailable); `lock` / `sheetLock` is the wax-gold "1ST" tag for a reader who is not
+   First Class. A binary from before them ignores every one of these fields (and is never sent
+   the action). ── */
+
+export type KAlbumActionKey = "write" | "rename" | "recolour" | "filter" | "delete" | "remove" | "report" | "retry" | "sticker";
+
+export type KAlbumAction = {
+  key: KAlbumActionKey;
+  title: string;
+  style: "ink" | "plain" | "danger";
+  /** the wax-gold tag after the title ("1ST") when the action is First Class only and the reader isn't */
+  lock?: string;
+  /** what VoiceOver adds for that tag ("First Class") */
+  lockA11y?: string;
+};
 
 export type KAlbumCell = {
   /** "c:<uuid>" or an official id */
@@ -444,7 +461,7 @@ export type KAlbumCell = {
   /** "Made Oct 19 · on 4 letters" */
   info: string;
   a11y: string;
-  actions: { key: KAlbumActionKey; title: string; style: "ink" | "plain" | "danger" }[];
+  actions: KAlbumAction[];
 };
 
 export type KAlbumSection = { key: "made" | "strangers" | "yours"; title: string; make: boolean; cells: KAlbumCell[] };
@@ -461,6 +478,11 @@ export type KAlbumStrings = {
   /** no official stamp used: the owner's line ("" = not drawn) and "Write a letter →" */
   yoursEmpty: string;
   yoursCta: string;
+  /** MADE BY YOU's head action, "Print a sheet" ("" or absent: not drawn) */
+  sheet?: string;
+  /** its "1ST" tag for a reader who is not First Class ("" for a member), and VoiceOver's words for it */
+  sheetLock?: string;
+  sheetLockA11y?: string;
 };
 
 export type KStampAlbumProps = CommonViewModifierProps &
@@ -471,14 +493,18 @@ export type KStampAlbumProps = CommonViewModifierProps &
     yoursSlots: string[];
     /** the section to open at ("" for the top) */
     focus: string;
+    /** a sticker or a sheet is being made: the head action is a spinner */
+    exportBusy?: boolean;
     onBack?: () => void;
     onMake?: () => void;
     onFullCta?: () => void;
     onWrite?: () => void;
     onAction?: (id: string, action: KAlbumActionKey) => void;
+    /** MADE BY YOU's "Print a sheet" */
+    onSheet?: () => void;
   };
 
-type NativeAlbumProps = Omit<KStampAlbumProps, "letterFont" | "insets" | "rev" | "onBack" | "onMake" | "onFullCta" | "onWrite" | "onAction"> &
+type NativeAlbumProps = Omit<KStampAlbumProps, "letterFont" | "insets" | "rev" | "onBack" | "onMake" | "onFullCta" | "onWrite" | "onAction" | "onSheet"> &
   Required<Pick<KStampAlbumProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
     onAlbumBack?: None;
@@ -486,13 +512,14 @@ type NativeAlbumProps = Omit<KStampAlbumProps, "letterFont" | "insets" | "rev" |
     onAlbumFullCta?: None;
     onAlbumWrite?: None;
     onAlbumAction?: Ev<{ id: string; action: KAlbumActionKey }>;
+    onAlbumSheet?: None;
   };
 
 const NativeKStampAlbumView = requireNativeView<NativeAlbumProps>("KindredlyUI", "KStampAlbumView");
 
 /** The bare SwiftUI album. Only inside an @expo/ui <Host>. */
 export const StampAlbum = forwardRef<KScreenHandle, KStampAlbumProps>(function StampAlbum(
-  { modifiers, letterFont, insets, rev, onBack, onMake, onFullCta, onWrite, onAction, ...rest },
+  { modifiers, letterFont, insets, rev, onBack, onMake, onFullCta, onWrite, onAction, onSheet, ...rest },
   ref,
 ) {
   return (
@@ -509,6 +536,7 @@ export const StampAlbum = forwardRef<KScreenHandle, KStampAlbumProps>(function S
       onAlbumFullCta={onFullCta ? () => onFullCta() : undefined}
       onAlbumWrite={onWrite ? () => onWrite() : undefined}
       onAlbumAction={onAction ? (e) => onAction(e.nativeEvent.id, e.nativeEvent.action) : undefined}
+      onAlbumSheet={onSheet ? () => onSheet() : undefined}
     />
   );
 });

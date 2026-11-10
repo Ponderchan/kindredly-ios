@@ -34,6 +34,15 @@ import SwiftUI
  sheet: the stamp 200 wide at −3° (a photo stamp in .paper with its soft shadow), its #topic tag in
  its colour, one info line, and the actions as 38-tall capsules (ink, plain, or the gold-ink
  Delete); the sheet closes before an action is reported, so TS's confirmations show above it.
+
+ EXPORTING (stamp export, 2026-11-10; First Class): two additions that change none of the rules
+ above. A stamp's sheet may carry one more capsule, "Save as sticker" (an action like the others:
+ TS adds it, key "sticker"), and MADE BY YOU's sticky head may carry one small text action at its
+ right, "Print a sheet" (Me's "See all →" style: 12/600 in ind; TS sends its words only when a
+ stamp qualifies and the binary can export). For a reader who is not First Class both carry the
+ small wax-gold tag the app puts on locked things ("1ST", as on the journal book's key); the tap
+ is TS's either way (a member exports, anyone else meets the paywall). While an export is being
+ made the head's action is a small spinner and can't be tapped again.
  */
 
 // MARK: - pieces both pages use
@@ -523,12 +532,37 @@ public struct KAlbumAction: Identifiable, Equatable, Sendable {
   public let key: String
   public let title: String
   public let style: Style
+  /// the wax-gold tag after the title when the action is First Class only and the reader isn't
+  /// ("1ST"); "" draws none
+  public let lock: String
+  /// what VoiceOver adds for that tag ("First Class")
+  public let lockA11y: String
   public var id: String { key }
 
-  public init(key: String, title: String, style: Style) {
+  public init(key: String, title: String, style: Style, lock: String = "", lockA11y: String = "") {
     self.key = key
     self.title = title
     self.style = style
+    self.lock = lock
+    self.lockA11y = lockA11y
+  }
+}
+
+/// The small wax-gold tag the app puts on a First Class thing a reader hasn't got ("1ST"): the
+/// journal book's key and Make-your-face's Another key wear the same one.
+struct KLockTag: View {
+  let text: String
+
+  var body: some View {
+    Text(text)
+      .kText(.mono(8, .semibold, tracking: 0.12))
+      .foregroundStyle(KBrand.inkOnBrand)
+      .padding(.horizontal, 6)
+      .padding(.vertical, 2)
+      .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(KBrand.waxGold))
+      .fixedSize()
+      .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+      .accessibilityHidden(true)
   }
 }
 
@@ -592,6 +626,13 @@ public struct KStampAlbumContent: Equatable, Sendable {
   public var yoursSlots: [String] = []
   /// the section to scroll to on open ("" for the top)
   public var focus = ""
+  /// MADE BY YOU's head action, "Print a sheet" ("" = not drawn: no stamp qualifies, or TS has no
+  /// export for this binary); its locked tag ("1ST", "" for a member) and VoiceOver's words for it
+  public var sheetAction = ""
+  public var sheetLock = ""
+  public var sheetLockA11y = ""
+  /// a sticker or a sheet is being made: the head action is a spinner
+  public var exportBusy = false
 
   public init() {}
 }
@@ -603,6 +644,8 @@ public final class KStampAlbumActions {
   public var onWrite: () -> Void = {}
   /// a sheet action on a stamp
   public var onAction: (_ id: String, _ action: String) -> Void = { _, _ in }
+  /// MADE BY YOU's "Print a sheet"
+  public var onSheet: () -> Void = {}
 
   public init() {}
 }
@@ -640,14 +683,22 @@ public struct KStampAlbumScreen: View {
               Section {
                 grid(section)
               } header: {
-                Text(section.title)
-                  .kText(.mono(10, .semibold, tracking: 0.16))
-                  .foregroundStyle(theme.sub)
-                  .lineLimit(1)
-                  .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
-                  .background(theme.bg)
-                  .accessibilityAddTraits(.isHeader)
-                  .id(section.key)
+                HStack(alignment: .center, spacing: 10) {
+                  Text(section.title)
+                    .kText(.mono(10, .semibold, tracking: 0.16))
+                    .foregroundStyle(theme.sub)
+                    .lineLimit(1)
+                    // beside the head's action at the largest type sizes: smaller before it is cut
+                    .minimumScaleFactor(0.75)
+                    .accessibilityAddTraits(.isHeader)
+                  Spacer(minLength: 0)
+                  if section.key == "made", !content.sheetAction.isEmpty {
+                    sheetKey
+                  }
+                }
+                .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
+                .background(theme.bg)
+                .id(section.key)
               }
             }
             if !content.yoursEmpty.isEmpty {
@@ -681,6 +732,39 @@ public struct KStampAlbumScreen: View {
       .presentationDragIndicator(.visible)
       .presentationCornerRadius(28)
     }
+  }
+
+  /// MADE BY YOU's one head action: "Print a sheet" (Me's "See all →" style), the 1ST tag for a
+  /// reader who is not First Class, a spinner while an export is being made. 44 tall to the
+  /// finger, inside the 36-tall head.
+  private var sheetKey: some View {
+    let locked = !content.sheetLock.isEmpty
+    return SwiftUI.Button {
+      actions.onSheet()
+    } label: {
+      HStack(spacing: 6) {
+        if content.exportBusy {
+          ProgressView().controlSize(.small).tint(theme.ind)
+        } else {
+          Text(content.sheetAction)
+            .kText(.system(12, .semibold))
+            .foregroundStyle(theme.ind)
+            .lineLimit(1)
+          if locked {
+            KLockTag(text: content.sheetLock)
+          }
+        }
+      }
+      .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(KFadePressStyle())
+    .padding(.vertical, -4)
+    .disabled(content.exportBusy)
+    .fixedSize()
+    // the action's own words, then "First Class" where it is locked (never the tag's "1ST")
+    .accessibilityLabel(content.sheetAction)
+    .accessibilityValue(locked && !content.exportBusy ? content.sheetLockA11y : "")
   }
 
   private func grid(_ section: KAlbumSection) -> some View {
@@ -811,21 +895,30 @@ struct KFlowCapsules: View {
         SwiftUI.Button {
           onAction(a.key)
         } label: {
-          Text(a.title)
-            .kText(.system(15, .semibold))
-            .foregroundStyle(fg(a.style))
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .background {
-              Capsule().fill(bgFill(a.style))
-              if let edge = stroke(a.style) {
-                Capsule().strokeBorder(edge, lineWidth: 2)
-              }
+          HStack(spacing: 8) {
+            Text(a.title)
+              .kText(.system(15, .semibold))
+              .foregroundStyle(fg(a.style))
+              .lineLimit(1)
+              .minimumScaleFactor(0.8)
+            // First Class only, and the reader isn't: the app's small wax-gold tag
+            if !a.lock.isEmpty {
+              KLockTag(text: a.lock)
             }
-            .contentShape(Capsule())
+          }
+          .frame(maxWidth: .infinity, minHeight: 44)
+          .background {
+            Capsule().fill(bgFill(a.style))
+            if let edge = stroke(a.style) {
+              Capsule().strokeBorder(edge, lineWidth: 2)
+            }
+          }
+          .contentShape(Capsule())
         }
         .buttonStyle(KFadePressStyle())
+        // the action's own words, then "First Class" where it is locked (never the tag's "1ST")
+        .accessibilityLabel(a.title)
+        .accessibilityValue(a.lock.isEmpty ? "" : a.lockA11y)
       }
     }
   }

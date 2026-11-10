@@ -625,9 +625,14 @@ struct KMeView: ExpoSwiftUI.View {
  - full: Free has made all three (the blank stamp opens the small card)
  - yoursSlots: three "#RRGGBB" for the empty YOUR STAMPS
  - focus: the section to open at ("" for the top)
+ - (stamp export, 2026-11-10) an action may also carry lock ("1ST", the wax-gold tag of a First
+   Class action the reader hasn't got) and lockA11y; strings.sheet / sheetLock / sheetLockA11y are
+   MADE BY YOU's head action "Print a sheet" ("" = not drawn) and its tag; exportBusy: a sticker
+   or a sheet is being made
 
  Events: onAlbumBack {}, onAlbumMake {}, onAlbumFullCta {}, onAlbumWrite {},
- onAlbumAction { id, action } (write | rename | recolour | filter | delete | remove | report).
+ onAlbumAction { id, action } (write | rename | recolour | filter | delete | remove | report |
+ sticker), onAlbumSheet {}.
  */
 
 struct KAlbumStringsRecord: Record {
@@ -641,12 +646,17 @@ struct KAlbumStringsRecord: Record {
   @Field var notNow: String = ""
   @Field var yoursEmpty: String = ""
   @Field var yoursCta: String = ""
+  @Field var sheet: String = ""
+  @Field var sheetLock: String = ""
+  @Field var sheetLockA11y: String = ""
 }
 
 struct KAlbumActionRecord: Record {
   @Field var key: String = ""
   @Field var title: String = ""
   @Field var style: String = "plain"
+  @Field var lock: String = ""
+  @Field var lockA11y: String = ""
 }
 
 struct KAlbumCellRecord: Record {
@@ -672,12 +682,14 @@ final class KStampAlbumViewProps: KScreenProps {
   @Field var full: Bool = false
   @Field var yoursSlots: [String] = []
   @Field var focus: String = ""
+  @Field var exportBusy: Bool = false
 
   var onAlbumBack = EventDispatcher()
   var onAlbumMake = EventDispatcher()
   var onAlbumFullCta = EventDispatcher()
   var onAlbumWrite = EventDispatcher()
   var onAlbumAction = EventDispatcher()
+  var onAlbumSheet = EventDispatcher()
 
   private(set) lazy var actions: KStampAlbumActions = {
     let a = KStampAlbumActions()
@@ -686,6 +698,7 @@ final class KStampAlbumViewProps: KScreenProps {
     a.onFullCta = { [weak self] in self?.onAlbumFullCta() }
     a.onWrite = { [weak self] in self?.onAlbumWrite() }
     a.onAction = { [weak self] id, action in self?.onAlbumAction(["id": id, "action": action]) }
+    a.onSheet = { [weak self] in self?.onAlbumSheet() }
     return a
   }()
 
@@ -705,6 +718,10 @@ final class KStampAlbumViewProps: KScreenProps {
       c.yoursCta = strings.yoursCta
       c.yoursSlots = yoursSlots
       c.focus = focus
+      c.sheetAction = strings.sheet
+      c.sheetLock = strings.sheetLock
+      c.sheetLockA11y = strings.sheetLockA11y
+      c.exportBusy = exportBusy
       var seenSections = Set<String>()
       c.sections = sections.compactMap { sec in
         guard ["made", "strangers", "yours"].contains(sec.key), seenSections.insert(sec.key).inserted else { return nil }
@@ -713,7 +730,7 @@ final class KStampAlbumViewProps: KScreenProps {
           guard !r.id.isEmpty, seen.insert(r.id).inserted else { return nil }
           let acts = r.actions.compactMap { a -> KAlbumAction? in
             guard !a.key.isEmpty, !a.title.isEmpty else { return nil }
-            return KAlbumAction(key: a.key, title: a.title, style: KAlbumAction.Style(rawValue: a.style) ?? .plain)
+            return KAlbumAction(key: a.key, title: a.title, style: KAlbumAction.Style(rawValue: a.style) ?? .plain, lock: a.lock, lockA11y: a.lockA11y)
           }
           return KAlbumCell(id: r.id, under: r.under, tag: r.tag, tagHex: r.tagHex, info: r.info, actions: acts, a11yLabel: r.a11y)
         }
