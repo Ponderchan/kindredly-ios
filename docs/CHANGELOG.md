@@ -37,6 +37,27 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 ## Unreleased
 
+New (owner's audit, 2026-11-10; all need the next binary unless tagged)
+- Today: for five seconds after Next (or a swipe), an Undo capsule over the band brings that letter back. The day's last letter keeps its "Bring back the last letter" in Wren's note instead.
+- Today: tapping a stranger's frosted face or name opens "Why can't I see who wrote this?" with how names get traded and a link to How It Works.
+- Birthday: on your birthday the first card on Today is a letter from your courier, signed with the name you gave her; Reply opens her room. Once a year, decided on the phone, nothing sent anywhere.
+- Birthday: that morning's 8 o'clock knock is her birthday line. [OTA]
+- Birthday: a Birthday stamp (cake and one candle) is offered in the composer only on your own birthday, marked TODAY ONLY; a letter sent with it keeps it. [switch: birthdaystamp]
+- Edit profile: an account with no birthday can set one, once (the same 18+ rule as onboarding; an under-18 date signs this phone out to onboarding's "Not yet.").
+- Notes: a page can be edited (⋯ → Edit); the same page, date and place are kept.
+- Notes: search your pages from the header (words and mood names; works in Chinese, Japanese and Korean).
+- Settings: Export my journal saves every page's words as one text file through the share sheet; photos, voice and films stay in the app. [OTA]
+- Kindreds: search for a correspondent by name or last line.
+- Kindreds: tapping a face in the orbit opens that correspondence.
+- Pen-pal letters: a long press can keep a letter in Moments you kept, as a kindred's room can.
+- The + tray offers "Continue your draft" above Write a letter when an unsent letter exists (the newest one opens; a count shows when there are several).
+- Mute a correspondence from its ⋯ (no pushes from it; the other person is never told). Built and OFF. [switch: threadmute] [server: thread_mutes table + the push sender must skip muted threads, see docs/thread-mute-server.md]
+
+Fixed (owner's audit, 2026-11-10)
+- A kindred's page: the nine labels under How alike you write are no longer cut ("SENTENCE SH…").
+- Kindreds: with the orbit folded, the faint watermark behind the chips is the dashed rings alone; grey squares no longer poke out above the chips.
+
+
 Changed
 - The last React Native a reader could see is now SwiftUI, each behind its own switch (2026-11-09 audit): the launch animation, the magic-link page, the onboarding's hatch / named chick / doorstep flight / first flight, the empty Kindreds tab, the wardrobe sheet, the Plush moment, Wren in compose / Notes / Make your own face, your own face on Me and Edit profile, the face-ready banner, the rating ask, the First Class receipt, the revealed pen-pal header, the reply crossing in the reader, every guide reel and the 1.0.5 release reel, and Free Flight (the courier page no longer turns back into React Native to play). Twenty on; the note's voice card, note films, the composer's photo viewer and Wren's post media stay off until a device pass. [binary]
 - An unknown kindredly:// link lands on Today (or onboarding) instead of a blank "Unmatched route" page. [OTA]
