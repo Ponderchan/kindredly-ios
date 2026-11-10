@@ -1,3 +1,4 @@
+import { Share } from "react-native";
 import { Directory, File, Paths } from "expo-file-system";
 import { moodLabel } from "../data/moods";
 import { fmt as fmtDuration, localeTag, time24 } from "./format";
@@ -67,4 +68,16 @@ export async function writeJournalExport(now: Date = new Date()): Promise<{ uri:
   const file = new File(dir, exportFileName(now));
   file.write(text);
   return { uri: file.uri, pages };
+}
+
+/** EXPORT MY JOURNAL, the whole tap (journal book, 2026-11-10: Settings' row and the journal
+    book page's "Just the words" are the same export, so it lives here once): write the file,
+    then the iOS share sheet. Answers how many pages the file holds; 0 when the journal has no
+    page (nothing is written and no sheet opens). The share sheet's own Cancel is not a failure.
+    Rejects when the journal can't be read or the file can't be written: the caller says so. */
+export async function shareJournalExport(): Promise<number> {
+  const file = await writeJournalExport();
+  if (!file) return 0;
+  await Share.share({ url: file.uri });
+  return file.pages;
 }
