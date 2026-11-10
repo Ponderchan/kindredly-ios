@@ -89,12 +89,16 @@ import * as C from "./today-cards";
 
    Every word a renderer shows is set here or in today-cards, with t().
 
-   OWNER'S AUDIT, 2026-11-10 (a gap a new reader fell into):
+   OWNER'S AUDIT, 2026-11-10 (two gaps a new reader fell into):
    - UNDO AFTER NEXT. NEXT is one tap and a passed letter doesn't come back
      by itself, so for five seconds after a pass the view carries `undo` (the
      passed letter's id) and the renderers stand a small Undo capsule over
      the band; it calls bringBack, the ⋯'s own one step back. The rules are
      today-cards' (undoOffer / undoOpen); the offer is kept here in memory.
+   - WHO IS THIS. The face and the name on a card answered no tap. The Swift
+     card now opens a small sheet there with the Help page's own two answers
+     (hp.q2 / hp.a2, hp.q3 / hp.a3: no new words) and a quiet link to that
+     page (the card action "help" → deps.openHelp).
 
    LEGACY: until integrate and rn-fallback rewire TodayNative / TodayRN /
    TodayOverlays, the view also carries what the step-5 scroll stack and
@@ -491,6 +495,8 @@ export type TodayDeps = {
   unseal: (day: string) => void;
   /** the window: her game (Flappy Words) */
   openWindow: () => void;
+  /** the "who is this" sheet's quiet link: How It Works, in the Me tab's stack (absent on the dev page: the link does nothing there) */
+  openHelp?: () => void;
   /** dev: a report or block that shouldn't reach the server; return true when handled */
   intercept?: (action: "report" | "block", letter: PoolLetter) => boolean;
   /** dev: pretend to be a guest (null: ask the session) */
@@ -530,6 +536,7 @@ export function useRealTodayDeps(): TodayDeps {
         void endDayClosed();
       },
       openWindow: () => router.push("/courier?play=1"),
+      openHelp: () => router.push("/me/help"),
     }),
     [router],
   );
@@ -574,6 +581,14 @@ export type TodayStrings = {
   /** the Undo capsule after Next ("Undo"), and what VoiceOver adds about it ("Bring back the last letter") */
   undo: string;
   undoHint: string;
+  /** the "who is this" sheet a card's face and name open: the Help page's question and answer about seeing
+      who wrote, its follow-on about trading names, the quiet link to that page ("How It Works") and the ✕ */
+  whoTitle: string;
+  whoBody: string;
+  whoNextTitle: string;
+  whoNextBody: string;
+  whoMore: string;
+  whoClose: string;
   /** legacy: ↑ PASS, on the step-5 card */
   pass: string;
   /** legacy: VoiceOver's "Previous letter" on the step-5 card */
@@ -1265,6 +1280,11 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
 
   const cardAction = useCallback(
     (letterId: string, action: KTodayCardAction) => {
+      // the "who is this" sheet's quiet link (owner's audit, 2026-11-10): How It Works, whichever letter asked
+      if (action === "help") {
+        blurThen(() => depsRef.current.openHelp?.(), viewRef);
+        return;
+      }
       const letter = feedRef.current.find((l) => l.id === letterId);
       if (!letter) return;
       const d = depsRef.current;
@@ -1427,14 +1447,21 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
       offlineBody: t("ld.offlineDesk"),
       loadingA11y: t("ld.loading.a11y"),
       arrivalDismiss: t("nb.close"),
-      // owner's audit, 2026-11-10: both are existing lines, in all nine languages
+      // owner's audit, 2026-11-10: every one of these is an existing line, in all nine languages
       undo: t("id2.sheet.undo"),
       undoHint: t("ld.bringBack"),
+      whoTitle: t("hp.q2"),
+      whoBody: t("hp.a2", { wren }),
+      whoNextTitle: t("hp.q3"),
+      whoNextBody: t("hp.a3", { wren }),
+      whoMore: t("hp.title"),
+      whoClose: t("nb.close"),
       pass: t("ld.pass"),
       previous: t("ld.prev.a11y"),
     }),
+    // lang: every word is t()'s; wren: her name in the trading answer
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [lang],
+    [lang, wren],
   );
 
   /* Wren at rest on the band: sleepy in her night hours, wilted while starving (today-cards wrenRest) */

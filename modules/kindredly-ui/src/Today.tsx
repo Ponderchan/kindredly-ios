@@ -26,7 +26,8 @@ import { nativeFrost, type KFrost, type KImageRefProps, type KInsets, type KMark
    from her own pictures (`birds`, BirdSnapshots captures), so the desk has no islands.
 
    Owner's audit, 2026-11-10: `undoId` + strings.undo (the Undo capsule over the band for five
-   seconds after a pass; its tap is onBringBack). */
+   seconds after a pass; its tap is onBringBack) and strings.who* (the sheet a card's face and name
+   open; its link comes back as the card action "help"). */
 
 /** The one capsule slot at a card's foot. */
 export type KTodayCapsule = {
@@ -151,6 +152,16 @@ export type KTodayStrings = {
       ("Bring back the last letter"). A binary without the capsule ignores both */
   undo: string;
   undoHint: string;
+  /** owner's audit, 2026-11-10 — the sheet a card's face and name open ("why can't I see who wrote this?"):
+      its title and body, the follow-on question and answer (how names get traded), the quiet link to the
+      Help page under them ("" draws no link) and VoiceOver's word for the ✕. With whoTitle "" the face and
+      the name take no tap; a binary without the sheet ignores all six */
+  whoTitle: string;
+  whoBody: string;
+  whoNextTitle: string;
+  whoNextBody: string;
+  whoMore: string;
+  whoClose: string;
 };
 
 /** Her counted note when the desk is done (today-cards WrenLetterVM). */
@@ -207,7 +218,8 @@ export type KTodayCommands = Omit<KStandardCommands, "scrollTo" | "composer" | "
   playback: { key: string; playing: boolean; positionS: number; durationS: number; at: number; failed: boolean };
 };
 
-export type KTodayCardAction = "unfold" | "translate" | "report" | "block" | "voice";
+/** "help": the "who is this" sheet's quiet link (owner's audit, 2026-11-10); the sheet itself is Swift's own. */
+export type KTodayCardAction = "unfold" | "translate" | "report" | "block" | "voice" | "help";
 
 export type KTodayViewProps = CommonViewModifierProps &
   KScreenBaseProps & {

@@ -165,6 +165,16 @@ public struct KTodayLabels: Equatable, Sendable {
   /// ("Bring back the last letter"); "" from a TS that sends no capsule
   public var undo = ""
   public var undoHint = ""
+  /// the sheet a card's face and name open (owner's audit, 2026-11-10; KWhoSheet): its title ("Why
+  /// can't I see who wrote this?") and body, the follow-on question and answer (how names get
+  /// traded), the quiet link under them ("How It Works"; "" draws none) and VoiceOver's word for
+  /// the ✕. With whoTitle "" the face and the name take no tap
+  public var whoTitle = ""
+  public var whoBody = ""
+  public var whoNextTitle = ""
+  public var whoNextBody = ""
+  public var whoMore = ""
+  public var whoClose = ""
 
   public init() {}
 }
@@ -519,7 +529,8 @@ public final class KTodayActions {
   public var onReplySend: (_ letterId: String, _ text: String, _ serial: Int) -> Void = { _, _, _ in }
   /// the field took or let go of the keyboard
   public var onReplyFocus: (Bool) -> Void = { _ in }
-  /// a card's action: unfold, translate, report, block, voice
+  /// a card's action: unfold, translate, report, block, voice; and "help", the quiet link in the
+  /// sheet a card's face and name open (the sheet itself never leaves Swift)
   public var onCardAction: (_ letterId: String, _ action: String) -> Void = { _, _ in }
   public init() {}
 }

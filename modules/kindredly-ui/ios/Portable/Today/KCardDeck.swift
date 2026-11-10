@@ -116,6 +116,9 @@ struct KCardDeck: View {
   let voice: KTodayVoice
   let actions: KTodayActions
   let onReply: (String) -> Void
+  /// a tap on the shown card's face or name ("who is this", owner's audit 2026-11-10): the desk
+  /// raises the sheet
+  let onWho: (String) -> Void
 
   /// where a card that comes in starts from
   private enum Entry {
@@ -162,7 +165,8 @@ struct KCardDeck: View {
     motion: KDeckMotion,
     voice: KTodayVoice,
     actions: KTodayActions,
-    onReply: @escaping (String) -> Void
+    onReply: @escaping (String) -> Void,
+    onWho: @escaping (String) -> Void = { _ in }
   ) {
     self.theme = theme
     self.content = content
@@ -174,6 +178,7 @@ struct KCardDeck: View {
     self.voice = voice
     self.actions = actions
     self.onReply = onReply
+    self.onWho = onWho
     _showing = State(initialValue: content.cards.first?.id)
   }
 
@@ -615,9 +620,12 @@ struct KCardDeck: View {
 
   private func bindCardActions() {
     cardActions.onReply = { [onReply] id in onReply(id) }
-    cardActions.onAction = { [actions, deck] id, key in
+    cardActions.onAction = { [actions, deck, onWho] id, key in
       if key == "bringBack" {
         actions.onBringBack()
+      } else if key == "who" {
+        // the face or the name: the desk's sheet, never TS's business
+        onWho(id)
       } else {
         // Wren leans toward the letter as it unfolds; the reader is asked for at once
         if key == "unfold" { deck.emit(.unfolded) }

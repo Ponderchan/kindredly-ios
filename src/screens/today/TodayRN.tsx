@@ -143,7 +143,9 @@ import "../../data/strings-today3d";
    LetterReader and TodayOverlays are shared with the SwiftUI desk (the
    route draws them over either).
    - owner's audit, 2026-11-10: the Undo capsule after Next is here too (the
-     model's view.undo, a flat ink capsule over the band, the word alone).
+     model's view.undo, a flat ink capsule over the band, the word alone);
+     the "who is this" sheet on a card's face and name is the Swift desk's
+     only, and this fallback's header answers no tap, as before.
 
    VoiceOver gets what the Swift card gives it: the card is one element
    whose moves are actions (write back, translate, unfold or play / pause,

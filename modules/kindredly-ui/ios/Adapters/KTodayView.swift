@@ -43,7 +43,8 @@ import ExpoUI
    hop's haptic is SwiftUI's sensoryFeedback in Portable (KWireWren), so nothing here for it
  - undoId (owner's audit, 2026-11-10): the letter just passed while TS offers to bring it back
    (five seconds; "" otherwise): the desk stands the Undo capsule over the band (strings.undo,
-   strings.undoHint), and its tap is onTodayBringBack
+   strings.undoHint), and its tap is onTodayBringBack. strings.who* are the words of the sheet a
+   card's face and name open (Portable's own sheet; with whoTitle "" they take no tap)
 
  Commands (KCommandBus):
  - setText { target: "reply", value }   seed the reply field (the bound letter's draft)
@@ -62,7 +63,8 @@ import ExpoUI
  - onTodayReplySend { letterId, text, serial }   the send key (enabled or dimmed)
  - onTodayReplyFocus { focused }        reply mode (the chat composers' A1, owner 2026-10-18): TS
                                         slides the tab bar away while it is true (another Host)
- - onTodayCardAction { letterId, action }   unfold | translate | report | block | voice
+ - onTodayCardAction { letterId, action }   unfold | translate | report | block | voice | help (the
+                                            "who is this" sheet's link to the Help page)
  - onTodayStampMenu { letterId, action }    a stranger's photo stamp, long-pressed: keep | report
 
  Unknown enum strings fall back rather than fail (a capsule kind this binary doesn't know draws
@@ -208,6 +210,14 @@ struct KTodayStringsRecord: Record {
   /// the Undo capsule after Next and VoiceOver's hint for it (owner's audit, 2026-11-10)
   @Field var undo: String = ""
   @Field var undoHint: String = ""
+  /// the sheet a card's face and name open (owner's audit, 2026-11-10): title, body, the follow-on
+  /// question and answer, the quiet link and the ✕'s VoiceOver word
+  @Field var whoTitle: String = ""
+  @Field var whoBody: String = ""
+  @Field var whoNextTitle: String = ""
+  @Field var whoNextBody: String = ""
+  @Field var whoMore: String = ""
+  @Field var whoClose: String = ""
 
   var labels: KTodayLabels {
     var l = KTodayLabels()
@@ -232,6 +242,12 @@ struct KTodayStringsRecord: Record {
     l.loadingA11y = loadingA11y
     l.undo = undo
     l.undoHint = undoHint
+    l.whoTitle = whoTitle
+    l.whoBody = whoBody
+    l.whoNextTitle = whoNextTitle
+    l.whoNextBody = whoNextBody
+    l.whoMore = whoMore
+    l.whoClose = whoClose
     return l
   }
 }

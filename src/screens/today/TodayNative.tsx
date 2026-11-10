@@ -57,7 +57,8 @@ import type { TodayModel } from "./useTodayDesk";
      a card's actions;
    - owner's audit, 2026-11-10: `undoId`, the letter just passed while its
      Undo capsule is up (the model counts the five seconds; the capsule's tap
-     is bring back);
+     is bring back), and the words of the sheet a card's face and name open
+     (the Help page's own; its link comes back as the card action "help");
    - and the field's focus to the tab bar: writing back (the chat composers'
      A1, owner 2026-10-18) is the field having the keyboard, and while it
      does the floating tab bar slides away (useTabBarAway), since the
@@ -231,9 +232,15 @@ export function TodayNative({ model }: { model: TodayModel }) {
     offlineBody: s.offlineBody,
     loadingA11y: s.loadingA11y,
     arrivalDismiss: s.arrivalDismiss,
-    // owner's audit, 2026-11-10: the Undo capsule after Next
+    // owner's audit, 2026-11-10: the Undo capsule after Next, and the "who is this" sheet
     undo: s.undo,
     undoHint: s.undoHint,
+    whoTitle: s.whoTitle,
+    whoBody: s.whoBody,
+    whoNextTitle: s.whoNextTitle,
+    whoNextBody: s.whoNextBody,
+    whoMore: s.whoMore,
+    whoClose: s.whoClose,
   });
   const desk = useSame<KTodayDeskTick[]>(view.desk);
   const wrenLetter = useSame<KTodayWrenLetter>(view.wrenLetter);

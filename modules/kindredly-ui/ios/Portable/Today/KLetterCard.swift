@@ -75,13 +75,24 @@ import SwiftUI
  the folded corner. The topic tag keeps the stamp's colour (stamps v3), flat as on Plain.
  The geometry, the gestures, the fold and UNFOLD, the stamp and the menu are the same on every paper.
 
+ WHO IS THIS (owner's audit, 2026-11-10). The face is a frosted window and the name is one the
+ reader's courier made up, and a tap on either did nothing, so new readers wondered why they
+ couldn't see who wrote. The face and the name (the docket up to the stamp: the old mosaic and
+ postmark line with the switch off) are now one target, 44 tall inside the row's 48, laid out
+ exactly as before: a tap reports "who", and the desk raises a small iOS sheet with the Help page's
+ own answer (KWhoSheet, below; every word TS's, none new). Not on a deleted account's veil (nobody
+ is behind it to ask about), not while the reader writes back, and not at all until TS sends the
+ sheet's words (labels.whoTitle). Nothing is drawn for it: the header looks as it did. The ⋯ menu
+ is unchanged.
+
  VoiceOver reads the card as one element (TS's a11yLabel: who wrote it and when — "SEP.23 ·
  NO.7273" with the switch off, "Sunday Kite, she, Gemini. SEP.23" with it on — the topic, why the
  matcher chose it, the letter or what the voice letter is) with its moves as actions, in this order:
  Undo while the capsule over the band offers it (the five seconds after Next; KCardUndo), write
- back, translate or show the original, unfold or play/pause (as the press would do now), every menu
- item (report, block, bring back), and next letter. Every move names the card it came from, so the
- desk can refuse a reply to a card that is no longer the one shown.
+ back, translate or show the original, unfold or play/pause (as the press would do now), the
+ question the face and the name answer ("Why can't I see who wrote this?"), every menu item
+ (report, block, bring back), and next letter. Every move names the card it came from, so the desk
+ can refuse a reply to a card that is no longer the one shown.
  */
 
 /// Undo after Next, as the card on screen offers it to VoiceOver (owner's audit, 2026-11-10): the
@@ -144,6 +155,18 @@ struct KLetterCard: View, Equatable {
   static let whoGap: CGFloat = 1
   /// the foot's room on the right on a paper with a folded corner (the prototype's rowPR)
   static let foldRowTrailing: CGFloat = 36
+  /// the face and the name as one target: 44 tall (the row is the stamp's 48, so nothing moves)
+  static let whoTarget: CGFloat = 44
+
+  /// The face and the name answer "who is this" on this card: TS sent the sheet's words, and
+  /// somebody is behind the face (a deleted account's veil has nobody to ask about).
+  static func asksWho(_ card: KLetterCardModel, _ labels: KTodayLabels) -> Bool {
+    guard !labels.whoTitle.isEmpty else { return false }
+    switch card.who.face {
+    case .mosaic, .frost: return true
+    case .veil, .frostVeil: return false
+    }
+  }
 
   let theme: KTheme
   let card: KLetterCardModel
@@ -212,28 +235,39 @@ struct KLetterCard: View, Equatable {
   // ── the docket row ──
   private var docket: some View {
     HStack(alignment: .center, spacing: 10) {
-      if card.postmark.isEmpty {
-        // the identity switch on: the §9 header (TS sends no postmark line)
-        KCardFaceSlot(theme: paperTheme, face: card.who.face)
-        whoLines
-          .frame(maxWidth: .infinity, alignment: .leading)
-      } else {
-        // the switch off: the docket exactly as it was before identity Phase 1 — the writer's
-        // FACE v1 (the veil in faint for a deleted account) and the postmark, SEP.23 · NO.7273
-        Group {
-          if case let .mosaic(mask) = card.who.face {
-            KMosaic(mask: mask, cell: Self.mosaicCell, gap: 1, color: paperTheme.ink)
-          } else {
-            KMosaic.veil(theme: paperTheme, cell: Self.mosaicCell, gap: 1)
+      // who wrote it: the face and the name, one target for "who is this" (owner's audit,
+      // 2026-11-10). The same two pieces 10 apart in a row of their own, which takes the room the
+      // name's line took, so the docket lays out as it did; a tap gesture, not a button, so a
+      // pull that starts here is still the deck's
+      HStack(alignment: .center, spacing: 10) {
+        if card.postmark.isEmpty {
+          // the identity switch on: the §9 header (TS sends no postmark line)
+          KCardFaceSlot(theme: paperTheme, face: card.who.face)
+          whoLines
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+          // the switch off: the docket exactly as it was before identity Phase 1 — the writer's
+          // FACE v1 (the veil in faint for a deleted account) and the postmark, SEP.23 · NO.7273
+          Group {
+            if case let .mosaic(mask) = card.who.face {
+              KMosaic(mask: mask, cell: Self.mosaicCell, gap: 1, color: paperTheme.ink)
+            } else {
+              KMosaic.veil(theme: paperTheme, cell: Self.mosaicCell, gap: 1)
+            }
           }
+          Text(card.postmark)
+            .kText(Self.postmarkStyle)
+            .foregroundStyle(paperTheme.sub)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        Text(card.postmark)
-          .kText(Self.postmarkStyle)
-          .foregroundStyle(paperTheme.sub)
-          .lineLimit(1)
-          .minimumScaleFactor(0.75)
-          .frame(maxWidth: .infinity, alignment: .leading)
       }
+      .frame(minHeight: Self.whoTarget)
+      .contentShape(Rectangle())
+      .onTapGesture { actions.onAction(card.id, "who") }
+      // off (the veil, writing back, no words from TS), the touch is the deck's, as it always was
+      .allowsHitTesting(!compact && Self.asksWho(card, labels))
       KLetterCardStamp(theme: paperTheme, card: card, width: Self.stampWidth, actions: actions)
       if !card.menu.isEmpty {
         Menu {
@@ -406,6 +440,10 @@ struct KLetterCardAccessibilityActions: ViewModifier {
       } else {
         SwiftUI.Button(labels.unfoldA11y) { actions.onAction(card.id, "unfold") }
       }
+      // what a tap on the face or the name asks: "Why can't I see who wrote this?"
+      if KLetterCard.asksWho(card, labels) {
+        SwiftUI.Button(labels.whoTitle) { actions.onAction(card.id, "who") }
+      }
       // Report, Block and Bring back the last letter, as TS orders them
       ForEach(card.menu) { item in
         SwiftUI.Button(item.title) { actions.onAction(card.id, item.key) }
@@ -457,6 +495,100 @@ struct KCardFaceSlot: View {
     }
     .frame(width: side, height: side)
     .accessibilityHidden(true)
+  }
+}
+
+/*
+ WHO IS THIS (owner's audit, 2026-11-10): the small sheet a tap on a card's face or name raises,
+ an iOS sheet as the Aura room's explanations are (the system's rise, drag down and corners; medium,
+ or large when the text needs it). It says what the Help page says, in the Help page's own words
+ (TS sends them: no new copy): the question as the title with the ✕ beside it, its answer, then
+ "How do names get traded?" and its answer in the Help page's question and answer sizes, and one
+ quiet link to that page ("How It Works"; not drawn when TS sends no word for it). The desk
+ presents it (KTodayDesk) and takes the link's tap once the sheet has gone.
+ */
+struct KWhoSheet: View {
+  /// the Help page's question (system 600 16 at 23) and answer (15 at 23)
+  static let question = KTextStyle.system(16, .semibold, lineHeight: 23.0 / 16)
+  static let answer = KTextStyle.system(15, lineHeight: 23.0 / 15)
+
+  let theme: KTheme
+  let labels: KTodayLabels
+  /// the ✕ (a drag down closes it by itself)
+  let onClose: () -> Void
+  /// the quiet link: the Help page
+  let onMore: () -> Void
+
+  var body: some View {
+    VStack(spacing: 0) {
+      ZStack(alignment: .top) {
+        Text(labels.whoTitle)
+          .kText(.secondaryTitle)
+          .foregroundStyle(theme.ink)
+          .multilineTextAlignment(.center)
+          .fixedSize(horizontal: false, vertical: true)
+          .padding(.horizontal, 48)
+          .frame(maxWidth: .infinity, minHeight: 44)
+          .accessibilityAddTraits(.isHeader)
+        HStack {
+          Spacer(minLength: 0)
+          SwiftUI.Button(action: onClose) {
+            KLineIcon(.close, size: 20, lineWidth: 2.2, color: theme.mute)
+              .frame(width: 44, height: 44)
+              .contentShape(Rectangle())
+          }
+          .buttonStyle(KFloatPressStyle())
+          .accessibilityLabel(labels.whoClose)
+        }
+      }
+      .padding(.top, 14)
+      .padding(.horizontal, 12)
+      ScrollView(.vertical) {
+        VStack(alignment: .leading, spacing: 0) {
+          Text(labels.whoBody)
+            .kText(Self.answer)
+            .foregroundStyle(theme.sub)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.top, 8)
+          if !labels.whoNextTitle.isEmpty, !labels.whoNextBody.isEmpty {
+            Text(labels.whoNextTitle)
+              .kText(Self.question)
+              .foregroundStyle(theme.ink)
+              .fixedSize(horizontal: false, vertical: true)
+              .padding(.top, 22)
+              .accessibilityAddTraits(.isHeader)
+            Text(labels.whoNextBody)
+              .kText(Self.answer)
+              .foregroundStyle(theme.sub)
+              .fixedSize(horizontal: false, vertical: true)
+              .padding(.top, 8)
+          }
+          if !labels.whoMore.isEmpty {
+            SwiftUI.Button(action: onMore) {
+              HStack(spacing: 4) {
+                Text(labels.whoMore)
+                  .kText(.system(14, .medium))
+                  .foregroundStyle(theme.ind)
+                KLineIcon(.chevronRight, size: 12, lineWidth: 2.4, color: theme.ind)
+                  .accessibilityHidden(true)
+              }
+              .frame(minHeight: 44)
+              .contentShape(Rectangle())
+            }
+            .buttonStyle(KFadePressStyle())
+            .padding(.top, 10)
+          }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 22)
+        .padding(.bottom, 34)
+      }
+      .scrollBounceBehavior(.basedOnSize)
+    }
+    .background(theme.sf.ignoresSafeArea())
+    .presentationDetents([.medium, .large])
+    .presentationDragIndicator(.visible)
+    .presentationCornerRadius(22)
   }
 }
 

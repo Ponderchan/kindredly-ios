@@ -81,7 +81,7 @@ import SwiftUI
  toast, the reader and the sheets are React Native, over the Host; a reply in the air is Wren's
  to carry (KWireWren: she takes it off the band and comes back), not a React Native fly-by.
 
- OWNER'S AUDIT, 2026-11-10. One addition, the desk otherwise as it was approved:
+ OWNER'S AUDIT, 2026-11-10. Two additions, the desk otherwise as it was approved:
  - UNDO AFTER NEXT. For five seconds after a pass TS sets content.undoId, and a small Undo
    capsule (KUndoCapsule, in KControlBand.swift) stands just over the band, centred, in the card's
    bottom margin and the air under it, above Wren's head. A tap is the ⋯'s bring back
@@ -90,6 +90,10 @@ import SwiftUI
    writes back, the band steps aside, the + is open or the day's end has begun. Her first-day
    arrival bubble shares that spot over her head, so it waits while the capsule is up and pops
    back after.
+ - WHO IS THIS. A tap on the shown card's face or name (KLetterCard) raises KWhoSheet, an iOS
+   sheet with the Help page's own answer; its quiet link goes to TS as the card action "help"
+   once the sheet is down. Wren on the band already answered a tap (she hops), so she is as
+   she was.
  */
 
 // MARK: - Geometry
@@ -147,6 +151,12 @@ public struct KTodayGeometry: Equatable, Sendable {
 
 // MARK: - The desk
 
+/// The letter a "who is this" sheet was raised for (its id, for the sheet's identity and the
+/// link's report).
+struct KWhoAsk: Identifiable, Equatable {
+  let id: String
+}
+
 /// What the desk keeps without drawing: the latest phase (for a delayed check) and the optimistic
 /// play waiting for TS to say done.
 final class KTodayDeskBox {
@@ -173,6 +183,8 @@ public struct KTodayDesk: View {
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var box = KTodayDeskBox()
+  /// the letter whose face or name was tapped, while its "who is this" sheet is up
+  @State private var who: KWhoAsk?
 
   /// a pass TS hasn't confirmed by then, when it started the day's end, puts the desk back
   static let confirmWait = 1.5
@@ -277,6 +289,14 @@ public struct KTodayDesk: View {
       )
     }
     .background { theme.bg.ignoresSafeArea() }
+    // who is this: the Help page's answer, in an iOS sheet over the desk
+    .sheet(item: $who) { asked in
+      KWhoSheet(theme: theme, labels: content.labels, onClose: { who = nil }) { [actions] in
+        who = nil
+        // once the sheet has gone, so the Help page isn't pushed under it
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { actions.onCardAction(asked.id, "help") }
+      }
+    }
     .onAppear { appear() }
     .onChange(of: content.phase) { old, now in phaseChanged(from: old, to: now) }
     .onChange(of: deck.beat) { _, beat in beatChanged(beat) }
@@ -314,7 +334,8 @@ public struct KTodayDesk: View {
           motion: motion,
           voice: voice,
           actions: actions,
-          onReply: { id in reply(id) }
+          onReply: { id in reply(id) },
+          onWho: { id in askWho(id) }
         )
         KDoneView(theme: theme, letter: content.wrenLetter, birds: content.birds, flow: flow) { [actions] in actions.onBringBack() }
       }
@@ -400,6 +421,15 @@ public struct KTodayDesk: View {
   }
 
   // ── routing ──
+
+  /// The shown card's face or name: the "who is this" sheet, unless the reader is writing back or
+  /// something else has the desk (the + panel, a send, the reader).
+  private func askWho(_ id: String) {
+    guard !content.labels.whoTitle.isEmpty, id == deck.shownId, content.phase == .reading,
+          !deck.typing, content.plus == .closed, !content.hideBand
+    else { return }
+    who = KWhoAsk(id: id)
+  }
 
   /// REPLY and the card's "Write back": only for the card on screen, while it can be answered.
   private func reply(_ id: String) {
