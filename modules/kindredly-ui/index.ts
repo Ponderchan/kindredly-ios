@@ -4,7 +4,7 @@
 
    Step 5 exports every one of its screen views here once (batch 0a), so no screen slice edits
    this file: each slice rewrites its own src/<Screen>.tsx and keeps the export names. */
-export { isKindredlyUIAvailable, isKindredlyUIViewAvailable } from "./src/available";
+export { hasKindredlyStampArt, isKindredlyUIAvailable, isKindredlyUIViewAvailable } from "./src/available";
 export { InkCardHost, KInkCard, type InkCardHostProps, type KInkCardProps } from "./src/InkCard";
 export { KGalleryHost, type KGalleryHostProps } from "./src/Gallery";
 export { KTabBar, type KTabBarCard, type KTabBarProps, type KTabBarTab, type KTabGlyph } from "./src/TabBar";

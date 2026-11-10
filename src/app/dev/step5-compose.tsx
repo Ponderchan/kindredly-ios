@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Redirect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { isKindredlyUIViewAvailable, type KScreenHandle } from "../../../modules/kindredly-ui";
+import { hasKindredlyStampArt, isKindredlyUIViewAvailable, type KScreenHandle } from "../../../modules/kindredly-ui";
+import { BIRTHDAY_STAMP } from "../../lib/birthday-stamp-core";
+import { setDevBirthdayStamp } from "../../lib/birthday-stamp";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
 import { getLang, setLang, t, useLang, type Lang } from "../../lib/i18n";
 import { OFFICIAL_NAME } from "../../lib/wren-desk";
@@ -51,7 +53,11 @@ import "../../data/strings-step5-compose";
      free writer's day; 0 shows the cap panel at once, drawn only while the
      keyboard and the trays are away — check it on an SE-sized simulator),
      FAIL (the publish fails: the page comes back with its words), CAP (the
-     server says the day is spent).
+     server says the day is spent), BDAY (owner's audit, 2026-11-10: today
+     is the reader's birthday for this page, lib/birthday-stamp's dev
+     switch, never saved — open the stamps: the birthday stamp is first,
+     under TODAY ONLY; off, it is offered nowhere. Needs a dev client whose
+     Swift has the stamp's drawing; an older one says so).
    Under VoiceOver, a two-finger Z closes an open tray, then asks to leave.
    What would leave the page (back, the paywall, the sign-up sheet) says
    where it would go instead. The panel's words are English: a dev page. */
@@ -108,6 +114,14 @@ function ComposeLab() {
   const [left, setLeft] = useState<Left>(4);
   const [fail, setFail] = useState(false);
   const [cap, setCap] = useState(false);
+  // BDAY: today is the reader's birthday for this page (lib/birthday-stamp's dev switch, never saved):
+  // the birthday stamp comes first in the stamps, under TODAY ONLY; it goes back as the page closes
+  const [bday, setBday] = useState(false);
+  const bdayDrawn = hasKindredlyStampArt(BIRTHDAY_STAMP);
+  useEffect(() => {
+    setDevBirthdayStamp(bday);
+    return () => setDevBirthdayStamp(false);
+  }, [bday]);
   const [panel, setPanel] = useState(true);
   // a fresh page for every change of page, renderer, account or day
   const [run, setRun] = useState(0);
@@ -170,6 +184,11 @@ function ComposeLab() {
             ))}
             <Chip label="FAIL" on={fail} onPress={() => setFail((v) => !v)} />
             <Chip label="CAP" on={cap} onPress={() => setCap((v) => !v)} />
+            <Chip
+              label="BDAY"
+              on={bday}
+              onPress={() => (bdayDrawn ? setBday((v) => !v) : Alert.alert("Dev page", "This dev client was built before the birthday stamp's drawing (KStampArtData.swift) and the module's hasStampArt: rebuild it. Until then the stamp is offered nowhere, by design."))}
+            />
           </Row>
           <Text style={{ ...PFM.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>
             {`THEME ${themeLabel} (${key}) · ${swift && swiftAvailable ? "SWIFTUI" : "REACT NATIVE"}${swiftAvailable ? "" : " (no KComposeView in this build)"}`}

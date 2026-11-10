@@ -74,7 +74,9 @@ const locOf = (line: string, field: "name" | "prompt"): Record<string, string> |
     return null;
   }
 };
-const seasonalLines = text.split("\n").filter((l) => /cat: "seasonal"/.test(l));
+// the seasons' stamps. The birthday stamp shares the category (owner's audit, 2026-11-10) but is no season's, and
+// its name and prompt are English only until they are written natively: lib/birthday-stamp-core.test.ts has it
+const seasonalLines = text.split("\n").filter((l) => /cat: "seasonal"/.test(l) && !/\{ id: "birthday"/.test(l));
 ok("stamps.ts: the three Halloween stamps", seasonalLines.map((l) => l.match(/id: "([\w-]+)"/)?.[1]).join() === "spooky-season,boo,trick-or-treat");
 for (const line of seasonalLines) {
   const id = line.match(/id: "([\w-]+)"/)?.[1];

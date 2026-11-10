@@ -41,7 +41,7 @@ const { art, cats, stamps, unknownTint } = src;
    only, so the v2 table writes them as the template, which nothing draws any more */
 const SEASONAL = new Set(stamps.filter((s) => s.cat === "seasonal").map((s) => s.id));
 const moods = stamps.filter((s) => !SEASONAL.has(s.id));
-ok("stamps.ts lists 39 stamps: 36 mood stamps, then 3 seasonal", stamps.length === 39 && moods.length === 36 && stamps.slice(36).every((s) => SEASONAL.has(s.id)));
+ok("stamps.ts lists 40 stamps: 36 mood stamps, then the 4 of the seasonal category (Halloween's three, the birthday stamp)", stamps.length === 40 && moods.length === 36 && stamps.slice(36).every((s) => SEASONAL.has(s.id)));
 ok("in 6 categories of 6, and the seasonal one", cats.length === 7 && cats.filter((c) => c.id !== "seasonal").every((c) => stamps.filter((s) => s.cat === c.id).length === 6));
 ok("every mood stamp has a drawing with art marks in stamp-art-v2.ts", moods.every((s) => Array.isArray(art[s.id]?.art) && art[s.id].art.length > 0));
 ok("stamp-art-v2.ts has no drawing for an unknown id", Object.keys(art).every((k) => moods.some((s) => s.id === k)));
@@ -105,7 +105,7 @@ for (const line of committed.split("\n")) {
   if (/KStampMark\(|KStampArtEntry\(/.test(line)) stray++; // a line the patterns don't know
 }
 ok("every KStampMark line belongs to a layer of a stamp and reads back", stray === 0);
-ok("the Swift lists the 39 stamps in stamps.ts order (the seasonal ones as templates)", [...back.keys()].join() === stamps.map((s) => s.id).join() && [...SEASONAL].every((id) => back.get(id)?.template));
+ok("the Swift lists the 40 stamps in stamps.ts order (the seasonal ones as templates)", [...back.keys()].join() === stamps.map((s) => s.id).join() && [...SEASONAL].every((id) => back.get(id)?.template));
 let countsMatch = true;
 let dataMatch = true;
 let metaMatch = true;
@@ -211,9 +211,9 @@ const onEllipse = (x0, y0, curves, cx, cy, rx, ry, eps) => {
 
 {
   const v3 = src.v3;
-  ok("stamp-art-v3.ts: 39 drawings, the four own layers each", stamps.every((s) => Object.keys(v3.art[s.id] ?? {}).join() === LAYERS_V3.join()));
+  ok("stamp-art-v3.ts: 40 drawings, the four own layers each", stamps.every((s) => Object.keys(v3.art[s.id] ?? {}).join() === LAYERS_V3.join()));
   ok("stamps.ts gives every stamp a nameLight and a nameDark", stamps.every((s) => /^#[0-9A-F]{6}$/i.test(s.nameLight ?? "") && /^#[0-9A-F]{6}$/i.test(s.nameDark ?? "")));
-  ok("all 39 v3 stamps read (none drawn as a bare frame)", built.v3.entries.every((e) => e.layers) && built.ignoredV3.length === 0);
+  ok("all 40 v3 stamps read (none drawn as a bare frame)", built.v3.entries.every((e) => e.layers) && built.ignoredV3.length === 0);
   const vcount = (L) => stamps.reduce((n, s) => n + v3.art[s.id][L].length, 0);
   ok("every v3 element becomes one KStampEl", LAYERS_V3.every((L) => built.v3.counts[L] === vcount(L)));
   ok("the v3 frame path and frame layer are written", committed.includes(`static let v3FramePath = ${JSON.stringify(v3.framePath)}`) && committed.includes("static let v3Frame: [KStampEl] = [.p(v3FramePath, .tint, .tint, 14), .p(v3FramePath, .tint, .ink, 6)]"));
@@ -250,7 +250,7 @@ const onEllipse = (x0, y0, curves, cx, cy, rx, ry, eps) => {
     stray3++;
   }
   ok("every line of the v3 table reads back", stray3 === 0);
-  ok("the v3 table lists the 39 in stamps.ts order", [...back3.keys()].join() === stamps.map((s) => s.id).join());
+  ok("the v3 table lists the 40 in stamps.ts order", [...back3.keys()].join() === stamps.map((s) => s.id).join());
   const hx = (c) => "0x" + c.slice(1).toUpperCase() + "FF";
   ok("every v3 entry carries its category, hex, tint, nameLight and nameDark", stamps.every((s) => {
     const b = back3.get(s.id);

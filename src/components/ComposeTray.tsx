@@ -9,6 +9,8 @@ import { MOOD_CATEGORIES, SEASONAL_CAT, STAMP_CATEGORIES, STAMPS, getStamp, snam
 import { SEASONAL_STAMPS } from "../lib/season-core";
 import { useSeason } from "../lib/season";
 import "../data/strings-season"; // season.tray.mark
+import { BIRTHDAY_STAMP, birthdayStampAllows } from "../lib/birthday-stamp-core";
+import { useBirthdayStamp } from "../lib/birthday-stamp"; // (it registers bd.stamp.*)
 import { Stamp, StampSlot } from "./Stamp";
 import { STAMP_LADDER, stampSlotStroke } from "../lib/stamp-frame";
 import "../data/strings-stamps2"; // cs2.tray.* and the 3/3 card's words
@@ -261,6 +263,8 @@ export function StampTray({
   const room = (useWindowDimensions().width - 20) / COLS - 6;
   // without `sections` the tray builds its own: the season's stamps first while it lasts
   const seasonStamps = useSeason().stamps;
+  // …and before them, on the reader's own birthday, the birthday stamp (owner's audit, 2026-11-10)
+  const birthdayStamp = useBirthdayStamp();
   const tile = (it: TrayStamp, sectionKey: string) => {
     const on = selected === it.id;
     const fit = trayNameFit(it.name, room);
@@ -298,8 +302,9 @@ export function StampTray({
         <View style={{ flexDirection: "row", flexWrap: "wrap" }}>{items.map((it) => tile(it, key))}</View>
       </View>
     ) : null;
-  // a seasonal stamp out of its season is offered nowhere (not as a recent or a suggestion either)
-  const known = new Set(STAMPS.map((s) => s.id).filter((id) => !SEASONAL_STAMPS.has(id) || seasonStamps.includes(id)));
+  // a seasonal stamp out of its season is offered nowhere (not as a recent or a suggestion either);
+  // nor is the birthday stamp on any day but the reader's birthday
+  const known = new Set(STAMPS.map((s) => s.id).filter((id) => (!SEASONAL_STAMPS.has(id) || seasonStamps.includes(id)) && birthdayStampAllows(id, birthdayStamp)));
   const seasonCat = STAMP_CATEGORIES.find((c) => c.id === SEASONAL_CAT);
   const own = (ids: string[]): TrayStamp[] =>
     ids
@@ -385,6 +390,8 @@ export function StampTray({
           sections.map((s, i) => section(`${i}:${s.title}`, s.title, s.items, s.mark))
         ) : (
           [
+            // the reader's birthday: the birthday stamp, alone, first of all, marked as today's only
+            birthdayStamp && section("birthday", t("bd.stamp.set"), own([BIRTHDAY_STAMP]), t("bd.stamp.mark")),
             seasonCat && section(SEASONAL_CAT, sname(seasonCat.name).toUpperCase(), own(seasonStamps), t("season.tray.mark")),
             section("suggested", t("cp.forThisLetter"), own(suggested)),
             section("recent", t("cp.recent"), own(recent)),

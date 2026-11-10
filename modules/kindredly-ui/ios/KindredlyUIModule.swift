@@ -191,6 +191,14 @@ public class KindredlyUIModule: Module {
       }
     }
 
+    // Does this binary's table have the drawing of an official stamp id? (owner's audit, 2026-11-10:
+    // the birthday stamp.) JS asks before it OFFERS a stamp newer than a binary, so the tray never
+    // shows a bare frame (modules/kindredly-ui/src/available.ts hasKindredlyStampArt). The table is
+    // compiled in (Portable/Kit/KStampArtData.swift); the answer never changes while the app runs.
+    Function("hasStampArt") { (id: String) -> Bool in
+      KStampArt.hasArt(id)
+    }
+
     // The album (custom stamps, B): adapter appended to Adapters/KMeView.swift, the page to
     // Portable/Me/KStampsCard.swift; src/app/album.tsx
     ExpoUIView(KStampAlbumView.self) {

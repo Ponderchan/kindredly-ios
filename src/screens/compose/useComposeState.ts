@@ -12,6 +12,8 @@ import { MOOD_CATEGORIES, SEASONAL_CAT, STAMP_CATEGORIES, getStamp, sname, stamp
 import { SEASONAL_STAMPS } from "../../lib/season-core";
 import { useSeason } from "../../lib/season";
 import "../../data/strings-season"; // season.* (the seasonal set's marker), ws.acc.witch / ghost
+import { BIRTHDAY_STAMP, birthdayStampAllows } from "../../lib/birthday-stamp-core";
+import { useBirthdayStamp } from "../../lib/birthday-stamp"; // (it registers bd.stamp.*: the birthday set's heading and marker)
 import { topicTagLook } from "../../components/10a/kit";
 import type { ThemeTokens } from "../../theme/themes";
 import { blurTarget, blurThen, dismissKeyboard, type CommandTarget } from "../../lib/keyboard";
@@ -243,12 +245,18 @@ const TRAY_TAB_KEY = "kindredly_tray_tab";
     (nameLight on the light themes, nameDark on Midnight: compose-model trayNameHex, measured on
     the tray's soft), unknown ids dropped. `season`: the seasonal stamps on offer now (lib/season
     useSeason().stamps), shown first under their category's name with the SEASONAL marker; a
-    seasonal stamp out of its season is offered nowhere, not even as a recent or a suggestion. */
-export function traySections(p: { suggested: string[]; recent: string[]; tk: ThemeTokens; season?: readonly string[] }): StampSectionVM[] {
+    seasonal stamp out of its season is offered nowhere, not even as a recent or a suggestion.
+    `birthday` (owner's audit, 2026-11-10): the birthday stamp is on offer (lib/birthday-stamp
+    useBirthdayStamp(): the reader's own birthday, on a binary that draws it): it comes first of
+    all, alone under its own heading with the TODAY ONLY marker. Any other day, or left out (the
+    onboarding's tray), it is offered nowhere, not as a recent or a suggestion either. */
+export function traySections(p: { suggested: string[]; recent: string[]; tk: ThemeTokens; season?: readonly string[]; birthday?: boolean }): StampSectionVM[] {
   const season = p.season ?? [];
-  const offered = (ids: readonly string[]) => ids.filter((id) => !SEASONAL_STAMPS.has(id) || season.includes(id));
+  const birthday = !!p.birthday;
+  const offered = (ids: readonly string[]) => ids.filter((id) => (!SEASONAL_STAMPS.has(id) || season.includes(id)) && birthdayStampAllows(id, birthday));
   const seasonCat = STAMP_CATEGORIES.find((c) => c.id === SEASONAL_CAT);
   return buildStampSections({
+    birthday: birthday ? { title: t("bd.stamp.set"), mark: t("bd.stamp.mark"), ids: [BIRTHDAY_STAMP] } : null,
     seasonal: season.length && seasonCat ? { title: sname(seasonCat.name).toUpperCase(), mark: t("season.tray.mark"), ids: season } : null,
     suggested: { title: t("cp.forThisLetter"), ids: offered(p.suggested) },
     recent: { title: t("cp.recent"), ids: offered(p.recent) },
@@ -611,12 +619,14 @@ export function useComposeState(opts: {
   // the stamp tray's sections, read off the letter as it stands when the tray opens; the season's
   // stamps first while it lasts (on a binary that draws them)
   const seasonStamps = useSeason().stamps;
+  // on the reader's own birthday, the birthday stamp first of all (owner's audit, 2026-11-10)
+  const birthdayStamp = useBirthdayStamp();
   const trayText = tray === "stamps" ? text : "";
   const sections = useMemo(
-    () => (tray === "stamps" ? traySections({ suggested: suggestStamps(trayText), recent, tk, season: seasonStamps }) : []),
+    () => (tray === "stamps" ? traySections({ suggested: suggestStamps(trayText), recent, tk, season: seasonStamps, birthday: birthdayStamp }) : []),
     // the words follow the reader's language (getLang inside sname / t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [tray, trayText, recent, tk, seasonStamps, getLang()],
+    [tray, trayText, recent, tk, seasonStamps, birthdayStamp, getLang()],
   );
 
   // ── actions ──

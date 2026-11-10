@@ -94,7 +94,7 @@ export const isBirthdayFlag = (key: string): boolean => key.startsWith(READ);
 
 /* ── the same rule, asked of a Date (the knock, the stamp, Edit profile) ──
    Merged 2026-11-10 from the slice that built the birthday knock and the birthday stamp
-   (lib/wren-lines, lib/local-push, lib/birthday): one file, one rule. isBirthdayOn(dob, date) is
+   (lib/wren-lines, lib/local-push, lib/birthday-stamp-core): one file, one rule. isBirthdayOn(dob, date) is
    isBirthday(dob, calendarDay(date)) for every real birthday; birthdayParts is the stricter read
    (it also refuses a 29 February in a birth year that had none, which no date wheel can produce). */
 

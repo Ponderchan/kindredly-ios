@@ -719,8 +719,9 @@ public struct KGallery: View {
   // dev/step5-stamp-art, draws React Native's components/Stamp in the same sheets above it ──
 
   /// one stamp from each category, in category order: confessions, almosts, late nights, small
-  /// things, becoming, missing
-  private static let stampSample = ["never-told", "crush", "cant-sleep", "made-my-day", "growing", "seasons"]
+  /// things, becoming, missing; then the birthday stamp (owner's audit, 2026-11-10), so it can be
+  /// looked at at every size, flat and delivered
+  private static let stampSample = ["never-told", "crush", "cant-sleep", "made-my-day", "growing", "seasons", "birthday"]
   /// every tier, flat: the dot (9), chip 15, XS 20, S 25 and 30, M 40, 50 and 60, L 80 and 120
   private static let stampFlatWidths: [CGFloat] = [9, 15, 20, 25, 30, 40, 50, 60, 80, 120]
   /// delivered mail: M and L

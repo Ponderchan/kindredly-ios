@@ -46,7 +46,10 @@ ok("the seasonal sets hold every season's ids", SEASONAL_STAMPS.has("boo") && SE
 const stampsText = readFileSync(new URL("../data/stamps.ts", import.meta.url), "utf8");
 const listed = new Map([...stampsText.matchAll(/\{ id: "([\w-]+)", cat: "(\w+)"/g)].map((m) => [m[1], m[2]]));
 ok("every seasonal stamp is in stamps.ts, in the seasonal category", [...SEASONAL_STAMPS].every((id) => listed.get(id) === "seasonal"));
-ok("nothing else is in the seasonal category", [...listed].filter(([, c]) => c === "seasonal").every(([id]) => SEASONAL_STAMPS.has(id)));
+// …but for the birthday stamp (owner's audit, 2026-11-10): the same category, because it too is offered only on
+// certain days, but no season's — the reader's own birthday offers it (lib/birthday-stamp-core, tested there)
+ok("nothing else is in the seasonal category, but the birthday stamp", [...listed].filter(([, c]) => c === "seasonal").every(([id]) => SEASONAL_STAMPS.has(id) || id === "birthday"));
+ok("the birthday stamp belongs to no season", !SEASONAL_STAMPS.has("birthday") && listed.get("birthday") === "seasonal");
 /* every seasonal look is a WrenAccessory with shapes */
 const birdText = readFileSync(new URL("../components/WrenBird.tsx", import.meta.url), "utf8");
 const famText = readFileSync(new URL("../components/wren-family-data.ts", import.meta.url), "utf8");

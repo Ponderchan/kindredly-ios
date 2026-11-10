@@ -4,7 +4,16 @@
    visual treatment. 6 categories × 6 = 36 mood stamps, plus the seasonal ones
    (category "seasonal", owner 2026-10-26): offered only in their season
    (lib/season-core), always drawn on a letter that carries one. Localized
-   en/zh/es/pt/id/fr/de/it/ja/ko. */
+   en/zh/es/pt/id/fr/de/it/ja/ko.
+
+   THE BIRTHDAY STAMP (owner's audit, 2026-11-10): one more stamp, id
+   "birthday", in the same "seasonal" category because that category means
+   "offered only on certain days, never part of the every-day 36": it is
+   offered only on the reader's OWN birthday (lib/birthday-stamp-core), under
+   its own heading in the tray, never under the category's name. A letter
+   sent with it keeps it and every app draws it. Its name and prompt are
+   English only for now ("" falls back to English in tx()); the other
+   languages are written natively later, with src/data/strings-audit-birthday. */
 
 export type Lang = "en" | "zh" | "es" | "pt" | "id" | "fr" | "de" | "it" | "ja" | "ko";
 export interface Loc {
@@ -111,6 +120,8 @@ export const STAMPS: Stamp[] = [
   { id: "spooky-season", cat: "seasonal", emoji: "🎃", color: "#F39420", nameLight: "#965806", nameDark: "#F39420", name: { en: "Spooky season", zh: "万圣节到了", es: "Temporada de sustos", pt: "Clima de Halloween", id: "Musim seram", fr: "Saison des frissons", de: "Gruselzeit", it: "Aria di Halloween", ja: "ハロウィンの季節", ko: "할로윈 시즌" }, prompt: { en: "A little spooky, a little silly.", zh: "有点吓人，有点好笑。", es: "Un poco de miedo, un poco de risa.", pt: "Um pouco de medo, um pouco de bobeira.", id: "Agak seram, agak konyol.", fr: "Un peu flippant, un peu bête.", de: "Ein bisschen gruselig, ein bisschen albern.", it: "Un po' da paura, un po' da ridere.", ja: "ちょっとこわくて、ちょっとおかしい。", ko: "조금 으스스하고, 조금 웃긴." } },
   { id: "boo", cat: "seasonal", emoji: "👻", color: "#D6D3F7", nameLight: "#686488", nameDark: "#D6D3F7", name: { en: "Boo", zh: "嘘", es: "¡Bu!", pt: "Bu!", id: "Dor!", fr: "Bouh !", de: "Buh!", it: "Bu!", ja: "ばあ！", ko: "까꿍" }, prompt: { en: "A shy hello from someone who's been lurking.", zh: "潜水很久，终于冒个头打招呼。", es: "Un hola tímido de alguien que solo miraba.", pt: "Um oi tímido de quem só ficava olhando.", id: "Sapaan malu-malu dari yang selama ini cuma ngintip.", fr: "Un petit coucou timide de quelqu'un qui observait en silence.", de: "Ein schüchternes Hallo von jemandem, der bisher nur mitgelesen hat.", it: "Un ciao timido da chi finora guardava e basta.", ja: "ずっと見てるだけだった人からの、照れくさいあいさつ。", ko: "그동안 눈팅만 하던 사람의 수줍은 인사." } },
   { id: "trick-or-treat", cat: "seasonal", emoji: "🍬", color: "#D55AC7", nameLight: "#AD0BA1", nameDark: "#D55AC7", name: { en: "Trick or treat", zh: "不给糖就捣蛋", es: "¿Truco o trato?", pt: "Doces ou travessuras", id: "Trick or treat", fr: "Un bonbon ou un sort", de: "Süßes oder Saures", it: "Dolcetto o scherzetto", ja: "トリック・オア・トリート", ko: "트릭 오어 트릿" }, prompt: { en: "A small sweet thing, or a small mischief.", zh: "一点甜头，或者一点小坏。", es: "Algo dulce, o una pequeña travesura.", pt: "Um docinho, ou uma pequena travessura.", id: "Sesuatu yang manis, atau sedikit iseng.", fr: "Une petite douceur, ou une petite bêtise.", de: "Etwas Süßes oder ein kleiner Streich.", it: "Una piccola dolcezza, o un piccolo dispetto.", ja: "ちょっと甘いもの、それともちょっとしたいたずら。", ko: "작고 달콤한 것, 아니면 작은 장난." } },
+  // the birthday stamp (owner's audit, 2026-11-10): only on the reader's own birthday (lib/birthday-stamp-core); almost-texted's rose, the palette's warm pink
+  { id: "birthday", cat: "seasonal", emoji: "🎂", color: "#F99CB3", nameLight: "#A44360", nameDark: "#F99CB3", name: { en: "Birthday", zh: "", es: "", pt: "", id: "", fr: "", de: "", it: "", ja: "", ko: "" }, prompt: { en: "It's my birthday today.", zh: "", es: "", pt: "", id: "", fr: "", de: "", it: "", ja: "", ko: "" } },
 ];
 
 export const stampsByCat = (catId: string) =>

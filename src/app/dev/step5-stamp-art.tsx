@@ -21,7 +21,8 @@ import { PFM } from "../../theme/post";
    - THEME: the dev theme switch (lib/theme setDevThemeOverride), as in ui-lab. The PLACEMENTS
      section follows it; the LADDER and ALL 36 sheets don't need it, each draws one light
      surface (Classic) and Midnight side by side, whatever the app's theme.
-   - LADDER: one stamp from each category at every v3 tier: the dot (9), XS 15 and 20, S 25
+   - LADDER: one stamp from each category, and the birthday stamp (the slice of cake with one
+     lit candle, 2026-11-10: last row), at every v3 tier: the dot (9), XS 15 and 20, S 25
      and 30, L 40, 50, 60, 80 and 120 — flat. Then delivered
      at 40, 50, 60, 80 and 120, each tilted by a sample letter id (the four tilts, −2 to +2°, in
      turn; the ids are the golden ones in lib/stamp-frame.test). No postmark (the owner took it
@@ -40,8 +41,9 @@ import { PFM } from "../../theme/post";
    The words are English, typed here: a dev page. */
 
 // one stamp from each category, in category order: confessions, almosts, late nights, small
-// things, becoming, missing
-const SAMPLE = ["never-told", "crush", "cant-sleep", "made-my-day", "growing", "seasons"];
+// things, becoming, missing; then the birthday stamp (owner's audit, 2026-11-10), so it can be
+// looked at at every size, flat and delivered (it is also the last stamp of the ALL sheets)
+const SAMPLE = ["never-told", "crush", "cant-sleep", "made-my-day", "growing", "seasons", "birthday"];
 const FLAT_WIDTHS = [9, 15, 20, 25, 30, 40, 50, 60, 80, 120];
 const MAIL_WIDTHS = [40, 50, 60, 80, 120];
 // lib/stamp-frame.test's golden letter ids: −3, −1.5, +1.5, +3

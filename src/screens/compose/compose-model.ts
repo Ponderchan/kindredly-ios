@@ -330,13 +330,17 @@ export function plusDot(p: { tray: ComposeTray; askOn: boolean; mode: ComposeMod
   return p.tray !== "more" && (p.askOn || p.mode === "speak");
 }
 
-/** The stamp tray's sections, in order: the season's stamps while a season
+/** The stamp tray's sections, in order: on the reader's own birthday the
+    birthday stamp, alone under its own small marker (owner's audit,
+    2026-11-10: first of all that day, marked as today's only); the season's
+    stamps while a season
     lasts (owner, 2026-10-26: first of all, with a small marker), FOR THIS
     LETTER (read off the letter), RECENTLY USED, then the six categories. An id no stamp has
     (a stale recent, a suggestion table naming a stamp since renamed) is
     dropped, as ComposeTray drops it, so Swift never gets an id it has no
     art or name for; a section left empty isn't sent. */
 export function stampSections(p: {
+  birthday?: { title: string; mark: string; ids: readonly string[] } | null;
   seasonal?: { title: string; mark: string; ids: readonly string[] } | null;
   suggested: { title: string; ids: readonly string[] };
   recent: { title: string; ids: readonly string[] };
@@ -344,7 +348,8 @@ export function stampSections(p: {
   item: (id: string) => StampItemVM | null;
 }): StampSectionVM[] {
   const out: StampSectionVM[] = [];
-  const marked: { title: string; mark?: string; ids: readonly string[] }[] = p.seasonal ? [p.seasonal] : [];
+  // the marked sets, the birthday's before the season's (a birthday inside a season shows both)
+  const marked: { title: string; mark?: string; ids: readonly string[] }[] = [p.birthday, p.seasonal].filter((s): s is { title: string; mark: string; ids: readonly string[] } => !!s);
   const all: { title: string; mark?: string; ids: readonly string[] }[] = [...marked, p.suggested, p.recent, ...p.categories];
   for (const s of all) {
     const seen = new Set<string>();
@@ -361,7 +366,8 @@ export function stampSections(p: {
 }
 
 /* THE STAMP STRIP (Let it travel L6, owner 2026-10-26): the tray's sections laid in ONE
-   horizontal row, in the same order — the season's stamps first with their small marker over
+   horizontal row, in the same order — on the reader's birthday the birthday stamp first of all
+   under its marker (2026-11-10), the season's stamps with their small marker over
    them, then FOR THIS LETTER, RECENTLY USED and the categories. A stamp shows once, where it
    first comes (a suggestion that is also recent, and is also in its category, stays at the
    suggestion's place); a group left with nothing is dropped. The SwiftUI strip (KStampStrip)

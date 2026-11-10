@@ -92,19 +92,20 @@ struct KStampV3Entry: Sendable {
   }
 }
 
-/// The 39 stamps v3 (KStampArtData.v3, below) and, while src/data/stamp-art-v2.ts exists, the v2 set
+/// The 40 stamps v3 (KStampArtData.v3, below) and, while src/data/stamp-art-v2.ts exists, the v2 set
 /// (KStampArtData.stamps) the v2 KStamp draws until it moves to v3.
 ///
-/// The 39 stamps v2 as src/data/stamp-art-v2.ts holds them (components/Stamp draws them in React
+/// The 40 stamps v2 as src/data/stamp-art-v2.ts holds them (components/Stamp draws them in React
 /// Native): each stamp's marks, path data verbatim on the 100 × 120 box, in three layers (art, soft, xs),
 /// with its category and its own colour, in src/data/stamps.ts order. KStamp draws it over the frame
 /// (Kit/KStampFrame.swift): art and xs in white, soft in softHex, strokes at the tier's width.
 ///
-/// Read by the generator: 36 of 39 stamps; 117 art, 43 soft and 61 xs marks.
+/// Read by the generator: 36 of 40 stamps; 117 art, 43 soft and 61 xs marks.
 /// Drawn as the template instead (no marks), because the generator could not read their drawing:
 ///   - spooky-season: no drawing in stamp-art-v2.ts
 ///   - boo: no drawing in stamp-art-v2.ts
 ///   - trick-or-treat: no drawing in stamp-art-v2.ts
+///   - birthday: no drawing in stamp-art-v2.ts
 enum KStampArtData {
   /// The box the marks are drawn on: viewBox 0 0 100 120.
   static let box = CGSize(width: 100, height: 120)
@@ -112,7 +113,7 @@ enum KStampArtData {
   /// The colour an id this build doesn't know is drawn in (STAMP_FALLBACK_HEX, #8B7FE8).
   static let unknownTint: UInt32 = 0x8B7FE8FF
 
-  // ── STAMPS v3: 39 of 39 from src/data/stamp-art-v3.ts; 98 rim, 183 body, 18 mark, 288 face elements ──
+  // ── STAMPS v3: 40 of 40 from src/data/stamp-art-v3.ts; 102 rim, 190 body, 18 mark, 295 face elements ──
 
   /// v3's ink role (#1E1B35): edges, eye rings, pupils, lids, lines on the paper; the #tag's words.
   static let v3Ink: UInt32 = 0x1E1B35FF
@@ -1104,6 +1105,33 @@ enum KStampArtData {
         .c(61.03, 51.82, 4.2, .ink, .none, 0),
       ]
     ),
+    KStampV3Entry("birthday", category: "seasonal", hex: 0xF99CB3FF, tint: 0xFEF3F6FF, nameLight: 0xA44360FF, nameDark: 0xF99CB3FF,
+      rims: [
+        .p("M42.47,20.32Q46.32,23.4 46.48,27.14A3.4,3.4 -5 1 1 39.7,27.73Q39.21,24.02 42.47,20.32Z", .tint, .tint, 20),
+        .p("M43.79,35.4L45.09,50.35", .none, .tint, 14),
+        .p("M30.76,58.63L67.62,55.4L65.06,89.25Q64.67,92.8 60.88,93.13L38.97,95.05Q33.99,95.49 33.55,90.5Z", .tint, .tint, 20),
+        .p("M28.77,58.8L28.59,56.81Q28.25,52.82 32.23,52.47L65.11,49.6Q69.09,49.25 69.44,53.23L69.61,55.23A6.83,4 -5 0 1 55.99,56.42A6.83,4 -5 0 1 42.39,57.61A6.83,4 -5 0 1 28.77,58.8Z", .tint, .tint, 20),
+      ],
+      body: [
+        .p("M42.47,20.32Q46.32,23.4 46.48,27.14A3.4,3.4 -5 1 1 39.7,27.73Q39.21,24.02 42.47,20.32Z", .ink, .ink, 12),
+        .p("M42.47,20.32Q46.32,23.4 46.48,27.14A3.4,3.4 -5 1 1 39.7,27.73Q39.21,24.02 42.47,20.32Z", .tint, .none, 0),
+        .p("M43.79,35.4L45.09,50.35", .none, .ink, 6),
+        .p("M30.76,58.63L67.62,55.4L65.06,89.25Q64.67,92.8 60.88,93.13L38.97,95.05Q33.99,95.49 33.55,90.5Z", .ink, .ink, 12),
+        .p("M30.76,58.63L67.62,55.4L65.06,89.25Q64.67,92.8 60.88,93.13L38.97,95.05Q33.99,95.49 33.55,90.5Z", .hex, .none, 0),
+        .p("M28.77,58.8L28.59,56.81Q28.25,52.82 32.23,52.47L65.11,49.6Q69.09,49.25 69.44,53.23L69.61,55.23A6.83,4 -5 0 1 55.99,56.42A6.83,4 -5 0 1 42.39,57.61A6.83,4 -5 0 1 28.77,58.8Z", .ink, .ink, 12),
+        .p("M28.77,58.8L28.59,56.81Q28.25,52.82 32.23,52.47L65.11,49.6Q69.09,49.25 69.44,53.23L69.61,55.23A6.83,4 -5 0 1 55.99,56.42A6.83,4 -5 0 1 42.39,57.61A6.83,4 -5 0 1 28.77,58.8Z", .tint, .none, 0),
+      ],
+      marks: [],
+      face: [
+        .c(40.37, 77.86, 10.7, .ink, .none, 0),
+        .c(56.31, 76.47, 9.5, .ink, .none, 0),
+        .c(40.37, 77.86, 8.2, .tint, .none, 0),
+        .c(38.69, 75.62, 4.2, .ink, .none, 0),
+        .c(56.31, 76.47, 7, .tint, .none, 0),
+        .c(55.35, 75.19, 4.2, .ink, .none, 0),
+        .p("M45.99,89.22L53.95,88.52A4,4 -5 1 1 45.99,89.22Z", .tint, .none, 0),
+      ]
+    ),
   ]
 
   // ── STAMPS v2 (deprecated: written while src/data/stamp-art-v2.ts exists) ──
@@ -1630,5 +1658,7 @@ enum KStampArtData {
     KStampArtEntry("boo", category: "seasonal", tint: 0xD6D3F7FF, art: [], soft: [], xs: []),
     // trick-or-treat: the template, no drawing in stamp-art-v2.ts
     KStampArtEntry("trick-or-treat", category: "seasonal", tint: 0xD55AC7FF, art: [], soft: [], xs: []),
+    // birthday: the template, no drawing in stamp-art-v2.ts
+    KStampArtEntry("birthday", category: "seasonal", tint: 0xF99CB3FF, art: [], soft: [], xs: []),
   ]
 }

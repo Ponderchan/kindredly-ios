@@ -1,4 +1,4 @@
-// node scripts/import-stamp-art-v3.mjs            read the 39 v3 SVGs, write src/data/stamp-art-v3.ts and
+// node scripts/import-stamp-art-v3.mjs            read the 40 v3 SVGs, write src/data/stamp-art-v3.ts and
 //                                                 design/stamps-v3/golden.json
 // node scripts/import-stamp-art-v3.mjs --check    exit 1 if either file is out of date with the SVGs
 // node scripts/import-stamp-art-v3.mjs --web "<web repo>/app/engine/stamp-art-v3.js"
@@ -9,11 +9,11 @@
 // The contract for the renderers is .claude/stamp-design/v3/INTEGRATION.md.
 //
 // WHAT IT READS
-//   .claude/stamp-design/v3/final/svg/<id>.svg  the kit's output (kit/build.mjs, checked 39/39 by
+//   .claude/stamp-design/v3/final/svg/<id>.svg  the kit's output (kit/build.mjs, checked 40/40 by
 //       kit/check.mjs): 100 × 120, five layers <g id="frame|rims|body|marks|face"> in that order,
 //       plain path / circle (ellipse, line, polyline, polygon and rect are read too), every paint one
 //       of three colours: the stamp's hex, ink #1E1B35, tint = mix(hex, white, 0.88);
-//   src/data/stamps.ts   the 39 ids in order (36 mood stamps, then the seasonal ones), each stamp's `color` (the hex), nameLight, nameDark;
+//   src/data/stamps.ts   the 40 ids in order (36 mood stamps, then the seasonal ones and the birthday stamp), each stamp's `color` (the hex), nameLight, nameDark;
 //   src/lib/stamp-frame.ts   STAMP_V3_FRAME_D, the frame path every SVG's frame layer must use;
 //   the kit itself (kit/lib.mjs tierSVG, kit/data.mjs = palette.json) for the golden file only.
 //
@@ -45,8 +45,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { PATH_CHARS, parsePath } from "./art-path.mjs";
 
 /** how many stamps stamps.ts lists: the 36 mood stamps and the seasonal ones (category "seasonal",
-    offered only in their season, lib/season-core; drawn like any other) */
-export const STAMP_COUNT = 39;
+    offered only in their season, lib/season-core; drawn like any other), the last of them the
+    birthday stamp (owner's audit, 2026-11-10: the same category, offered only on the reader's own
+    birthday, lib/birthday-stamp-core) */
+export const STAMP_COUNT = 40;
 export const SEASONAL_CAT = "seasonal";
 
 export const SRC = new URL("../.claude/stamp-design/v3/final/svg/", import.meta.url);
@@ -439,7 +441,7 @@ export async function buildGolden(r) {
     tag: { text: INK, fill: "the stamp hex", border: "theme ln", shadow: "theme ln (hard 3/3)", borderPt: 2 },
     trayName: { light: "nameLight (classic, lavender, paper)", dark: "nameDark (midnight)" },
     categories: cats,
-    // the seasonal stamps (offered only in their season; drawn like the rest)
+    // the seasonal category (offered only in their season, or on the reader's birthday; drawn like the rest)
     seasonal: r.stamps.filter((s) => s.cat === SEASONAL_CAT).map((s) => s.id),
     colours,
     draw,

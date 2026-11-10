@@ -14,10 +14,11 @@ import { strings } from "../lib/i18n";
      are written here.
    - The 8 o'clock knock on the reader's birthday (lib/local-push): her
      birthday line instead of the day's knock line.
-   - The birthday stamp in the composer's tray (lib/birthday): its small
-     marker. The stamp's own name and prompt live in data/stamps.ts with
-     every other stamp ("Birthday" / "It's my birthday today."), also
-     English only for now.
+   - The birthday stamp in the composer's tray (lib/birthday-stamp-core,
+     lib/birthday-stamp): its small marker and its set's heading. The
+     stamp's own name and prompt live in data/stamps.ts with every other
+     stamp ("Birthday" / "It's my birthday today."), also English only for
+     now (their other languages are "" there, which reads as English).
 
    Reused, no new copy: ep.birthday (the row, the wheel sheet's title),
    ob2.birthday.before (the line under that title), wren.trackClose (the
@@ -26,7 +27,7 @@ import { strings } from "../lib/i18n";
    own screen).
 
    Imported for its side effect by useEditProfileModel, lib/local-push and
-   lib/birthday. */
+   lib/birthday-stamp. */
 
 strings(
   /* ── en · English ── */
@@ -52,10 +53,11 @@ strings(
     "bd.knock": "happy birthday. i flew in early to say it first",
 
     // ── the birthday stamp in the composer's tray ──
-    // the small marker over the stamp, where the seasonal set says SEASONAL: mono caps, very short
-    // (it sits over ONE stamp, about 70pt wide)
+    // the small marker over the stamp, where the seasonal set says SEASONAL: mono 8 caps in a capsule, very short
+    // (it sits over ONE stamp in the strip: 12 characters at most)
     "bd.stamp.mark": "TODAY ONLY",
-    // the tray's heading over it (the full tray, in capitals like HALLOWEEN): one or two words
+    // the set's heading in the full tray (the React Native tray; in capitals like HALLOWEEN, beside the marker on one
+    // line) and what VoiceOver calls the set: one or two words
     "bd.stamp.set": "YOUR BIRTHDAY",
   },
   /* es, pt, id: to be written natively (t() falls back to English until then) */

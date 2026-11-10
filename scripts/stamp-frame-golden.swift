@@ -277,13 +277,13 @@ enum StampFrameGolden {
 
     // ── colours and the table ──
     let colours = json["colours"] as? [String: [String: String]] ?? [:]
-    // 36 mood stamps and the 3 seasonal ones (Halloween 2026; golden "seasonal")
-    ok("39 stamps in the golden and in KStampArtData.v3, the same ids",
-       colours.count == 39 && KStampArtData.v3.count == 39 && Set(colours.keys) == Set(KStampArt.ids))
-    ok("every id once in the table", Set(KStampArt.ids).count == KStampArt.ids.count && KStampArt.entries.count == 39)
+    // 36 mood stamps and the seasonal category: Halloween 2026's three and the birthday stamp (2026-11-10; golden "seasonal")
+    ok("40 stamps in the golden and in KStampArtData.v3, the same ids",
+       colours.count == 40 && KStampArtData.v3.count == 40 && Set(colours.keys) == Set(KStampArt.ids))
+    ok("every id once in the table", Set(KStampArt.ids).count == KStampArt.ids.count && KStampArt.entries.count == 40)
     let seasonal = json["seasonal"] as? [String] ?? []
-    ok("the seasonal three are in the table, in the seasonal category",
-       seasonal == ["spooky-season", "boo", "trick-or-treat"]
+    ok("the seasonal three and the birthday stamp are in the table, in the seasonal category",
+       seasonal == ["spooky-season", "boo", "trick-or-treat", "birthday"]
          && seasonal.allSatisfy { id in KStampArtData.v3.first { $0.id == id }?.category == "seasonal" })
     ok("every stamp has a drawing (none drawn as the frame alone)", KStampArt.unread.isEmpty)
     for entry in KStampArtData.v3 {
@@ -316,7 +316,7 @@ enum StampFrameGolden {
         drawn += g.count
       }
     }
-    ok("read every element of every tier (\(drawn))", drawn > 39 * 3 * 2)
+    ok("read every element of every tier (\(drawn))", drawn > 40 * 3 * 2)
 
     // ── every path reads, and paint stays in x 3–97, y 8–120 ──
     let b = json["bounds"] as? [String: Double] ?? [:]
@@ -333,7 +333,7 @@ enum StampFrameGolden {
         if !limit.insetBy(dx: -0.05, dy: -0.05).contains(r) { outside.append(id) }
       }
     }
-    ok("KSVGPath reads every path of all 39" + (empty.isEmpty ? "" : ": empty in \(Set(empty).sorted())"), empty.isEmpty)
+    ok("KSVGPath reads every path of all 40" + (empty.isEmpty ? "" : ": empty in \(Set(empty).sorted())"), empty.isEmpty)
     ok("paint stays in x 3–97, y 8–120 (drawn: \(union.integral))" + (outside.isEmpty ? "" : ": out in \(Set(outside).sorted())"), outside.isEmpty && !limit.isEmpty)
 
     // ── the fallback chain ──
