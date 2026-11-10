@@ -6,7 +6,7 @@ import { LOCAL_PROFILE_KEY } from "./auth";
 import { birdImageRef, useBirdImage } from "./bird-images";
 import { fmt as fmtDuration, firstWeekday, localeTag, noteDay, time24 } from "./format";
 import { getLang, t } from "./i18n";
-import { readJournal } from "./journal";
+import { readJournal, type JournalEntry } from "./journal";
 import { bookPages, buildBook, rangeFor, type BookFormat, type BookRange, type BookRangeKind, type BookResult } from "./journal-book-core";
 import { exportPages } from "./journal-export";
 import { parseLocal, visibleProfile } from "./profile-local-core";
@@ -72,6 +72,11 @@ export type BookOptions = {
   letterFont?: string;
   /** useBookWren() */
   wren?: string;
+  /** dev only (kindredly:///dev/journal-book): these pages instead of the phone's journal, so the
+      real builder can be walked on a simulator that has no journal */
+  entries?: readonly JournalEntry[];
+  /** dev only: how a stored media uri becomes a file the book may draw (default existingFile) */
+  file?: (uri: string) => string | null;
 };
 
 /** A stored mood as the book paints it; null for none and for one this app can't name. */
@@ -158,8 +163,8 @@ export function useBookWren(): string {
 /** THIS MONTH / THIS YEAR: which have at least one of the reader's pages, and whether the
     journal has any page of theirs at all (`any` false: the page's empty state). Rejects when
     the journal can't be read. */
-export async function rangesWithPages(now: Date = new Date()): Promise<{ month: boolean; year: boolean; any: boolean }> {
-  const entries = await readJournal();
+export async function rangesWithPages(now: Date = new Date(), opts: Pick<BookOptions, "entries"> = {}): Promise<{ month: boolean; year: boolean; any: boolean }> {
+  const entries = opts.entries ?? (await readJournal());
   return {
     month: bookPages(entries, rangeFor("month", now)).pages.length > 0,
     year: bookPages(entries, rangeFor("year", now)).pages.length > 0,
@@ -171,7 +176,7 @@ export async function rangesWithPages(now: Date = new Date()): Promise<{ month: 
     pages); `skipped` is how many of the reader's pages were left out because their date can't
     be read. Rejects when the journal can't be read. */
 export async function loadBook(range: BookRange, opts: BookOptions = {}): Promise<BookResult> {
-  const entries = await readJournal();
+  const entries = opts.entries ?? (await readJournal());
   const penName =
     opts.penName ??
     (await storedPenName().catch((e) => {
@@ -191,7 +196,7 @@ export async function loadBook(range: BookRange, opts: BookOptions = {}): Promis
     penName,
     letterFont,
     mood: bookMood,
-    file: existingFile,
+    file: opts.file ?? existingFile,
     wren: opts.wren ?? capturedWren(),
     fmt: bookFormat(),
   });

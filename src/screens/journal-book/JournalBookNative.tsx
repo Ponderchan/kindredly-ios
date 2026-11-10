@@ -8,7 +8,7 @@ import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
 import { t, useLang } from "../../lib/i18n";
 import { useEntitlement } from "../../lib/entitlement";
-import { exportBook, loadBook, rangesWithPages } from "../../lib/journal-book";
+import { exportBook, loadBook, rangesWithPages, useBookWren } from "../../lib/journal-book";
 import { exportablePages, shareJournalExport } from "../../lib/journal-export-file";
 import { BOOK_PAYWALL, BOOK_WRITE, bookKey, bookView, makeIntent, pickKind, rangeOf, type BookKind, type BookRanges, type BookSource } from "./journal-book-model";
 import "../../data/strings-book-screen"; // bk.*
@@ -48,6 +48,9 @@ export function JournalBookNative({ source = LIB, member }: { source?: BookSourc
   const router = useRouter();
   const { key: theme } = useTheme();
   const letterFont = useLetterFont();
+  // her back-cover picture is a snapshot of the real bird (lib/bird-images): keep it captured while
+  // the page is up, so the book the key makes carries her (the lib reads the capture when it builds)
+  useBookWren();
   const insets = useScreenInsets();
   const ref = useRef<KScreenHandle>(null);
   const commands = useKCommands(ref);

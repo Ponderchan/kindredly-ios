@@ -38,6 +38,7 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 ## Unreleased
 
 New (owner's audit, 2026-11-10; all need the next binary unless tagged)
+- Your journal, as a book (First Class): Settings → Export my journal opens a page with a live preview of your own book, this month or this year, set as a colourful zine (each day in its mood's colour, a calendar for every month, a month-end count where every number is counted from your pages, your photos, long pages running onto the next sheet), and a Save ink switch. Make my book writes an A5 PDF on the phone (nothing leaves it) and opens the share sheet; anyone can see the preview, members can export, and Just the words keeps the free text file one tap away. Words are English for now.
 - Today: for five seconds after Next (or a swipe), an Undo capsule over the band brings that letter back. The day's last letter keeps its "Bring back the last letter" in Wren's note instead.
 - Today: tapping a stranger's frosted face or name opens "Why can't I see who wrote this?" with how names get traded and a link to How It Works.
 - Birthday: on your birthday the first card on Today is a letter from your courier, signed with the name you gave her; Reply opens her room. Once a year, decided on the phone, nothing sent anywhere.
