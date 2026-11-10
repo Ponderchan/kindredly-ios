@@ -80,6 +80,16 @@ import SwiftUI
  One Host covers the full desk, the quiet day, the first load and the offline cold start. The
  toast, the reader and the sheets are React Native, over the Host; a reply in the air is Wren's
  to carry (KWireWren: she takes it off the band and comes back), not a React Native fly-by.
+
+ OWNER'S AUDIT, 2026-11-10. One addition, the desk otherwise as it was approved:
+ - UNDO AFTER NEXT. For five seconds after a pass TS sets content.undoId, and a small Undo
+   capsule (KUndoCapsule, in KControlBand.swift) stands just over the band, centred, in the card's
+   bottom margin and the air under it, above Wren's head. A tap is the ⋯'s bring back
+   (actions.onBringBack), so the deck plays its brought-back reverse. TS takes the offer away on
+   time and for every early reason; the desk also keeps it out of sight at once while the reader
+   writes back, the band steps aside, the + is open or the day's end has begun. Her first-day
+   arrival bubble shares that spot over her head, so it waits while the capsule is up and pops
+   back after.
  */
 
 // MARK: - Geometry
@@ -203,6 +213,14 @@ public struct KTodayDesk: View {
   private var deckEnabled: Bool {
     content.phase == .reading && !deck.typing && content.plus == .closed && !content.hideBand
       && !deck.animating && flow.isReading
+  }
+
+  /// The Undo capsule is up: TS offers the last pass back (content.undoId, its five seconds), and
+  /// nothing of the desk's own is in the way (the keyboard, the band stepping aside, the + panel,
+  /// the day's end, which starts here before TS says done).
+  private var undoShown: Bool {
+    !content.undoId.isEmpty && !content.labels.undo.isEmpty && content.phase == .reading
+      && content.plus == .closed && !content.hideBand && !deck.typing && flow.isReading
   }
 
   /// the card the deck shows, which the reply answers (nil in done)
@@ -362,7 +380,8 @@ public struct KTodayDesk: View {
         width: W,
         controlTop: g.controlTop,
         canPlay: content.window.canPlay,
-        arrivalLine: content.arrivalLine,
+        // her arrival bubble stands where the Undo capsule does: it waits while the capsule is up
+        arrivalLine: undoShown ? "" : content.arrivalLine,
         hidden: plus != .closed,
         motion: motion,
         deck: deck,
@@ -370,6 +389,13 @@ public struct KTodayDesk: View {
       )
       .frame(width: W)
       .frame(maxHeight: .infinity)
+
+      // 7. Undo after Next (owner's audit, 2026-11-10): over the band, centred, for the five
+      // seconds TS offers the last pass back; the tap is the ⋯'s bring back
+      KUndoCapsule(theme: theme, label: content.labels.undo, hint: content.labels.undoHint, shown: undoShown) { [actions] in
+        actions.onBringBack()
+      }
+      .position(x: W / 2, y: g.controlTop - KUndoCapsule.lift)
     }
   }
 

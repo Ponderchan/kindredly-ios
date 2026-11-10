@@ -41,6 +41,9 @@ import ExpoUI
  - wren: Wren on the band { rest: idle | sleepy (anything else is idle), carry (moves as each reply
    leaves: she takes the letter and comes back), reader (the reader is open), a11y, name }. Her
    hop's haptic is SwiftUI's sensoryFeedback in Portable (KWireWren), so nothing here for it
+ - undoId (owner's audit, 2026-11-10): the letter just passed while TS offers to bring it back
+   (five seconds; "" otherwise): the desk stands the Undo capsule over the band (strings.undo,
+   strings.undoHint), and its tap is onTodayBringBack
 
  Commands (KCommandBus):
  - setText { target: "reply", value }   seed the reply field (the bound letter's draft)
@@ -51,7 +54,7 @@ import ExpoUI
 
  Events, with what nativeEvent carries:
  - onTodayPass { letterId }                 a card passed (the swipe, NEXT, VoiceOver's "Next letter")
- - onTodayBringBack {}                      the ⋯'s Bring back the last letter
+ - onTodayBringBack {}                      the ⋯'s Bring back the last letter, and the Undo capsule
  - onTodayReplyOpen { letterId }            REPLY opened the field for the shown letter
  - onTodayWindow {}                         the window, while she can play
  - onTodayArrivalDismiss {}                 her arrival bubble tapped (or Wren under it): TS settles it for good
@@ -202,6 +205,9 @@ struct KTodayStringsRecord: Record {
   @Field var loadingA11y: String = ""
   /// VoiceOver: her arrival bubble is a button that puts it away ("Close")
   @Field var arrivalDismiss: String = ""
+  /// the Undo capsule after Next and VoiceOver's hint for it (owner's audit, 2026-11-10)
+  @Field var undo: String = ""
+  @Field var undoHint: String = ""
 
   var labels: KTodayLabels {
     var l = KTodayLabels()
@@ -224,6 +230,8 @@ struct KTodayStringsRecord: Record {
     l.offlineTitle = offlineTitle
     l.offlineBody = offlineBody
     l.loadingA11y = loadingA11y
+    l.undo = undo
+    l.undoHint = undoHint
     return l
   }
 }
@@ -382,6 +390,8 @@ final class KTodayViewProps: KScreenProps {
   @Field var plus: String = "closed"
   @Field var hideBand: Bool = false
   @Field var wren: KTodayWrenRecord = KTodayWrenRecord()
+  /// undo after Next: the letter just passed while its Undo capsule is up, "" otherwise
+  @Field var undoId: String = ""
 
   var onTodayPass = EventDispatcher()
   var onTodayBringBack = EventDispatcher()
@@ -481,6 +491,7 @@ struct KTodayView: ExpoSwiftUI.View {
     content.plus = KTodayPlus(rawValue: props.plus) ?? .closed
     content.hideBand = props.hideBand
     content.wren = props.wren.wren
+    content.undoId = props.undoId
     return KTodayDesk(
       theme: props.kTheme,
       content: content,

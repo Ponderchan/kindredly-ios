@@ -23,7 +23,10 @@ import { nativeFrost, type KFrost, type KImageRefProps, type KInsets, type KMark
    it). Pass `cards` memoised with a rev from useRev — apart from the drafts, so typing never
    re-sends fifteen letters. Anything that changes often (the composer's key and hint, focus,
    playback, text seeds) goes through commands, never props. No children: Wren is drawn in Swift
-   from her own pictures (`birds`, BirdSnapshots captures), so the desk has no islands. */
+   from her own pictures (`birds`, BirdSnapshots captures), so the desk has no islands.
+
+   Owner's audit, 2026-11-10: `undoId` + strings.undo (the Undo capsule over the band for five
+   seconds after a pass; its tap is onBringBack). */
 
 /** The one capsule slot at a card's foot. */
 export type KTodayCapsule = {
@@ -144,6 +147,10 @@ export type KTodayStrings = {
   loadingA11y: string;
   /** VoiceOver: her arrival bubble is a button that puts it away */
   arrivalDismiss: string;
+  /** owner's audit, 2026-11-10 — the Undo capsule after Next: its word ("Undo") and VoiceOver's hint
+      ("Bring back the last letter"). A binary without the capsule ignores both */
+  undo: string;
+  undoHint: string;
 };
 
 /** Her counted note when the desk is done (today-cards WrenLetterVM). */
@@ -229,7 +236,12 @@ export type KTodayViewProps = CommonViewModifierProps &
     /** NEXT and REPLY step aside: a send in flight, or the reader open */
     hideBand: boolean;
     wren: KTodayWren;
+    /** undo after Next (owner's audit, 2026-11-10): the letter just passed while its Undo capsule is up (TS
+        counts the five seconds and every reason it goes early), "" otherwise. The capsule's tap is
+        onBringBack. A binary without the capsule ignores it: the ⋯'s "Bring back the last letter" is still there */
+    undoId?: string;
     onPass?: (letterId: string) => void;
+    /** the ⋯'s Bring back the last letter, and the Undo capsule */
     onBringBack?: () => void;
     onReplyOpen?: (letterId: string) => void;
     onWindow?: () => void;

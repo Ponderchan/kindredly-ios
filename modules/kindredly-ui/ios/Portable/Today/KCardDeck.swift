@@ -60,6 +60,9 @@ import SwiftUI
  - the shown card left (answered, blocked, withdrawn): it goes out up as for a pass, cards.first
    comes in, and the beat says .left(last:); nothing calls onPass;
  - anything else (the first deal after loading, the day turning): cards.first comes in.
+ The Undo capsule after Next (owner's audit, 2026-11-10; KUndoCapsule, drawn by the desk) is that
+ same bring back, asked for within five seconds of the pass: nothing new here. Tapped while the
+ pass is still animating, the reverse simply waits for the end of the transition, as above.
 
  HOW THE MOTION IS BUILT. The card's pose (offset, scale, opacity) is the deck's state, applied
  inside the card's identity (.id(letter id)), so the finger and the out-animation move the view
@@ -208,6 +211,9 @@ struct KCardDeck: View {
       } else if let model {
         KLetterCard(theme: theme, card: model, labels: content.labels, compact: compact, voice: voice, actions: cardActions)
           .equatable()
+          // undo after Next (owner's audit, 2026-11-10): while TS offers it, the card on screen
+          // carries it as a VoiceOver action too (the capsule itself is the desk's)
+          .environment(\.kCardUndo, KCardUndo(label: content.undoId.isEmpty ? "" : content.labels.undo) { [actions] in actions.onBringBack() })
           .modifier(KFreshUnfold(active: content.freshUnfold && model.id == box.freshId))
           .frame(height: height)
           .accessibilityFocused($voFocus, equals: model.id)

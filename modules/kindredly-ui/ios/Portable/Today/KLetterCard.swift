@@ -78,10 +78,34 @@ import SwiftUI
  VoiceOver reads the card as one element (TS's a11yLabel: who wrote it and when — "SEP.23 ·
  NO.7273" with the switch off, "Sunday Kite, she, Gemini. SEP.23" with it on — the topic, why the
  matcher chose it, the letter or what the voice letter is) with its moves as actions, in this order:
- write back, translate or show the original, unfold or play/pause (as the press would do now),
- every menu item (report, block, bring back), and next letter. Every move names the card it came
- from, so the desk can refuse a reply to a card that is no longer the one shown.
+ Undo while the capsule over the band offers it (the five seconds after Next; KCardUndo), write
+ back, translate or show the original, unfold or play/pause (as the press would do now), every menu
+ item (report, block, bring back), and next letter. Every move names the card it came from, so the
+ desk can refuse a reply to a card that is no longer the one shown.
  */
+
+/// Undo after Next, as the card on screen offers it to VoiceOver (owner's audit, 2026-11-10): the
+/// word ("" while there is nothing to undo) and the move, the Undo capsule's own. The deck sets it
+/// in the card's environment, so the card stays equal to itself while the offer comes and goes.
+/// Equal by its word alone (the move always reaches the same long-lived actions), so a deck
+/// redrawn per drag frame doesn't look like a new offer.
+struct KCardUndo: Equatable {
+  var label = ""
+  var act: () -> Void = {}
+
+  static func == (a: KCardUndo, b: KCardUndo) -> Bool { a.label == b.label }
+}
+
+private struct KCardUndoKey: EnvironmentKey {
+  static let defaultValue = KCardUndo()
+}
+
+extension EnvironmentValues {
+  var kCardUndo: KCardUndo {
+    get { self[KCardUndoKey.self] }
+    set { self[KCardUndoKey.self] = newValue }
+  }
+}
 
 /// What a card's taps do (one object per surface, so a card is always equal to itself). Each
 /// carries the card's id: a reply is always bound to its own letter.
@@ -360,11 +384,17 @@ struct KLetterCardAccessibilityActions: ViewModifier {
   let actions: KLetterCardActions
   /// a stranger's photo stamp on the card: Keep / Report it (custom stamps)
   @ObservedObject private var registry = KCustomStamps.shared
+  /// undo after Next, while the capsule over the band offers it (the deck sets it)
+  @Environment(\.kCardUndo) private var undo
 
   func body(content: Content) -> some View {
     let playing = voice.key == card.id && voice.playback?.playing == true
     let photo = card.stampId.hasPrefix("c:") ? registry.info(card.stampId) : nil
     content.accessibilityActions {
+      // first while it lasts: five seconds are short
+      if !undo.label.isEmpty {
+        SwiftUI.Button(undo.label) { undo.act() }
+      }
       SwiftUI.Button(labels.replyA11y) { actions.onReply(card.id) }
       if case let .translate(_, label, enabled, _) = card.capsule, enabled {
         SwiftUI.Button(label) { actions.onAction(card.id, "translate") }

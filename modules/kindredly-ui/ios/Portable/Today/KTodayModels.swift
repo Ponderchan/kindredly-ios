@@ -161,6 +161,10 @@ public struct KTodayLabels: Equatable, Sendable {
   public var offlineBody = ""
   /// VoiceOver: the first load's empty card
   public var loadingA11y = ""
+  /// the Undo capsule after Next (owner's audit, 2026-11-10): "Undo", and VoiceOver's hint for it
+  /// ("Bring back the last letter"); "" from a TS that sends no capsule
+  public var undo = ""
+  public var undoHint = ""
 
   public init() {}
 }
@@ -312,6 +316,10 @@ public struct KTodayContent: Equatable, Sendable {
   /// a reply in the air is hers to carry, wren.carry)
   public var hideBand = false
   public var wren = KTodayWren()
+  /// undo after Next (owner's audit, 2026-11-10): the letter just passed while TS offers to bring it
+  /// back (five seconds, and every reason it goes early, are TS's: today-cards undoOpen); "" for no
+  /// offer. The desk stands the Undo capsule over the band while it is set (KUndoCapsule)
+  public var undoId = ""
   public var labels = KTodayLabels()
 
   public init() {}
@@ -499,7 +507,7 @@ public final class KDeckMotion: ObservableObject {
 public final class KTodayActions {
   /// a card passed (the swipe up, NEXT, VoiceOver's "Next letter")
   public var onPass: (_ letterId: String) -> Void = { _ in }
-  /// the ⋯'s Bring back the last letter
+  /// the ⋯'s Bring back the last letter, and the Undo capsule after Next (the same one step back)
   public var onBringBack: () -> Void = {}
   /// REPLY (or the card's "Write back") opened the field for the shown letter
   public var onReplyOpen: (_ letterId: String) -> Void = { _ in }

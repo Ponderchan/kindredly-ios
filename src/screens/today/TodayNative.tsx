@@ -55,6 +55,9 @@ import type { TodayModel } from "./useTodayDesk";
    - events back to the model: a pass, bring back, REPLY opening the field,
      the window (her game, through the router), the reply's edits and sends,
      a card's actions;
+   - owner's audit, 2026-11-10: `undoId`, the letter just passed while its
+     Undo capsule is up (the model counts the five seconds; the capsule's tap
+     is bring back);
    - and the field's focus to the tab bar: writing back (the chat composers'
      A1, owner 2026-10-18) is the field having the keyboard, and while it
      does the floating tab bar slides away (useTabBarAway), since the
@@ -228,6 +231,9 @@ export function TodayNative({ model }: { model: TodayModel }) {
     offlineBody: s.offlineBody,
     loadingA11y: s.loadingA11y,
     arrivalDismiss: s.arrivalDismiss,
+    // owner's audit, 2026-11-10: the Undo capsule after Next
+    undo: s.undo,
+    undoHint: s.undoHint,
   });
   const desk = useSame<KTodayDeskTick[]>(view.desk);
   const wrenLetter = useSame<KTodayWrenLetter>(view.wrenLetter);
@@ -261,6 +267,7 @@ export function TodayNative({ model }: { model: TodayModel }) {
           plus={view.plus}
           hideBand={view.hideBand}
           wren={wren}
+          undoId={view.undo}
           onPass={act.pass}
           onBringBack={act.bringBack}
           onReplyOpen={act.replyOpen}

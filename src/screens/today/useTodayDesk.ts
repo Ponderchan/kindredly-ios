@@ -50,6 +50,7 @@ import type { WrenStage } from "../../components/WrenBird";
 import "../../data/strings-step5-today";
 import "../../data/strings-today3d";
 import "../../data/strings-step5-platform"; // cmp.emoji
+import "../../data/strings-identity2"; // id2.sheet.undo: "Undo", in all nine (the Undo capsule after Next)
 import * as C from "./today-cards";
 
 /* THE TODAY TAB'S MODEL (10a step 5; Today 3d × 25b, 2026-10-16):
@@ -87,6 +88,13 @@ import * as C from "./today-cards";
    - useTodayDesk(): the two together, as the route uses them.
 
    Every word a renderer shows is set here or in today-cards, with t().
+
+   OWNER'S AUDIT, 2026-11-10 (a gap a new reader fell into):
+   - UNDO AFTER NEXT. NEXT is one tap and a passed letter doesn't come back
+     by itself, so for five seconds after a pass the view carries `undo` (the
+     passed letter's id) and the renderers stand a small Undo capsule over
+     the band; it calls bringBack, the ⋯'s own one step back. The rules are
+     today-cards' (undoOffer / undoOpen); the offer is kept here in memory.
 
    LEGACY: until integrate and rn-fallback rewire TodayNative / TodayRN /
    TodayOverlays, the view also carries what the step-5 scroll stack and
@@ -563,6 +571,9 @@ export type TodayStrings = {
   loadingA11y: string;
   /** VoiceOver: her arrival bubble is a button that puts it away ("Close") */
   arrivalDismiss: string;
+  /** the Undo capsule after Next ("Undo"), and what VoiceOver adds about it ("Bring back the last letter") */
+  undo: string;
+  undoHint: string;
   /** legacy: ↑ PASS, on the step-5 card */
   pass: string;
   /** legacy: VoiceOver's "Previous letter" on the step-5 card */
@@ -594,6 +605,8 @@ export type TodayView = {
   titleLocked: boolean;
   /** Bring back is offered (the card's ⋯ carries it; the RN ⋯ reads this) */
   canBringBack: boolean;
+  /** undo after Next: the letter just passed while its Undo capsule is up (five seconds; today-cards undoOpen), "" otherwise */
+  undo: string;
   /** her first arrival: her line over her head while the first three letters are up. legacy: states / labels / values are the step-5 envelopes */
   arrival: { open: boolean; line: string; states: C.EnvelopeState[]; labels: string[]; values: string[] };
   /** the first card unfolds as it arrives (the arrival is open) */
@@ -661,7 +674,7 @@ export type TodayView = {
 export type TodayActions = {
   /** a card passed (the swipe up, NEXT, VoiceOver's "Next letter"); an id not on the desk is ignored */
   pass: (letterId: string) => void;
-  /** the ⋯'s Bring back: the last pass, one step */
+  /** the ⋯'s Bring back, and the Undo capsule after Next: the last pass, one step */
   bringBack: () => void;
   /** REPLY opened the field for the letter on screen: that is reading it (the read receipt goes now) */
   replyOpen: (letterId: string) => void;
@@ -1087,6 +1100,28 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   /* the letter a blocked send was aimed at, so signing in resumes THAT one */
   const pendingReply = useRef<PoolLetter | null>(null);
 
+  /* UNDO AFTER NEXT (owner's audit, 2026-11-10). A pass starts the Undo
+     capsule's five seconds (today-cards undoOffer; act.pass below). The
+     offer is kept here, in memory, and goes for good when the five seconds
+     run out, when the reader starts a reply (act.replyOpen) or one is in the
+     air, when the unfolded reader or the + panel opens, when the tab loses
+     focus, and when the letter is brought back by any road (the capsule, the
+     ⋯). Everything else is the record's to say, read each render
+     (undoOpen): a newer pass owns the undo, the letter left the desk, the
+     day turned, or the desk is done (her letter's ⋯ carries it there). */
+  const [undoOffer, setUndoOffer] = useState<C.UndoOffer | null>(null);
+  useEffect(() => {
+    if (!undoOffer) return;
+    const timer = setTimeout(() => setUndoOffer((o) => (o === undoOffer ? null : o)), Math.max(0, undoOffer.until - Date.now()));
+    return () => clearTimeout(timer);
+  }, [undoOffer]);
+  const undoAway = sending || openReaderId != null || plusOpen;
+  useEffect(() => {
+    if (undoAway) setUndoOffer(null);
+  }, [undoAway]);
+  useFocusEffect(useCallback(() => () => setUndoOffer(null), []));
+  const undoId = undoOffer && C.undoOpen({ offer: undoOffer, rec, phase, now: Date.now(), away: undoAway }) ? undoOffer.id : "";
+
   const isGuest = () => depsRef.current.guest?.() ?? sessionGuest;
 
   /* letters leave the desk (answered, refused, blocked): the record says
@@ -1300,9 +1335,22 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
 
   const act = useMemo<TodayActions>(
     () => ({
-      pass: (id) => update((r) => C.passLetter(r, id)),
-      bringBack: () => update(C.bringBack),
+      pass: (id) => {
+        // a pass that took starts the Undo capsule's five seconds (one that didn't leaves any offer as it was)
+        let offer: C.UndoOffer | null = null;
+        update((r) => {
+          const next = C.passLetter(r, id);
+          if (next !== r) offer = C.undoOffer(next, id, Date.now());
+          return next;
+        });
+        if (offer) setUndoOffer(offer);
+      },
+      bringBack: () => {
+        update(C.bringBack);
+        setUndoOffer(null);
+      },
       replyOpen: (id) => {
+        setUndoOffer(null); // writing back: the Undo capsule goes
         if (id === currentRef.current?.id) markReadNow(id);
       },
       window: () => {
@@ -1379,6 +1427,9 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
       offlineBody: t("ld.offlineDesk"),
       loadingA11y: t("ld.loading.a11y"),
       arrivalDismiss: t("nb.close"),
+      // owner's audit, 2026-11-10: both are existing lines, in all nine languages
+      undo: t("id2.sheet.undo"),
+      undoHint: t("ld.bringBack"),
       pass: t("ld.pass"),
       previous: t("ld.prev.a11y"),
     }),
@@ -1427,6 +1478,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     current,
     titleLocked: rec.passed.length > 0 || phase === "done",
     canBringBack: bringBackNow,
+    undo: undoId,
     arrival,
     freshUnfold: arrivalOpen,
     reply: { letterId: current?.id ?? "", draft, preview: C.draftPreview(draft), state: replyNow },

@@ -142,6 +142,8 @@ import "../../data/strings-today3d";
      back a little.
    LetterReader and TodayOverlays are shared with the SwiftUI desk (the
    route draws them over either).
+   - owner's audit, 2026-11-10: the Undo capsule after Next is here too (the
+     model's view.undo, a flat ink capsule over the band, the word alone).
 
    VoiceOver gets what the Swift card gives it: the card is one element
    whose moves are actions (write back, translate, unfold or play / pause,
@@ -723,7 +725,10 @@ export function TodayRN({ model }: { model: TodayModel }) {
   const groundShown = flow.wren === "ground" && plusClosed && !(readerOpen && flow.reading);
   const nestShown = flow.wren === "window" && plusClosed;
   const windowShown = flow.window && plusClosed;
-  const bubbleShown = view.arrival.open && view.arrival.line !== "" && groundShown && !writing && !errand.away;
+  /* undo after Next (owner's audit, 2026-11-10): the model's five seconds, while the band is there to stand over */
+  const undoShown = view.undo !== "" && view.phase === "reading" && flow.reading && !writing && !bandHidden;
+  // her bubble stands where the Undo capsule does: it waits while the capsule is up
+  const bubbleShown = view.arrival.open && view.arrival.line !== "" && groundShown && !writing && !errand.away && !undoShown;
   /* a tap on her: 8 up and back with a light haptic, delighted for a moment (not while writing, away, or once the day is ending) */
   const tappable = groundShown && flow.reading && flow.face == null && !writing && !errand.away;
   const dismissArrival = act.dismissArrival;
@@ -854,6 +859,25 @@ export function TodayRN({ model }: { model: TodayModel }) {
 
       {/* her first-arrival line, over her head */}
       {bubbleShown && <ArrivalBubble line={view.arrival.line} dismiss={view.strings.arrivalDismiss} onDismiss={dismissArrival} bottom={H - (geo.controlTop + BUBBLE_TIP)} />}
+
+      {/* undo after Next (owner's audit, 2026-11-10; Swift's KUndoCapsule, drawn more plainly: the word alone):
+          a flat ink capsule just over the band for the model's five seconds; the tap is the ⋯'s bring back */}
+      {undoShown && (
+        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, top: geo.controlTop - 32, alignItems: "center" }}>
+          <Pressable
+            onPress={act.bringBack}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={view.strings.undo}
+            accessibilityHint={view.strings.undoHint}
+            style={({ pressed }) => ({ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: tk.ink, opacity: pressed ? 0.6 : 1 })}
+          >
+            <Text maxFontSizeMultiplier={1.3} style={{ fontSize: 13, fontWeight: "600", lineHeight: 16, color: tk.bg }}>
+              {view.strings.undo}
+            </Text>
+          </Pressable>
+        </Animated.View>
+      )}
 
       {/* while you write: the desk dims, a tap on it puts the keyboard away */}
       {writing && (

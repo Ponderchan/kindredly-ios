@@ -1,6 +1,8 @@
 /* Behaviour lock for the Today tab's model (screens/today/today-cards): the
    saved day (read, phase, pass / bring back / answer / drop, seen, freeze,
-   done, the relaunch), Next's ring (the desk in reading order, an answered
+   done, the relaunch), undo after Next (owner's audit, 2026-11-10: the five
+   seconds, the most recent pass only, and how it follows every move on the
+   saved day), Next's ring (the desk in reading order, an answered
    letter kept in its place), left as the desk's own intersection, the seal held
    against the desk, how a load deals, her counted letter and the window,
    how Wren rests on the band (her night hours, her hunger), the card both
@@ -193,6 +195,35 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   const withDesk = M.withDesk(M.passLetter(r0, "a"), [L({ id: "b" })]);
   ok("a load that loses the undo letter clears the undo", withDesk.undo === null);
   ok("a load that changes nothing keeps the same record (nothing is put away)", M.withDesk(r0, [...r0.desk]) === r0);
+
+  /* undo after Next (owner's audit, 2026-11-10): five seconds, the most recent pass only, held against the record */
+  const phaseOf = (r: typeof r0) => M.deskPhase({ loaded: true, offline: false, desk: r.desk, passed: r.passed });
+  const open = (offer: import("./today-cards").UndoOffer | null, r: typeof r0, now: number, away = false) => M.undoOpen({ offer, rec: r, phase: phaseOf(r), now, away });
+  const T0 = 1_000_000;
+  const offerA = M.undoOffer(r1, "a", T0);
+  ok("undo: a pass leaves an offer for that letter, five seconds long", !!offerA && offerA.id === "a" && offerA.until === T0 + 5000 && M.UNDO_MS === 5000);
+  ok("undo: no offer for a pass that didn't take, or for a letter that isn't the record's undo", M.undoOffer(r0, "a", T0) === null && M.undoOffer(r1, "b", T0) === null);
+  ok("undo: up at once and through the five seconds", open(offerA, r1, T0) && open(offerA, r1, T0 + 4999));
+  ok("undo: gone at five seconds", !open(offerA, r1, T0 + 5000));
+  ok("undo: no offer, no capsule", !open(null, r1, T0));
+  ok("undo: steps aside for a reply, the reader or the + panel", !open(offerA, r1, T0, true));
+  const undone = M.bringBack(r1);
+  ok("undo: it is the bring back: the letter is on screen again and nothing is left to undo", M.unpassed(undone.desk, undone.passed)[0].id === "a" && !open(offerA, undone, T0 + 1));
+  ok("undo: the record is the one from before the pass (Next's count and ring with it)", JSON.stringify(undone) === JSON.stringify(r0));
+  // b came on screen for a moment before the undo: the ring is back on a, and b stays read, as after the ⋯'s bring back
+  const sawB = M.deskTicks({ ...undone, seen: ["a", "b"] }, M.unpassed(undone.desk, undone.passed).map((l) => l.id));
+  ok("undo: Next's ring is back on the letter brought back", sawB.at === 0 && sawB.desk.map((x) => x.state).join() === "read,read,unread");
+  const offerB = M.undoOffer(r3, "b", T0 + 1000);
+  ok("undo: the next pass takes the offer (only the most recent pass)", !open(offerA, r3, T0 + 1000) && !!offerB && open(offerB, r3, T0 + 1000) && M.bringBack(r3).passed.join() === "a");
+  const lastPass = M.passLetter(r3, "c");
+  ok("undo: the day's last pass shows none (the desk is done: her letter's ⋯ brings it back)", !open(M.undoOffer(lastPass, "c", T0), lastPass, T0) && M.canBringBack(lastPass));
+  ok("undo: goes when its letter is blocked or taken back", !open(offerA, M.dropAuthor(r1, "author-a"), T0 + 1) && !open(offerA, M.dropLetters(r1, ["a"]), T0 + 1));
+  ok("undo: goes when a load prunes its letter", !open(offerA, M.withDesk(r1, [L({ id: "b" }), L({ id: "c" })]), T0 + 1));
+  ok("undo: stays through a load that keeps the letter, and through another letter's reply", open(offerA, M.withDesk(r1, [...r1.desk, L({ id: "d" })]), T0 + 1) && open(offerA, M.answerLetter(r1, "c"), T0 + 1));
+  ok("undo: goes when the day turns", !open(offerA, M.emptyDay("2026-10-17"), T0 + 1));
+  // put away and read again (a relaunch): the record still knows its undo; the offer was only ever in memory
+  const reread = M.readDayRecord(JSON.stringify(r1), TODAY);
+  ok("undo: a relaunch keeps the ⋯'s bring back, and has no capsule of its own", !!reread && M.canBringBack(reread.rec) && !open(null, reread.rec, T0 + 1));
 }
 
 /* ── a relaunch mid-day keeps where the reader was ── */

@@ -366,6 +366,73 @@ struct KDeskRing: View {
   }
 }
 
+/*
+ UNDO AFTER NEXT (owner's audit, 2026-11-10). Next is one tap and a passed letter doesn't come
+ back by itself, so a mis-tap cost a letter unless the reader knew the ⋯ held "Bring back the last
+ letter". For five seconds after a pass (TS counts them, and says when it goes early: a reply
+ begun, the + panel, the reader, the tab left, the next pass taking the offer over) this small
+ capsule stands just over the band, centred: the system's arrow.uturn.backward and TS's "Undo".
+ A tap is that same bring back (KTodayActions.onBringBack), so the deck plays its brought-back
+ reverse and Next's ring steps back with TS's desk.
+
+ It is the app's toast, made a button: flat, ink with the page colour on it (KToastPill's pair, so
+ it reads on the card's foot and on the ground in all four themes), system 600 13, no outline and
+ no shadow. Its centre sits `lift` above the band's top: the capsule then lies in the card's own
+ bottom margin and the 14 of air under the card, above Wren's head, over no word of the letter and
+ clear of her (her arrival bubble, which shares the spot on her first day, waits while it is up:
+ KTodayDesk). The target is the capsule and 6 round it (44 tall).
+
+ It fades in over .25s rising 6, and fades out; under Reduce Motion it only fades. VoiceOver reads
+ it as a button, "Undo", with TS's hint ("Bring back the last letter"); the card on screen offers
+ the same move as an action (KLetterCardAccessibilityActions), since five seconds are short for
+ finding a new button. Always in the tree (its opacity says whether it is up), so the words are
+ still there while it fades.
+ */
+struct KUndoCapsule: View {
+  /// the capsule's centre, this far above the band's top
+  static let lift: CGFloat = 16
+  /// the words: system 600 13, the toast's
+  static let labelStyle = KTextStyle.system(13, .semibold)
+
+  let theme: KTheme
+  let label: String
+  /// VoiceOver's hint: what the tap does
+  let hint: String
+  let shown: Bool
+  let action: () -> Void
+
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  var body: some View {
+    Button(action: action) {
+      HStack(spacing: 6) {
+        Image(systemName: "arrow.uturn.backward")
+          .font(.system(size: 12, weight: .bold))
+          .accessibilityHidden(true)
+        Text(label)
+          .kText(Self.labelStyle)
+          .lineLimit(1)
+      }
+      .foregroundStyle(theme.bg)
+      .padding(.horizontal, 14)
+      .padding(.vertical, 8)
+      .background(Capsule().fill(theme.ink))
+      // the target: 6 round the capsule
+      .padding(6)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(KFadePressStyle())
+    .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+    .opacity(shown ? 1 : 0)
+    .offset(y: shown || reduceMotion ? 0 : 6)
+    .animation(reduceMotion ? KTodayMotion.reduced : .easeOut(duration: 0.25), value: shown)
+    .allowsHitTesting(shown)
+    .accessibilityLabel(label)
+    .accessibilityHint(hint)
+    .accessibilityHidden(!shown)
+  }
+}
+
 /// B8's two glyphs on a 24 grid, scaled to the frame: Next's ↑ (M12 19V5 M6 11l6-6 6 6) and
 /// Reply's ↩ (M9 7 4 12l5 5 M4 12h9a6 6 0 0 1 6 6v1); and the ✓ Next shows on the day's last
 /// letter (M5 12.5l4.5 4.5L19 7.5), in the ↑'s room.

@@ -32,6 +32,9 @@ const TOPIC_TAG_NEUTRAL = "#B9B5D0";
    - the phase (loading / offline / reading / done) and every move on the
      day: pass, bring back (one step), answer, drop (gone / blocked /
      withdrawn), seen, freeze, done; how a load deals, fills or only prunes;
+   - undo after Next (owner's audit, 2026-11-10): the five seconds the Undo
+     capsule is offered after a pass, held against the record so it follows
+     every move above;
    - her counted letter when the desk is done (W33: every number on it is a
      count the phone holds; a zero gets its own sentence) and the window to
      her game, with its sky by the hour;
@@ -288,6 +291,47 @@ export function freeze(rec: DayRecord, now: number): DayRecord {
 export function markDone(rec: DayRecord, now: number): DayRecord {
   if (rec.doneAt != null) return rec;
   return { ...rec, doneAt: now };
+}
+
+/* ── undo after Next (owner's audit, 2026-11-10) ──────────────────────── */
+
+/* NEXT is one tap, and a passed letter doesn't come back by itself, so a
+   mis-tap used to cost a letter unless the reader knew the ⋯ held "Bring back
+   the last letter". For UNDO_MS after a pass a small Undo capsule stands over
+   the band; it is that same bring back (one step, the record's `undo`), with
+   nothing new for the record to keep: a pass says nothing to the server (the
+   read receipt goes on reading a letter, not on passing it), and bringing a
+   letter back only edits the day on this phone, as the ⋯ always did.
+
+   The offer lives in memory beside the record, never in it (a relaunch inside
+   the five seconds simply has no capsule; the ⋯ still brings the letter
+   back). It is held against the record every time it is read, so whatever
+   the saved-day rules do to the letter, the capsule follows: a newer pass
+   owns the undo, a load that pruned the letter, a block or a withdrawal took
+   it away, the day turned, or that pass was the day's last and the desk is
+   done (her letter's ⋯ carries the bring back there). */
+
+/** how long the Undo capsule stays up after a pass */
+export const UNDO_MS = 5000;
+
+/** The capsule's offer: the letter just passed, and the moment (ms) the offer lapses. */
+export type UndoOffer = { id: string; until: number };
+
+/** What a pass leaves for the capsule: an offer for that letter, or null when the pass didn't take (it isn't the record's undo). */
+export function undoOffer(rec: DayRecord, id: string, now: number): UndoOffer | null {
+  return rec.undo === id && canBringBack(rec) ? { id, until: now + UNDO_MS } : null;
+}
+
+/**
+ * Whether the capsule is up: an offer that hasn't lapsed, for the pass the
+ * record would still undo, on a desk that is reading, with nothing in the
+ * way (`away`: a reply being written or sent, the unfolded reader, the +
+ * panel). Only the most recent pass can be undone: an offer for an older one
+ * is no offer.
+ */
+export function undoOpen(a: { offer: UndoOffer | null; rec: DayRecord; phase: DeskPhase; now: number; away?: boolean }): boolean {
+  const { offer } = a;
+  return !!offer && !a.away && a.phase === "reading" && a.now < offer.until && a.rec.undo === offer.id && canBringBack(a.rec);
 }
 
 /* ── the seal ─────────────────────────────────────────────────────────── */
