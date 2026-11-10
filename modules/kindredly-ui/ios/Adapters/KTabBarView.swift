@@ -31,9 +31,12 @@ import ExpoUI
    "cards" (the 10a sheet above, the default; ui-lab), "sheet" (the older publish sheet) or "pop"
    (the older two buttons). Anything else is "cards"
  - sheet: { ask, letterTitle, letterSub, letterLeft, letterOut, noteTitle, noteSub, footnote,
-   bird }: the publish entry's words for the sheet and the grown bar's tray ("" letterLeft hides
-   the count, letterOut draws it red, "" ask leaves the tray's Wren line out) and the user's own
-   Wren ({ uri, key, kind }, an empty uri for none yet)
+   bird, draftTitle, draftSub, draftCount }: the publish entry's words for the sheet and the
+   grown bar's tray ("" letterLeft hides the count, letterOut draws it red, "" ask leaves the
+   tray's Wren line out) and the user's own Wren ({ uri, key, kind }, an empty uri for none yet).
+   The three draft words are the tray's row above Letter (owner's audit, 2026-11-10): its title,
+   the draft's first words, and how many drafts there are when more than one; "" draftTitle (and
+   a JS bundle that doesn't send them) leaves the row out
  - pop: { letterLabel, noteLabel, letterA11y, noteA11y, letterLeft }: the two buttons' labels and what
    VoiceOver says for each
  - barHidden: the bar slides 160 down out of sight and reach (a fade under Reduce Motion): Today's
@@ -44,7 +47,7 @@ import ExpoUI
  - onTabPress { index }: a tab was tapped, selected or not; JS decides what that means
  - onPlusPress {}: the + (or ×) was tapped
  - onPanelAction { key }: a card (or the header link) was tapped; for the publish sheet and the
-   two buttons, "letter" or "note"
+   two buttons, "letter" or "note"; the grown bar's tray also reports "draft"
  - onPanelDismiss {}: the dim was tapped, VoiceOver's escape, or the publish sheet was dragged
    down
 
@@ -85,6 +88,12 @@ struct KTabBarSheetRecord: Record {
   @Field var footnote: String = ""
   /// the user's own Wren (a BirdSnapshots capture); an empty uri while there is none yet
   @Field var bird: KImageRefRecord = KImageRefRecord()
+  /// the tray's draft row above Letter (owner's audit, 2026-11-10); an empty title leaves it out
+  @Field var draftTitle: String = ""
+  /// the draft's first words
+  @Field var draftSub: String = ""
+  /// how many drafts, when more than one ("3"); empty hides it
+  @Field var draftCount: String = ""
 }
 
 /// The returning reader's two buttons, as JS sends them.
@@ -179,6 +188,9 @@ struct KTabBarView: ExpoSwiftUI.View {
     m.noteSub = r.noteSub
     m.footnote = r.footnote
     m.bird = r.bird.ref
+    m.draftTitle = r.draftTitle
+    m.draftSub = r.draftSub
+    m.draftCount = r.draftCount
     return m
   }
 

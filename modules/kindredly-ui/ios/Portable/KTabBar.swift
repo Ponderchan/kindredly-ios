@@ -55,6 +55,14 @@ import SwiftUI
  doesn't turn: the + and the x cross-fade. Without a tray (ui-lab, the older publish styles)
  none of this happens and the bar is the 62 capsule it always was.
 
+ THE TRAY CAN BE TWO ROWS OR THREE (owner's audit, 2026-11-10: the reader's draft, when there is
+ one, is a row above Letter, and it is read from the phone's storage as the + opens). The holder
+ sends the row before it opens the bar, so the tray is measured, still closed and invisible, at
+ the height it will open to. In case the row and the opening ever arrive together, or the tray's
+ height changes while it is open (the text size), the growing is keyed to the bar's height
+ itself, not to open or closed: whatever moves the height, the glass travels there on the same
+ curve and never jumps. Closed, the height is 62 whatever the tray measures, so nothing animates.
+
  Selection belongs to whoever holds the bar. A tap or a drag only reports the tab (onSelect);
  the lens settles where selectedIndex says, so a tab that refuses the press or a route changed
  from elsewhere both come out right. A released drag holds its tab for a moment while the holder
@@ -335,6 +343,8 @@ public struct KTabBar: View {
     // the capsule's corners at any height: a capsule at 62, its corners kept while it grows
     let shape = RoundedRectangle(cornerRadius: KTabBarMetrics.corner, style: .circular)
     let grown = trayOpen
+    // the bar's height: 62, and the tray's own measured height while it is open
+    let barHeight = KTabBarMetrics.height + (grown ? trayHeight : 0)
     return ZStack(alignment: .bottom) {
       // the tray, above the tab row, inside the glass: clipped away while closed
       if let tray {
@@ -351,8 +361,10 @@ public struct KTabBar: View {
       tabRow(tone: tone)
     }
     // bottom edge fixed: the frame grows upward and the tab row stays at its foot
-    .frame(height: KTabBarMetrics.height + (grown ? trayHeight : 0), alignment: .bottom)
-    .animation(reduceMotion ? nil : KMotion.barGrow, value: grown)
+    .frame(height: barHeight, alignment: .bottom)
+    // keyed to the height, not to open or closed: a tray measured a pass late (a third row
+    // arriving with the opening) or changing while open still travels, never jumps
+    .animation(reduceMotion ? nil : KMotion.barGrow, value: barHeight)
     .frame(maxWidth: .infinity)
     .background { KGlassFace(tone: tone) }
     .clipShape(shape)

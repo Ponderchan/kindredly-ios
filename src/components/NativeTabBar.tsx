@@ -10,8 +10,11 @@ import { useTheme } from "../lib/theme";
 import { useBirdImageRef } from "../lib/bird-images";
 import { useWrenName } from "../lib/wren-name";
 import { useLettersLeft } from "../lib/use-publish-stage";
+import { loadDrafts } from "../lib/drafts";
 import { tabBarHeight } from "./PostTabBar";
+import { plusDraft, plusDraftCount, plusRoute, type PlusDraft } from "./plus-draft-model";
 import "../data/strings-today3d"; // pub.* (the publish entry's words)
+import "../data/strings-audit-plus"; // pub.draft (the draft row's title)
 
 /* THE 10a TAB BAR, IN SWIFTUI (1.2.4) — the floating bar with the sliding
    lens, the + that turns into an ×, and what the + opens, all drawn by
@@ -49,6 +52,26 @@ import "../data/strings-today3d"; // pub.* (the publish entry's words)
    tabs layout provides) to fade its band and window and step its card
    back; nothing crosses between the two Hosts. The drawing is
    KPublishTray and KTabBar's growing (modules/kindredly-ui, style "grow").
+
+   YOUR DRAFT, ABOVE LETTER (owner's audit, 2026-11-10). An unsent letter
+   is kept as a draft (lib/drafts), but the only ways back to it were Me →
+   letters → Drafts and Settings → Unsent letters: a reader with a
+   half-written letter pressed the + and was offered a blank page. So when
+   at least one draft exists the tray has a third row, above Letter and in
+   its style: "Continue your draft" (pub.draft), the newest draft's own
+   first words on one line under it (ml.draftEmpty when it has none), and
+   how many drafts there are at the row's end when more than one. It opens
+   the composer on that draft the way the drafts page does
+   (/compose?draft=<id>), push first and close after, like the other two.
+   With none left today it goes where Letter goes, the paywall: a draft is
+   not a way around the day's count (one rule, plusRoute; the composer
+   keeps its own guard too). Which draft, its words, the count and the
+   routes are components/plus-draft-model, locked by its test.
+   The drafts are read once per opening, as the + is pressed, never on a
+   render (see DRAFT_READ_MS for how the bar waits for them); a read that
+   fails is logged and shows no row. With no drafts nothing is sent and the
+   tray is the two rows it was. A binary built before the row ignores the
+   three words and draws two rows.
 
    The 10a cards ("stranger" / "yourself") stay wired: a binary built
    before "grow" opens them instead, and they go where they always went.
@@ -91,9 +114,10 @@ import "../data/strings-today3d"; // pub.* (the publish entry's words)
 
    Words: the tab names (tab.*), the +'s name (pc.post, the post chooser's
    own heading), the × (wren.trackClose, the app's "Close"), the 10a cards
-   (pc.stranger / pc.yourself with pc.strangerSaid / pc.yourselfSaid), and
-   the publish entry's pub.* (data/strings-today3d). Wren is called by the
-   name the reader gave her. */
+   (pc.stranger / pc.yourself with pc.strangerSaid / pc.yourselfSaid), the
+   publish entry's pub.* (data/strings-today3d), and the draft row's
+   pub.draft (data/strings-audit-plus) with ml.draftEmpty. Wren is called by
+   the name the reader gave her. */
 
 type BarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["tabBar"]>>[0];
 
@@ -112,8 +136,17 @@ type PublishSheet = NonNullable<KTabBarProps["sheet"]>;
 const PLUS_OPENS_KEY = "kindredly_plus_opens";
 const ASK_OPENS = 3;
 
-/* where Letter goes with no letters left today: the compose page's own cap link */
-const PAYWALL_OUT = "/paywall?src=daily_cap";
+/* THE DRAFT ROW IS THERE BEFORE THE BAR GROWS (owner's audit, 2026-11-10).
+   The drafts are on the phone's storage, so reading them takes a moment
+   (a few milliseconds), and the bar grows by the tray's measured height: a
+   row landing after the bar has started would make it jump, and pop in
+   under the finger. So each opening reads the drafts at the press and the
+   bar grows only once that read has answered — it already waits a layout
+   pass for the Host (see `grown`), and the read is normally back before
+   that. If it hasn't answered within DRAFT_READ_MS the bar opens without
+   the row (logged in dev), and a late answer is dropped: decided at each
+   opening and held through it and its closing, as Wren's line is. */
+const DRAFT_READ_MS = 300;
 
 /* the four tabs, in the bar's order — the mock's order too (H:448): Today,
    Notes, +, Kindreds, Me. `name` is the route under (tabs)/. */
@@ -131,7 +164,9 @@ const CHOICES: readonly { key: string; to: string; title: string; subtitle: stri
 ];
 
 /* where every key the + can report goes: the 10a cards' and the publish
-   entry's (KPublishAction in ios/Portable/KPlusPanel.swift) */
+   entry's (KPublishAction in ios/Portable/KPlusPanel.swift). The draft row
+   and the day's count are plusRoute's (plus-draft-model): it reads this
+   table for everything else. */
 const ROUTES: Readonly<Record<string, string>> = {
   ...Object.fromEntries(CHOICES.map((c) => [c.key, c.to])),
   letter: "/compose",
@@ -242,16 +277,25 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
     });
   }, [opens, counted]);
 
+  /* the reader's newest unsent letter, for the tray's draft row (plus-draft-model); null for
+     none. Read at each opening (below) and kept while the + closes, so the row doesn't vanish
+     mid-shrink. */
+  const [draft, setDraft] = useState<PlusDraft | null>(null);
+  /* this opening's read of the drafts has answered (or been given up on): the bar may grow */
+  const [draftRead, setDraftRead] = useState(false);
+
   /* full screen while open, and for PANEL_OUT_MS after it closes. Decided
      during render, not in an effect, so the frame it starts closing in is
      already a full-screen one; each close restarts the wait. Each opening
-     also decides Wren's line, here, so it is there in the first frame. */
+     also decides Wren's line, here, so it is there in the first frame, and
+     holds the bar until its own read of the drafts answers. */
   const [wasOpen, setWasOpen] = useState(open);
   const [closedAt, setClosedAt] = useState(0);
   if (wasOpen !== open) {
     setWasOpen(open);
     if (!open) setClosedAt(Date.now());
     else {
+      setDraftRead(false);
       const first = opens != null && opens < ASK_OPENS;
       setAsks(first);
       if (first) {
@@ -265,6 +309,37 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
     const id = setTimeout(() => setClosedAt(0), PANEL_OUT_MS);
     return () => clearTimeout(id);
   }, [closedAt]);
+  /* the drafts, once per opening (DRAFT_READ_MS). The row goes to Swift first and the bar is let
+     go a frame later, so the tray is measured with the row in it before it grows. A failed or
+     late read shows no row: the two rows are always right. */
+  useEffect(() => {
+    if (!open) return;
+    let done = false;
+    let frame: number | null = null;
+    const settle = (found: PlusDraft | null) => {
+      if (done) return;
+      done = true;
+      clearTimeout(giveUp);
+      setDraft(found);
+      frame = requestAnimationFrame(() => setDraftRead(true));
+    };
+    const giveUp = setTimeout(() => {
+      if (__DEV__) console.warn("[tabbar] drafts not read in time: no draft row this opening");
+      settle(null);
+    }, DRAFT_READ_MS);
+    loadDrafts().then(
+      (all) => settle(plusDraft(all)),
+      (e) => {
+        if (__DEV__) console.warn("[tabbar] drafts unread: no draft row", e);
+        settle(null);
+      },
+    );
+    return () => {
+      done = true;
+      clearTimeout(giveUp);
+      if (frame != null) cancelAnimationFrame(frame);
+    };
+  }, [open]);
   const full = open || closedAt > 0;
   /* THE BAR GROWS ONLY ONCE THE HOST IS FULL SCREEN (owner, b32: "the two discs and the sheet
      come down from the top — not logical, not native"). Opening in the same frame the Host grew
@@ -286,8 +361,8 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
   // dev: one line in Metro per change, next to Today's own (useTodayDesk), so when the + seems
   // to do nothing it shows which side moved — the bar's open state, or the screen's
   useEffect(() => {
-    if (__DEV__) console.log(`[tabbar] open=${open} full=${full} asks=${asks}`);
-  }, [open, full, asks]);
+    if (__DEV__) console.log(`[tabbar] open=${open} full=${full} asks=${asks} drafts=${draftRead ? (draft?.count ?? 0) : "…"}`);
+  }, [open, full, asks, draft, draftRead]);
 
   // the navigator's own semantics, exactly as PostTabBar has them
   const go = (name: string) => {
@@ -309,9 +384,10 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
   };
 
   /* push first, close after the slide — the composer slides over the grown bar. Letter with
-     none left today goes to the paywall instead; Note always works. */
+     none left today goes to the paywall instead, and so does the draft (one rule, plusRoute);
+     Note always works. The draft opens the composer on itself, as the drafts page does. */
   const onPanelAction = (key: string) => {
-    const to = key === "letter" && left === 0 ? PAYWALL_OUT : ROUTES[key];
+    const to = plusRoute(key, { left, draftId: draft?.id ?? null, routes: ROUTES });
     if (!to) return;
     router.push(to);
     setTimeout(onClose, CLOSE_AFTER_PUSH_MS);
@@ -340,8 +416,14 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
       noteSub: t("pub.noteSub"),
       footnote: "",
       bird,
+      // the reader's unsent letter, above Letter; "" leaves the row out (no drafts, or unread)
+      draftTitle: draft ? t("pub.draft") : "",
+      // its own first words; a draft with none says what My letters says for it
+      draftSub: draft ? draft.words || t("ml.draftEmpty") : "",
+      // how many there are, when more than one
+      draftCount: draft ? plusDraftCount(draft.count) : "",
     }),
-    [lang, wren, left, bird, asks],
+    [lang, wren, left, bird, asks, draft],
   );
 
   return (
@@ -355,7 +437,8 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
           theme={theme}
           tabs={tabs}
           activeIndex={TABS.findIndex((tab) => tab.name === current)}
-          panelOpen={open && grown}
+          // grown: the Host is full screen; draftRead: the tray has its rows (DRAFT_READ_MS)
+          panelOpen={open && grown && draftRead}
           safeAreaBottom={insets.bottom}
           plusLabel={t("pc.post")}
           closeLabel={t("wren.trackClose")}

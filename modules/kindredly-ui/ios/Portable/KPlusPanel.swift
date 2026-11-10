@@ -234,7 +234,19 @@ public extension KMotion {
    sheet showed it (mono 500 10 at .12em, mute), red #E0483C when none are left (letterOut);
    where Letter then goes is the holder's (the paywall);
  - VoiceOver reads each row as one button, its title, sub-line and count; opening moves it to the
-   letter row. Reduce Motion: the bar doesn't spring and the + doesn't turn; everything cross-fades.
+   first row. Reduce Motion: the bar doesn't spring and the + doesn't turn; everything cross-fades.
+
+ YOUR DRAFT, ABOVE LETTER (owner's audit, 2026-11-10). An unsent letter was reachable only from
+ My letters and Settings, so a reader with a half-written letter pressed the + and got a blank
+ page. When the holder sends a draftTitle, the tray has one more row above Letter, the same row
+ in every measure (so the bar grows 68 more, 278 in all): a pencil on the letter's own tile (a
+ draft is a letter, so it wears the letter's pair), the title, and under it the draft's first
+ words on ONE line, cut with an ellipsis (the two rows below keep wrapping theirs); when there
+ are several drafts, how many at the row's end, a bare mono figure in the count's style. Tapped,
+ it reports KPublishAction.draft and the holder opens the composer on that draft (or the paywall
+ with no letters left today, as Letter). VoiceOver reads it as one button, the title and the
+ first words, without the figure, and opening moves VoiceOver to it. With no draftTitle the tray
+ is the two rows it was, to the point.
 
  SHEET, on every tab but Today (until P2):
  - an iOS sheet (owner, 2026-10-26: the hand-drawn one "ran around"; "native, rising from the
@@ -305,6 +317,13 @@ public struct KPublishSheetModel: Equatable, Sendable {
   /// the note row's title and subtitle
   public var noteTitle = ""
   public var noteSub = ""
+  /// the tray's draft row, above Letter (owner's audit, 2026-11-10): its title ("Continue your
+  /// draft"); "" leaves the row out, and the tray is the two rows it always was
+  public var draftTitle = ""
+  /// the draft's own first words, drawn on one line
+  public var draftSub = ""
+  /// how many drafts there are, when more than one ("3"); "" hides it
+  public var draftCount = ""
   /// the line under the rows
   public var footnote = ""
   /// the user's own Wren beside the question; nil keeps her frame empty while she loads
@@ -334,6 +353,8 @@ public enum KPublishAction {
   public static let letter = "letter"
   /// the note choice: the diary composer
   public static let note = "note"
+  /// the tray's draft row: the letter composer, on the reader's most recent draft
+  public static let draft = "draft"
 }
 
 public extension KDim {
@@ -388,7 +409,7 @@ enum KPublishMetrics {
   static let popLabelGap: CGFloat = 10
 
   /// the grown bar's tray (P2): padding 10, pieces 8 apart, rows 60 tall with corners of 22,
-  /// tiles 38
+  /// tiles 38 (the draft row, when there is one, is a third row of the same measures)
   static let trayInset: CGFloat = 10
   static let trayGap: CGFloat = 8
   static let trayRow: CGFloat = 60
@@ -619,7 +640,8 @@ struct KPublishNativeSheet: View {
   }
 }
 
-/// The two rows the bar grows around (P2): Wren's line for a new reader, then Letter and Note.
+/// The rows the bar grows around (P2): Wren's line for a new reader, the reader's draft when there
+/// is one (owner's audit, 2026-11-10), then Letter and Note.
 /// The glass, the growing and the clip are KTabBar's; this is only what is inside.
 struct KPublishTray: View {
   let theme: KTheme
@@ -628,6 +650,10 @@ struct KPublishTray: View {
   let onAction: (String) -> Void
 
   @AccessibilityFocusState private var letterFocused: Bool
+  @AccessibilityFocusState private var draftFocused: Bool
+
+  /// the draft row shows: the holder sent its title
+  private var hasDraft: Bool { !model.draftTitle.isEmpty }
 
   var body: some View {
     VStack(spacing: KPublishMetrics.trayGap) {
@@ -646,6 +672,24 @@ struct KPublishTray: View {
         .padding(.horizontal, 6)
         .padding(.top, 4)
         .padding(.bottom, 2)
+      }
+      // the reader's unsent letter, above Letter: a draft is a letter, so it wears the letter's
+      // pair; its first words stay on one line, and the figure (several drafts) isn't spoken
+      if hasDraft {
+        row(
+          key: KPublishAction.draft,
+          art: KPublishArt.draft,
+          tile: KPublishMetrics.letterTile,
+          ink: KPublishMetrics.letterInk,
+          title: model.draftTitle,
+          titleColor: theme.isDark ? theme.ind : KPublishMetrics.letterInk,
+          sub: model.draftSub,
+          trailing: model.draftCount,
+          out: false,
+          subOnOneLine: true,
+          trailingSpoken: false
+        )
+        .accessibilityFocused($draftFocused)
       }
       row(
         key: KPublishAction.letter,
@@ -674,16 +718,34 @@ struct KPublishTray: View {
     .padding(KPublishMetrics.trayInset)
     .onChange(of: open) { _, isOpen in
       guard isOpen else { return }
-      // VoiceOver to the first choice once the bar has grown
+      // VoiceOver to the first choice once the bar has grown: the draft when there is one
       Task { @MainActor in
         try? await Task.sleep(for: .milliseconds(450))
-        letterFocused = true
+        if hasDraft {
+          draftFocused = true
+        } else {
+          letterFocused = true
+        }
       }
     }
   }
 
   /// One row: the tile, the title over its sub-line, the count on the right if there is one.
-  private func row(key: String, art: Path, tile: Color, ink: Color, title: String, titleColor: Color, sub: String, trailing: String, out: Bool) -> some View {
+  /// subOnOneLine keeps the sub-line to one line, cut with an ellipsis (the draft's first words;
+  /// the other rows wrap theirs); trailingSpoken false keeps the figure out of VoiceOver's reading.
+  private func row(
+    key: String,
+    art: Path,
+    tile: Color,
+    ink: Color,
+    title: String,
+    titleColor: Color,
+    sub: String,
+    trailing: String,
+    out: Bool,
+    subOnOneLine: Bool = false,
+    trailingSpoken: Bool = true
+  ) -> some View {
     let shape = RoundedRectangle(cornerRadius: KPublishMetrics.trayRowCorner, style: .continuous)
     return Button {
       onAction(key)
@@ -703,6 +765,9 @@ struct KPublishTray: View {
           Text(sub)
             .kText(.system(13))
             .foregroundStyle(theme.isDark ? theme.sub : KPublishMetrics.traySub)
+            // one line, cut with an ellipsis, or as many as it takes
+            .lineLimit(subOnOneLine ? 1 : nil)
+            .truncationMode(.tail)
             .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -712,6 +777,7 @@ struct KPublishTray: View {
             .foregroundStyle(out ? KPublishMetrics.outRed : theme.mute)
             .lineLimit(1)
             .fixedSize()
+            .accessibilityHidden(!trailingSpoken)
         }
       }
       // 60 tall, taller only for large text
@@ -743,13 +809,16 @@ private struct KPublishTrayRowStyle: ButtonStyle {
   }
 }
 
-/// The tray's two drawings, the design's own (P2 Prompt 1), on a 24 grid.
+/// The tray's drawings on a 24 grid: the design's own two (P2 Prompt 1), and the draft row's.
 enum KPublishArt {
   static let grid: CGFloat = 24
   /// an envelope
   static let letter = KSVGPath.path("M3 6h18v12H3z M3 7l9 7 9-7")
   /// a page with a folded corner and two lines
   static let note = KSVGPath.path("M6 3h12v14l-4 4H6z M14 21v-4h4 M9 8h6 M9 12h6")
+  /// a pencil, its point down on the line it has started (the draft row; owner's audit,
+  /// 2026-11-10): drawn in the other two's hand, straight strokes with round joins
+  static let draft = KSVGPath.path("M4 20l1-4.5L16 4.5l3.5 3.5L8.5 19z M13.5 7l3.5 3.5 M13 20h7")
 }
 
 /// A path on the tray's 24 grid, drawn to whatever frame it is given.

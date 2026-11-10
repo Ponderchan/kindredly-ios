@@ -19,7 +19,10 @@ export async function loadDrafts(): Promise<Draft[]> {
     const raw = await AsyncStorage.getItem(KEY);
     const arr = raw ? (JSON.parse(raw) as Draft[]) : [];
     return Array.isArray(arr) ? arr : [];
-  } catch {
+  } catch (e) {
+    // still "no drafts" to every caller, but said out loud (owner's audit, 2026-11-10: the +
+    // tray reads this to offer a draft, and a read that fails silently looks like no drafts)
+    if (__DEV__) console.warn("[drafts] unread", e);
     return [];
   }
 }
