@@ -17,6 +17,7 @@ import { TabBarAway } from "../../lib/screen-insets";
 import { setDevIdentityPreview, useIdentityOn } from "../../lib/identity";
 import { restartRealDay, useTodayCore, type TodayModel } from "../../screens/today/useTodayDesk";
 import { TodayNative } from "../../screens/today/TodayNative";
+import { todayDrawsWrenCard } from "../../../modules/kindredly-ui/src/Today";
 import { TodayRN } from "../../screens/today/TodayRN";
 import { TodayOverlays } from "../../screens/today/TodayOverlays";
 import { DEMO_DESK, demoDeps, useDemoSource, type DemoDay, type DemoReply, type DemoWorld } from "../../screens/today/today-demo";
@@ -236,7 +237,16 @@ function TodayLab() {
             <Chip label="POUCH" on={pouch} onPress={() => setPouch((v) => !v)} />
             <Chip label="HUNGRY" on={hungry} onPress={() => setHungry((v) => !v)} />
             <Chip label="NIGHT" on={night} onPress={() => setNight((v) => !v)} />
-            <Chip label="BIRTHDAY" on={birthday} onPress={() => setBirthday((v) => !v)} />
+            <Chip
+              label="BIRTHDAY"
+              on={birthday}
+              onPress={() => {
+                // only the Swift desk of a build that has the card draws it: say so rather than seem broken
+                if (!birthday && !todayDrawsWrenCard()) Alert.alert("Dev page", "This dev client was built before her birthday letter (KTodayView has no wrenCard): rebuild it. Nothing will show.");
+                else if (!birthday && !(swift && swiftAvailable)) Alert.alert("Dev page", "Her birthday letter is the Swift desk's: switch to SWIFT to see it.");
+                setBirthday((v) => !v);
+              }}
+            />
             <Chip label={`PAPER · ${paper.toUpperCase()}`} on={paper !== "plain"} onPress={() => setPaper((p) => PAPER_IDS[(PAPER_IDS.indexOf(p) + 1) % PAPER_IDS.length])} />
             {REPLIES.map((r) => (
               <Chip key={r} label={r.toUpperCase()} on={reply === r} onPress={() => setReply(r)} />
