@@ -58,8 +58,8 @@ is shorter by an estimate of the cards' heights (KNotesScreen.masonry); at acces
  pages — with Wren's line and the evening rows left out by TS; nothing matching is one quiet line
  where the first card would be. Each new query starts its results from the top; a drag on the
  list puts the keyboard away (the results under it can be reached). The list remembers what was
- on top when the row came up and goes back there when it closes: the top of the list if the
- reader was at the top, otherwise that note under the header.
+ on top when the row came up and goes back there when the field is emptied and when the row
+ closes: the top of the list if the reader was at the top, otherwise that note under the header.
  */
 
 /// The search row's words and state, from TS (owner's audit, 2026-11-10). No `button` word means a
@@ -589,20 +589,31 @@ public struct KNotesScreen: View {
           // the whole list is back (the same props brought it): back to where it was
           let anchor = box.searchAnchor
           box.searchAnchor = nil
-          DispatchQueue.main.async {
-            if let anchor, let row = rowId(for: anchor) {
-              scroll(proxy, to: row, animated: false)
-            } else {
-              scroll(proxy, to: firstId(self.rows), animated: false)
-            }
-          }
+          DispatchQueue.main.async { restore(proxy, to: anchor) }
         }
       }
-      .onChange(of: content.search.query) { _, _ in
-        // a new query's results start from their top (one turn later, so the new rows exist)
+      .onChange(of: content.search.query) { _, query in
         guard searching else { return }
-        DispatchQueue.main.async { scroll(proxy, to: content.notes.first?.id, animated: false) }
+        // one turn later, so the new rows exist
+        if query.allSatisfy(\.isWhitespace) {
+          // the field emptied (the ⊗, or deleted by hand): every page again, where the list was
+          let anchor = box.searchAnchor
+          DispatchQueue.main.async { restore(proxy, to: anchor) }
+        } else {
+          // a new query's results start from their top
+          DispatchQueue.main.async { scroll(proxy, to: content.notes.first?.id, animated: false) }
+        }
       }
+    }
+  }
+
+  /// Back to where the list was before the search row came up: that note under the header, or the
+  /// top of the list (Wren's line, the evening rows) when the reader was there or the note is gone.
+  private func restore(_ proxy: ScrollViewProxy, to anchor: String?) {
+    if let anchor, let row = rowId(for: anchor) {
+      scroll(proxy, to: row, animated: false)
+    } else {
+      scroll(proxy, to: firstId(rows), animated: false)
     }
   }
 
