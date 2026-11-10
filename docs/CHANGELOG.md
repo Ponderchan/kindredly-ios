@@ -54,6 +54,7 @@ New (owner's audit, 2026-11-10; all need the next binary unless tagged)
 - Mute a correspondence from its ⋯ (no pushes from it; the other person is never told). Built and OFF. [switch: threadmute] [server: thread_mutes table + the push sender must skip muted threads, see docs/thread-mute-server.md]
 
 Fixed (owner's audit, 2026-11-10)
+- Notes: after you say yes to the evening question, its "on" row no longer sits at the top of Notes for good. It shows once, as a receipt, and the switch now lives in Settings (a third row, only for readers who said yes). The card's small print says so in nine languages. [OTA]
 - A kindred's page: the nine labels under How alike you write are no longer cut ("SENTENCE SH…").
 - Kindreds: with the orbit folded, the faint watermark behind the chips is the dashed rings alone; grey squares no longer poke out above the chips.
 

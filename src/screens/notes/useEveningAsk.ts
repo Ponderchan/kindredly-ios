@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { getFlags, setFlag } from "../../lib/flags";
 import { PREF_JOB_MS, askForNotifications, getNotifyOn, readPushPrefs, setPushPref, within } from "../../lib/local-push";
 import { setNotifyOn } from "../../lib/notify";
@@ -83,6 +84,11 @@ export function useEveningAsk(pages: number, opts: { enabled: boolean; wren: str
       alive = false;
     };
   }, [pages, enabled]);
+
+  /* THE "ON" ROW IS A RECEIPT, NOT A FIXTURE (owner, 2026-11-10: "I tapped OK and it's still
+     there"). It shows in the visit where the reader said yes, with its Turn Off, and goes when
+     Notes loses focus; from then on the switch is Settings' "evening" row (settings-model). */
+  useFocusEffect(useCallback(() => () => setState((s) => (s === "on" ? "none" : s)), []));
 
   const hold = (on: boolean) => {
     busyRef.current = on;

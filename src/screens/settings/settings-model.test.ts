@@ -138,6 +138,16 @@ const facts = (over: Partial<SettingsFacts> = {}): SettingsFacts => ({
   ok("while the file is written: … and no second tap", busy.busy && busy.value === "…" && !busy.chevron && busy.kind === "link");
   ok("an empty journal is never busy", !rowOf({ journalPages: 0, exporting: true }).r.busy);
   ok("still exactly two switches with the row there", buildSettingsView(facts({ journalPages: 3 }), t).groups.flatMap((g) => g.rows).filter((x) => x.kind === "toggle").length === 2);
+  /* the evening question's own switch (owner, 2026-11-10): only for a reader whose line is, or was this visit, on */
+  {
+    const quietOf = (f: Parameters<typeof facts>[0]) => buildSettingsView(facts(f), t).groups.find((g) => g.key === "quiet")!.rows;
+    ok("no evening row for a reader who never said yes", !quietOf({}).some((x) => x.key === "evening") && !quietOf({ evening: { shown: false, on: false } }).some((x) => x.key === "evening"));
+    const on = quietOf({ evening: { shown: true, on: true } });
+    const i = on.findIndex((x) => x.key === "evening");
+    ok("said yes: a third switch, right under the knock, on", i > 0 && on[i - 1].key === "knock" && on[i].kind === "toggle" && on[i].on === true);
+    const off = quietOf({ evening: { shown: true, on: false } }).find((x) => x.key === "evening");
+    ok("turned off this visit: the row stays, off, so it can be turned back on", !!off && off.on === false);
+  }
 }
 
 /* ── appearance ── */

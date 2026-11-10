@@ -352,10 +352,10 @@ const NOW = new Date(2026, 9, 16, 15, 0); // Friday 16 October 2026, 15:00
   const base = { prefsUnreadable: false, dailyLine: false, morningQuestion: false, notifyOn: true, answered: false, pages: 1 };
   eq("first real page, nothing on → ask", M.decideEvening(base), { show: "ask", spendFlag: false });
   eq("prefs unreadable → nothing, flag kept (ask another day)", M.decideEvening({ ...base, prefsUnreadable: true, dailyLine: true }), { show: "none", spendFlag: false });
-  eq("already on → the off row, flag spent", M.decideEvening({ ...base, dailyLine: true }), { show: "on", spendFlag: true });
+  eq("already on → no row in Notes any more (its switch is in Settings), flag spent", M.decideEvening({ ...base, dailyLine: true }), { show: "none", spendFlag: true });
   eq("already on, Notifications off on this phone → no row, flag spent", M.decideEvening({ ...base, dailyLine: true, notifyOn: false }), { show: "none", spendFlag: true });
-  eq("already on with NO pages → the off row anyway (its only off switch)", M.decideEvening({ ...base, dailyLine: true, pages: 0 }), { show: "on", spendFlag: true });
-  eq("an earlier yes still shows its row (on is checked before answered)", M.decideEvening({ ...base, dailyLine: true, answered: true }), { show: "on", spendFlag: true });
+  eq("already on with NO pages → nothing, flag spent", M.decideEvening({ ...base, dailyLine: true, pages: 0 }), { show: "none", spendFlag: true });
+  eq("an earlier yes shows nothing on a later visit", M.decideEvening({ ...base, dailyLine: true, answered: true }), { show: "none", spendFlag: true });
   eq("no pages, nothing on → nothing", M.decideEvening({ ...base, pages: 0 }), { show: "none", spendFlag: false });
   eq("answered before → nothing", M.decideEvening({ ...base, answered: true }), { show: "none", spendFlag: false });
   eq("the morning question on → nothing, flag spent", M.decideEvening({ ...base, morningQuestion: true }), { show: "none", spendFlag: true });

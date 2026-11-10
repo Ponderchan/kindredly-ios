@@ -27,7 +27,12 @@ import type { FirstClass4aVM } from "../me/me-model";
      (the endonym with its flag, never translated);
    - THE QUIET: the notifications-off notice when iOS won't let anything
      through, then exactly two switches — Notifications (hidden until read)
-     and the 8 o'clock knock — then Moments you kept, Unsent letters and,
+     and the 8 o'clock knock — and, ONLY for a reader who said yes to the
+     evening question in Notes, a third: that question's own switch (owner,
+     2026-11-10: its off row used to sit at the top of Notes for good, "I
+     tapped OK and it's still there"; nobody who never said yes sees it, so
+     the two-switch rule of 2026-10-13 holds for everyone else). Its label is
+     the row's old words (ev.onLine), no new copy. Then Moments you kept, Unsent letters and,
      directly under it, Export my journal (owner's audit, 2026-11-10: the
      journal lives only on this phone and there was no way to take it out).
      Its sub-line says where the journal lives and, honestly, that the file
@@ -54,6 +59,7 @@ export type SettingsRowKey =
   | "wren"
   | "notify"
   | "knock"
+  | "evening"
   | "lore"
   | "drafts"
   | "exportJournal"
@@ -162,6 +168,9 @@ export type SettingsFacts = {
   /** the Notifications switch; null until read (the row is hidden) */
   notifyOn: boolean | null;
   knock: boolean;
+  /** the evening question's switch (push pref daily_line): the row exists only while `shown`
+      (the line was on when Settings last read it, or has been since this page opened) */
+  evening?: { shown: boolean; on: boolean } | null;
   premium: boolean;
   cofounderNo: number | null;
   /** the 4a First Class card (me-model buildFirstClass4a, with the store's trial) */
@@ -364,6 +373,9 @@ export function buildSettingsView(f: SettingsFacts, t: TFn): SettingsView {
       ? [row({ key: "notify", symbol: "envelope", glyph: "mail", label: t("set.notify.title"), sub: t("set.notify.sub", { wren: f.wren }), chevron: false, kind: "toggle" as const, on: f.notifyOn })]
       : []),
     row({ key: "knock", symbol: "bell", glyph: "bell", label: t("set.knock.title"), sub: t("set.knock.sub"), chevron: false, kind: "toggle", on: f.knock }),
+    ...(f.evening?.shown
+      ? [row({ key: "evening", symbol: "moon", glyph: "bell", label: t("ev.onLine", { wren: f.wren }), chevron: false, kind: "toggle" as const, on: f.evening.on })]
+      : []),
     row({ key: "lore", symbol: "heart", glyph: "heart", label: t("lore.head") }),
     row({ key: "drafts", symbol: "doc.text", glyph: "draft", label: t("set.drafts") }),
     exportRow(f, t),

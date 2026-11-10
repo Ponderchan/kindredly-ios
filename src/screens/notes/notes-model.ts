@@ -600,19 +600,21 @@ export type EveningDecision = { show: EveningShow; spendFlag: boolean };
 /**
  * What the evening card shows, in the old card's exact order:
  * 1. prefs unreadable → nothing, and nothing spent (ask another day);
- * 2. daily_line already on (an earlier yes, another phone) → the flag is spent, and the off row
- *    shows only while this phone's Notifications switch is on. This runs whatever the page count:
- *    the row is its only off switch, and a phone with no pages (a fresh install, every page torn
- *    out, a journal handed to the guest bucket) still gets the evening line;
+ * 2. daily_line already on (an earlier yes, another phone) → the flag is spent and NOTHING shows
+ *    (owner, 2026-11-10: "I tapped OK and it's still there": the off row used to stay at the top
+ *    of Notes for as long as the line was on, because it was its only off switch). The row now
+ *    shows once, in the visit where the reader said yes (useEveningAsk sets "on" itself and drops
+ *    it when Notes loses focus), and the off switch is a row in Settings shown while the line is
+ *    on (settings-model's "evening" row). `notifyOn` is no longer read here;
  * 3. no real page yet → nothing;
- * 4. answered before → nothing (checked after 2, so an earlier yes still shows its row);
+ * 4. answered before → nothing;
  * 5. the morning question is on → the flag is spent, nothing shows (a yes would quietly turn the
  *    morning question off);
  * 6. otherwise → the card asks.
  */
 export function decideEvening(f: EveningFacts): EveningDecision {
   if (f.prefsUnreadable) return { show: "none", spendFlag: false };
-  if (f.dailyLine) return { show: f.notifyOn ? "on" : "none", spendFlag: true };
+  if (f.dailyLine) return { show: "none", spendFlag: true };
   if (f.pages < 1) return { show: "none", spendFlag: false };
   if (f.answered) return { show: "none", spendFlag: false };
   if (f.morningQuestion) return { show: "none", spendFlag: true };

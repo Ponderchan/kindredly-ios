@@ -11,7 +11,7 @@ import { iapRestoreOutcome } from "../../lib/iap";
 import { LANGS, setLang, t, useLang, type Lang } from "../../lib/i18n";
 import { openPrivacy, openTerms } from "../../lib/legal";
 import { disableMorningKnock, enableMorningKnock, morningKnockEnabled, registerForReplies, setNotifyOn } from "../../lib/notify";
-import { getNotifyOn } from "../../lib/local-push";
+import { PREF_JOB_MS, getNotifyOn, readPushPrefs, setPushPref, within } from "../../lib/local-push";
 import { LETTER_FONT_CHOICES, useTheme, type LetterFontKey } from "../../lib/theme";
 import { useFares } from "../../lib/fares";
 import { useWrenName } from "../../lib/wren-name";
@@ -143,6 +143,11 @@ export function useSettingsModel(): SettingsModel {
   const [askDelete, setAskDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   // a switch's request still out (a permission prompt): a second flip waits for it
+  /* The evening question's switch (owner, 2026-11-10): shown only once the account's daily_line
+     has been seen on, and from then on for as long as this page stays up, so a reader who turns
+     it off can turn it straight back on; the next visit, off means no row. */
+  const [evening, setEvening] = useState<{ shown: boolean; on: boolean }>({ shown: false, on: false });
+  const eveningBusy = useRef(false);
   const knockBusy = useRef(false);
   const notifyBusy = useRef(false);
   const restoringRef = useRef(false);
@@ -162,6 +167,13 @@ export function useSettingsModel(): SettingsModel {
           console.warn("[settings] the journal wasn't counted for the export row:", e);
           if (alive) setJournalPages(null);
         });
+      readPushPrefs()
+        .then((read) => {
+          if (!alive || eveningBusy.current) return;
+          const on = !!read.prefs.daily_line;
+          setEvening((e) => ({ shown: e.shown || on, on }));
+        })
+        .catch((e) => console.warn("[settings] the evening question's switch wasn't read:", e));
       morningKnockEnabled()
         .then((on) => alive && !knockBusy.current && setKnock(on))
         .catch((e) => console.warn("[settings] the knock switch wasn't read:", e));
@@ -195,6 +207,7 @@ export function useSettingsModel(): SettingsModel {
           perm,
           notifyOn,
           knock,
+          evening,
           premium,
           cofounderNo,
           firstClass: buildFirstClass4a({ premium, cofounderNo, wren, trial: trialLabel(trial, t) }, meFormat()),
@@ -207,7 +220,7 @@ export function useSettingsModel(): SettingsModel {
       ),
     // lang: every word follows the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [handle, dob, language, wren, appearance, letterFont, perm, notifyOn, knock, premium, cofounderNo, trial, restoring, journalPages, exporting, version, lang],
+    [handle, dob, language, wren, appearance, letterFont, perm, notifyOn, knock, evening, premium, cofounderNo, trial, restoring, journalPages, exporting, version, lang],
   );
 
   /* EXPORT MY JOURNAL: write the words to one file, then the share sheet (see the top comment).
@@ -269,6 +282,29 @@ export function useSettingsModel(): SettingsModel {
     },
     [wren],
   );
+
+  /* The evening question, off and on again: the account's daily_line, written the way Notes'
+     own Turn Off writes it (useEveningAsk). The switch moves at once; a save that fails puts it
+     back and says so. Turning it back on also turns this phone's Notifications on, as saying yes
+     in Notes does: off, the 9 o'clock line would never be sent. */
+  const onToggleEvening = useCallback(async (want: boolean) => {
+    if (eveningBusy.current) return;
+    eveningBusy.current = true;
+    setEvening({ shown: true, on: want });
+    try {
+      if (want && !(await getNotifyOn())) {
+        await setNotifyOn(true);
+        setNotifyOnState(true);
+      }
+      await within(setPushPref("daily_line", want), PREF_JOB_MS + 5000, "evening question switch");
+    } catch (e) {
+      console.warn("[settings] the evening question's switch:", e);
+      setEvening({ shown: true, on: !want });
+      Alert.alert(t("set.cantSave"), t("set.push.saveFail"));
+    } finally {
+      eveningBusy.current = false;
+    }
+  }, []);
 
   /* NOTIFICATIONS, ONE SWITCH (owner, 2026-10-13: "统一成两个 8 knock 和
      notification 一个 … 别让用户看见做选择"). Nine kinds underneath, one
@@ -391,6 +427,7 @@ export function useSettingsModel(): SettingsModel {
       toggle: (key, on) => {
         if (key === "knock") void onToggleKnock(on);
         else if (key === "notify") void onToggleNotify(on);
+        else if (key === "evening") void onToggleEvening(on);
       },
       notice: () => void turnOn(),
       pickLanguage: (id) => {
@@ -406,7 +443,7 @@ export function useSettingsModel(): SettingsModel {
         if (!deletingRef.current) setAskDelete(false);
       },
     }),
-    [router, setAppearance, setLetterFont, row, onToggleKnock, onToggleNotify, turnOn, perm, confirmDelete],
+    [router, setAppearance, setLetterFont, row, onToggleKnock, onToggleNotify, onToggleEvening, turnOn, perm, confirmDelete],
   );
 
   return {
