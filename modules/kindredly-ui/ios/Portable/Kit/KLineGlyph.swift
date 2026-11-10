@@ -152,6 +152,8 @@ public enum KLineGlyph: String, CaseIterable, Sendable {
   // ── Kindreds (H:62) ──
   /// the orbit: two rings and the centre cell (solid)
   case orbit
+  /// a magnifier, for the Kindreds search chip and its field (owner's audit, 2026-11-10)
+  case search
   /// a single note, music
   case music
   /// the kindred face: two eyes and a smile (H:62's legend chip)
@@ -411,6 +413,7 @@ enum KLineGlyphTable {
       return Drawing(box: 18, stroke: [.d("M5.5 7.5a3.5 3.5 0 1 1 5.6 2.8c-.6.5-.9 1-.9 1.7H7.8c0-.7-.3-1.2-.9-1.7A3.5 3.5 0 0 1 5.5 7.5z M7.8 14h2.4 M8.3 15.5h1.4")])
 
     case .orbit: return Drawing(stroke: [.ellipse(12, 12, rx: 9, ry: 6.5), .ellipse(12, 12, rx: 5, ry: 3.6)], fill: [.rect(10.8, 10.8, 2.4, 2.4)])
+    case .search: return Drawing(stroke: [.circle(10.5, 10.5, r: 6.5), .d("M15.4 15.4 20 20")])
     case .music: return Drawing(stroke: [.d("M14 16.5V4c1 2.6 4.2 3.1 5 5.6"), .circle(11.5, 16.5, r: 2.5)])
     case .smile: return Drawing(stroke: [.d("M8 10h.01 M16 10h.01 M8 15c1.3 1.3 2.6 2 4 2s2.7-.7 4-2")])
 

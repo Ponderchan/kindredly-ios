@@ -59,3 +59,43 @@ public struct KOrbitChip: View {
     .accessibilityAddTraits(isOn ? [.isToggle, .isSelected] : .isToggle)
   }
 }
+
+/*
+ THE SEARCH CHIP, right after the Orbit chip (owner's audit, 2026-11-10: no way to find one
+ correspondent in a long list). The Orbit chip's twin while off: icon only (KLineGlyph.search, a
+ magnifier drawn 18 across at stroke 1.6), sf, an ink icon, a line border, the same height as
+ the group chips at any text size. It is a plain button, never "on": tapped, the whole chip row
+ gives way to the search field (KKindredsBand). VoiceOver: a button named by TS (kd.search).
+ */
+public struct KSearchChip: View {
+  private let theme: KTheme
+  private let a11yLabel: String
+  private let action: () -> Void
+
+  /// - Parameter a11yLabel: VoiceOver's name for it
+  public init(theme: KTheme, a11yLabel: String, action: @escaping () -> Void) {
+    self.theme = theme
+    self.a11yLabel = a11yLabel
+    self.action = action
+  }
+
+  public var body: some View {
+    SwiftUI.Button(action: action) {
+      ZStack {
+        // a line of the chips' type, so this chip is exactly as tall as theirs at any size
+        Text(verbatim: " ")
+          .kText(KFilterChip.label)
+          .hidden()
+          .frame(width: 0)
+        KLineIcon(.search, size: 18, lineWidth: 1.6, color: theme.ink)
+      }
+      .padding(.vertical, KFilterChip.padV)
+      .padding(.horizontal, KFilterChip.padH - 4)
+      .background(Capsule().fill(theme.sf))
+      .overlay(Capsule().strokeBorder(theme.line, lineWidth: KFilterChip.border))
+      .contentShape(Capsule())
+    }
+    .buttonStyle(KFadePressStyle())
+    .accessibilityLabel(a11yLabel)
+  }
+}

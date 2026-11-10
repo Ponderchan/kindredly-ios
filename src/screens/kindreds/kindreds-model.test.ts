@@ -473,5 +473,64 @@ const rowOf = (v: ReturnType<typeof M.buildKindredsView>, id: string) => {
   })());
 }
 
+/* ── search (owner's audit, 2026-11-10) ── */
+{
+  const K = M.searchKey;
+  ok("search key: case and Latin accents don't count", K("  ÉLODIE  Ñandú ") === "elodie nandu" && K("İstanbul") === "istanbul");
+  ok("search key: full width folds, CJK stays whole", K("Ｋｉｔｅ") === "kite" && K("雨のランタン").includes(K("ランタン")) && K("ｶﾞ") === "ガ");
+  ok("search key: a kana's voiced mark is part of the letter", K("が") !== K("か") && K("가을").includes(K("을")));
+  ok("search hit: a plain substring of any field; nothing for an empty query", M.searchHit("kit", ["Sunday Kite", null]) && !M.searchHit("", ["Sunday Kite"]) && !M.searchHit("kite", [null, undefined, ""]));
+
+  const list = [
+    th({ id: "mara", revealed: true, otherName: "Mára Élodie", theirs: 2, preview: "the kettle is the only thing awake" }),
+    th({ id: "pal", theirs: 2, mine: 2, preview: "Left law school in my last term" }),
+    th({ id: "wait", theirs: 1, mine: 2, lastSenderMe: true, preview: "verse two is about you" }),
+    th({ id: "old", revealed: true, otherName: "Otto", lastAt: now - 40 * DAY, preview: "the cherry tree did the thing" }),
+    th({ id: "shut", revealed: true, otherName: "Sol", gone: true, other: null as unknown as string, preview: "keep writing to people" }),
+    th({ id: "ghost", gone: true, other: null as unknown as string, preview: "light lit, sea calm" }),
+  ];
+  const penPal = (u: string | null | undefined) => fmt.penPal(u);
+  const namer = strangerNamer(list, "en");
+  const onBook = whoBook({ identity: true, t: fmt.t, lang: "en", penPal, namer });
+  const onFmt = { ...fmt, who: onBook };
+  const view = (search: string | null, over: Partial<Facts> = {}, f = fmt) => M.buildKindredsView(base(list, { desk: { unread: 0, lastLine: "A stamp is a small yes.", lastAt: null }, search, ...over }), f);
+  const found = (search: string, over: Partial<Facts> = {}, f = fmt) => ids(view(search, over, f).items);
+
+  const plain = view(null);
+  ok("search: not searching, and an empty or blank field, leave the list as it was", JSON.stringify(view("")) === JSON.stringify(plain) && JSON.stringify(view("   ")) === JSON.stringify(plain) && JSON.stringify(M.buildKindredsView(base(list, { desk: { unread: 0, lastLine: "A stamp is a small yes.", lastAt: null } }), fmt)) === JSON.stringify(plain));
+  ok("search: the list folds their-turn pen pals; a search doesn't", ids(plain.items).includes("fold") && !ids(plain.items).includes("wait") && found("verse").join() === "wait");
+  ok("search: a kindred by the name they signed, whatever the case or accents", found("mara elo").join() === "mara" && found("ÉLODIE").join() === "mara");
+  ok("search: a pen pal by the name the row shows (switch off: the number)", found("no. u-pal").join() === "pal");
+  ok("search: a pen pal by their courier name (switch on)", found(namer.name("u-pal", { unsigned: "" }).toUpperCase(), {}, onFmt).join() === "pal");
+  ok("search: a kindred by what they were first met as (the courier name, and the number before it)", found(namer.name("u-mara", { unsigned: "" }), {}, onFmt).includes("mara") && found("no. u-mara", {}, onFmt).join() === "mara");
+  ok("search: anyone by the last line their row shows", found("kettle").join() === "mara" && found("LAW SCHOOL").join() === "pal");
+  ok("search: a quiet room and a closed account by name only (their rows show a status, not the line)", found("otto").join() === "old" && found("cherry").join() === "search-none" && found("sol").join() === "shut" && found("keep writing").join() === "search-none" && found("sea calm").join() === "search-none");
+  ok("search: a quiet room is drawn as one (Rekindle), a closed account dimmed", rowOf(view("otto"), "old")!.trailingLink !== "" && rowOf(view("sol"), "shut")!.dim === true);
+  ok("search: Wren's row by her name, and by her last line", found("wren").join() === "wren" && found("small yes").join() === "wren");
+  ok("search: the owner's order holds (on you first, then the newest), quiet and closed after", (() => {
+    const all = found("o"); // every name or shown line with an o: pal (on you), mara, wait, then quiet Otto, then closed Sol
+    return all.join() === "pal,mara,wait,old,shut" && all.indexOf("mara") < all.indexOf("wait") && all.indexOf("wait") < all.indexOf("old") && all.indexOf("old") < all.indexOf("shut");
+  })());
+  ok("search: nothing found is one quiet line, and nothing else", (() => {
+    const v = view("zzzz");
+    return v.items.length === 1 && v.items[0].type === "line" && v.items[0].id === "search-none" && v.items[0].text === "kd.search.none";
+  })());
+  ok("search: it reads everyone, whatever tab or filter is on", found("kettle", { tab: "penpals" }).join() === "mara" && found("verse", { show: "your" }).join() === "wait" && found("law", { tab: "kindreds" }).join() === "pal");
+  ok("search: no once-line, notice, Showing line, fold or group header among the results", (() => {
+    const v = view("e", { wrenLine: "hello", notice: true, show: "your" });
+    return v.items.every((i) => i.type === "row" || i.type === "wren");
+  })());
+  ok("search: the chips, the title and the orbit don't change with the words", (() => {
+    const v = view("kettle");
+    return JSON.stringify(v.chips) === JSON.stringify(plain.chips) && v.status === plain.status && JSON.stringify(v.orbit) === JSON.stringify(plain.orbit) && v.waiting === plain.waiting;
+  })());
+  ok("search: with nothing read yet, no claim that nobody matches", (() => {
+    const failed = M.buildKindredsView(base([], { loadState: "failed", search: "zzzz" }), fmt);
+    const loading = M.buildKindredsView(base([], { loadState: "loading", search: "zzzz" }), fmt);
+    return ids(failed.items).join() === "offline" && loading.items.length === 0;
+  })());
+  ok("search: the words for the chip and the field", plain.search.label === "kd.search" && plain.search.placeholder === "kd.search.ph" && plain.search.cancel === "ml.cancel" && plain.search.clear === "id2.sheet.clear");
+}
+
 console.log(fails ? `\n${fails} FAILED` : "\nall passed");
 if (fails) process.exit(1);

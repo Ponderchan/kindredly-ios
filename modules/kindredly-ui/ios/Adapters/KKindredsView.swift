@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import ExpoModulesCore
 import ExpoUI
 
@@ -13,10 +14,17 @@ import ExpoUI
  AsyncFunction (KindredlyUIModule.swift), and it MUST sit in an @expo/ui <Host>: one Host for the
  whole screen, never one per row. It has no text field.
 
+ SEARCH (owner's audit, 2026-11-10): the screen has one KField, the search's, so this view is
+ an ExpoSwiftUI.FocusableView like every adapter that holds one: before the view is taken off
+ screen the keyboard is let go (the expo focus/unmount crash's guard, KField.swift). The
+ driver owns the field and tells onKindredsSearch what the reader typed.
+
  Props, beyond KScreenProps (insets: top = the status bar the screen draws its strip for,
  tabBarRoom = the floating bar the last row clears, with 72 more, and never less than the fade's
  height - 6, KBottomFade.contentMargin(), since the fade is always drawn):
- - strings: { title, status, statusA11y, legendCloser, legendTurn, orbitChipLabel }
+ - strings: { title, status, statusA11y, legendCloser, legendTurn, orbitChipLabel, searchLabel,
+   searchPlaceholder, searchCancel, searchClear }; the four search words are "" from JS written
+   before the search, and the screen then draws no magnifier chip
  - statusActive: letters are waiting, so the status is ind and a button
  - active: the tab is focused (the orbit drifts only then)
  - chips: [{ key, label, count, glyph: none | kindred | penPal, selected, dot, a11yLabel }]
@@ -49,7 +57,10 @@ import ExpoUI
  - onKindredsChipPress { key }        a group chip (all, kindreds, penpals)
  - onKindredsTitlePress {}            the status by the title
  - onKindredsClearPress {}            CLEAR × on the Showing line
- - onKindredsBandChange { open, via } the band opened or folded (chip, pull, scroll, title)
+ - onKindredsBandChange { open, via } the band opened or folded (chip, pull, scroll, title, search)
+ - onKindredsSearch { query, active } the search field changed: its words, and whether the reader
+                                      is searching (false: Cancel, or the screen came back
+                                      without a search); TS answers with the narrowed items
  - onKindredsHintPress { kind }       an empty hint: kindreds | penpals
  - onKindredsNoticePress { action }   the notifications bar: turnOn | close
  - onKindredsWrenLinePress {}         her once-line was tapped away
@@ -248,6 +259,11 @@ struct KKindredsStringsRecord: Record {
   @Field var legendCloser: String = ""
   @Field var legendTurn: String = ""
   @Field var orbitChipLabel: String = ""
+  /// the search's four words (owner's audit, 2026-11-10); "" from JS written before it
+  @Field var searchLabel: String = ""
+  @Field var searchPlaceholder: String = ""
+  @Field var searchCancel: String = ""
+  @Field var searchClear: String = ""
 }
 
 final class KKindredsViewProps: KScreenProps {
@@ -272,12 +288,16 @@ final class KKindredsViewProps: KScreenProps {
   var onKindredsHintPress = EventDispatcher()
   var onKindredsNoticePress = EventDispatcher()
   var onKindredsWrenLinePress = EventDispatcher()
+  var onKindredsSearch = EventDispatcher()
 
   /// The band and the scroll requests: as long-lived as the view, like `commands`.
   private(set) lazy var driver: KKindredsDriver = {
     let d = KKindredsDriver()
     d.onBandChange = { [weak self] open, via in
       self?.onKindredsBandChange(["open": open, "via": via.rawValue])
+    }
+    d.onSearchChange = { [weak self] query, active in
+      self?.onKindredsSearch(["query": query, "active": active])
     }
     return d
   }()
@@ -330,6 +350,10 @@ struct KKindredsView: ExpoSwiftUI.View {
     content.legendCloser = props.strings.legendCloser
     content.legendTurn = props.strings.legendTurn
     content.orbitChipLabel = props.strings.orbitChipLabel
+    content.searchLabel = props.strings.searchLabel
+    content.searchPlaceholder = props.strings.searchPlaceholder
+    content.searchCancel = props.strings.searchCancel
+    content.searchClear = props.strings.searchClear
     content.legendFrost = props.cached("legendFrost") { props.legendFrost.spec }
     content.active = props.active
     content.chips = props.cached("chips") { props.chips.map(\.chip) }
@@ -353,5 +377,17 @@ struct KKindredsView: ExpoSwiftUI.View {
     .onKCommand(props.commands) { name, args in
       props.handle(name, args)
     }
+  }
+}
+
+extension KKindredsView: ExpoSwiftUI.FocusableView {
+  /// Before the view goes: the keyboard away if the search field has it, then the field told it
+  /// has lost focus (as KEditFieldView does).
+  func forceResignFirstResponder() {
+    let field = props.driver.searchField
+    if field.isFocused {
+      _ = UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+    field.blur()
   }
 }

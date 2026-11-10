@@ -11,7 +11,7 @@ import SwiftUI
    KINDREDS ........................................ 2 LETTERS TO ANSWER   (scrolls away)
    ┌ band, pinned under the status bar ──────────────────────────────────────────────┐
    │   (the orbit: 300 open; folded, its rings as a 50% watermark behind the chips)    │
-   │ [◎] [All] [☺ Kindreds 3] [▦ Pen pals 21]                                          │
+   │ [◎] [⌕] [All] [☺ Kindreds 3] [▦ Pen pals 21]     (searching: [⌕ field ×] Cancel)  │
    └───────────────────────────────────────────────────────────────────────────────────┘
    her once-line · the notifications bar · offline · Showing … CLEAR
    Wren (pinned, ALL only) · rows (on you first, then the newest) · their turn, folded ·
@@ -26,7 +26,9 @@ import SwiftUI
  nothing. The Host ignores every safe area, so the status-bar strip above the scroll view is drawn
  here from `topInset`, and the band pins right under it, as H's scroll container starts at 54.
  The last row clears the floating tab bar (`bottomInset`) and a 176pt KBottomFade lies over the
- bottom of the screen. No text field: the keyboard's safe area is ignored too.
+ bottom of the screen. Its one text field is the search's, pinned in the band at the top, so
+ the keyboard's safe area stays ignored: nothing moves when the keyboard rises, and a drag on the
+ list drops it (scrollDismissesKeyboard).
 
  THE BAND (KKindredsDriver owns it; TS only resets it). Folded it is as tall as the chip row
  (measured, ≈58: large text grows it rather than clipping); open it is 300, or more when the
@@ -54,6 +56,21 @@ import SwiftUI
  SCROLL REQUESTS (TS commands through the driver): top, and list, the title's tap ("2 LETTERS
  TO ANSWER" shows only those): the band folds and the list scrolls to where the band pins, so
  the first row sits right under it rather than behind it.
+
+ SEARCH (owner's audit, 2026-11-10: no way to find one correspondent in a long list). A
+ magnifier chip (KSearchChip) sits right after the Orbit chip. Tapped, the chip row gives way to
+ a search field of the same height (the system's look in the theme's colours: a rounded field
+ on soft, the magnifier, the words, a × while there are any, and Cancel beside it), the keyboard
+ comes up and the orbit folds; a pull can't open it while the reader is searching. The field is
+ a KField and Swift owns it (KKindredsDriver: searching, searchField): every change is reported
+ (driver.onSearchChange: the words, and whether the reader is searching), TS narrows `items` by
+ its own rule (kindreds-model) and sends them back, so this screen never filters anything.
+ Cancel clears the field, drops the keyboard and brings the chips back; TS then shows the tab
+ and filter that were on, untouched. Both rows stay mounted and the hidden one is faded out,
+ untouchable and hidden from VoiceOver: a focused field is never taken off screen (KField's
+ rule). A row opened from the results blurs the field first, so the keyboard doesn't ride into
+ the chat; the search is still there on the way back. With no search words from TS (JS from
+ before the search) there is no magnifier and no field.
 
  THE ORBIT TAKES TAPS (owner's audit, 2026-11-10). Open, a tap on a stranger's face (or within
  24pt of it, the nearest wins: KOrbit) opens that correspondence through the same onRow the
@@ -141,6 +158,15 @@ public struct KKindredsContent: Equatable, Sendable {
   public var legendCloser: String = ""
   public var legendTurn: String = ""
   public var orbitChipLabel: String = ""
+  /// VoiceOver's name for the magnifier chip and the search field; "" (JS from before the
+  /// search) and neither is drawn
+  public var searchLabel: String = ""
+  /// the search field's placeholder
+  public var searchPlaceholder: String = ""
+  /// the word beside the field that ends the search
+  public var searchCancel: String = ""
+  /// VoiceOver's name for the field's × key
+  public var searchClear: String = ""
   /// identity switch on: the sample window the PEN PALS chip mark and the your-turn legend are
   /// drawn as (nobody's: TS's fixed seed); nil keeps the mosaic marks
   public var legendFrost: KFrostSpec?
@@ -191,6 +217,8 @@ public final class KKindredsDriver: ObservableObject {
     case pull
     case scroll
     case title
+    /// the search began (the orbit folds while the reader is searching)
+    case search
   }
 
   /// Where a scroll request goes.
@@ -216,9 +244,21 @@ public final class KKindredsDriver: ObservableObject {
 
   @Published public private(set) var bandOpen = false
   @Published private(set) var scrollRequest: ScrollRequest?
+  /// the reader is searching: the chip row has given way to the search field
+  @Published public private(set) var searching = false
+  /// the search field has words in it (its × key shows)
+  @Published public private(set) var searchHasText = false
+  /// the search field's handle. Whoever hosts the screen blurs it before the view is taken down.
+  public let searchField = KFieldController()
+  /// the chips and the field changing places
+  public static let searchSwap = Animation.easeInOut(duration: 0.2)
 
   /// told whenever the band opens or folds (not on a reset)
   public var onBandChange: ((_ open: Bool, _ via: Via) -> Void)?
+  /// told whenever the search changes: the field's words, and whether the reader is searching
+  /// (false: never began, or Cancel). Also told once each time the screen appears, so whoever
+  /// filters the list can't be left holding a search this screen no longer shows.
+  public var onSearchChange: ((_ query: String, _ active: Bool) -> Void)?
   /// set by the screen from the environment
   var reduceMotion = false
 
@@ -237,6 +277,53 @@ public final class KKindredsDriver: ObservableObject {
   /// The Orbit chip.
   public func toggleBand() {
     setBand(!bandOpen, via: .chip)
+  }
+
+  // ── the search ──
+
+  /// The magnifier chip: the orbit folds, the chip row gives way to the field, the keyboard rises.
+  public func beginSearch() {
+    guard !searching else { return }
+    setBand(false, via: .search)
+    searchField.setText("")
+    searchHasText = false
+    withAnimation(Self.searchSwap) { searching = true }
+    searchField.focus()
+    reportSearch()
+  }
+
+  /// Cancel: the keyboard down, the field emptied, the chips back.
+  public func endSearch() {
+    guard searching else { return }
+    searchField.blur()
+    searchField.setText("")
+    searchHasText = false
+    withAnimation(Self.searchSwap) { searching = false }
+    reportSearch()
+  }
+
+  /// The field's × key: empty it and keep the keyboard.
+  public func clearSearch() {
+    searchField.setText("")
+    searchHasText = false
+    searchField.focus()
+    reportSearch()
+  }
+
+  /// The reader typed in the field (KField's onChange).
+  func searchEdited(_ text: String) {
+    let has = !text.isEmpty
+    if has != searchHasText { searchHasText = has }
+    reportSearch()
+  }
+
+  /// Something off this screen is about to show (a row was opened): the keyboard goes first.
+  func dropKeyboard() {
+    if searching { searchField.blur() }
+  }
+
+  private func reportSearch() {
+    onSearchChange?(searching ? searchField.text : "", searching)
   }
 
   /// Folds the band at once, without moving or reporting anything: a new visit starts folded.
@@ -261,12 +348,15 @@ public final class KKindredsDriver: ObservableObject {
   /// The screen came into the window.
   func screenAppeared() {
     onScreen = true
+    // whoever filters the list hears what this screen is showing (see onSearchChange)
+    reportSearch()
   }
 
   /// The screen left the window (a push has finished sliding it out, or the tab was detached):
   /// the next visit starts folded.
   func screenDisappeared() {
     onScreen = false
+    dropKeyboard()
     reset()
   }
 
@@ -296,7 +386,8 @@ public final class KKindredsDriver: ObservableObject {
 
   /// A drag ended (the scroll model's pull release), with its deepest pull past the top.
   func pullReleased(_ depth: CGFloat) {
-    if !bandOpen && depth >= Self.pullToOpen {
+    // not while searching: the orbit stays folded under the search field
+    if !bandOpen && !searching && depth >= Self.pullToOpen {
       setBand(true, via: .pull)
     }
   }
@@ -390,6 +481,8 @@ public struct KKindredsScreen: View {
         }
       }
       .scrollIndicators(.hidden)
+      // a drag on the list drops the search's keyboard, so the results under it can be seen
+      .scrollDismissesKeyboard(.immediately)
       // a short list still bounces, so a new reader's pull still opens the orbit
       .scrollBounceBehavior(.always, axes: .vertical)
       .contentMargins(.bottom, bottomInset, for: .scrollContent)
@@ -563,16 +656,26 @@ public struct KKindredsScreen: View {
       .padding(.horizontal, KPersonRow.inset)
       .padding(.bottom, 2)
 
+    // a row opened from the search's results: the keyboard goes before the push (dropKeyboard)
     case let .wren(row):
-      KPersonRow(theme: theme, row: row, onTap: { actions.onWren() })
-        .equatable()
+      KPersonRow(theme: theme, row: row, onTap: {
+        driver.dropKeyboard()
+        actions.onWren()
+      })
+      .equatable()
 
     case let .row(row):
       KPersonRow(
         theme: theme,
         row: row,
-        onTap: { actions.onRow(row.id) },
-        onAction: { key in actions.onRowAction(row.id, key) }
+        onTap: {
+          driver.dropKeyboard()
+          actions.onRow(row.id)
+        },
+        onAction: { key in
+          driver.dropKeyboard()
+          actions.onRowAction(row.id, key)
+        }
       )
       .equatable()
 
@@ -693,11 +796,27 @@ struct KKindredsBand: View {
         .allowsHitTesting(open)
       }
       .overlay(alignment: .bottom) {
-        chipRow
+        // both stay mounted (a focused field is never taken off screen); the one not in use is
+        // faded out, untouchable and hidden from VoiceOver
+        ZStack(alignment: .bottom) {
+          chipRow
+            .opacity(driver.searching ? 0 : 1)
+            .allowsHitTesting(!driver.searching)
+            .accessibilityHidden(driver.searching)
+          if hasSearch {
+            searchRow
+              .opacity(driver.searching ? 1 : 0)
+              .allowsHitTesting(driver.searching)
+              .accessibilityHidden(!driver.searching)
+          }
+        }
       }
       .clipped()
       .background(theme.bg)
   }
+
+  /// TS sent the search's words (JS from before the search sends none: no chip, no field)
+  private var hasSearch: Bool { !content.searchLabel.isEmpty }
 
   private var chipRow: some View {
     ScrollView(.horizontal) {
@@ -709,6 +828,11 @@ struct KKindredsBand: View {
           a11yHint: [content.legendCloser, content.legendTurn].filter { !$0.isEmpty }.joined(separator: ". ")
         ) {
           driver.toggleBand()
+        }
+        if hasSearch {
+          KSearchChip(theme: theme, a11yLabel: content.searchLabel) {
+            driver.beginSearch()
+          }
         }
         ForEach(content.chips) { chip in
           KFilterChip(
@@ -738,6 +862,77 @@ struct KKindredsBand: View {
     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
       if abs(height - chipRowHeight) > 0.5 { chipRowHeight = height }
     }
+  }
+
+  /// The search field in the chip row's place, exactly as tall: the chips' 10 above and 8 below,
+  /// 24 from the screen's edges. The system's search look in the theme's colours: a rounded field
+  /// on soft, the magnifier, the words (system 17), a × while there are any, Cancel in ind.
+  private var searchRow: some View {
+    HStack(alignment: .center, spacing: 0) {
+      HStack(alignment: .center, spacing: 7) {
+        KLineIcon(.search, size: 17, lineWidth: 1.7, color: theme.mute)
+        KField(
+          theme: theme,
+          controller: driver.searchField,
+          placeholder: content.searchPlaceholder,
+          axis: .horizontal,
+          lines: nil,
+          returnSends: false,
+          autocapitalize: false,
+          autocorrect: false,
+          accessibilityLabel: content.searchLabel,
+          onChange: { text in driver.searchEdited(text) }
+        )
+        .frame(maxWidth: .infinity, alignment: .leading)
+        if driver.searchHasText {
+          // the system field's clear key
+          SwiftUI.Button {
+            driver.clearSearch()
+          } label: {
+            Image(systemName: "xmark.circle.fill")
+              .font(.system(size: 17))
+              .foregroundStyle(theme.faint)
+              .frame(width: 36, height: 44)
+              .contentShape(Rectangle())
+          }
+          .buttonStyle(KFadePressStyle())
+          .accessibilityLabel(content.searchClear)
+        }
+      }
+      .padding(.leading, 11)
+      .padding(.trailing, driver.searchHasText ? 0 : 11)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(theme.soft))
+      // anywhere on the field takes the keyboard, not only the words
+      .contentShape(Rectangle())
+      .onTapGesture { driver.searchField.focus() }
+      // the chips' 10 above and 8 below
+      .padding(.top, 10)
+      .padding(.bottom, 8)
+
+      SwiftUI.Button {
+        driver.endSearch()
+      } label: {
+        // the word sits level with the field (the same 10 and 8); the button is the row's whole
+        // height, so its target is 44pt or more whatever the text size
+        Text(content.searchCancel)
+          .kText(.system(17))
+          .foregroundStyle(theme.ind)
+          .lineLimit(1)
+          .fixedSize()
+          .padding(.top, 10)
+          .padding(.bottom, 8)
+          .padding(.horizontal, 12)
+          .frame(minWidth: 44, maxHeight: .infinity)
+          .contentShape(Rectangle())
+      }
+      .buttonStyle(KFadePressStyle())
+    }
+    .padding(.leading, 24)
+    // Cancel's own 12 makes the word end 24 from the edge, as the chips' row does
+    .padding(.trailing, 12)
+    .frame(height: chipRowHeight)
+    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
   }
 }
 

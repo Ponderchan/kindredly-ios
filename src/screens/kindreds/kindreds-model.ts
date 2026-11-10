@@ -8,6 +8,8 @@ import { EACH_WAY, developFor, hashStr, mosaicMask } from "../../lib/mosaic";
 import { NO_WHO_MARKS, whoBook, type WhoBook, type WhoMarks } from "../../lib/stranger-who";
 import type { FrostSpec } from "../../lib/frost";
 import "../../data/strings-a11y-chat"; // kd.unreadA11y
+import "../../data/strings-audit-kindreds"; // kd.search, kd.search.ph, kd.search.none
+import "../../data/strings-identity2"; // id2.sheet.clear (the search field's × key), id2.kd.was
 
 /* THE KINDREDS TAB, AS DATA (10a step 5). Pure: no React, no React
    Native, no i18n — every word comes in through `fmt`, so
@@ -61,7 +63,27 @@ import "../../data/strings-a11y-chat"; // kd.unreadA11y
    Wren, never "Nobody knows your name yet"). Until there is an answer
    (loading, failed) the screen claims nothing it can't back: no title
    status (not ALL ANSWERED), no chip counts (not "Pen pals 0"), no empty
-   line or hint under "Not connected.". */
+   line or hint under "Not connected.".
+
+   SEARCH (owner's audit, 2026-11-10: no way to find one correspondent in a
+   long list). While the reader is searching (`search` is a string; null
+   when they aren't) and has typed something, the list is everyone whose
+   row could be known by those words, whatever tab or filter was on:
+   · a pen pal by the name the row shows (the courier-given name, or "No.
+     4481" with the switch off);
+   · a kindred by the name they signed, and by what they were FIRST MET AS
+     (the courier name they wore, and the number before it);
+   · anyone by the last line their row shows (a quiet room and a closed
+     account show a status instead, so only their name is read);
+   · Wren's row by her name or her last line.
+   The match is a plain substring of searchKey: no case, no Latin accents,
+   width folded, so "elo" finds Élodie and CJK needs no word breaking (a
+   kana's voiced mark is part of the letter and is kept). Results keep the
+   owner's order (on you first, then the newest), then quiet rooms, then
+   closed accounts; nothing folds, so a pen pal waiting in THEIR TURN is a
+   row again; no once-line, no notice, no group header. Nothing found is
+   one quiet line. An empty field changes nothing: the list as it was.
+   Cancel (search back to null) restores the tab and filter untouched. */
 
 export type ListTab = "all" | "kindreds" | "penpals";
 /** the your-turn filter (the title's tap) or none; the old "their" filter could never be set */
@@ -96,6 +118,8 @@ export type KindredsFacts = {
   wrenLine: string | null;
   /** dev page only: give demo rows their menus so they can be tried */
   demoMenus?: boolean;
+  /** what the reader has typed in the search field; null (or absent) while they aren't searching */
+  search?: string | null;
 };
 
 export type KindredsFormat = {
@@ -204,6 +228,8 @@ export type KindredsView = {
   legendCloser: string;
   legendTurn: string;
   orbitChipLabel: string;
+  /** the search's words: the magnifier chip's (and the field's) VoiceOver name, the placeholder, Cancel, and the × key's name */
+  search: { label: string; placeholder: string; cancel: string; clear: string };
   /** the identity switch the view was built with (the orbit draws windows, the legend a frosted square) */
   identity: boolean;
   /** switch on: the PEN PALS legend glyph's small frosted square (a fixed sample window, nobody's); null when off */
@@ -437,6 +463,44 @@ export function kindredWas(
   return t("id2.kd.was", { name: book.name(th.other) });
 }
 
+/* ── search ────────────────────────────────────────────────────────────── */
+
+/** A string as the search compares it: no case, no Latin accents (é = e, ñ = n), full and half
+    width folded, runs of space as one. Compatibility-decomposed so an accent can be dropped, then
+    recomposed, so Hangul and a kana's voiced mark (が is not か) stay whole letters. */
+export function searchKey(s: string): string {
+  return s
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .normalize("NFC")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Does any of these words contain the query? `query` is already a searchKey; "" finds nothing. */
+export function searchHit(query: string, fields: readonly (string | null | undefined)[]): boolean {
+  return !!query && fields.some((f) => !!f && searchKey(f).includes(query));
+}
+
+/** What a search reads of one correspondence: every name its row can be known by, and the last
+    line when the row shows it (`quiet`: the row shows "expired …" instead; a closed account
+    shows "account closed"). */
+export function searchFields(th: ThreadSummary, quiet: boolean, fmt: KindredsFormat): string[] {
+  const book = bookOf(fmt);
+  const gone = !!th.gone;
+  const out: string[] = [];
+  if (th.revealed) {
+    out.push(th.otherName || fmt.t("kd.aKindred"));
+    // FIRST MET AS (their page): the courier name they wore, and the number before the switch
+    if (th.other && !gone) out.push(book.name(th.other), fmt.penPal(th.other));
+  } else {
+    out.push(book.who(gone ? null : th.other).name);
+  }
+  if (!quiet && !gone && th.preview) out.push(th.preview);
+  return out;
+}
+
 /** One row (a kindred, a pen pal, a quiet room, a closed account). */
 export function rowFor(
   th: ThreadSummary,
@@ -597,6 +661,29 @@ export function buildKindredsView(f: KindredsFacts, fmt0: KindredsFormat): Kindr
   }
   for (const th of c.shut) items.push(row(th, false));
 
+  // SEARCH with words in it: everyone who matches, whatever tab or filter is on, nothing folded
+  const query = f.search == null ? "" : searchKey(f.search);
+  if (query) {
+    const everyone = classify({ ...f, tab: "all", show: null });
+    items.length = 0;
+    if (f.loadState === "failed") items.push({ type: "line", id: "offline", text: t("auth.err.offline") });
+    const wren = wrenRow(f.desk, f.wrenName, fmt);
+    let found = 0;
+    if (searchHit(query, [wren.name, wren.preview])) {
+      items.push({ type: "wren", id: "wren", row: wren });
+      found++;
+    }
+    for (const [group, quiet] of [[everyone.main, false], [everyone.quiet, true], [everyone.shut, false]] as const) {
+      for (const th of group) {
+        if (!searchHit(query, searchFields(th, quiet, fmt))) continue;
+        items.push(row(th, quiet));
+        found++;
+      }
+    }
+    // only over a real answer: with nothing read yet, "nobody" would be a claim
+    if (!found && answered(f.loadState)) items.push({ type: "line", id: "search-none", text: t("kd.search.none") });
+  }
+
   // nothing read yet (loading, failed): no status at all rather than ALL ANSWERED, and no counts
   // rather than "Pen pals 0" (TabHeader and Swift's title row draw nothing for "")
   const known = answered(f.loadState);
@@ -625,6 +712,7 @@ export function buildKindredsView(f: KindredsFacts, fmt0: KindredsFormat): Kindr
     // state.yourTurn is in all nine languages already ("TE TOCA", "あなたの番"), said as a sentence
     legendTurn: fmt.sentence(t("state.yourTurn")),
     orbitChipLabel: t("kd.orbit"),
+    search: { label: t("kd.search"), placeholder: t("kd.search.ph"), cancel: t("ml.cancel"), clear: t("id2.sheet.clear") },
     identity: book.identity,
     legendFrost: book.frost(LEGEND_FROST_SEED),
     chips,

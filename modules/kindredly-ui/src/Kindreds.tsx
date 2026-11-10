@@ -11,7 +11,8 @@ import { nativeFrost, type KFrost, type KImageRefProps, type KInsets, type KMark
    or folded (reported through onBandChange), the scroll, the pull.
 
    It is a whole screen: put it alone in one @expo/ui <Host style={{flex:1}}> (SurfaceHost in
-   src/components/NativeSurface.tsx; ignoreSafeArea "all" — it has no text field), and only after
+   src/components/NativeSurface.tsx; ignoreSafeArea "all" — its one text field, the search's, is pinned at
+   the top, so the keyboard's region is ignored on purpose and nothing moves when it rises), and only after
    isKindredlyUIViewAvailable("KKindredsView") and the "kindreds" NativeSurface switch say so.
    Outside a Host it is a RedBox in dev and a CRASH in a release build. Its ref is a
    KScreenHandle: give it `commands.ref` from useKCommands<KKindredsCommands> (commands.ts).
@@ -21,6 +22,13 @@ import { nativeFrost, type KFrost, type KImageRefProps, type KInsets, type KMark
    bottom fade). Pass chips, orbit, items and legendFrost memoised, with a rev from useRev over
    all four: Swift converts them once per rev, and every prop change re-sends the whole props map
    (KCommandBus.swift).
+
+   SEARCH (owner's audit, 2026-11-10). The strings carry the search's four words; with them Swift
+   shows a magnifier chip after the orbit chip, and its field replaces the chip row. Swift owns
+   the field: onSearch(query, active) reports every change (active false: Cancel, or the screen
+   coming back without a search), and TS answers with the narrowed `items`. A binary from before
+   the search ignores the words and shows no magnifier; JS from before it sends none, and a newer
+   binary then shows no magnifier either.
 
    THE IDENTITY SWITCH (identity Phase 1) is data here, never a different screen: a pen pal's
    face "frost" with its window, a row's ♀/♂ mark, star sign and "was No. 4481", a folded or
@@ -146,10 +154,18 @@ export type KKindredsStrings = {
   legendTurn: string;
   /** VoiceOver's name for the Orbit chip */
   orbitChipLabel: string;
+  /** VoiceOver's name for the magnifier chip and the search field; "" (or absent) and there is no search */
+  searchLabel?: string;
+  /** the search field's placeholder */
+  searchPlaceholder?: string;
+  /** the word beside the field that ends the search */
+  searchCancel?: string;
+  /** VoiceOver's name for the field's × key */
+  searchClear?: string;
 };
 
 /** What the band reports: opened or folded, and by what. */
-export type KKindredsBandVia = "chip" | "pull" | "scroll" | "title";
+export type KKindredsBandVia = "chip" | "pull" | "scroll" | "title" | "search";
 
 /** The Kindreds view's commands: scrollTo top or list (where the band pins: the title's tap), and
     reset, which nothing needs to send: Swift folds the band itself once the screen has left the
@@ -183,6 +199,8 @@ export type KKindredsViewProps = CommonViewModifierProps &
     onHintPress?: (kind: "kindreds" | "penpals") => void;
     onNoticePress?: (action: "turnOn" | "close") => void;
     onWrenLinePress?: () => void;
+    /** the search field changed: its words, and whether the reader is searching (false: Cancel) */
+    onSearch?: (query: string, active: boolean) => void;
     /** <KIsland> / <KSlot> children (none today), every one on every render (Slot.tsx) */
     children?: ReactNode;
   };
@@ -221,6 +239,7 @@ type NativeKKindredsViewProps = Omit<
   | "onHintPress"
   | "onNoticePress"
   | "onWrenLinePress"
+  | "onSearch"
 > &
   Required<Pick<KKindredsViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
@@ -239,6 +258,7 @@ type NativeKKindredsViewProps = Omit<
     onKindredsHintPress?: Ev<{ kind: "kindreds" | "penpals" }>;
     onKindredsNoticePress?: Ev<{ action: "turnOn" | "close" }>;
     onKindredsWrenLinePress?: Ev<Record<string, never>>;
+    onKindredsSearch?: Ev<{ query: string; active: boolean }>;
   };
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
@@ -322,6 +342,7 @@ export const KKindredsView = forwardRef<KScreenHandle, KKindredsViewProps>(funct
     onHintPress,
     onNoticePress,
     onWrenLinePress,
+    onSearch,
     ...rest
   },
   ref,
@@ -355,6 +376,7 @@ export const KKindredsView = forwardRef<KScreenHandle, KKindredsViewProps>(funct
       onKindredsHintPress={onHintPress ? (e) => onHintPress(e.nativeEvent.kind) : undefined}
       onKindredsNoticePress={onNoticePress ? (e) => onNoticePress(e.nativeEvent.action) : undefined}
       onKindredsWrenLinePress={onWrenLinePress ? () => onWrenLinePress() : undefined}
+      onKindredsSearch={onSearch ? (e) => onSearch(e.nativeEvent.query ?? "", !!e.nativeEvent.active) : undefined}
     />
   );
 });

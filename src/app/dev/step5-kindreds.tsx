@@ -90,6 +90,8 @@ function KindredsLab() {
   const [ledger, setLedger] = useState<Record<string, number>>(DEMO_ROOM_SEEN);
   const [gone, setGone] = useState<ReadonlySet<string>>(() => new Set());
   const [blocking, setBlocking] = useState<string | null>(null);
+  // the search field's words (owner's audit, 2026-11-10); null while not searching
+  const [search, setSearch] = useState<string | null>(null);
 
   const threads = useMemo(() => {
     const all = demoThreads({ store: false }).filter((th) => !gone.has(th.id));
@@ -121,12 +123,13 @@ function KindredsLab() {
           notice,
           wrenLine: once ? speakAs(t("kindreds.said"), OFFICIAL_NAME) : null,
           demoMenus: true,
+          search,
         },
         kindredsFormat(who),
       ),
     // lang: the words follow the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [threads, ledger, premium, unsettled, tab, show, loadState, notice, once, lang, who],
+    [threads, ledger, premium, unsettled, tab, show, loadState, notice, once, lang, who, search],
   );
 
   const away = useCallback((where: string) => Alert.alert("Dev page", `In the app this opens ${where}.`), []);
@@ -162,6 +165,7 @@ function KindredsLab() {
       notice: (action) => (action === "close" ? setNotice(false) : away("iOS's notification question, or Settings")),
       wrenLine: () => setOnce(false),
       band: (open, via) => console.log(`[step5-kindreds] band ${open ? "open" : "folded"} by ${via}`),
+      search: (query, active) => setSearch(active ? query : null),
       confirmBlock: () => {
         if (blocking) setGone((g) => new Set(g).add(blocking));
         setBlocking(null);

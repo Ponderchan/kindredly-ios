@@ -64,6 +64,11 @@ import {
      once-line (useWrenOnce);
    - the tab (ALL / KINDREDS / PEN PALS) and the your-turn filter, kept for
      the session;
+   - the search (owner's audit, 2026-11-10): what the reader has typed in
+     the Swift screen's search field, or null while they aren't searching.
+     Swift owns the field and reports every change (act.search); the list
+     narrows by kindreds-model's rule and goes back to the tab and filter
+     above, untouched, on Cancel. The React Native fallback has no search;
    - the tab bar's waiting count (setWaiting) from the same number the
      title shows;
    - every tap: rows to their room or chat, the menus (rekindle, mark read
@@ -95,6 +100,8 @@ export type KindredsActions = {
   notice: (action: "turnOn" | "close") => void;
   wrenLine: () => void;
   band: (open: boolean, via: string) => void;
+  /** the search field: its words, and whether the reader is searching at all (false: Cancel) */
+  search: (query: string, active: boolean) => void;
   confirmBlock: () => void;
   cancelBlock: () => void;
 };
@@ -233,6 +240,8 @@ export function useKindredsModel(): KindredsModel {
     setShowState(v);
   }, []);
   const [scroll, setScroll] = useState<KindredsScroll>({ serial: 0, target: "top" });
+  /* the search field's words (Swift's field reports them); null while the reader isn't searching */
+  const [search, setSearch] = useState<string | null>(null);
 
   /* her once-line, only while the list (not the empty state) can be seen */
   const listVisible = effState !== "loading" && !(listed(source).length === 0 && (effState === "ready" || effState === "none"));
@@ -259,12 +268,13 @@ export function useKindredsModel(): KindredsModel {
           wrenName: OFFICIAL_NAME,
           notice: notify.show,
           wrenLine: onceShowing ? speakAs(t("kindreds.said"), courier) : null,
+          search,
         },
         kindredsFormat(who),
       ),
     // lang: every word is the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [source, effLedger, premium, settled, tab, show, effState, desk.unread, desk.lastLine, desk.lastAt, notify.show, onceShowing, courier, lang, who],
+    [source, effLedger, premium, settled, tab, show, effState, desk.unread, desk.lastLine, desk.lastAt, notify.show, onceShowing, courier, lang, who, search],
   );
 
   // the tab bar's number, from the count the title shows
@@ -356,6 +366,7 @@ export function useKindredsModel(): KindredsModel {
       },
       wrenLine: () => dismissWrenOnce("kindreds"),
       band: () => {},
+      search: (query, active) => setSearch(active ? query : null),
       confirmBlock: () => void doBlock(),
       cancelBlock: () => {
         if (!live.current.blockBusy) setBlocking(null);

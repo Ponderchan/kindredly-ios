@@ -46,6 +46,10 @@ import type { KindredsModel } from "./useKindredsModel";
      map), with one rev for all three;
    - the insets: the status bar Swift draws its strip for, the floating
      bar's room the last row clears.
+   - the search's words (owner's audit, 2026-11-10: the magnifier chip, the
+     field's placeholder, Cancel, the × key's name). A binary from before
+     the search ignores them and simply shows no magnifier; the field is
+     Swift's, and what the reader types comes back through onSearch.
    And it carries what isn't data: the title's tap scrolls to where the
    band pins, re-pressing the tab goes to the top, and the orbit drifts
    only while the tab is focused (active). Every visit starts with the band
@@ -219,6 +223,10 @@ export function KindredsNative({ model }: { model: KindredsModel }) {
     legendCloser: view.legendCloser,
     legendTurn: view.legendTurn,
     orbitChipLabel: view.orbitChipLabel,
+    searchLabel: view.search.label,
+    searchPlaceholder: view.search.placeholder,
+    searchCancel: view.search.cancel,
+    searchClear: view.search.clear,
   });
 
   return (
@@ -248,6 +256,7 @@ export function KindredsNative({ model }: { model: KindredsModel }) {
         onHintPress={act.hint}
         onNoticePress={act.notice}
         onWrenLinePress={act.wrenLine}
+        onSearch={act.search}
       />
     </SurfaceHost>
   );
