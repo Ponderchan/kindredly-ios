@@ -340,8 +340,9 @@ public struct KCourierScreen: View {
 
   @State private var logOpen = false
   @State private var tracking = false
-  /// the rack's open row. The page opens with LOOKS unfolded (owner on TestFlight 1.2.8, 2026-11-10);
-  /// the TS side starts on the same row so her coats are already pictured (CourierNative `rack`)
+  /// the rack's row. It is always open, on LOOKS when the page opens, and LOOKS / DRESS switch it
+  /// (owner on TestFlight 1.2.8, 2026-11-10); the TS side starts on the same row so her coats are
+  /// already pictured (CourierNative `rack`)
   @State private var rack: KCourierCell.Key? = .looks
   /// the page has scrolled past the cover: the status strip wears the page's colour
   @State private var pastCover = false
@@ -576,9 +577,12 @@ public struct KCourierScreen: View {
       HStack(alignment: .top, spacing: 10) {
         ForEach(content.cells) { cell in
           KCourierCellButton(theme: theme, cell: cell, on: rack == cell.key, expanded: content.strings.expanded, collapsed: content.strings.collapsed) {
-            let next: KCourierCell.Key? = rack == cell.key ? nil : cell.key
-            toggle { rack = next }
-            actions.onRack(next?.rawValue ?? "")
+            // the rack never shuts: a cell switches the rack to its row, and the row already
+            // showing stays (owner on TestFlight 1.2.8, 2026-11-10: "it is open as it is; tapping
+            // one switches to that one")
+            guard rack != cell.key else { return }
+            toggle { rack = cell.key }
+            actions.onRack(cell.key.rawValue)
           }
           .frame(maxWidth: .infinity)
         }

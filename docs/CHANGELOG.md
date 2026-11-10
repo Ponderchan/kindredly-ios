@@ -41,7 +41,7 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 Fixed after the first TestFlight build of 1.0.9 (b41, owner's notes 2026-11-10)
 - Make your own face and the faces you already made are back in Edit profile on a new build without anyone switching them on. [switch: makeface, now on by default]
 - Me: the look Wren is wearing is ringed in the pen colour, not a black frame.
-- The courier's page opens with her looks already unfolded.
+- The courier's page always shows her wardrobe: it opens on Looks, and Looks / Dress switch the row (it no longer folds shut).
 - Settings: the row for her name says "Courier's name", with her name beside it, in all nine languages.
 
 
