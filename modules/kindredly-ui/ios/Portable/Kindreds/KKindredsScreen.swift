@@ -10,7 +10,7 @@ import SwiftUI
 
    KINDREDS ........................................ 2 LETTERS TO ANSWER   (scrolls away)
    ┌ band, pinned under the status bar ──────────────────────────────────────────────┐
-   │   (the orbit: 300 open, a 50% watermark strip of it behind the chips when folded) │
+   │   (the orbit: 300 open; folded, its rings as a 50% watermark behind the chips)    │
    │ [◎] [All] [☺ Kindreds 3] [▦ Pen pals 21]                                          │
    └───────────────────────────────────────────────────────────────────────────────────┘
    her once-line · the notifications bar · offline · Showing … CLEAR
@@ -43,9 +43,13 @@ import SwiftUI
  screen is showing, waits for that.
 
  WATERMARK. Folded, the orbit's middle strip shows behind the chips at 50%, fading out over the
- first 80pt of scroll; it keeps drifting (owner 10-11 wanted motion when folded) until it has
- faded out. Those per-frame values live in KScrollModel (offset capped at 81), read only by small
- child views: the screen itself never redraws as the list scrolls.
+ first 80pt of scroll. It is the dashed rings alone (owner's audit, 2026-11-10): the centre cell
+ and the passing faces used to poke out above a chip as stray grey blocks and read as a glitch,
+ so folded they are not drawn (KOrbit ringsOnly; they fade over the same .4s as the band's
+ opacity and come back as it opens). This replaces the 10-11 "keeps drifting when folded": with
+ only the rings left there is nothing to drift. The scroll's per-frame values live in
+ KScrollModel (offset capped at 81), read only by small child views: the screen itself never
+ redraws as the list scrolls.
 
  SCROLL REQUESTS (TS commands through the driver): top, and list, the title's tap ("2 LETTERS
  TO ANSWER" shows only those): the band folds and the list scrolls to where the band pins, so
@@ -741,8 +745,8 @@ struct KKindredsBand: View {
 /// the list moves near the top; nothing above it does.
 struct KKindredsOrbitBlock: View {
   static let legend = KTextStyle.mono(10, .medium, tracking: 0.06)
-  /// the orbit's opacity, filter and legend: .4s CSS ease (H:62)
-  static let fade = Animation.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.4)
+  /// the orbit's opacity, filter and legend: .4s CSS ease (H:62); the faces leave on the same curve
+  static let fade = KOrbit.fade
 
   let theme: KTheme
   let orbit: [KOrbitItem]
@@ -761,7 +765,8 @@ struct KKindredsOrbitBlock: View {
     // folded, the watermark fades out over the first 80pt of scroll (H: clamp(0, 1 - sc/80, 1))
     let fade = max(0, min(1, 1 - chrome.offset / 80))
     VStack(spacing: 0) {
-      KOrbit(theme: theme, items: orbit, active: active && (open || fade > 0), onTap: open ? onFace : nil)
+      // folded: the rings alone, still (no centre cell, no faces: they read as stray blocks)
+      KOrbit(theme: theme, items: orbit, active: active && open, ringsOnly: !open, onTap: open ? onFace : nil)
         .equatable()
       legend
         .opacity(open ? 1 : 0)

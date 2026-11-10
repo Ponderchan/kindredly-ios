@@ -25,7 +25,7 @@ import SwiftUI
  where it would have been when the tab comes back, never snapped back to its start, and a list
  that re-sorts moves nobody (a0 is computed by TS over a stable order). The canvas redraws in a
  TimelineView at 20 frames a second while `active`, and stops otherwise: off the tab, under
- Reduce Motion (the faces then rest at a0), and when the watermark has faded out.
+ Reduce Motion (the faces then rest at a0), and while the band is folded (rings only, below).
 
  Faces that arrive fade in over .32s, a little after each other (OrbitMap.tsx's arrival).
 
@@ -43,6 +43,13 @@ import SwiftUI
  the stamp's full rule would leave a 6pt face at these sizes (decision D-6).
 
  VoiceOver doesn't see the drawing; the legend and the Orbit chip's hint say what it means.
+
+ RINGS ONLY (owner's audit, 2026-11-10). Folded, the band keeps the orbit's middle strip as a
+ faint watermark behind the chips, and the centre cell and whichever faces were passing poked
+ out above a chip as stray grey blocks: it read as a glitch. With `ringsOnly` the drawing is
+ the five dashed rings and nothing else: you and the faces fade out over KOrbit.fade (.4s CSS
+ ease, the curve the band's own opacity folds on) and back in when it opens. The rings are
+ their own still layer, so nothing has to redraw while they are all there is.
 
  TAPS (owner's audit, 2026-11-10: readers tapped a square and nothing happened). With `onTap`
  set, a tap on a stranger's face, or within 24pt of it, reports their id (the nearest face wins),
@@ -167,7 +174,11 @@ public struct KOrbit: View, Equatable {
   private let theme: KTheme
   private let items: [KOrbitItem]
   private let active: Bool
+  private let ringsOnly: Bool
   private let onTap: ((String) -> Void)?
+
+  /// you and the faces leaving or coming back: .4s CSS ease, as the band's opacity folds (H:62)
+  public static let fade = Animation.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.4)
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -177,25 +188,37 @@ public struct KOrbit: View, Equatable {
   /// - Parameters:
   ///   - items: the strangers, in TS's order
   ///   - active: the drawing may move (the tab is focused and the orbit can be seen)
+  ///   - ringsOnly: draw the dashed rings alone (the folded watermark): you and the faces fade out
   ///   - onTap: a face was tapped, with its id; nil and the drawing takes no taps. Not compared
   ///     (hand it a closure that stays good for the life of the screen)
-  public init(theme: KTheme, items: [KOrbitItem], active: Bool, onTap: ((String) -> Void)? = nil) {
+  public init(theme: KTheme, items: [KOrbitItem], active: Bool, ringsOnly: Bool = false, onTap: ((String) -> Void)? = nil) {
     self.theme = theme
     self.items = items
     self.active = active
+    self.ringsOnly = ringsOnly
     self.onTap = onTap
   }
 
   public static func == (a: KOrbit, b: KOrbit) -> Bool {
-    a.theme == b.theme && a.items == b.items && a.active == b.active && (a.onTap == nil) == (b.onTap == nil)
+    a.theme == b.theme && a.items == b.items && a.active == b.active && a.ringsOnly == b.ringsOnly && (a.onTap == nil) == (b.onTap == nil)
   }
 
   public var body: some View {
-    let running = active && !reduceMotion
-    TimelineView(.animation(minimumInterval: 1.0 / 20, paused: !running)) { context in
+    // nothing moves while only the rings show
+    let running = active && !reduceMotion && !ringsOnly
+    ZStack {
+      // the rings: still, and all that is left of the orbit as the folded watermark
       Canvas { gc, size in
-        draw(in: &gc, size: size, date: context.date, running: running)
+        drawRings(in: &gc, size: size)
       }
+      // you and them
+      TimelineView(.animation(minimumInterval: 1.0 / 20, paused: !running)) { context in
+        Canvas { gc, size in
+          drawFaces(in: &gc, size: size, date: context.date, running: running)
+        }
+      }
+      .opacity(ringsOnly ? 0 : 1)
+      .animation(Self.fade, value: ringsOnly)
     }
     .frame(height: KOrbitGeometry.height)
     .frame(maxWidth: .infinity)
@@ -220,19 +243,26 @@ public struct KOrbit: View, Equatable {
     .accessibilityHidden(true)
   }
 
-  private func draw(in gc: inout GraphicsContext, size: CGSize, date: Date, running: Bool) {
+  /// The five rings: ink at .22, 1.2 wide, dashed 3 4 (H).
+  private func drawRings(in gc: inout GraphicsContext, size: CGSize) {
     let s = KOrbitGeometry.scale(in: size)
     guard s > 0 else { return }
     let cx = size.width / 2
     let cy = size.height / 2
     let squash = KOrbitGeometry.squash
-
-    // the rings: ink at .22, 1.2 wide, dashed 3 4 (H)
     let ringStyle = StrokeStyle(lineWidth: 1.2, dash: [3, 4])
     for r in KOrbitGeometry.rings {
       let rect = CGRect(x: cx - r * s, y: cy - r * squash * s, width: 2 * r * s, height: 2 * r * squash * s)
       gc.stroke(Path(ellipseIn: rect), with: .color(theme.ink.opacity(0.22)), style: ringStyle)
     }
+  }
+
+  /// You (the centre cell) and every stranger's face, where each is at `date`.
+  private func drawFaces(in gc: inout GraphicsContext, size: CGSize, date: Date, running: Bool) {
+    let s = KOrbitGeometry.scale(in: size)
+    guard s > 0 else { return }
+    let cx = size.width / 2
+    let cy = size.height / 2
 
     // you
     let you = KOrbitGeometry.you * s
@@ -242,6 +272,7 @@ public struct KOrbit: View, Equatable {
     for (order, item) in items.enumerated() {
       let box = KOrbitGeometry.faceBox(item, in: size, at: date, still: reduceMotion)
       let side = box.width
+      // the arrival fade needs the timeline; without it (Reduce Motion, off the tab, rings only) a face is simply there
       let opacity = running ? arrivals.opacity(item.id, order: order, at: date) : 1
       guard opacity > 0 else { continue }
       if item.stamp {
