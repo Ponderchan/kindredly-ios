@@ -138,6 +138,16 @@ const facts = (over: Partial<SettingsFacts> = {}): SettingsFacts => ({
   ok("while the file is written: … and no second tap", busy.busy && busy.value === "…" && !busy.chevron && busy.kind === "link");
   ok("an empty journal is never busy", !rowOf({ journalPages: 0, exporting: true }).r.busy);
   ok("still exactly two switches with the row there", buildSettingsView(facts({ journalPages: 3 }), t).groups.flatMap((g) => g.rows).filter((x) => x.kind === "toggle").length === 2);
+
+  /* the journal book (2026-11-10): where the binary makes it, the row opens its page */
+  const book = rowOf({ journalPages: 12, journalBook: true }).r;
+  ok("the book exists: the same row, a link with its chevron, under Unsent letters", book.kind === "link" && book.chevron && book.label === "set.export" && rowOf({ journalBook: true }).rows.findIndex((x) => x.key === "exportJournal") === rowOf({ journalBook: true }).rows.findIndex((x) => x.key === "drafts") + 1);
+  ok("the book exists: its sub-line says a book or just the words", book.sub === "bk.set.sub");
+  ok("the book exists: never busy (nothing is written from Settings)", !rowOf({ journalPages: 12, journalBook: true, exporting: true }).r.busy && rowOf({ journalPages: 12, journalBook: true, exporting: true }).r.value === "");
+  ok("the book exists, not counted yet: the live row with the book's line", rowOf({ journalPages: null, journalBook: true }).r.sub === "bk.set.sub" && rowOf({ journalBook: true }).r.kind === "link");
+  ok("the book exists, an empty journal: still the row that says so and does nothing", rowOf({ journalPages: 0, journalBook: true }).r.kind === "display" && rowOf({ journalPages: 0, journalBook: true }).r.sub === "set.export.none");
+  ok("no book on this binary: exactly the row as it was", JSON.stringify(rowOf({ journalPages: 12, journalBook: false }).r) === JSON.stringify(r));
+  ok("the hook opens the page: the model still gives the row no route", ROW_ROUTES.exportJournal === undefined);
   /* the evening question's own switch (owner, 2026-11-10): only for a reader whose line is, or was this visit, on */
   {
     const quietOf = (f: Parameters<typeof facts>[0]) => buildSettingsView(facts(f), t).groups.find((g) => g.key === "quiet")!.rows;

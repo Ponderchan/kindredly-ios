@@ -41,7 +41,12 @@ import type { FirstClass4aVM } from "../me/me-model";
      no page yet the row says so and does nothing (a display row); while the
      file is being written it reads … and a second tap does nothing; until
      the journal has been counted it is the live row (the tap itself reads
-     the journal and says if there is nothing);
+     the journal and says if there is nothing). On a binary that can make
+     the JOURNAL BOOK (2026-11-10, facts.journalBook) the same row opens the
+     book's page instead (the hook; /journal-book): its sub-line then says
+     both ways out, a book or just the words (bk.set.sub), and it is never
+     busy, since nothing is written from Settings any more. With no page it
+     is still the display row that does nothing;
    - FIRST CLASS: membership, restore (… while it runs), manage;
    - HELP, SAFETY (report / block stays reachable: Apple);
    - the two exits in red, delete with its subline;
@@ -181,6 +186,8 @@ export type SettingsFacts = {
   journalPages?: number | null;
   /** the export file is being written */
   exporting?: boolean;
+  /** this binary can make the journal book and has its page: the export row opens it */
+  journalBook?: boolean;
   version: VersionFacts;
 };
 
@@ -348,10 +355,13 @@ export function quietNotice(perm: SettingsFacts["perm"], t: TFn): SettingsNotice
 
 /** Export my journal, under Unsent letters. No page yet: a display row that says so (and does
     nothing). Otherwise a link whose sub-line says the journal lives only on this phone and that
-    the file is the words only; … and no chevron while the file is being written. */
-export function exportRow(f: Pick<SettingsFacts, "journalPages" | "exporting">, t: TFn): SettingsRowVM {
+    the file is the words only; … and no chevron while the file is being written. Where the
+    journal book exists (journalBook) the row opens its page: a plain link whose sub-line says it
+    can be a book or just the words. */
+export function exportRow(f: Pick<SettingsFacts, "journalPages" | "exporting" | "journalBook">, t: TFn): SettingsRowVM {
   const base = { key: "exportJournal" as const, symbol: "square.and.arrow.up", glyph: "doc" as const, label: t("set.export") };
   if (f.journalPages === 0) return row({ ...base, sub: t("set.export.none"), chevron: false, kind: "display" });
+  if (f.journalBook) return row({ ...base, sub: t("bk.set.sub") });
   const busy = !!f.exporting;
   return row({ ...base, sub: t("set.export.sub"), value: busy ? "…" : "", chevron: !busy, busy });
 }

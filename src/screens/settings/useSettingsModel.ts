@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Alert, Linking, Share } from "react-native";
+import { Alert, Linking } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
 import { STORE_OF_BINARY } from "../../lib/update-prompt-core";
@@ -37,7 +37,9 @@ import "../../data/strings-step5-settings";
 import "../../data/strings-step5-me"; // fc.firstMark, on the banner's stamp
 import "../../data/strings-fc2"; // fc2.ap.*: System, Light, Dark
 import "../../data/strings-audit-notes"; // set.export*
-import { exportablePages, writeJournalExport } from "../../lib/journal-export-file";
+import "../../data/strings-book-screen"; // bk.set.sub
+import { exportablePages, shareJournalExport } from "../../lib/journal-export-file";
+import { JOURNAL_BOOK_ROUTE, journalBookPageThere } from "../journal-book/available";
 
 /* SETTINGS' LOGIC, for both renderers (10a step 5). Everything settings.tsx
    did, plus 10a's APPEARANCE, in one hook: SettingsNative (SwiftUI) and
@@ -76,7 +78,14 @@ import { exportablePages, writeJournalExport } from "../../lib/journal-export-fi
      row's sub-line says. The row's count is read on every focus; a journal
      with no page says so and the tap does nothing; a journal that can't be
      read, or a file that can't be written, is said as a failure — never as
-     an empty journal. One export at a time (the row reads … meanwhile). */
+     an empty journal. One export at a time (the row reads … meanwhile).
+     THE JOURNAL BOOK (2026-11-10): on a binary that can make the book and
+     has its page (journal-book/available), the same row opens /journal-book
+     instead (a preview of the reader's own book, the PDF for First Class,
+     and this same text export one tap away as "Just the words"), and its
+     sub-line says both ways out. On any other binary nothing above changes.
+     The write-then-share itself is lib/journal-export-file
+     shareJournalExport, the one function both places call. */
 
 /** The binary's own version (expo-application), the store's label beside it (owner question 7). */
 export function versionFacts(): VersionFacts {
@@ -157,6 +166,8 @@ export function useSettingsModel(): SettingsModel {
   const [journalPages, setJournalPages] = useState<number | null>(null);
   const [exporting, setExporting] = useState(false);
   const exportingRef = useRef(false);
+  /* the journal book: this binary makes it and has its page (asked once; a binary can't gain either while it runs) */
+  const bookThere = useMemo(journalBookPageThere, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -214,13 +225,14 @@ export function useSettingsModel(): SettingsModel {
           restoring,
           journalPages,
           exporting,
+          journalBook: bookThere,
           version,
         },
         t,
       ),
     // lang: every word follows the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [handle, dob, language, wren, appearance, letterFont, perm, notifyOn, knock, evening, premium, cofounderNo, trial, restoring, journalPages, exporting, version, lang],
+    [handle, dob, language, wren, appearance, letterFont, perm, notifyOn, knock, evening, premium, cofounderNo, trial, restoring, journalPages, exporting, bookThere, version, lang],
   );
 
   /* EXPORT MY JOURNAL: write the words to one file, then the share sheet (see the top comment).
@@ -230,13 +242,8 @@ export function useSettingsModel(): SettingsModel {
     exportingRef.current = true;
     setExporting(true);
     try {
-      const file = await writeJournalExport();
-      if (!file) {
-        setJournalPages(0);
-        return;
-      }
-      setJournalPages(file.pages);
-      await Share.share({ url: file.uri });
+      // 0: the journal has no page (nothing was written, no sheet opened)
+      setJournalPages(await shareJournalExport());
     } catch (e) {
       console.warn("[settings] the journal wasn't exported:", e);
       Alert.alert(t("set.export"), t("cp.fail.generic"));
@@ -386,7 +393,9 @@ export function useSettingsModel(): SettingsModel {
           void onRestore();
           return;
         case "exportJournal":
-          void onExport();
+          // the journal book's page where this binary has it; otherwise the text file, as before
+          if (bookThere) router.push(JOURNAL_BOOK_ROUTE as never);
+          else void onExport();
           return;
         case "manage":
           void Linking.openURL(SETTINGS_LINKS.manage).catch((e) => console.warn("[settings] manage:", e));
@@ -410,7 +419,7 @@ export function useSettingsModel(): SettingsModel {
           return; // the age row, or a key from a later model: nothing to do
       }
     },
-    [router, onRestore, onSignOut, onExport],
+    [router, onRestore, onSignOut, onExport, bookThere],
   );
 
   const act = useMemo<SettingsActions>(
