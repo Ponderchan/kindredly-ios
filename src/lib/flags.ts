@@ -1,4 +1,5 @@
 import { scoped as AsyncStorage } from "./scoped-store";
+import { birthdayFlag, isBirthdayFlag } from "./birthday-core";
 
 /* Tiny local flag store for one-shot achievements (e.g. sent a voice letter). */
 
@@ -85,5 +86,40 @@ export async function sealDay(day: string): Promise<void> {
     await AsyncStorage.setItem(KEY, JSON.stringify(flags));
   } catch (e) {
     console.warn("[flags] seal day:", e);
+  }
+}
+
+/* HER BIRTHDAY LETTER WAS READ (owner's audit, 2026-11-10). On the reader's
+   birthday the first card on Today is a letter from their courier, once a
+   year (lib/birthday-core has the rule). One flag per year, in this store
+   because it is the account's own bucket (a guest's is the guest bucket,
+   and moves into the account with the rest when they sign in): the letter
+   is shown once per year per account on this phone. Only the newest year
+   matters, so marking one read drops the older ones. Kept on the phone and
+   nowhere else: nothing about the birthday goes to a server. */
+
+/** whether this year's birthday letter was already read (passed) on this phone, for this account */
+export async function birthdayLetterRead(year: number): Promise<boolean> {
+  return !!(await getFlags())[birthdayFlag(year)];
+}
+
+/** this year's birthday letter was passed (`read`), or brought back by Undo (`read` false) */
+export async function markBirthdayLetter(year: number, read: boolean): Promise<void> {
+  try {
+    const flags = await getFlags();
+    const key = birthdayFlag(year);
+    let changed = !!flags[key] !== read;
+    for (const k of Object.keys(flags)) {
+      if (isBirthdayFlag(k) && k !== key) {
+        delete flags[k];
+        changed = true;
+      }
+    }
+    if (!changed) return;
+    if (read) flags[key] = true;
+    else delete flags[key];
+    await AsyncStorage.setItem(KEY, JSON.stringify(flags));
+  } catch (e) {
+    console.warn("[flags] birthday letter:", e);
   }
 }
