@@ -91,3 +91,31 @@ export const birthdayFlag = (year: number): string => READ + year;
 
 /** whether a flag is one of these (any year): marking a year read drops the older ones */
 export const isBirthdayFlag = (key: string): boolean => key.startsWith(READ);
+
+/* ── the same rule, asked of a Date (the knock, the stamp, Edit profile) ──
+   Merged 2026-11-10 from the slice that built the birthday knock and the birthday stamp
+   (lib/wren-lines, lib/local-push, lib/birthday): one file, one rule. isBirthdayOn(dob, date) is
+   isBirthday(dob, calendarDay(date)) for every real birthday; birthdayParts is the stricter read
+   (it also refuses a 29 February in a birth year that had none, which no date wheel can produce). */
+
+/** The month (1–12) and day of a stored birthday; null for none or one that is no real day. */
+export function birthdayParts(birthdayISO: string | null | undefined): { y: number; m: number; d: number } | null {
+  const hit = /^(\d{4})-(\d{2})-(\d{2})/.exec(typeof birthdayISO === "string" ? birthdayISO.trim() : "");
+  if (!hit) return null;
+  const y = Number(hit[1]);
+  const m = Number(hit[2]);
+  const d = Number(hit[3]);
+  if (m < 1 || m > 12 || d < 1 || d > MONTH_DAYS[m - 1]) return null;
+  if (m === 2 && d === 29 && !isLeapYear(y)) return null;
+  return { y, m, d };
+}
+
+/** Is `date` (its local month and day) the birthday stored as "YYYY-MM-DD"? See the top. */
+export function isBirthdayOn(birthdayISO: string | null | undefined, date: Date): boolean {
+  const b = birthdayParts(birthdayISO);
+  if (!b || Number.isNaN(date.getTime())) return false;
+  const m = date.getMonth() + 1;
+  const d = date.getDate();
+  if (b.m === 2 && b.d === 29 && !isLeapYear(date.getFullYear())) return m === 2 && d === 28;
+  return m === b.m && d === b.d;
+}

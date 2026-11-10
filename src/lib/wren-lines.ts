@@ -1,5 +1,6 @@
 import { DAILY_GROUPS, POOL_KEYS, type LocalPool } from "../data/local-push-copy";
 import { MORNING_HOUR } from "./day";
+import { isBirthdayOn } from "./birthday-core";
 
 /* HER LINES, PLANNED ON THE PHONE (push step two, iOS 1.2.3).
    ────────────────────────────────────────────────────────────────────────
@@ -52,7 +53,20 @@ import { MORNING_HOUR } from "./day";
      working by lib/free-flight's isDayOff rules as far as the phone can see
      them (dayOffBlocked). Nor on a day the server may send her hunger
      (serverHungerDays): one reminder a day holds across both halves. With
-     a best run of two gates or more the line carries it ({n}). */
+     a best run of two gates or more the line carries it ({n}).
+   · THEIR BIRTHDAY (owner's audit, 2026-11-10): on the morning of the
+     reader's own birthday (lib/birthday-core isBirthdayOn: the local month
+     and day of the account's birthday; 29 February on the 28th in a common
+     year) the knock is marked `birthday`, and lib/local-push gives it her
+     birthday line instead of the day's knock line. Only the words change:
+     the same id, the same eight o'clock, the same switch (knock off → no
+     knock, birthday or not). The plan covers fourteen mornings, so a
+     birthday inside them is already marked when it is planned days ahead.
+     A birthday knock makes no claim about the desk, so the known-empty rule
+     does not skip it; and with the morning question on as well, the birthday
+     knock takes that one eight o'clock and the question waits a day (one
+     notification at eight, never two; the question's bag is not drawn).
+     No birthday known → nothing changes. Nothing is sent to a server. */
 
 export const EVENING_HOUR = 21;
 export const AURA_HOUR = 12; // a daytime moment, the day after a late page at the latest
@@ -284,6 +298,8 @@ export interface Planned {
   at: { year: number; month: number; day: number; hour: number; minute: number }; // month 1–12 (iOS DateComponents)
   /** filled into the line's {placeholders} when it is scheduled (fillLine) */
   vars?: Record<string, string | number>;
+  /** a knock on the reader's own birthday: lib/local-push says her birthday line instead of the pool's */
+  birthday?: true;
 }
 
 /** a line with its {placeholders} filled; a placeholder with no value is left as it is */
@@ -374,13 +390,15 @@ export interface PlanInput {
   emptyDesk?: string | null;
   /** her day off; leave out and no race is planned */
   dayOff?: DayOffFacts;
+  /** the reader's birthday as the account stores it ("YYYY-MM-DD"); null or left out = not known, no birthday knock */
+  birthday?: string | null;
   state: PlanState;
   rng?: () => number;
 }
 
 export const ID_PREFIX = "wl-";
 
-export function plan({ now, prefs, knockOn, emptyDesk = null, dayOff, state, rng = Math.random }: PlanInput): { notes: Planned[]; state: PlanState } {
+export function plan({ now, prefs, knockOn, emptyDesk = null, dayOff, birthday = null, state, rng = Math.random }: PlanInput): { notes: Planned[]; state: PlanState } {
   const s: PlanState = { ...state, assigned: {} };
   const today = dayOf(now);
   // dates already behind the phone's day are forgotten; the rest keep their lines
@@ -401,7 +419,10 @@ export function plan({ now, prefs, knockOn, emptyDesk = null, dayOff, state, rng
 
     /* the morning: the question, or the knock unless this morning's desk is known to be empty */
     if (future(date, MORNING_HOUR)) {
-      if (prefs.morning_question) {
+      // their birthday, and the knock is on: this eight o'clock is hers to say it (see the top)
+      if (knockOn && isBirthdayOn(birthday, date)) {
+        notes.push({ id: `${ID_PREFIX}${key}-morn`, kind: "knock", pool: "morning_knock", index: knockIndex(key), day: key, at: at(date, MORNING_HOUR), birthday: true });
+      } else if (prefs.morning_question) {
         const slot = slotOf(key);
         if (slot.m == null) {
           const r = draw(s.mornBag, POOL_KEYS.morning_question.length, s.mornLast, rng);

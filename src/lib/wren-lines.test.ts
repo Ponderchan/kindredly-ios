@@ -34,8 +34,8 @@ const ok = (name: string, cond: boolean) => { console.log((cond ? "ok  " : "FAIL
 const seeded = (seed: number) => () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
 const at = (d: number, h: number, m = 0) => new Date(2026, 9, d, h, m); // October 2026: the 11th is a Sunday
 const P = (o: Partial<PushPrefs> = {}): PushPrefs => ({ ...PUSH_DEFAULTS, ...o });
-const run = (now: Date, o: { prefs?: Partial<PushPrefs>; knockOn?: boolean; emptyDesk?: string | null; dayOff?: DayOffFacts; state?: PlanState; seed?: number } = {}) =>
-  plan({ now, prefs: P(o.prefs), knockOn: o.knockOn ?? false, emptyDesk: o.emptyDesk ?? null, dayOff: o.dayOff, state: o.state ?? emptyState(), rng: seeded(o.seed ?? 7) });
+const run = (now: Date, o: { prefs?: Partial<PushPrefs>; knockOn?: boolean; emptyDesk?: string | null; dayOff?: DayOffFacts; birthday?: string | null; state?: PlanState; seed?: number } = {}) =>
+  plan({ now, prefs: P(o.prefs), knockOn: o.knockOn ?? false, emptyDesk: o.emptyDesk ?? null, dayOff: o.dayOff, birthday: o.birthday, state: o.state ?? emptyState(), rng: seeded(o.seed ?? 7) });
 const on = (notes: Planned[], day: string, kind?: string) => notes.filter((n) => n.day === day && (!kind || n.kind === kind));
 
 /* ── the contract ── */
@@ -347,6 +347,41 @@ ok("a damaged stored state falls back field by field", stateFrom({ dailyBag: [1,
   ok("…and the plan deals that date a real line", on(r.notes, "2026-10-13", "daily")[0]?.index < POOL_KEYS.daily_prompt.length);
 }
 ok("old assignments are forgotten once their day has passed", Object.keys(run(at(20, 10), { prefs: { daily_line: true }, state: { ...emptyState(), assigned: { "2026-10-01": { d: 3 } } } }).state.assigned).every((k) => k >= "2026-10-20"));
+
+/* ── their birthday: the knock's words change, nothing else (owner's audit, 2026-11-10) ── */
+{
+  // planned on the 12th at 06:00; the birthday is the 15th, three mornings ahead
+  const r = run(at(12, 6), { knockOn: true, birthday: "1991-10-15" });
+  const k = r.notes.filter((n) => n.kind === "knock");
+  ok("birthday: still one knock every morning at 8", k.length === 14 && k.every((n) => n.at.hour === 8));
+  ok("birthday: the birthday morning is marked, days ahead", on(r.notes, "2026-10-15", "knock").length === 1 && on(r.notes, "2026-10-15", "knock")[0].birthday === true);
+  ok("birthday: no other morning is", k.filter((n) => n.birthday).length === 1);
+  ok("birthday: the same id as any morning's knock (a re-plan replaces it)", on(r.notes, "2026-10-15", "knock")[0].id === "wl-2026-10-15-morn");
+  ok("birthday: knock off → no knock, birthday or not", run(at(12, 6), { knockOn: false, birthday: "1991-10-15" }).notes.length === 0);
+  ok(
+    "birthday: none known → no knock is marked",
+    run(at(12, 6), { knockOn: true }).notes.every((n) => !n.birthday) && run(at(12, 6), { knockOn: true, birthday: null }).notes.every((n) => !n.birthday) && run(at(12, 6), { knockOn: true, birthday: "junk" }).notes.every((n) => !n.birthday),
+  );
+  ok("birthday: today's, before eight → marked", on(run(at(15, 6), { knockOn: true, birthday: "1991-10-15" }).notes, "2026-10-15", "knock")[0]?.birthday === true);
+  ok("birthday: today's, after eight → gone with the morning (none planned for today)", on(run(at(15, 9), { knockOn: true, birthday: "1991-10-15" }).notes, "2026-10-15", "knock").length === 0);
+  ok(
+    "birthday: outside the fourteen days → nothing marked yet; the fourteenth morning is",
+    run(at(12, 6), { knockOn: true, birthday: "1991-10-26" }).notes.every((n) => !n.birthday) && run(at(12, 6), { knockOn: true, birthday: "1991-10-25" }).notes.filter((n) => n.birthday).length === 1,
+  );
+  const q = run(at(12, 6), { knockOn: true, prefs: { morning_question: true }, birthday: "1991-10-15" });
+  ok(
+    "birthday: with the morning question on too, the birthday knock takes that eight o'clock (one notification, never two)",
+    on(q.notes, "2026-10-15").length === 1 && on(q.notes, "2026-10-15")[0].kind === "knock" && on(q.notes, "2026-10-15")[0].birthday === true,
+  );
+  ok("birthday: …and the question keeps every other morning", on(q.notes, "2026-10-14", "morning").length === 1 && on(q.notes, "2026-10-16", "morning").length === 1);
+  const q2 = run(at(12, 6), { knockOn: false, prefs: { morning_question: true }, birthday: "1991-10-15" });
+  ok("birthday: knock off, question on → the question as ever, nothing marked", on(q2.notes, "2026-10-15", "morning").length === 1 && q2.notes.every((n) => !n.birthday));
+  const e = run(at(12, 6), { knockOn: true, emptyDesk: "2026-10-15", birthday: "1991-10-15" });
+  ok("birthday: a known-empty desk doesn't skip it (its words make no claim about the desk)", on(e.notes, "2026-10-15", "knock").length === 1 && on(e.notes, "2026-10-15", "knock")[0].birthday === true);
+  // 29 February: on the 28th in a common year (planned from 20 February 2027)
+  const feb = plan({ now: new Date(2027, 1, 20, 6, 0), prefs: P(), knockOn: true, birthday: "2000-02-29", state: emptyState(), rng: seeded(7) });
+  ok("birthday: 29 February is kept on 28 February in a common year, and only then", feb.notes.filter((n) => n.birthday).map((n) => n.day).join() === "2027-02-28");
+}
 
 console.log(fails ? fails + " failed" : "all ok");
 if (fails) process.exit(1);

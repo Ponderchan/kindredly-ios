@@ -2,7 +2,7 @@ import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { scoped } from "./scoped-store";
 import { supabase } from "./supabase";
-import { getLang } from "./i18n";
+import { getLang, t } from "./i18n";
 import { getWrenName } from "./wren-name";
 import { loadJournal } from "./journal";
 import { POOL_CACHE_KEY } from "./db";
@@ -31,6 +31,7 @@ import {
   type PushKey,
   type PushPrefs,
 } from "./wren-lines";
+import "../data/strings-audit-birthday"; // bd.knock
 
 /* HER LINES, SCHEDULED (push step two, iOS 1.2.3).
    ────────────────────────────────────────────────────────────────────────
@@ -54,7 +55,19 @@ import {
    FAILURES ARE SAID, NOT SWALLOWED. A read that fails is never taken to
    mean "nothing to schedule": with no switches to read, the schedule that
    is already in iOS is left exactly as it was, and the reason is kept in
-   lastPlan for the settings page and the console. */
+   lastPlan for the settings page and the console.
+
+   THE BIRTHDAY KNOCK (owner's audit, 2026-11-10). On the reader's own
+   birthday the 8 o'clock knock says her birthday line (bd.knock,
+   data/strings-audit-birthday) instead of the day's knock line. The planner
+   marks that morning (lib/wren-lines, with lib/birthday-core's rule) from
+   the birthday this phone already holds: the account's (user_metadata.dob,
+   riding on the local session) or, when the account has none yet, the
+   phone's own copy of the profile. So it is decided here, days ahead when
+   the birthday falls inside the fourteen planned mornings, and nothing is
+   sent to a server. The knock's switch is the only switch it follows, as
+   ever; a birthday that can't be read is "not known" (said in the console)
+   and the usual knock goes. Setting a birthday in Edit profile re-plans. */
 
 const STATE_KEY = "kindredly_wren_lines";
 const PREFS_CACHE = "kindredly_push_prefs";
@@ -379,6 +392,24 @@ async function dayOffFacts(errors: string[]): Promise<DayOffFacts> {
   return { best: best?.gates ?? 0, lastPlayed: best?.lastPlayed ? dayOf(best.lastPlayed) : null, work };
 }
 
+/** the phone's own copy of the profile (lib/auth LOCAL_PROFILE_KEY, in the account's bucket) */
+const LOCAL_PROFILE_KEY = "kindredly_profile_local";
+
+/** the reader's birthday ("YYYY-MM-DD") for the birthday knock: the account's, else this phone's copy
+    (a birthday just set, not yet on the account); null = none, or not readable (said, and the usual knock goes) */
+async function readBirthday(user: { user_metadata?: unknown } | null, errors: string[]): Promise<string | null> {
+  const meta = (user?.user_metadata as Record<string, unknown> | undefined)?.dob;
+  if (typeof meta === "string" && meta) return meta;
+  try {
+    const raw = await scoped.getItem(LOCAL_PROFILE_KEY);
+    const dob = raw ? (JSON.parse(raw) as Record<string, unknown> | null)?.dob : null;
+    return typeof dob === "string" && dob ? dob : null;
+  } catch (e) {
+    errors.push(say("birthday read", e));
+    return null;
+  }
+}
+
 /* ── the re-plan ──────────────────────────────────────────────────────── */
 
 let chain: Promise<void> = Promise.resolve();
@@ -436,6 +467,7 @@ async function runPlan(): Promise<void> {
     }
     /* signed out (not a guest — a guest has an anonymous session): the phone
        belongs to nobody now, so nothing of the last account keeps knocking */
+    let sessionUser: { user_metadata?: unknown } | null = null;
     if (supabase) {
       const { data, error } = await supabase.auth.getSession();
       if (error) {
@@ -448,6 +480,7 @@ async function runPlan(): Promise<void> {
         report({ scheduled: 0, skipped: "signed-out" });
         return;
       }
+      sessionUser = data.session.user;
     }
     const read = await readPushPrefs();
     if (read.error) errors.push(read.error);
@@ -479,15 +512,18 @@ async function runPlan(): Promise<void> {
     state = settleDayOff(state, now);
     const emptyDesk = await knownEmptyDesk(errors);
     const dayOff = await dayOffFacts(errors);
+    // their birthday, for the knock's words that morning (only read while the knock is on)
+    const birthday = knockOn ? await readBirthday(sessionUser, errors) : null;
 
-    const out = plan({ now, prefs, knockOn, emptyDesk, dayOff, state });
+    const out = plan({ now, prefs, knockOn, emptyDesk, dayOff, birthday, state });
     await cancelOurs(errors);
     const lang = getLang();
     const name = (await getWrenName()).slice(0, 16);
     let scheduled = 0;
     let offScheduled = false; // the race counts as sent at its noon only if iOS really holds it
     for (const n of out.notes) {
-      const line = lineText(n.pool, n.index, lang);
+      // their birthday: her birthday line, in the reader's language (English until it is written), not the pool's
+      const line = n.birthday ? t("bd.knock") : lineText(n.pool, n.index, lang);
       const body = line == null ? null : fillLine(line, n.vars);
       if (!body || /\{\w+\}/.test(body)) {
         errors.push(say(`schedule ${n.id}`, `no line ${n.pool}[${n.index}]${line != null ? " (a placeholder left unfilled)" : ""}`)); // never a notification with no words, or with a bare {n}

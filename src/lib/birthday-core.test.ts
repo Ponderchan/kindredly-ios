@@ -7,7 +7,7 @@
      node src/lib/birthday-core.test.ts
    Every line prints ok/FAIL and the process exits non-zero if any fail. */
 
-import { birthdayFlag, birthdayLetter, birthdayOf, calendarDay, isBirthday, isBirthdayFlag, isLeapYear, sameCalendarDay } from "./birthday-core.ts";
+import { birthdayFlag, birthdayLetter, birthdayOf, birthdayParts, calendarDay, isBirthday, isBirthdayFlag, isBirthdayOn, isLeapYear, sameCalendarDay } from "./birthday-core.ts";
 
 let fails = 0;
 const ok = (name: string, cond: boolean) => {
@@ -62,6 +62,46 @@ ok("their birthday, read last year: due again", birthdayLetter({ birthday: true,
 /* ── the flag ── */
 ok("one flag per year", birthdayFlag(2026) === "bdayletter:2026" && birthdayFlag(2027) !== birthdayFlag(2026));
 ok("a birthday flag is told from the others", isBirthdayFlag(birthdayFlag(2026)) && !isBirthdayFlag("sealed:2026-11-10") && !isBirthdayFlag("arrival_fresh"));
+
+/* ── the same rule asked of a Date (the knock, the stamp): merged from the other slice's test ── */
+/** a local time (the constructor's month is 0-based) */
+const at = (y: number, m: number, d: number, h = 12, min = 0) => new Date(y, m - 1, d, h, min);
+
+/* ── the day itself ── */
+ok("the birthday's month and day, any year", isBirthdayOn("1991-11-10", at(2026, 11, 10)) && isBirthdayOn("1991-11-10", at(2031, 11, 10)));
+ok("…from the first minute of the day to the last (local time)", isBirthdayOn("1991-11-10", at(2026, 11, 10, 0, 0)) && isBirthdayOn("1991-11-10", at(2026, 11, 10, 23, 59)));
+ok("not the day before or after", !isBirthdayOn("1991-11-10", at(2026, 11, 9, 23, 59)) && !isBirthdayOn("1991-11-10", at(2026, 11, 11, 0, 0)));
+ok("not the same day of another month", !isBirthdayOn("1991-11-10", at(2026, 10, 10)));
+ok("1 January and 31 December", isBirthdayOn("2000-01-01", at(2027, 1, 1)) && isBirthdayOn("1988-12-31", at(2026, 12, 31)) && !isBirthdayOn("1988-12-31", at(2027, 1, 1)));
+ok("the year of birth is not looked at (the day they were born counts too)", isBirthdayOn("2026-11-10", at(2026, 11, 10)));
+ok("a stored timestamp's date part is read", isBirthdayOn("1991-11-10T00:00:00Z", at(2026, 11, 10)));
+
+/* ── 29 February ── */
+ok("29 February, in a leap year: the 29th", isBirthdayOn("2000-02-29", at(2028, 2, 29)));
+ok("…and not the 28th or 1 March that year", !isBirthdayOn("2000-02-29", at(2028, 2, 28)) && !isBirthdayOn("2000-02-29", at(2028, 3, 1)));
+ok("29 February, in a common year: 28 February", isBirthdayOn("2000-02-29", at(2026, 2, 28)) && isBirthdayOn("2000-02-29", at(2027, 2, 28)));
+ok("…and never 1 March as well", !isBirthdayOn("2000-02-29", at(2026, 3, 1)) && !isBirthdayOn("2000-02-29", at(2027, 3, 1)));
+ok("2100 is a common year: 28 February", isBirthdayOn("2000-02-29", at(2100, 2, 28)) && !isBirthdayOn("2000-02-29", at(2100, 3, 1)));
+ok("a 28 February birthday is the 28th every year, not the 29th", isBirthdayOn("1990-02-28", at(2028, 2, 28)) && !isBirthdayOn("1990-02-28", at(2028, 2, 29)));
+
+/* ── no birthday: never ── */
+const anyDay = at(2026, 11, 10);
+ok("null, undefined and '' are never", !isBirthdayOn(null, anyDay) && !isBirthdayOn(undefined, anyDay) && !isBirthdayOn("", anyDay));
+ok("junk is never", !isBirthdayOn("—", anyDay) && !isBirthdayOn("10/11/1991", anyDay) && !isBirthdayOn("1991-1-1", at(2026, 1, 1)));
+ok("a day that isn't one is never (31 April, month 13, day 0)", !isBirthdayOn("1991-04-31", at(2026, 4, 30)) && !isBirthdayOn("1991-13-10", anyDay) && !isBirthdayOn("1991-11-00", anyDay));
+ok("a 29 February in a year that had none is never", !isBirthdayOn("1991-02-29", at(2026, 2, 28)) && !isBirthdayOn("1991-02-29", at(2028, 2, 29)));
+ok("something that is not a string is never", !isBirthdayOn(19911110 as unknown as string, anyDay));
+ok("a date that is no date is never", !isBirthdayOn("1991-11-10", new Date(NaN)));
+
+/* ── the parts ── */
+ok("birthdayParts: month 1–12 and the day", JSON.stringify(birthdayParts("1991-11-10")) === JSON.stringify({ y: 1991, m: 11, d: 10 }));
+ok("birthdayParts: null for none", birthdayParts(null) === null && birthdayParts("1991-02-30") === null);
+
+
+/* the two askers agree on every real birthday */
+for (const [dob, y, m, d] of [["1991-11-10", 2026, 11, 10], ["1996-02-29", 2027, 2, 28], ["1996-02-29", 2028, 2, 29], ["1996-02-29", 2028, 2, 28], ["2000-01-01", 2027, 1, 2]] as const) {
+  ok(`isBirthdayOn agrees with isBirthday: ${dob} on ${y}-${m}-${d}`, isBirthdayOn(dob, at(y, m, d)) === isBirthday(dob, day(y, m, d)));
+}
 
 if (fails) {
   console.log(`\n${fails} failed`);
