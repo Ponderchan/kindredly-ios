@@ -239,5 +239,6 @@ export function useStampCollection(o: { where: "me" | "album" }) {
     [go, write, toPaywall, toPress],
   );
 
-  return { card, album, line, onCard, onAlbum, toPress, toPaywall, write: () => write(), quota: my.quota };
+  // mine: the reader's own stamps as they are (the album's export reads them: screens/me/useStampExport)
+  return { card, album, line, onCard, onAlbum, toPress, toPaywall, write: () => write(), quota: my.quota, mine: my.stamps };
 }

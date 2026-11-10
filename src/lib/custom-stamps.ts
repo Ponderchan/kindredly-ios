@@ -437,6 +437,17 @@ export function useMyCustomStamps(): { stamps: MyCustomStamp[]; quota: StampQuot
   );
 }
 
+/** My stamps read again NOW (stamp export, 2026-11-10): my_custom_stamps, with every picture's
+    link signed afresh where it was lapsing. For something that needs every picture in hand at one
+    moment (lib/stamp-export: a printable sheet of them all), where the hook's on-focus read may be
+    an hour old. Resolves with the list as it then stands (approved and taken-down ones; the ones
+    still in review on this phone are not in it). A read that fails is logged by readMine and
+    leaves the last list standing, as everywhere else. */
+export async function freshMyCustomStamps(): Promise<MyCustomStamp[]> {
+  await refreshMine();
+  return mine;
+}
+
 /* ── in review: a stamp pressed here shows at once (owner, 2026-10-20: "邮票太慢了 要不先加候审") ──
    pressInReview() puts the stamp in my album straight away, drawn from the filtered JPEG this phone
    made, labelled "in review", and runs stamp-check on its own (not tied to the press page, which
