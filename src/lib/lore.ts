@@ -8,7 +8,10 @@ import { scoped as AsyncStorage } from "./scoped-store";
    Kept from a kindred's room (a line of theirs, an opened fold, a sky
    postcard) and, since the owner's audit of 2026-11-10, from a pen-pal
    correspondence before names too (a letter of theirs or the reader's
-   own): useRoomModel keep, useLettersModel keep. */
+   own): useRoomModel keep, useLettersModel keep. And from Today's end-of-day
+   pages (docs/today-after-fifteen.md): the line of the day under its writer's
+   name, or the courier's fact under hers, with `threadId` "" (it belongs to
+   no correspondence). */
 
 const KEY = "kindredly_lore";
 
@@ -31,13 +34,18 @@ export async function loadLore(): Promise<LoreEntry[]> {
   }
 }
 
-export async function saveToLore(e: Omit<LoreEntry, "id" | "at">): Promise<void> {
+/** Keeps it; resolves to the new clipping's id, or null when it couldn't be kept (Today's end-of-day
+    pages use the id to take a kept thing out again: lib/after-fifteen). */
+export async function saveToLore(e: Omit<LoreEntry, "id" | "at">): Promise<string | null> {
   try {
     const all = await loadLore();
-    all.unshift({ ...e, id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, at: new Date().toISOString() });
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    all.unshift({ ...e, id, at: new Date().toISOString() });
     await AsyncStorage.setItem(KEY, JSON.stringify(all.slice(0, 500)));
+    return id;
   } catch {
     /* a keepsake that fails to pin is retried by the person, not by code */
+    return null;
   }
 }
 
