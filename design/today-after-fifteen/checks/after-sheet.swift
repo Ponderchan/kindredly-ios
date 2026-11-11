@@ -107,7 +107,7 @@ func week(_ c: KAfterContent) -> KAfterContent {
 
 func sleepTalk(_ c: KAfterContent) -> KAfterContent {
   var c = c
-  c.thing.body = "“…the first postage stamp, the Penny Black, went on sale in 1840… before it, whoever got the letter usually paid…”"
+  c.thing.body = "“…The first postage stamp, the Penny Black, went on sale in 1840… Before it, whoever got the letter usually paid…”"
   return c
 }
 

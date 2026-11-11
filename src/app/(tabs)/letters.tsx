@@ -60,7 +60,9 @@ export default function LettersTab() {
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
       <TodayUpdate model={model}>
-        {after.show && after.vm ? (
+        {after.pending ? (
+          <View style={{ flex: 1 }} />
+        ) : after.show && after.vm ? (
           <NativeSurface
             surface="afterfifteen"
             view="KAfterFifteenView"

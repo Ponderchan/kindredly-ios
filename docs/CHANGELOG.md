@@ -48,6 +48,17 @@ The courier's planet (owner sign-off 2026-11-11; branch `courier-planet`, **not 
 - Her page (Open) is unchanged, except that Track now opens the planet page.
 - The Aura and Stamps tiles and the report row each have a colour of their own (peach, blue, green) instead of the page's grey, and the two tiles are named on a chip like her card's YOUR COURIER. With no stamps of your own yet, the Stamps tile shows three of ours.
 
+Today, after fifteen (the owner's decisions of 2026-11-11; branch `today-after-fifteen`, on top of `courier-planet`, **not in 1.0.9**: it needs the binary after it; built and OFF; English only so far) [switch: afterfifteen]
+- When the day's last letter has gone past, Today becomes one of three pages until 8:00: a red mailbox, a receipt, or bedtime. Which one: your first two days, the mailbox; a Sunday, the receipt with the week's totals; a desk finished after 8 in the evening, bedtime; otherwise the mailbox. A day with no letters at all keeps the old ending.
+- The mailbox: your courier in its window with her count of the day; pull the cord and a shutter comes down with a Closed sign, when she is back, and a note taped under it. The slot stays open: tap it to write a letter.
+- The receipt: Print feeds it out of the printer line by line: letters read, written back, the topic you stayed on longest (only if the phone timed it), when she is back. Tear it off, then keep the stub or share the receipt as a picture. Nothing from anyone else's letter is in the picture.
+- Bedtime: she sits in an opened envelope. Snack, Pat, then Lights out (locked until the first two). The room goes dark, she sleeps, and a card comes up over her. Seven dots show your last seven days. Skip bedtime three evenings running and evenings go back to the mailbox for a week.
+- Each page carries one small thing you can Keep (it goes to your Lore): one of her facts, numbered from No. 1 (sixty to start, each checked against a source), or the line of the day: the opening of a letter you wrote back to, or of the one you stayed on longest. They take turns; the receipt always prints a fact. Heavy letters never give a line, and she adds nothing to someone's line.
+- The phone now times how long a letter is on screen, for the line of the day and the receipt. The times stay on the phone for the day and are never sent.
+- Under each page a strip opens Free Flight ("Fly a lap with {her name}"); for an egg or a wilted courier it says when she is back instead.
+- For ten seconds after the day's last Next, Undo stands over the page and brings that letter back.
+- One streak: a day counts when you finished the day's letters or wrote something. Bedtime's dots and First Class's boarding pass (seven days in a row) read the same days. With the switch off, the boarding pass counts writing only, as before.
+
 Fixed with it (needs the binary)
 - The long letter (Unfold): the ✕ beside Fold It Back is the app's close icon, the size every other closing page uses (it was a smaller typed ✕).
 - Writing Aura details: Portrait / Dimensions / Habits is the same switch as everywhere else (a grey track with a white pill that slides); it was a purple track of its own. The purple grounds inside the page are neutral grey too (a dimension's number, your quoted sentence, the sentence a word came from, the pauses' bars, the note under the nine), and in the grid of nine the dimension on show is ringed in the pen colour instead of filled purple.

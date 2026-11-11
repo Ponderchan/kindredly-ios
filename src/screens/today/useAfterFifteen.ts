@@ -68,6 +68,10 @@ const SWAP_MS = 320;
 export type AfterFifteen = {
   /** the page takes Today's place now */
   show: boolean;
+  /** a desk that opened already done, in the moment before its page is known (the record is being
+      read): draw the page's colour and nothing else, so the old end of the day never flashes by.
+      Gives way to the desk if the record doesn't answer */
+  pending: boolean;
   vm: AfterVM | null;
   look: KWrenLookData;
   act: {
@@ -175,10 +179,12 @@ export function useAfterFifteen(model: TodayModel): AfterFifteen {
   const sawReading = useRef(false);
   if (view.phase === "reading") sawReading.current = true;
   const [show, setShow] = useState(false);
+  const [fromPass, setFromPass] = useState(false);
   const [undoUntil, setUndoUntil] = useState(0);
   useEffect(() => {
     if (!wants) {
       setShow(false);
+      setFromPass(false);
       setUndoUntil(0);
       return;
     }
@@ -188,10 +194,24 @@ export function useAfterFifteen(model: TodayModel): AfterFifteen {
     }
     // it came from a pass in this sitting: let the card leave, and offer the way back for a while
     sawReading.current = false;
+    setFromPass(true);
     setUndoUntil(Date.now() + SWAP_MS + UNDO_MS);
     const id = setTimeout(() => setShow(true), SWAP_MS);
     return () => clearTimeout(id);
   }, [wants]);
+
+  /* a desk that opens done: nothing of the old end of the day is drawn while the record is read
+     (a moment); if it never answers, the desk is drawn after all */
+  const doneNow = live && view.phase === "done" && day.done && day.read > 0;
+  const [gaveUp, setGaveUp] = useState(false);
+  useEffect(() => {
+    if (!doneNow) {
+      setGaveUp(false);
+      return;
+    }
+    const id = setTimeout(() => setGaveUp(true), 1500);
+    return () => clearTimeout(id);
+  }, [doneNow]);
 
   /* ── the clock: her countdown by the minute, and Undo's end ── */
   const [now, setNow] = useState(() => new Date());
@@ -359,7 +379,8 @@ export function useAfterFifteen(model: TodayModel): AfterFifteen {
     [router, desk],
   );
 
-  return { show: show && wants && vm != null, vm, look, act };
+  const shown = show && wants && vm != null;
+  return { show: shown, pending: doneNow && !shown && !fromPass && !sawReading.current && !gaveUp, vm, look, act };
 }
 
 /** the callbacks' names, for a host that only draws (the dev page) */

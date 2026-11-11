@@ -124,18 +124,51 @@ uses the name the reader gave her wherever the prototype says Pond.
 
 ## Where things are
 
-- Rules: `src/screens/today/after-fifteen.ts` (+ `.test.ts`): the page, the streak's days, the
-  timer's sums, the line, the turn-taking, the receipt's totals. `src/lib/fc-rollout-core.ts`.
-- Kept on the phone: `src/lib/after-fifteen-store.ts` (scoped store, one record).
-- Facts: `src/data/after-facts.ts`. Words: `src/data/strings-after.ts` (nine blocks).
-- The hook: `src/screens/today/useAfterFifteen.ts`; the host: `AfterFifteenNative.tsx`; the
-  choice between it and the desk: `src/app/(tabs)/letters.tsx`.
-- Swift: `modules/kindredly-ui/ios/Portable/Today/After/` (the three pages, the shared slot, the
-  strip, the palette), adapter `Adapters/KAfterFifteenView.swift`, wrapper
+- Rules: `src/lib/after-fifteen-core.ts` (+ `.test.ts`, 128 checks): the page, the streak's days,
+  the timer's sums, the opening and the heavy letters, the turn-taking, the receipt's totals, the
+  record and its moves. `src/lib/fc-rollout-core.ts` (`activeDays`, `activeStreak`).
+- Kept on the phone: `src/lib/after-fifteen.ts` (scoped store, one record, `kindredly_after15`;
+  also `useAfterFifteenOn`, the gate: the switch and the binary having the view).
+- What each page says: `src/screens/today/after-view.ts` (+ `.test.ts`, 45 checks).
+- The hook: `src/screens/today/useAfterFifteen.ts` (the timer, the log, settling, the view, the
+  taps); the host: `AfterFifteenNative.tsx`; the choice between it and the desk:
+  `src/app/(tabs)/letters.tsx`. `useTodayDesk` only gained `view.day` (the day's facts).
+- Words: `src/data/strings-after.ts`. Facts: `src/data/strings-after-facts.ts` (the words) and
+  `src/data/after-facts.ts` (the count, a source for each). Test: `src/data/strings-after.test.ts`.
+- Swift: `modules/kindredly-ui/ios/Portable/Today/After/` — `KAfterModels` (what the pages are
+  told, the taps, `KAfterPalette`), `KAfterScreen` (title, card, strip, Undo), `KAfterBox`,
+  `KAfterReceipt`, `KAfterBed`; adapter `Adapters/KAfterFifteenView.swift`; wrapper
   `modules/kindredly-ui/src/AfterFifteen.tsx`.
-- Dev page: `kindredly:///dev/after-fifteen` (each page, each state, each kind of thing, themes).
-- Checks: `design/today-after-fifteen/checks/` (render harnesses and their sheets), using
-  `design/courier-planet/checks/render-fast.sh` and `typecheck-module.sh`.
+- Dev page: `kindredly:///dev/after-fifteen` (PAGE, THING, FACT, READ, REPLIED, WEEK, RUN, PLAY,
+  UNDO, AGAIN, WIPE). It needs a dev client built with the new view.
+- Checks: `design/today-after-fifteen/checks/after-sheet.swift` and its five sheets
+  (`box`, `receipt`, `bed`, `themes`, `small`), rendered with
+  `design/courier-planet/checks/render-fast.sh`; the whole module with
+  `design/courier-planet/checks/typecheck-module.sh`.
+
+## What was built differently from the prototype, and why
+
+- **Her lines are lower case, in quotation marks** (her spoken voice on her card), and say her
+  real count: `“that’s {n}. i counted twice.”`. One letter and no replies have their own words.
+- **The type follows the app** (the owner's 2026-10-20 rule): labels in SF Mono, her words and a
+  stranger's line in the reader's Letter font, everything else in the system font.
+- **Small labels are 9 points** (the app's smallest), not 8.
+- **Colour fixes for contrast**: the line under the slot in ink (5.15:1); PULL THE CORD → in
+  `#B23F31` (the prototype's `#C94F40` was 4.2:1 on the window); the strip's label `#2B557F`;
+  the gold tag on the cream note `#94681C`.
+- **The receipt's rows** are the prototype file's (letters read, written back, stayed on, next
+  delivery, back in), not the prompt's older list. "Stayed on" replaces "lingered on" and is only
+  printed when the timer saw it.
+- **A short phone** (iPhone SE): the shutter hangs a smaller sign and note; bedtime folds its
+  three steps away once she sleeps, so she and her card have the room; a receipt longer than the
+  room scrolls under the printer.
+- **Undo**: for ten seconds after the day's last Next, a capsule over the strip brings that letter
+  back. (The old end of the day kept "Bring back the last letter" in her letter's ⋯ all day.)
+- **A desk that opens already done** shows the page at once; one finished in front of the reader
+  lets the last card leave first (0.3 s).
+- **Bedtime's bar** counts the one streak, so it reads "{n} days in a row", not "goodnights".
+  Today already counts, so before Lights out it shows the days up to yesterday and "tonight
+  makes n".
 
 ## Open points
 
@@ -151,7 +184,33 @@ uses the name the reader gave her wherever the prototype says Pond.
 6. **Which release** (proposed: with the planet, after 1.0.9).
 7. The finished days and the reading times live on this phone only. A second phone, or a
    reinstall, starts them again.
+8. **Undo lasts ten seconds** on these pages (see above). Say if the day-long way back is wanted.
+9. **The facts' scope** (the post and stamps, letters and writers, paper and ink, birds): the
+   owner asked about it on 2026-11-11 and has not answered yet. They are text in the bundle, so
+   more can go out over the air; a number, once given, never changes its fact.
+10. **Nine languages**: only English is written. The other eight (the pages' words and the sixty
+    facts) wait for the owner's go-ahead: it is the costly step.
+
+## Verified, and not
+
+- Verified without a build: the rules and the words (four test files, all passing), TypeScript
+  (`tsc --noEmit`), the portable Swift layer and the whole module with its adapters
+  (type-checked), and stills of every page and state in four themes, on a 6.1-inch and an
+  iPhone SE height, with the longest words and for a courier who can't play.
+- Not verified (needs a dev build on a simulator, then a phone): every motion (the shutter, the
+  envelope into the slot, the paper's feed and tear, the seed, the hearts, the z's, the pop of
+  the card), touch (the cord's pull, the long press to share, the scroll under the printer),
+  the share sheet and the picture it shares, VoiceOver's reading order, Dynamic Type (a still
+  takes the default size), the swap from the desk to the page and back with Undo, the record
+  surviving a relaunch, and the tab bar's room under the strip.
 
 ## Progress
 
-- 2026-11-11 — spec written; nothing built yet.
+- 2026-11-11 — spec written.
+- 2026-11-11 — rules, the one streak, the switch (b6d2b2a); the three pages in SwiftUI
+  (0933327); Today's side: the timer, the hook, the host, the route, the English words, the dev
+  page (da7f335); sixty facts in English, each checked; the check sheets; this file brought up
+  to date. **English only; nothing on a device yet.**
+- Next: the owner's answers (the schedule, the facts' scope), then nine languages (two
+  workflows of eight: a native writer a language, then a native editor who reads only the
+  result), then a dev build — **ask the owner before building**.

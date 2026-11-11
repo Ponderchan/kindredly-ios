@@ -1,4 +1,155 @@
 import { strings } from "../lib/i18n";
 
-/* placeholder until the facts are written and checked (docs/today-after-fifteen.md) */
-strings({}, {}, {}, {});
+/* THE COURIER'S FACTS — THE WORDS (docs/today-after-fifteen.md; the owner's decisions of 2026-11-11).
+   ────────────────────────────────────────────────────────────────────────
+   One of the two small things Today's end-of-day pages carry (the other is a line of the day).
+   Sixty to start. A reader gets them in order from NO. 1; the count and each fact's source are in
+   data/after-facts.ts.
+
+   WHAT A FACT IS HERE. Something she would know: the post and its stamps (she carries letters),
+   letters and the people who wrote them, paper, ink and pens, and birds (she is one; the wren
+   most of all). One or two short sentences, plain, nothing heavy, and TRUE: each was checked on
+   2026-11-11 against the page listed for it, and says no more than that page does (a claim the
+   page hedges is hedged here or left out). Where a page gave two figures, the lower is used.
+
+   af.fact.<n>        the fact, at most 130 characters (it has to fit a note 224 points wide and
+                      the receipt's foot)
+   af.fact.<n>.foot   what stands under it, drawn in capitals: where and when, or whose
+
+   NEVER REORDER OR REUSE A NUMBER: a fact a reader kept is kept under its number.
+   A new fact goes at the end, in all nine blocks, with its source in data/after-facts.ts.
+
+   One file, nine blocks (en es pt id fr de it ja ko — pt is pt-BR), every block with the same
+   keys: src/data/strings-after.test.ts checks them (node src/data/strings-after.test.ts).
+   Consumers import this file for its side effect. */
+
+strings(
+  /* ── en · English ── */
+  {
+    "af.fact.1": "The first postage stamp, the Penny Black, went on sale in 1840. Before it, whoever got the letter usually paid.",
+    "af.fact.1.foot": "Britain · 1840",
+    "af.fact.2": "A wren weighs about ten grams. That is two sheets of office paper.",
+    "af.fact.2.foot": "The wren",
+    "af.fact.3": "There is a postbox ten metres under the sea off Susami, Japan. Divers post their cards in it.",
+    "af.fact.3.foot": "Susami · Japan",
+    "af.fact.4": "More than 800 letters by Vincent van Gogh survive. Over 650 of them were written to his brother Theo.",
+    "af.fact.4.foot": "Vincent to Theo",
+    "af.fact.5": "Britain’s pillar boxes were the idea of Anthony Trollope, the novelist, who worked for the Post Office.",
+    "af.fact.5.foot": "Jersey · 1852",
+    "af.fact.6": "An Arctic tern flies from the Arctic to the Antarctic and back each year: the longest migration known.",
+    "af.fact.6.foot": "Pole to pole",
+    "af.fact.7": "Lewis Carroll kept a register of every letter he wrote and received. It reached 98,721.",
+    "af.fact.7.foot": "Lewis Carroll",
+    "af.fact.8": "Japan’s postal mark 〒 is the syllable テ, te, for teishin: communications.",
+    "af.fact.8.foot": "Japan · 1887",
+    "af.fact.9": "A male wren builds several nests. The female chooses one, and only then is it lined.",
+    "af.fact.9.foot": "The wren",
+    "af.fact.10": "The Pony Express ran for about eighteen months. The telegraph crossed America and ended it.",
+    "af.fact.10.foot": "USA · 1860–1861",
+    "af.fact.11": "British stamps are the only ones in the world that do not say which country they come from.",
+    "af.fact.11.foot": "Britain",
+    "af.fact.12": "A hummingbird’s heart can beat 1,260 times a minute.",
+    "af.fact.12.foot": "Hummingbirds",
+    "af.fact.13": "The first airmail by aeroplane was 6,500 letters, flown thirteen kilometres from Allahabad to Naini.",
+    "af.fact.13.foot": "India · 1911",
+    "af.fact.14": "The Basel Dove of 1845 was the first stamp in three colours. It shows a dove with a letter in its beak.",
+    "af.fact.14.foot": "Basel · 1845",
+    "af.fact.15": "The post office in Sanquhar, Scotland, opened in 1712. It is thought to be the oldest still working.",
+    "af.fact.15.foot": "Scotland · 1712",
+    "af.fact.16": "Britain’s first standard pillar boxes were green. People walked into them, so from 1874 they were painted red.",
+    "af.fact.16.foot": "Britain · 1874",
+    "af.fact.17": "‘Neither snow nor rain…’ comes from Herodotus, writing about the mounted couriers of Persia.",
+    "af.fact.17.foot": "Persia",
+    "af.fact.18": "For about 1,400 years, Europe wrote in ink made from oak galls and iron.",
+    "af.fact.18.foot": "Iron gall ink",
+    "af.fact.19": "A bar-tailed godwit flew 13,560 kilometres from Alaska to Tasmania without landing. It took eleven days.",
+    "af.fact.19.foot": "Alaska to Tasmania · 2022",
+    "af.fact.20": "In 2021 researchers read a letter sealed since 1697 without opening it. They X-rayed its folds.",
+    "af.fact.20.foot": "The Hague · 1697",
+    "af.fact.21": "A postmaster’s trunk in The Hague holds about 2,600 letters that never reached anyone, sent from 1689 to 1706.",
+    "af.fact.21.foot": "The Hague",
+    "af.fact.22": "Sweden’s Treskilling Yellow was printed in the wrong colour in 1855. Only one has ever been found.",
+    "af.fact.22.foot": "Sweden · 1855",
+    "af.fact.23": "In 1959 a U.S. submarine fired a missile packed with about 3,000 letters. It landed 22 minutes later.",
+    "af.fact.23.foot": "Missile mail · 1959",
+    "af.fact.24": "From 1937 to 1956 the British farthing carried a wren on its back.",
+    "af.fact.24.foot": "Britain · 1937",
+    "af.fact.25": "On Floreana in the Galápagos a barrel is the post office. Visitors take the letters they can deliver by hand.",
+    "af.fact.25.foot": "Galápagos",
+    "af.fact.26": "Jane Austen may have written 3,000 letters. About 160 survive.",
+    "af.fact.26.foot": "Jane Austen",
+    "af.fact.27": "Some common swifts stay in the air for ten months without landing.",
+    "af.fact.27.foot": "The common swift",
+    "af.fact.28": "Paris sent letters through tubes of compressed air from 1866 until 1984.",
+    "af.fact.28.foot": "Paris · 1866–1984",
+    "af.fact.29": "The first Christmas card for sale was made in London in 1843, for Henry Cole.",
+    "af.fact.29.foot": "London · 1843",
+    "af.fact.30": "A woodpecker’s tongue bone is so long it wraps right round its skull.",
+    "af.fact.30.foot": "Woodpeckers",
+    "af.fact.31": "Until the mid-1800s most letters had no envelope. The sheet was folded and sealed on itself.",
+    "af.fact.31.foot": "Before envelopes",
+    "af.fact.32": "An oak near Eutin in Germany has its own postal address. Anyone may open its letters and answer them.",
+    "af.fact.32.foot": "Eutin · Germany",
+    "af.fact.33": "The lead in a pencil has never contained lead. It is graphite.",
+    "af.fact.33.foot": "Graphite",
+    "af.fact.34": "The post office in Hikkim, India, stands at about 4,400 metres: one of the highest in the world.",
+    "af.fact.34.foot": "Hikkim · India",
+    "af.fact.35": "More than 5,000 letters a year arrive in Verona addressed to Juliet. Volunteers answer them.",
+    "af.fact.35.foot": "Verona",
+    "af.fact.36": "The first stamps came in sheets with no perforations. For ten years people cut them apart with scissors.",
+    "af.fact.36.foot": "1840–1850",
+    "af.fact.37": "The post office at Port Lockroy in Antarctica handles about 70,000 pieces of mail a season. Half its island is kept for penguins.",
+    "af.fact.37.foot": "Antarctica",
+    "af.fact.38": "Most quill pens were goose feathers. Swan feathers, rarer and dearer, were kept for large lettering.",
+    "af.fact.38.foot": "Quills",
+    "af.fact.39": "A message in a bottle thrown from a German ship in 1886 was found in Australia in 2018: 131 years at sea.",
+    "af.fact.39.foot": "Indian Ocean · 1886–2018",
+    "af.fact.40": "Lyrebirds have been recorded copying chainsaws, car alarms and camera shutters.",
+    "af.fact.40.foot": "Australia",
+    "af.fact.41": "On the Inverted Jenny stamp of 1918 the aeroplane is upside down. Only one sheet of a hundred was ever found.",
+    "af.fact.41.foot": "USA · 1918",
+    "af.fact.42": "In Japan, New Year cards posted in time are all delivered on the first of January.",
+    "af.fact.42.foot": "Japan · January 1",
+    "af.fact.43": "ZIP in ZIP code stands for Zone Improvement Plan.",
+    "af.fact.43.foot": "USA · 1963",
+    "af.fact.44": "An owl cannot move its eyes. It turns its head instead, as far as 270 degrees.",
+    "af.fact.44.foot": "Owls",
+    "af.fact.45": "To save paper and postage, people once wrote a page, turned it sideways, and wrote across it again.",
+    "af.fact.45.foot": "Crossed letters · the 1800s",
+    "af.fact.46": "The first stamps you didn’t have to lick were issued by Tonga in 1963.",
+    "af.fact.46.foot": "Tonga · 1963",
+    "af.fact.47": "Frigatebirds sleep while they fly, a little at a time. One stayed in the air for two months.",
+    "af.fact.47.foot": "Frigatebirds",
+    "af.fact.48": "P.S. is post scriptum, Latin for ‘written after’.",
+    "af.fact.48.foot": "Latin",
+    "af.fact.49": "During the siege of Paris, pigeons carried in more than a million messages, printed tiny on film.",
+    "af.fact.49.foot": "Paris · 1870–1871",
+    "af.fact.50": "Bhutan once issued stamps that were tiny records. On a record player they played folk songs.",
+    "af.fact.50.foot": "Bhutan · 1973",
+    "af.fact.51": "A stationer was a bookseller with a fixed shop, when most traders travelled. Stationery is named for them.",
+    "af.fact.51.foot": "Medieval universities",
+    "af.fact.52": "In the year 105 Cai Lun announced a new way to make paper: from bark, hemp, old rags and fishing nets.",
+    "af.fact.52.foot": "China · 105",
+    "af.fact.53": "The word mail first meant the bag. A ‘male’ was a traveller’s pack.",
+    "af.fact.53.foot": "Middle English",
+    "af.fact.54": "Canada Post gives Santa his own postcode: H0H 0H0. About a million letters arrive, and every one is answered.",
+    "af.fact.54.foot": "Canada",
+    "af.fact.55": "A kiwi’s egg can weigh a fifth of the bird that lays it.",
+    "af.fact.55.foot": "New Zealand",
+    "af.fact.56": "Flamingos are pink because of what they eat: the pigments in plankton.",
+    "af.fact.56.foot": "Flamingos",
+    "af.fact.57": "The wandering albatross has the longest wings of any living bird: up to 3.7 metres from tip to tip.",
+    "af.fact.57.foot": "The wandering albatross",
+    "af.fact.58": "The oldest known picture postcard was posted in London in 1840. Its writer, Theodore Hook, sent it to himself.",
+    "af.fact.58.foot": "London · 1840",
+    "af.fact.59": "The smallest post office in the United States is a shed in Ochopee, Florida. It once stored irrigation pipes.",
+    "af.fact.59.foot": "Ochopee · Florida",
+    "af.fact.60": "Melbourne gave its trees email addresses so people could report problems. They wrote the trees love letters instead.",
+    "af.fact.60.foot": "Melbourne · 2013",
+  },
+  /* the other eight are written natively from the same checked facts (see the header): until they
+     land, every language falls back to the English above */
+  {},
+  {},
+  {},
+);
