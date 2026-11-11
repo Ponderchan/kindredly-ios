@@ -1,0 +1,363 @@
+<title>Me 封面原型</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: notes and a few switches on the left; on the right one phone you can pull and scroll. */
+:root {
+  --bg: #F2F1F6;
+  --surface: #FFFFFF;
+  --ink: #1E1B35;
+  --sub: #5B5773;
+  --line: #DDDAE8;
+  --seg: #E7E5F0;
+  --accent: #3A34D6;
+  --on-accent: #FFFFFF;
+  --rec: #D8F04A;
+  --on-rec: #1E1B35;
+  --shadow: rgba(30, 27, 53, .30);
+  --text: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", "Noto Sans SC", sans-serif;
+  --label: ui-monospace, "SF Mono", SFMono-Regular, Menlo, "PingFang SC", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15141C; --surface: #201F2B; --ink: #EEEDF6; --sub: #A9A6BD; --line: #36344C; --seg: #2B2A3A;
+    --accent: #8D89FF; --on-accent: #14132A; --rec: #D8F04A; --on-rec: #1E1B35; --shadow: rgba(0, 0, 0, .65);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15141C; --surface: #201F2B; --ink: #EEEDF6; --sub: #A9A6BD; --line: #36344C; --seg: #2B2A3A;
+  --accent: #8D89FF; --on-accent: #14132A; --rec: #D8F04A; --on-rec: #1E1B35; --shadow: rgba(0, 0, 0, .65);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--text);
+  font-size: 15px;
+  line-height: 1.55;
+  padding-block: 24px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 940px; margin: 0 auto; display: grid; grid-template-columns: minmax(240px, 1fr) auto; gap: 28px; align-items: start; }
+.side { min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 650; text-wrap: balance; }
+.lede { margin: 6px 0 0; color: var(--sub); max-width: 34em; }
+.group { display: flex; flex-direction: column; gap: 8px; }
+.group h2 { margin: 0; font: 600 11px/1.3 var(--label); letter-spacing: .14em; color: var(--sub); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button {
+  font: 600 14px/1 var(--text); color: var(--ink); background: var(--seg);
+  border: 0; border-radius: 12px; padding: 11px 14px; cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.seg button:focus-visible, .phone:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.note { margin: 0; color: var(--sub); font-size: 14px; max-width: 34em; }
+.list { margin: 0; padding: 0 0 0 1.1em; color: var(--sub); font-size: 14px; max-width: 34em; display: flex; flex-direction: column; gap: 6px; }
+.list b { color: var(--ink); font-weight: 600; }
+.stage { display: flex; flex-direction: column; align-items: center; gap: 10px; position: sticky; top: calc(12px + env(safe-area-inset-top, 0px)); }
+.fit { position: relative; }
+.cap { margin: 0; font: 600 11px/1.3 var(--label); letter-spacing: .1em; color: var(--sub); text-align: center; }
+
+/* ── the phone: the app's own colours, the same in either theme of this page ── */
+.phone {
+  width: 402px; height: 874px; position: absolute; left: 0; top: 0; transform-origin: 0 0;
+  border-radius: 46px; overflow: hidden; background: #FFFFFF; color: #1E1B35;
+  box-shadow: 0 0 0 1px var(--line), 0 30px 60px -30px var(--shadow);
+  touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+}
+.phone.held { cursor: grabbing; }
+.banner { position: absolute; left: 0; top: 0; width: 402px; height: 258px; overflow: hidden; z-index: 2; background: #E3F3FB; }
+.phone.night .banner { background: #2E2A6B; }
+.scene { position: absolute; left: 0; top: 0; width: 402px; height: 836px; max-width: none; transform-origin: 201px 451px; pointer-events: none; }
+.island { position: absolute; left: 138px; top: 11px; width: 126px; height: 37px; border-radius: 19px; background: #000; z-index: 6; pointer-events: none; }
+.status { position: absolute; left: 0; top: 0; width: 402px; height: 54px; z-index: 6; pointer-events: none; color: #1E1B35; }
+.phone.night .status, .phone.night .bar, .phone.night .pullhint { color: #FFFFFF; }
+.status .time { position: absolute; left: 52px; top: 19px; font: 600 17px/1 -apple-system, "SF Pro Text", sans-serif; }
+.status .batt { position: absolute; right: 34px; top: 21px; width: 27px; height: 13px; border-radius: 4px; border: 1.5px solid currentColor; opacity: .9; }
+.status .batt::after { content: ""; position: absolute; left: 2px; top: 2px; bottom: 2px; width: 15px; border-radius: 1.5px; background: currentColor; }
+.pullhint { position: absolute; left: 16px; top: 62px; font: 600 9.5px/1 var(--label); letter-spacing: .14em; opacity: .6; color: #1F5C33; pointer-events: none; }
+.chips { position: absolute; left: 14px; bottom: 12px; display: flex; gap: 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px 0 8px; border-radius: 9px;
+  font: 700 11px/1 var(--label); letter-spacing: .12em; background: rgba(255, 255, 255, .78); color: #1E1B35;
+}
+.phone.night .chip { background: rgba(255, 255, 255, .16); color: #FFFFFF; }
+.chip svg { width: 15px; height: 15px; flex: none; }
+.bar { position: absolute; left: 0; right: 0; bottom: 0; height: 44px; display: flex; align-items: center; padding: 0 16px; gap: 14px; color: #1E1B35; opacity: 0; }
+.bar .n { font: 600 17px/1 -apple-system, "SF Pro Text", sans-serif; flex: 1; }
+.bar svg { width: 20px; height: 20px; }
+.avatar {
+  position: absolute; right: 16px; top: 214px; width: 88px; height: 88px; border-radius: 50%; z-index: 4;
+  background: #CFE3F5; box-shadow: 0 0 0 4px #FFFFFF; transform-origin: 50% 100%; pointer-events: none;
+}
+.avatar::after { content: ""; position: absolute; left: 30px; top: 30px; width: 28px; height: 28px; border-radius: 50%; background: #55607C; }
+.content { position: absolute; left: 0; top: 0; width: 402px; z-index: 1; background: #FFFFFF; will-change: transform; }
+.id { padding: 14px 16px 6px; }
+.id .name { font: 700 24px/1.15 -apple-system, "SF Pro Display", sans-serif; letter-spacing: -.01em; padding-right: 110px; }
+.id .meta { margin-top: 8px; display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 7px; background: #F1F0EE; font: 500 12px/1 -apple-system, sans-serif; color: #55506E; }
+.id .row { margin-top: 14px; display: flex; align-items: center; gap: 22px; }
+.id .stat b { display: block; font: 600 19px/1 -apple-system, sans-serif; font-variant-numeric: tabular-nums; }
+.id .stat span { display: block; margin-top: 5px; font: 500 12px/1 -apple-system, sans-serif; color: #8A86A3; }
+.id .acts { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.id .edit { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 17px; background: #FFFFFF; box-shadow: 0 0 0 1px #E6E4EC, 0 6px 14px -8px rgba(30, 27, 53, .35); font: 600 14px/1 -apple-system, sans-serif; }
+.id .gear { width: 34px; height: 34px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 0 0 1px #E6E4EC, 0 6px 14px -8px rgba(30, 27, 53, .35); display: grid; place-items: center; }
+.id svg { width: 16px; height: 16px; }
+.content img { display: block; width: 402px; max-width: none; height: auto; pointer-events: none; }
+.page { position: absolute; left: 0; top: 0; width: 402px; height: 874px; max-width: none; z-index: 7; opacity: 0; pointer-events: none; }
+.back {
+  position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%); z-index: 8;
+  font: 600 14px/1 -apple-system, sans-serif; color: #FFFFFF; background: #1E1B35; border: 0; border-radius: 20px; height: 40px; padding: 0 18px; cursor: pointer;
+}
+.tabbar {
+  position: absolute; left: 16px; right: 16px; bottom: 22px; height: 64px; border-radius: 32px; z-index: 5;
+  background: rgba(255, 255, 255, .84); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  box-shadow: 0 0 0 1px rgba(30, 27, 53, .07), 0 8px 20px -8px rgba(30, 27, 53, .35);
+  display: grid; place-items: center; font: 600 10px/1 var(--label); letter-spacing: .16em; color: #8A86A3; pointer-events: none;
+}
+@media (max-width: 620px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .stage { position: static; order: -1; }
+}
+</style>
+
+<div class="wrap">
+  <div class="side">
+    <header>
+      <h1>Me 页新结构：星球当封面</h1>
+      <p class="lede">照你老产品的样子排：封面、封面左下两个小入口、右下压着头像、名字和按钮在下面。右边的手机能用：在上面往下拖是展开整颗星球，往上拖是收起封面。也可以用鼠标滚轮，或者点下面的按钮。</p>
+    </header>
+
+    <section class="group" aria-labelledby="g-go">
+      <h2 id="g-go">不想拖就点这里</h2>
+      <div class="seg">
+        <button type="button" id="go-planet">下拉 → 整颗星球</button>
+        <button type="button" id="go-me">回到 Me</button>
+        <button type="button" id="go-up">往上滑 → 收起封面</button>
+      </div>
+    </section>
+
+    <section class="group" aria-labelledby="g-mini">
+      <h2 id="g-mini">信使那张卡（背景不随时间变）</h2>
+      <div class="seg" data-key="mini">
+        <button type="button" data-v="a">A 固定一片天</button>
+        <button type="button" data-v="b">B 白底</button>
+      </div>
+      <p class="note" id="n-mini"></p>
+    </section>
+
+    <section class="group" aria-labelledby="g-hour">
+      <h2 id="g-hour">封面的时间（只有封面和星球页跟着变）</h2>
+      <div class="seg" data-key="hour">
+        <button type="button" data-v="day">白天</button>
+        <button type="button" data-v="night">夜里</button>
+      </div>
+    </section>
+
+    <ul class="list">
+      <li><b>封面</b>就是星球那一幕。星球本身照旧能用手指转（原型里是张图，转不了）；在星球以外的地方往下拉，才是展开。</li>
+      <li><b>拉下来</b>就是现在的星球页，一点没改。</li>
+      <li><b>STAMPS / LETTERS</b> 两个小入口在封面左下，像你老产品的「邮票 / 邮筒」：一个进邮票册，一个进 My letters。所以下面不再有 Stamps 那一格。</li>
+      <li><b>信使那张卡</b>是她详情页的缩略：她本人、她说的一句、flight log、皮肤一排。整张卡点进去就是她的页面。</li>
+      <li><b>再往下</b>是 Aura 和写作报告并排，然后是 First Class 卡。老产品里「动态」的位置先空着，日记放不放这里以后再说。</li>
+    </ul>
+  </div>
+
+  <div class="stage">
+    <div class="fit" id="fit">
+      <div class="phone" id="phone" tabindex="0" aria-label="Me 页原型，可上下拖动">
+        <div class="banner" id="banner">
+          <img class="scene" id="scene" alt="">
+          <div class="pullhint" id="pullhint">DRAG TO SPIN · PULL DOWN</div>
+          <div class="chips" id="chips">
+            <span class="chip"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3 2.5h10v11H3z"/><path d="M5.5 5h5v6h-5z"/></svg>STAMPS 7</span>
+            <span class="chip"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5a3 3 0 0 1 6 0V12h-6z"/><path d="M5.5 5.5h5a3 3 0 0 1 3 3V12h-5"/><path d="M8.5 14v-2M10.5 8.5h1.5"/></svg>LETTERS 14</span>
+          </div>
+          <div class="bar" id="bar">
+            <span class="n">Sunday Kite</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>
+          </div>
+        </div>
+        <div class="status" aria-hidden="true"><span class="time">9:41</span><span class="batt"></span></div>
+        <div class="island" aria-hidden="true"></div>
+        <div class="avatar" id="avatar" aria-hidden="true"></div>
+        <div class="content" id="content">
+          <div class="id">
+            <div class="name">Sunday Kite</div>
+            <div class="meta">joined Jul 27</div>
+            <div class="row">
+              <div class="stat"><b>2</b><span>kindreds</span></div>
+              <div class="acts">
+                <span class="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>Edit</span>
+                <span class="gear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></span>
+              </div>
+            </div>
+          </div>
+          <img id="mini" alt="">
+          <img id="rest" src="img/rest.webp" alt="">
+        </div>
+        <img class="page" id="page" alt="">
+        <button type="button" class="back" id="back" hidden>↑ 往上推，回到 Me</button>
+        <div class="tabbar" id="tabbar" aria-hidden="true">底栏在这里</div>
+      </div>
+    </div>
+    <p class="cap" id="cap">在手机上往下拖试试</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var B0 = 258, BAR = 98, P = 150, FULL = 874;
+  var NOTES = {
+    a: "她站在一小片固定的天空下，像她详情页的开头。不管几点都是这个颜色。",
+    b: "不再多画一片天：她站在白卡片上的一个小土坡上，旁边是她说的那句。和下面几格是一家。"
+  };
+  var opt = { mini: "a", hour: "day" };
+  try {
+    var saved = JSON.parse(localStorage.getItem("me-cover") || "{}");
+    if (saved.mini === "a" || saved.mini === "b") opt.mini = saved.mini;
+    if (saved.hour === "day" || saved.hour === "night") opt.hour = saved.hour;
+  } catch (e) {}
+
+  var $ = function (id) { return document.getElementById(id); };
+  var phone = $("phone"), banner = $("banner"), scene = $("scene"), chips = $("chips"), bar = $("bar"), avatar = $("avatar");
+  var content = $("content"), page = $("page"), back = $("back"), tabbar = $("tabbar"), pullhint = $("pullhint"), cap = $("cap");
+
+  // pull: how far the page is pulled down at its top; scroll: how far it is pushed up; k: 0 Me … 1 the planet page
+  var st = { pull: 0, scroll: 0, k: 0 };
+  var fitK = 1, anim = 0;
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function maxScroll() { return Math.max(0, content.offsetHeight - (FULL - BAR) + 96); }
+
+  function layout() {
+    var t = clamp(st.pull / P, 0, 1), k = st.k;
+    var h, cy, s;
+    if (st.scroll > 0 && k === 0) { h = Math.max(BAR, B0 - st.scroll); cy = 151 - st.scroll; s = 1; }
+    else { h = B0 + st.pull; cy = 151 + st.pull * 0.5; s = 1 + 0.515 * t; }
+    if (k > 0) { h = lerp(h, FULL, k); cy = lerp(cy, 226, k); s = lerp(s, 1.515, k); }
+    var over = Math.max(0, st.scroll - (B0 - BAR));
+    var folded = clamp((st.scroll - (B0 - BAR - 46)) / 46, 0, 1);
+    banner.style.height = h + "px";
+    scene.style.transform = "translateY(" + (cy - 451) + "px) scale(" + s + ")";
+    content.style.transform = "translateY(" + (h - over + k * 240) + "px)";
+    content.style.opacity = String(1 - k);
+    avatar.style.transform = "translateY(" + (h - B0) + "px) scale(" + lerp(1, 0.5, clamp(st.scroll / 110, 0, 1)) + ")";
+    avatar.style.opacity = String((1 - clamp((st.scroll - 60) / 60, 0, 1)) * (1 - k));
+    chips.style.opacity = String(clamp(1 - t * 1.5, 0, 1) * (1 - folded) * (1 - k));
+    pullhint.style.opacity = String(0.6 * clamp(1 - t * 2, 0, 1) * (1 - clamp(st.scroll / 40, 0, 1)) * (1 - k));
+    bar.style.opacity = String(folded * (1 - k));
+    page.style.opacity = String(clamp((k - 0.5) / 0.5, 0, 1));
+    tabbar.style.opacity = String(1 - k);
+    back.hidden = k < 0.98;
+    cap.textContent = k > 0.98 ? "这就是星球页。往上拖，或点底下的按钮回去" : st.scroll > 4 ? "往下拖回到顶上" : st.pull >= 96 ? "松手，展开整颗星球" : "在手机上往下拖试试";
+  }
+
+  function run(to, ms, done) {
+    cancelAnimationFrame(anim);
+    var from = { pull: st.pull, scroll: st.scroll, k: st.k }, t0 = performance.now();
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function step(now) {
+      var u = reduce ? 1 : clamp((now - t0) / ms, 0, 1), e = 1 - Math.pow(1 - u, 3);
+      st.pull = lerp(from.pull, to.pull, e); st.scroll = lerp(from.scroll, to.scroll, e); st.k = lerp(from.k, to.k, e);
+      layout();
+      if (u < 1) anim = requestAnimationFrame(step); else if (done) done();
+    }
+    anim = requestAnimationFrame(step);
+  }
+  function toPlanet() { run({ pull: st.pull, scroll: 0, k: 1 }, 460, function () { st.pull = 0; }); }
+  function toMe() { run({ pull: 0, scroll: 0, k: 0 }, 420); }
+  function release() {
+    if (st.k > 0) return;
+    if (st.pull >= 96) toPlanet(); else if (st.pull > 0) run({ pull: 0, scroll: st.scroll, k: 0 }, 260);
+  }
+
+  // the wheel
+  var wheelTimer = 0;
+  phone.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    cancelAnimationFrame(anim);
+    var d = e.deltaY;
+    if (st.k > 0.5) { if (d > 14) toMe(); return; }
+    st.k = 0;
+    if (d > 0) {
+      if (st.pull > 0) st.pull = Math.max(0, st.pull - d); else st.scroll = Math.min(maxScroll(), st.scroll + d);
+    } else if (st.scroll > 0) {
+      st.scroll = Math.max(0, st.scroll + d);
+    } else {
+      st.pull = Math.min(190, st.pull - d * 0.6);
+    }
+    layout();
+    clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(release, 170);
+  }, { passive: false });
+
+  // the finger (or the mouse held down)
+  var drag = null;
+  phone.addEventListener("pointerdown", function (e) {
+    if (e.target === back) return;
+    cancelAnimationFrame(anim);
+    drag = { y: e.clientY, pull: st.pull, scroll: st.scroll, planet: st.k > 0.5 };
+    phone.classList.add("held");
+    try { phone.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  phone.addEventListener("pointermove", function (e) {
+    if (!drag) return;
+    var dy = (e.clientY - drag.y) / fitK;
+    if (drag.planet) { if (dy < -70) { drag = null; phone.classList.remove("held"); toMe(); } return; }
+    var v = drag.scroll - dy + (drag.pull / 0.6);
+    if (v >= 0) { st.scroll = Math.min(maxScroll(), v); st.pull = 0; }
+    else { st.scroll = 0; st.pull = Math.min(190, -v * 0.6); }
+    layout();
+  });
+  function up() { if (!drag) return; drag = null; phone.classList.remove("held"); release(); }
+  phone.addEventListener("pointerup", up);
+  phone.addEventListener("pointercancel", up);
+
+  $("go-planet").addEventListener("click", function () { run({ pull: 120, scroll: 0, k: 0 }, 360, toPlanet); });
+  $("go-me").addEventListener("click", toMe);
+  $("go-up").addEventListener("click", function () { run({ pull: 0, scroll: Math.min(maxScroll(), 330), k: 0 }, 520); });
+  back.addEventListener("click", toMe);
+
+  function paint() {
+    phone.classList.toggle("night", opt.hour === "night");
+    scene.src = "img/scene-" + opt.hour + ".webp";
+    page.src = "img/page-" + opt.hour + ".webp";
+    $("mini").src = "img/mini-" + opt.mini + ".webp";
+    $("n-mini").textContent = NOTES[opt.mini];
+    document.querySelectorAll(".seg[data-key]").forEach(function (seg) {
+      var key = seg.getAttribute("data-key");
+      seg.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-v") === opt[key] ? "true" : "false"); });
+    });
+    try { localStorage.setItem("me-cover", JSON.stringify(opt)); } catch (e) {}
+    new Image().src = "img/scene-" + (opt.hour === "day" ? "night" : "day") + ".webp";
+    new Image().src = "img/page-" + (opt.hour === "day" ? "night" : "day") + ".webp";
+    new Image().src = "img/mini-" + (opt.mini === "a" ? "b" : "a") + ".webp";
+  }
+  document.querySelectorAll(".seg[data-key] button").forEach(function (b) {
+    b.addEventListener("click", function () { opt[b.parentNode.getAttribute("data-key")] = b.getAttribute("data-v"); paint(); layout(); });
+  });
+  $("mini").addEventListener("load", function () { st.scroll = Math.min(st.scroll, maxScroll()); layout(); });
+
+  // the phone keeps its proportions and shrinks to fit the window
+  var fit = $("fit");
+  function size() {
+    var narrow = window.matchMedia("(max-width: 620px)").matches;
+    var wrapW = document.querySelector(".wrap").clientWidth;
+    var roomW = narrow ? wrapW : Math.max(220, wrapW - 240 - 28);
+    var roomH = narrow ? 874 : Math.max(480, window.innerHeight - 64);
+    fitK = Math.min(1, roomW / 402, roomH / 874);
+    phone.style.transform = "scale(" + fitK + ")";
+    fit.style.width = Math.round(402 * fitK) + "px";
+    fit.style.height = Math.round(874 * fitK) + "px";
+  }
+  window.addEventListener("resize", size);
+  size();
+  paint();
+  layout();
+})();
+</script>
