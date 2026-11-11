@@ -106,6 +106,13 @@ text and the prototype disagree, the prototype wins unless this text says "chang
   -I $SDK/System/iOSSupport/usr/lib/swift <sources> -o shot` with `SDK=$(xcrun --sdk macosx --show-sdk-path)`,
   and a `@main` that writes `ImageRenderer(content:).uiImage.pngData()`. Canvas, gradients and
   text all render. Motion is checked by rendering frames at chosen times, not by eye in the app.
+- **Type-check the whole module, adapters included (about a minute):**
+  `design/courier-planet/checks/typecheck-module.sh`. The adapters import ExpoModulesCore and
+  ExpoUI, which the portable-only check cannot see; this one compiles Portable + Adapters +
+  `KindredlyUIModule.swift` as one module against the interfaces a previous simulator build left
+  in DerivedData (ExpoModulesCore.framework's swiftinterface, ExpoUI.swiftmodule). It builds
+  nothing and touches nothing under `ios/`. Checked with a deliberate error as a control: only
+  that error is reported. It needs one earlier Debug simulator build on this Mac.
 - The dev client is rebuilt only to check touch and feel on a simulator / device — ask the
   owner before building.
 
@@ -163,8 +170,8 @@ text and the prototype disagree, the prototype wins unless this text says "chang
     (`KPlanetTouchShape`), so the scene's sides, the bubble and the shelf still scroll the page.
   - Adapter: `Adapters/KMePlanetView.swift` (the `planet` record's decoders — reused by the
     planet page in phase 5 — and the marker view `KMePlanetView`), `KMeView.swift` (the record,
-    `onMeTrack`, `onMePlanetTap`). **The adapters are only syntax-checked** (they need Expo's
-    modules to type-check): the dev build in phase 7 is their first real compile.
+    `onMeTrack`, `onMePlanetTap`). (Syntax-checked only at the time; since the end of phase 6
+    the whole module, adapters included, type-checks: `checks/typecheck-module.sh`.)
   - TS: `src/screens/me/planet-model.ts` (pure; `node src/screens/me/planet-model.test.ts`, 53
     checks): her state from whereabouts + day off, the letters behind the stamps (ordinals counted
     down from the total, so an old stamp never moves), the shelf's four and their weekly turnover
@@ -197,7 +204,7 @@ text and the prototype disagree, the prototype wins unless this text says "chang
     Swiping to a slip selects its letter on the planet (it turns to the stamp); a tapped stamp
     and a turn by hand bring the slip. The page follows the slip TS names (`open`) until the
     reader picks one. `KPlanetProbe.zoom(by:)` is how the two keys reach the planet.
-  - Adapter: `Adapters/KPlanetPageView.swift` (registered; syntax-checked only, like the rest).
+  - Adapter: `Adapters/KPlanetPageView.swift` (registered).
     Her page's Track: `KCourierContent.trackPlanet` + `onTrack` (`onCrTrack`) — with the planet
     on, Track opens `/planet`; otherwise her tracking slip opens there as before.
   - TS: `planet-model.ts` gains the page (`buildPlanetPage`, `planetSlips`, `letterRows`,
@@ -242,12 +249,17 @@ text and the prototype disagree, the prototype wins unless this text says "chang
     change without the slide.
   - `docs/CHANGELOG.md`: the planet's lines under Unreleased (not in 1.0.9; `[switch: meplanet]`)
     and the plain lines (`[OTA]`).
+- 2026-11-11 — **the adapters type-check.** `checks/typecheck-module.sh` compiles the whole
+  module (Portable, Adapters, the module file) against the real Expo interfaces without a build:
+  no errors. What is left for the device is behaviour, not compilation.
 - Next: phase 7, on a device — **ask the owner before building** (a dev client with the new
   Swift files needs a pod install and a build).
 
 ## For the device pass (phase 7), noted along the way
 
-- The adapters' first compile (`KMePlanetView.swift`, `KMeView.swift`).
+- The adapters type-check (`checks/typecheck-module.sh`); what a build adds is the link, the
+  module's registration of the two new views (`KMePlanetView`, `KPlanetPageView`: new files, so a
+  pod install first) and the records really decoding what TS sends.
 - The finger: turning the small planet inside the scrolling Me page (the planet takes the drag,
   the rest of the card scrolls) — does it feel right, or should a mostly-vertical drag scroll?
 - The planet's Canvas redraws at the display's rate while Me is in front (up to 47 stamps):
