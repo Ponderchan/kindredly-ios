@@ -48,7 +48,7 @@ The courier's planet (owner sign-off 2026-11-11; branch `courier-planet`, **not 
 - Her page (Open) is unchanged, except that Track now opens the planet page.
 - The Aura and Stamps tiles and the report row each have a colour of their own (peach, blue, green) instead of the page's grey, and the two tiles are named on a chip like her card's YOUR COURIER. With no stamps of your own yet, the Stamps tile shows three of ours.
 
-Today, after fifteen (the owner's decisions of 2026-11-11; branch `today-after-fifteen`, on top of `courier-planet`, **not in 1.0.9**: it needs the binary after it; built and OFF; English only so far) [switch: afterfifteen]
+Today, after fifteen (the owner's decisions of 2026-11-11; branch `today-after-fifteen`, on top of `courier-planet`, **not in 1.0.9**: it needs the binary after it; built and OFF; nine languages) [switch: afterfifteen]
 - When the day's last letter has gone past, Today becomes one of three pages until 8:00: a red mailbox, a receipt, or bedtime. Which one: your first two days, the mailbox; a Sunday, the receipt with the week's totals; a desk finished after 8 in the evening, bedtime; otherwise the mailbox. A day with no letters at all keeps the old ending.
 - The mailbox: your courier in its window with her count of the day; pull the cord and a shutter comes down with a Closed sign, when she is back, and a note taped under it. The slot stays open: tap it to write a letter.
 - The receipt: Print feeds it out of the printer line by line: letters read, written back, the topic you stayed on longest (only if the phone timed it), when she is back. Tear it off, then keep the stub or share the receipt as a picture. Nothing from anyone else's letter is in the picture.

@@ -363,15 +363,17 @@ struct KAfterPaper: View {
 
   private func line(_ row: KAfterRow) -> some View {
     HStack(alignment: .bottom, spacing: 6) {
+      // a long label with a long value (German's "POND IST ZURÜCK IN" and "16 STD 40 MIN") gives up
+      // the dots first, then its size, before it would be cut
       Text(row.label)
         .kText(.mono(10, .medium, tracking: 0.04))
         .foregroundStyle(palette.paperInk)
         .lineLimit(1)
-        .minimumScaleFactor(0.7)
+        .minimumScaleFactor(0.55)
       KAfterHLine()
         .stroke(palette.paperLeader, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [0.1, 4]))
         .frame(height: 1.5)
-        .frame(minWidth: 12)
+        .frame(minWidth: 4)
         .padding(.bottom, 3)
       Text(row.value)
         .kText(.mono(10, .semibold, tracking: 0.04))

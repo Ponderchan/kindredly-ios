@@ -190,15 +190,48 @@ uses the name the reader gave her wherever the prototype says Pond.
 9. **The facts' scope** (the post and stamps, letters and writers, paper and ink, birds): the
    owner asked about it on 2026-11-11 and has not answered yet. They are text in the bundle, so
    more can go out over the air; a number, once given, never changes its fact.
-10. **Nine languages**: only English is written. The other eight (the pages' words and the sixty
-    facts) wait for the owner's go-ahead: it is the costly step.
+10. **Nine languages**: done 2026-11-11 (see "The nine languages" below).
+
+## The nine languages (2026-11-11)
+
+The pages' words (68 strings) and the sixty facts are written in es, pt-BR, id, fr, de, it, ja and
+ko: one native writer a language from a brief of what each string has to do, then a native editor
+who read only the result and returned a patch (eight writers, eight editors; then one more round
+for five corrected facts). `strings-after.test.ts` checks the keys, the placeholders, the room of
+every label and that every year and large number of the English fact is in each language's.
+`design/today-after-fifteen/checks/gen-lang-sheet.mjs` draws the pages in every language from the
+app's own strings (`lang-1.jpg`, `lang-2.jpg`: each language's longest fact on the note).
+
+The editors also reviewed the care list (the words that keep a heavy letter from being quoted):
+fifteen additions a language, and one removal (Japanese がん, which is inside がんばる). The matcher
+now ignores accents and case, takes a leading * for compound words, and compares Korean, Japanese
+and Chinese without spaces.
+
+For the owner to decide, from the editors (none blocks the feature):
+- **She is masculine elsewhere in the app** in Spanish ("tu mensajero", about fifteen places) and
+  Portuguese ("Seu mensageiro"): the new strings say mensajera / mensageira. The old ones are a
+  separate fix, and can go over the air.
+- **The shelf's name** ("Lore") is left in English in es, pt and id (gamer's word to most readers);
+  in Italian it is "Cronaca" (news reporting to an Italian ear) and in Japanese 記録 (too general).
+  The new strings use whatever the app calls it.
+- **The wren's name**: Spanish "chochín" is Spain's word (Latin America has only regional names);
+  Portuguese "corruíra" is Brazil's house wren.
+- **Typography**: the new French, German and Italian use the typographic apostrophe (’), the app's
+  older strings the straight one ('). German writes her spoken lines' nouns in lower case, like
+  her card's lines, while her older quoted lines keep them capitalised.
+- **No. 42** (New Year cards delivered on January 1) is common knowledge in Japan; **No. 33** (the
+  lead in a pencil) was reframed as a fact about the English word where the language never calls
+  it lead.
+- A few labels sit exactly at their room (es `af.box.slot` 40/40, it `af.kept` 12/12, id
+  `af.rc.next` 18/18): they fit, with nothing to spare.
 
 ## Verified, and not
 
 - Verified without a build: the rules and the words (four test files, all passing), TypeScript
   (`tsc --noEmit`), the portable Swift layer and the whole module with its adapters
   (type-checked), and stills of every page and state in four themes, on a 6.1-inch and an
-  iPhone SE height, with the longest words and for a courier who can't play.
+  iPhone SE height, with the longest words, for a courier who can't play, and in all nine
+  languages with each language's longest fact.
 - Not verified (needs a dev build on a simulator, then a phone): every motion (the shutter, the
   envelope into the slot, the paper's feed and tear, the seed, the hearts, the z's, the pop of
   the card), touch (the cord's pull, the long press to share, the scroll under the printer),
@@ -213,6 +246,8 @@ uses the name the reader gave her wherever the prototype says Pond.
   (0933327); Today's side: the timer, the hook, the host, the route, the English words, the dev
   page (da7f335); sixty facts in English, each checked; the check sheets; this file brought up
   to date. **English only; nothing on a device yet.**
-- Next: the owner's answers (the schedule, the facts' scope), then nine languages (two
-  workflows of eight: a native writer a language, then a native editor who reads only the
-  result), then a dev build — **ask the owner before building**.
+- 2026-11-11 — **nine languages** (the owner: "语言做完"): the pages' words and the sixty facts in
+  the other eight, written and edited natively; five facts corrected in all nine; the care list
+  reviewed by the eight editors; language sheets rendered. Subagent tokens: 1.22M (writers),
+  1.12M (editors), 0.49M (the corrections) — over the 1.5–2M told to the owner.
+- Next: a dev build on a simulator, then a phone — **ask the owner before building**.

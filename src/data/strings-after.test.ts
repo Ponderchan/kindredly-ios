@@ -104,7 +104,9 @@ ui.forEach((block, i) => {
   ok(`${lang}: the same keys as English`, Object.keys(block).sort().join() === uiKeys.join(), uiKeys.filter((k) => !(k in block)).concat(Object.keys(block).filter((k) => !(k in enUi))).join(" "));
   ok(`${lang}: nothing empty`, uiKeys.every((k) => (block[k] ?? "").trim().length > 0), uiKeys.filter((k) => !(block[k] ?? "").trim()).join(" "));
   ok(`${lang}: the placeholders survive`, uiKeys.every((k) => holes(block[k] ?? "") === holes(enUi[k])), uiKeys.filter((k) => holes(block[k] ?? "") !== holes(enUi[k])).join(" "));
-  const tooLong = Object.keys(FIT).filter((k) => len(filled(block[k] ?? "")) > (CJK.has(lang) ? Math.ceil(FIT[k] * 0.6) : FIT[k]));
+  // the shop's name is mostly "Kindredly" in every script, so its room is not halved for CJK
+  const room = (k: string) => (CJK.has(lang) && k !== "af.rc.shop" ? Math.ceil(FIT[k] * 0.6) : FIT[k]);
+  const tooLong = Object.keys(FIT).filter((k) => len(filled(block[k] ?? "")) > room(k));
   ok(`${lang}: the labels fit where they sit`, tooLong.length === 0, tooLong.map((k) => `${k}=${len(filled(block[k]))}`).join(" "));
   if (i > 0) {
     const same = uiKeys.filter((k) => block[k] === enUi[k] && !["af.quote", "af.sleepTalk", "af.rc.shop"].includes(k));
@@ -130,11 +132,16 @@ facts.forEach((block, i) => {
   ok(`${lang}: each fact fits the note (${cap} characters)`, long.length === 0, long.map((n) => `${n}=${len(block[`af.fact.${n}`])}`).join(" "));
   const longFoot = nos.filter((n) => len(block[`af.fact.${n}.foot`] ?? "") > (CJK.has(lang) ? 20 : 30));
   ok(`${lang}: each foot fits one line`, longFoot.length === 0, longFoot.join(" "));
-  // the numbers a fact turns on are the same in every language (digits only: a spelled-out number is the writer's choice)
+  // every year and large number in the English fact is in this one too. Digits only: a language may
+  // group them with a space or a point (98 721, 98.721), may write out in digits what English spells
+  // ("a hundred"), and may say "the 19th century" for "the 1800s"
   if (i > 0) {
-    const digits = (s: string) => (s.match(/\d[\d.,]*\d|\d/g) ?? []).map((d) => d.replace(/[.,\s]/g, "")).filter((d) => d.length >= 3).sort().join();
-    const off = nos.filter((n) => digits(block[`af.fact.${n}`] ?? "") !== digits(facts[0][`af.fact.${n}`]));
-    ok(`${lang}: the years and large numbers match the English`, off.length === 0, off.join(" "));
+    const digits = (s: string) => (s.match(/\d(?:[\d.,\u00a0\u202f\u2009 ]*\d)?/g) ?? []).flatMap((d) => (/\d[\u00a0\u202f\u2009 ]\d{1,2}(?!\d)/.test(d) || /\d [^\d]/.test(d) ? d.split(/[\u00a0\u202f\u2009 ]+/) : [d])).map((d) => d.replace(/[^\d]/g, "")).filter((d) => d.length >= 3 && d !== "1800");
+    const off = nos.filter((n) => {
+      const here = digits(block[`af.fact.${n}`] ?? "").join(" ") + " " + (block[`af.fact.${n}`] ?? "").replace(/[^\d]/g, "");
+      return digits(facts[0][`af.fact.${n}`]).some((d) => !here.includes(d));
+    });
+    ok(`${lang}: the years and large numbers of the English are all there`, off.length === 0, off.join(" "));
   }
 });
 

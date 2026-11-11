@@ -213,52 +213,78 @@ export function opening(body: string): string | null {
 /** topics that are heavy by their name: a letter under one gives no line */
 export const HEAVY_STAMPS: ReadonlySet<string> = new Set(["grief", "whats-the-point", "spiral", "intrusive"]);
 
-/* The care list: words that mark a letter as one not to quote on a cheerful end-of-day page.
-   Deliberately broad (a false match only means "no line from this letter", which costs
-   nothing). Latin-script entries match whole words, or a word's start when they end in "*";
-   CJK entries match anywhere. Languages: the app's nine, and Chinese (letters arrive in it). */
+/* The care list: words that mark a letter as one not to quote on a cheerful end-of-day page
+   (death, suicide, self-harm, abuse, serious illness, losing a pregnancy). Deliberately broad: a
+   false match only means "no line from this letter", which costs nothing. Each language's list
+   was reviewed by a native editor on 2026-11-11 (the forms people really write in a letter:
+   stems, euphemisms, informal spellings), who also took out the one entry that matched everyday
+   words (Japanese がん, inside がんばる).
+
+   How an entry matches:
+   - Latin script: a whole word or phrase, whatever its case or accents ("cancer" finds "cáncer").
+     A trailing * takes any ending ("abus*": abuso, abusaron), a leading * any beginning
+     ("*krebs": Brustkrebs), for the languages that build long words.
+   - Japanese, Korean, Chinese: anywhere in the text, with the spaces taken out of both (Korean
+     is written with and without them: 죽고 싶 / 죽고싶), and full-width letters read as plain. */
 const CARE_WORDS: readonly string[] = [
   // en
   "suicide", "suicidal", "kill myself", "killing myself", "end it all", "want to die", "wanna die", "self-harm", "self harm", "hurt myself", "overdose*",
   "died", "dying", "death", "dead", "funeral", "passed away", "cancer", "tumor", "tumour", "miscarriage", "hospice", "abus*", "assault*", "rape", "raped", "molest*",
   // es
-  "suicid*", "matarme", "quitarme la vida", "morir", "morirme", "murió", "muerte", "muerto", "muerta", "falleció", "funeral", "entierro", "cáncer", "violación", "aborto",
+  "suicid*", "matarme", "matar*", "quitarme la vida", "quitó la vida", "ganas de vivir", "morir", "morirme", "muri*", "muerte", "muerto", "muerta", "fallec*", "perdí a", "pérdida", "funeral", "entierro",
+  "cáncer", "quimio*", "violación", "viol*", "maltrat*", "aborto", "autolesi*", "cortarme", "hacerme daño",
   // pt
-  "suicíd*", "me matar", "morrer", "morreu", "morte", "morto", "morta", "faleceu", "velório", "enterro", "câncer", "cancro", "estupro", "automutila*",
+  "se matar", "se matou", "me matar", "vontade de sumir", "me cort*", "morrer", "morreu", "morreram", "morte", "morto", "morta", "falec*", "luto", "velório", "enterro", "câncer", "cancro", "internad*", "uti",
+  "abort*", "perdi o bebê", "estupr*", "automutila*",
   // id
-  "bunuh diri", "meninggal", "kematian", "pemakaman", "kanker", "pelecehan", "perkosa*", "melukai diri",
+  "bunuh diri", "bundir", "mengakhiri hidup*", "self harm", "meninggal", "kematian", "mati", "almarhum*", "wafat", "pemakaman", "kanker", "tumor", "kemo*", "stroke", "pelecehan", "dileceh*", "perkosa*", "diperkosa", "pemerkosa*",
+  "kdrt", "kekerasan", "keguguran", "melukai diri",
   // fr
-  "me tuer", "mourir", "mort", "morte", "décédé", "décédée", "décès", "enterrement", "funérailles", "viol", "violée", "fausse couche", "automutil*",
+  "me tuer", "en finir", "fin à ses jours", "mourir", "mort*", "décéd*", "décès", "deuil", "enterrement", "funérailles", "viol", "violé", "violée", "violen*", "agress*", "incest*", "fausse couche", "automutil*", "scarif*", "mutil*", "chimio*",
   // de
-  "suizid*", "selbstmord*", "umbringen", "sterben", "gestorben", "tod", "tot", "beerdigung", "krebs", "missbrauch*", "vergewaltig*", "fehlgeburt", "ritzen",
+  "suizid*", "selbstmord*", "umbringen", "umgebracht", "sterben", "gestorben", "verstorben*", "starb", "stirbt", "tod", "tot", "todes*", "trauer*", "beerdigung", "krebs", "*krebs", "brustkrebs", "chemo*", "tumor*", "*tumor",
+  "missbrauch*", "*missbrauch", "misshand*", "vergewaltig*", "fehlgeburt", "fehlgeburten", "sternenkind*", "ritzen", "ritz*", "geritzt", "selbstverletz*",
   // it
-  "uccidermi", "morire", "morto", "morta", "morte", "funerale", "tumore", "stupro", "aborto spontaneo", "autolesion*",
+  "uccidermi", "ucci*", "ammazz*", "farla finita", "morire", "morto", "morta", "morti", "morte", "lutto", "funerale", "tumore", "chemio*", "stupr*", "violen*", "perso il bambino", "aborto spontaneo", "autolesion*", "del male",
   // ja
-  "自殺", "死にたい", "死んだ", "死んで", "亡くな", "葬式", "葬儀", "癌", "がん", "ガン", "虐待", "自傷", "消えたい", "流産",
+  "自殺", "自死", "死にたい", "死にた", "死んだ", "死んで", "死ぬ", "の死", "亡", "いなくなりたい", "葬式", "葬儀", "癌", "がんに", "がんが", "がんで", "がんの", "ガン", "闘病", "虐待", "暴力", "dv", "自傷", "リスカ", "消えたい", "流産", "死産",
   // ko
-  "자살", "죽고 싶", "죽었", "죽음", "돌아가셨", "장례", "암에", "암으로", "학대", "자해", "유산했",
+  "자살", "죽고 싶", "죽으려", "살기 싫", "사라지고 싶", "극단적", "죽었", "죽음", "돌아가셨", "돌아가신", "세상을 떠", "하늘나라", "장례", "암에", "암으로", "암이", "항암", "투병", "학대", "폭력", "폭행", "추행", "자해", "유산했", "유산됐",
   // zh
   "自杀", "想死", "去世", "过世", "葬礼", "癌", "虐待", "自残", "流产",
 ];
 
-const isCjkWord = (w: string) => /[぀-ヿ㐀-鿿가-힯]/.test(w);
+const isCjkWord = (w: string) => /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(w);
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** plain lower-case letters: no accents, full-width forms read as plain */
+const foldLatin = (s: string) => s.normalize("NFKD").replace(/[\u0300-\u036f]+/g, "").toLowerCase();
+/** CJK text as it is compared: full-width letters plain, no spaces */
+const packCjk = (s: string) => s.normalize("NFKC").replace(/\s+/g, "");
 
-const CARE_CJK = CARE_WORDS.filter(isCjkWord);
+/** a Latin letter or a digit, in text already folded (foldLatin) */
+const LATIN = "[a-z0-9\\u00df-\\u024f]";
+
+const CARE_CJK = CARE_WORDS.filter(isCjkWord).map(packCjk);
 const CARE_LATIN = new RegExp(
-  "(?<![\\p{L}\\p{N}])(?:" +
-    CARE_WORDS.filter((w) => !isCjkWord(w))
-      .map((w) => (w.endsWith("*") ? escapeRe(w.slice(0, -1)) + "[\\p{L}]*" : escapeRe(w)))
-      .join("|") +
-    ")(?![\\p{L}\\p{N}])",
-  "iu",
+  CARE_WORDS.filter((w) => !isCjkWord(w))
+    .map((raw) => {
+      const w = foldLatin(raw);
+      const open = w.startsWith("*");
+      const shut = w.endsWith("*");
+      const core = escapeRe(w.slice(open ? 1 : 0, shut ? -1 : undefined));
+      // a word's edge is a Latin letter's edge: "DVから" is DV, though か is a letter too
+      return (open ? "" : `(?<!${LATIN})`) + core + (shut ? `${LATIN}*` : "") + `(?!${LATIN})`;
+    })
+    .join("|"),
+  "u",
 );
 
 /** A heavy letter: its topic is one of the heavy ones, or its words are on the care list. */
 export function isHeavy(letter: { stamp: string; body: string }): boolean {
   if (HEAVY_STAMPS.has(letter.stamp)) return true;
-  if (CARE_LATIN.test(letter.body)) return true;
-  return CARE_CJK.some((w) => letter.body.includes(w));
+  if (CARE_LATIN.test(foldLatin(letter.body))) return true;
+  const packed = packCjk(letter.body);
+  return CARE_CJK.some((w) => packed.includes(w));
 }
 
 /** What the phone notes about a letter while it is on screen: enough to offer its line later, and no more. */

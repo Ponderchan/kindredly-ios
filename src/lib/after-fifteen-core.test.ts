@@ -123,6 +123,21 @@ ok("German", A.isHeavy({ stamp: "ordinary", body: "Seit der Beerdigung ist es st
 ok("Japanese", A.isHeavy({ stamp: "ordinary", body: "祖母が亡くなってから一年です。" }));
 ok("Korean", A.isHeavy({ stamp: "ordinary", body: "장례를 치르고 돌아왔어요." }));
 ok("an ordinary letter is not heavy", !A.isHeavy({ stamp: "missing", body: "I still set two cups out." }));
+// the native editors' additions (2026-11-11), and how entries match
+ok("accents don't matter: 'cancer' typed plain in Spanish", A.isHeavy({ stamp: "ordinary", body: "A mi mamá le encontraron cancer en marzo." }));
+ok("a stem with any ending, Portuguese", A.isHeavy({ stamp: "ordinary", body: "Minha avó faleceu e eu ainda não chorei." }));
+ok("a euphemism, Spanish", A.isHeavy({ stamp: "ordinary", body: "Hace un año perdí a mi papá." }));
+ok("a compound, German: any beginning", A.isHeavy({ stamp: "ordinary", body: "Meine Tante hat Brustkrebs und lacht trotzdem." }));
+ok("Indonesian with its prefix", A.isHeavy({ stamp: "ordinary", body: "Ibuku keguguran tahun lalu." }));
+ok("Korean without its space", A.isHeavy({ stamp: "ordinary", body: "가끔은 죽고싶다는 생각을 해요." }));
+ok("Korean with its space", A.isHeavy({ stamp: "ordinary", body: "가끔은 죽고 싶다는 생각을 해요." }));
+ok("Japanese: 亡 in any form", A.isHeavy({ stamp: "ordinary", body: "去年、母を亡くしました。" }));
+ok("Japanese: がん with its particle", A.isHeavy({ stamp: "ordinary", body: "父ががんで入院しています。" }));
+ok("Japanese: がんばる is not がん", !A.isHeavy({ stamp: "ordinary", body: "明日もがんばるね。がんばって。" }));
+ok("Japanese: full-width ＤＶ", A.isHeavy({ stamp: "ordinary", body: "ＤＶから逃げて一年です。" }));
+ok("French: an ordinary letter is not heavy", !A.isHeavy({ stamp: "ordinary", body: "J'ai pris le bus vide et j'ai chanté un peu." }));
+ok("Italian: 'mi sei mancata' (I missed you) is not heavy", !A.isHeavy({ stamp: "missing", body: "Mi sei mancata tutto l'inverno." }));
+ok("German: an ordinary letter is not heavy", !A.isHeavy({ stamp: "ordinary", body: "Heute habe ich insgesamt neun Straßen gezählt." }));
 
 /* ── what is noted, and the pick ── */
 const L = (id: string, body: string, o: Partial<{ stamp: string; kind: "text" | "voice" }> = {}) => ({ id, stamp: "ordinary", body, created_at: "2026-11-11T09:00:00Z", ...o });

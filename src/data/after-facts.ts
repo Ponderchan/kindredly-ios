@@ -10,7 +10,15 @@
    confirmed was dropped, not softened: the robin and the Victorian postmen, the loudness of a
    wren's song, the sixty-one wrens in one nest box, the peregrine's dive, Santa's post office in
    Rovaniemi). NO. 2's sheet of paper is arithmetic, not the page's: an A4 sheet is a sixteenth of
-   a square metre, so at 80 g/m² it weighs 5 g. */
+   a square metre, so at 80 g/m² it weighs 5 g.
+
+   Five were corrected the same day, after the native editors doubted them and the pages were
+   read again word for word: NO. 46 named Tonga alone as first (the page says the tropics, "such
+   as Tonga in July 1963 and Sierra Leone in February 1964"); NO. 36 said "for ten years" (trial
+   perforations came at the end of 1850, official ones in 1854); NO. 39 counted 131 years "at sea"
+   (1886 to 2018 is 131 years and some months, and the bottle lay ashore for much of it); NO. 17
+   did not say whose motto it is; NO. 58 read as if Hook's being its writer were the point (he was
+   a writer by trade). */
 
 export const AFTER_FACT_SOURCES: readonly string[] = [
   "https://en.wikipedia.org/wiki/Penny_Black", // 1
