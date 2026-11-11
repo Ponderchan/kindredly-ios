@@ -9,7 +9,8 @@ import SwiftUI
  React Native: the reader lives inside the page that opened it, no route). The React Native
  reader is the fallback, and this draws exactly what it draws:
 
-   ✕ FOLD BACK                                  the mono ✕ 15 in ink, the words 500 15 in sub,
+   ✕ FOLD BACK                                  the close icon (20, stroke 2.2, ink: the one
+                                                every closing page draws), the words 500 15 in sub,
                                                 18 in, 14 from the top, 12 under
    ╭────────────────────────────────────╮       the letter sheet, as on the desk card (InkCard
    │ [face] Sunday Kite ♀ ♊      [stamp] │       .today, letter: sf, a 1pt edge in its ink at 11%,
@@ -175,9 +176,9 @@ struct KLetterReaderScreen<InFlight: View>: View {
     HStack(spacing: 0) {
       SwiftUI.Button(action: actions.onClose) {
         HStack(spacing: 8) {
-          Text("✕")
-            .kText(.mono(15, .medium))
-            .foregroundStyle(theme.ink)
+          // the app's close icon, as every page that closes draws it (owner, 2026-11-11: the ✕ was
+          // a 15pt mono glyph, smaller than the rest)
+          KLineIcon(.close, size: 20, lineWidth: 2.2, color: theme.ink)
           Text(content.foldBack)
             .kText(.system(15, .medium))
             .foregroundStyle(theme.sub)
