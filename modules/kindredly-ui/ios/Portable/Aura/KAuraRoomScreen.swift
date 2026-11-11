@@ -359,32 +359,23 @@ public struct KAuraRoomScreen<Art: View>: View {
 
   // MARK: lenses
 
+  /// Portrait / Dimensions / Habits: Me's own segmented control (KMeSegmented: a soft grey track,
+  /// the chosen part a raised white pill that slides), not a track of its own. It had one, filled
+  /// with lav, from before Me's control was settled (owner, 2026-11-11: "切换那里怎么还是紫色的").
   private var lenses: some View {
-    HStack(spacing: 0) {
-      ForEach(Array(KAuraLens.allCases.enumerated()), id: \.element) { i, l in
-        let on = lens == l
-        SwiftUI.Button {
-          show(l)
-        } label: {
-          Text(i < content.tabs.count ? content.tabs[i] : l.rawValue)
-            .kText(.system(13, on ? .semibold : .regular))
-            .foregroundStyle(on ? theme.ink : theme.sub)
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
-            .padding(.horizontal, 4)
-            .padding(.vertical, 9)
-            .frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 10, style: .circular).fill(on ? theme.sf : Color.clear))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(KFadePressStyle())
-        .accessibilityAddTraits(on ? [.isSelected] : [])
+    let all = KAuraLens.allCases
+    let labels = all.enumerated().map { i, l in i < content.tabs.count ? content.tabs[i] : l.rawValue }
+    let selection = Binding<Int>(
+      get: { all.firstIndex(of: lens) ?? 0 },
+      set: { i in
+        if all.indices.contains(i) { show(all[i]) }
       }
-    }
-    .padding(3)
-    .background(RoundedRectangle(cornerRadius: 12, style: .circular).fill(theme.lav))
-    // one line per lens at every size (the React Native page's a11y pass: AX sizes broke words)
-    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+    )
+    return KMeSegmented(theme: theme, labels: labels, selection: selection)
+      // one line per lens at every size (the React Native page's a11y pass: AX sizes broke words)
+      .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+      .accessibilityElement(children: .contain)
+      .accessibilityAddTraits(.isTabBar)
   }
 
   // MARK: PORTRAIT
