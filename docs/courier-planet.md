@@ -306,6 +306,12 @@ text and the prototype disagree, the prototype wins unless this text says "chang
   The exploration's harnesses (her card two ways, three colour schemes, the page by the day, the
   picker's ninety phones) are in history: commits 1c9a7b7 … 91c7b05. `checks/me-sheet.swift` is
   the check for what is built. Picker page: https://claude.ai/artifact/WwmHxandc6A8a4QNYVhvVx
+- 2026-11-11, night — the owner on the built card: **"这星球上怎么又个黑圈呢"** — the planet's
+  air, a 4pt ring of white at 35%, is a soft halo on a day sky and a grey band on the night one.
+  At night it is now a glow that fades out with no edge (`KPlanetPaint.globe`, by
+  `palette.moon`; the planet page too). And he **agreed the three calls above**: one line of
+  hers when the rows cannot say it; the First Class card at the foot from day one; no pull-tab
+  on this page, and the report row and the foot card stepping aside for a large form.
 - Next: the rest of phase 7 on the simulator (the drag's feel, the five states in motion, the
   planet page's pager), then a phone.
 

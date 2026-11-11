@@ -152,8 +152,21 @@ enum KPlanetPaint {
     let r = f.layout.radius
     let centre = f.layout.centre
     let disc = Path(ellipseIn: CGRect(x: centre.x - r, y: centre.y - r, width: r * 2, height: r * 2))
-    let air = Path(ellipseIn: CGRect(x: centre.x - r - 5, y: centre.y - r - 5, width: (r + 5) * 2, height: (r + 5) * 2))
-    ctx.stroke(air, with: .color(Color.white.opacity(0.35)), lineWidth: 4)
+    if f.palette.moon {
+      // at night, no ring: white at 35% on the night sky is a grey band round the planet (the
+      // owner, 2026-11-11: "这星球上怎么又个黑圈呢"). Its air is a glow that fades out, with no edge.
+      let reach = r + 12
+      let glow = Path(ellipseIn: CGRect(x: centre.x - reach, y: centre.y - reach, width: reach * 2, height: reach * 2))
+      let air = Gradient(stops: [
+        .init(color: Color.white.opacity(0), location: 0),
+        .init(color: Color.white.opacity(0.18), location: r / reach),
+        .init(color: Color.white.opacity(0), location: 1),
+      ])
+      ctx.fill(glow, with: .radialGradient(air, center: centre, startRadius: 0, endRadius: reach))
+    } else {
+      let air = Path(ellipseIn: CGRect(x: centre.x - r - 5, y: centre.y - r - 5, width: (r + 5) * 2, height: (r + 5) * 2))
+      ctx.stroke(air, with: .color(Color.white.opacity(0.35)), lineWidth: 4)
+    }
     ctx.fill(disc, with: .color(f.palette.sea))
 
     var inside = ctx

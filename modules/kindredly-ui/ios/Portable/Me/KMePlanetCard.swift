@@ -165,11 +165,10 @@ struct KSoftLift: ViewModifier {
   func body(content: Content) -> some View {
     let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
     content
-      .overlay {
-        shape.strokeBorder(theme.line.opacity(theme.isDark ? 1 : 0.65), lineWidth: 1)
-          .allowsHitTesting(false)
-      }
       .background {
+        // the hairline runs just outside the block, never over it: laid over her card it was a
+        // pale line round the night sky
+        shape.inset(by: -1).strokeBorder(theme.line.opacity(theme.isDark ? 1 : 0.65), lineWidth: 1)
         if !theme.isDark {
           shape.fill(theme.sf)
             .shadow(color: Self.shade.opacity(0.07), radius: 1.5, x: 0, y: 1)
