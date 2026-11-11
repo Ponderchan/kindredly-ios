@@ -12,6 +12,7 @@ import { storeAura } from "../../lib/dev-store";
 import { whereabouts, type Whereabouts } from "../../lib/whereabouts";
 import { devSurfaceOverride, setDevSurfaceOverride, useNativeSurface } from "../../lib/surfaces";
 import { planetLetters, shelfTap, shelfWeek, type PlanetLetterSource, type PlanetSkin, type ShelfFacts } from "../../screens/me/planet-model";
+import { flightLogFacts } from "../../screens/me/planet-log";
 import { flightLog } from "../../lib/flight-log";
 import { useWhoBook } from "../../lib/who";
 import type { Aura } from "../../lib/aura";
@@ -242,9 +243,19 @@ function MeLab() {
     );
     const fmt = meFormat();
     const shelfFacts: ShelfFacts = { skin, dress: look, premium, kindreds: kinN, hatchSkin: null, week };
+    const planetCards = lettersN == null ? null : demoPlanetLetters(lettersN);
     const planet = {
-      letters: planetLetters(lettersN == null ? null : demoPlanetLetters(lettersN), null, { day: (d) => fmt.upper(fmt.dateShort(d)), hexOf: stampHex }),
+      letters: planetLetters(planetCards, null, { day: (d) => fmt.upper(fmt.dateShort(d)), hexOf: stampHex }),
       shelf: shelfFacts,
+      // her flight log, from the same demo threads and letters (the newest quiet one left 2 hours ago)
+      log: flightLogFacts({
+        threads,
+        where,
+        wren,
+        nameOf: (th) => book.threadName(th),
+        cards: planetCards ? planetCards.map((c, i) => (i === 2 ? { ...c, date: iso(NOW - 2 * H) } : c)) : null,
+        say: !!hunger || dayOff,
+      }),
     };
     const act: MeActions = {
       settings: () => away("/me/settings"),

@@ -45,19 +45,22 @@ import SwiftUI
  sticky, collapsing header (no chips in it):
 
    (72 avatar ✎) pen name                    (gear)     the header, as above, without row 3
-   ┌ her card ───────────────────────────────┐          KMePlanetCard: the small whole planet,
-   │ sky, planet, Wren        (◎ planet page) │          her words in a bubble whose tail follows
-   │ ( her words                    [Open] )  │          her, four looks
+   ┌ her card ───────────────────────────────┐          KMePlanetCard, white under the sky: the
+   │ sky, planet, Wren        (◎ planet page) │          small whole planet, her flight log (its
+   │ (mark) PIP · FLIGHT LOG        [Open]    │          rows, a lamp on the one she is at),
+   │  ● row  ◉ row  ○ row                     │          four looks
    │ [look][look][look][look]    All looks →  │
    └──────────────────────────────────────────┘
-   ┌ Aura (sand) ──┐ ┌ Stamps (blue) ─┐                  each opens its own page
-   ┌ the writing report (green) ───────────── ›┐
+   ┌ Aura ─────────┐ ┌ Stamps ────────┐                  white, each opens its own page
+   ┌ the writing report ───────────────────── ›┐
    ┌ First Class card (not for a member) ──────┐
 
- The First Class forms by the day keep their places: the boarding pass and the sealed report
- over her card, the Post's letter on its top edge (left of the round button), the pull-tab on
- the page's right edge. The fit rule and the scroll requests are the same; a segment request
- does nothing.
+ Every block stands off the page on the same soft shadow (KSoftLift); none has a colour of its
+ own. The First Class forms by the day keep their places: the boarding pass and the sealed
+ report over her card, the Post's letter on its top edge (left of the round button). While the
+ pass or the sealed report is up, the report row and the card at the foot step aside; the
+ pull-tab is not drawn on this page. The fit rule and the scroll requests are the same; a
+ segment request does nothing.
  */
 
 // MARK: - What the screen shows
@@ -710,7 +713,9 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
       KBottomFade(theme: theme)
     }
     .overlay {
-      if content.fc.tab {
+      // the planet's page has no pull-tab: it would sit on her card's Open and All looks, and the
+      // First Class card at the page's foot is the standing way in
+      if content.fc.tab, content.planet == nil {
         GeometryReader { g in
           KFcPullTab(fc: content.fc) { actions.onFcOpen("tab") }
             .position(x: g.size.width - KFcPullTab.size.width / 2, y: g.size.height * 0.52)
@@ -774,7 +779,7 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
   @ViewBuilder
   private var page: some View {
     if let planet = content.planet {
-      KMePlanetPage(content: content, planet: planet, actions: actions) {
+      KMePlanetPage(content: content, planet: planet, theme: theme, actions: actions) {
         auraArt
       }
     } else {
@@ -840,17 +845,20 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
 struct KMePlanetPage<AuraArt: View>: View {
   let content: KMeContent
   let planet: KMePlanet
+  let theme: KTheme
   let actions: KMeActions
   let auraArt: AuraArt
 
-  init(content: KMeContent, planet: KMePlanet, actions: KMeActions, @ViewBuilder auraArt: () -> AuraArt) {
+  init(content: KMeContent, planet: KMePlanet, theme: KTheme = .classic, actions: KMeActions, @ViewBuilder auraArt: () -> AuraArt) {
     self.content = content
     self.planet = planet
+    self.theme = theme
     self.actions = actions
     self.auraArt = auraArt()
   }
 
-  static var gap: CGFloat { 12 }
+  /// room for each block's soft shadow
+  static var gap: CGFloat { 14 }
 
   private func cardActions() -> KMePlanetActions {
     let a = KMePlanetActions()
@@ -870,13 +878,16 @@ struct KMePlanetPage<AuraArt: View>: View {
   }
 
   var body: some View {
+    // one large First Class thing to a page: while the boarding pass or the sealed report is up,
+    // the report row (the same report) and the card at the foot step aside
+    let large = content.fc.form == "seat" || content.fc.form == "report"
     VStack(alignment: .leading, spacing: Self.gap) {
       if content.fc.form == "seat" {
         KFcBoardingPass(fc: content.fc) { actions.onFcOpen("seat") }
       } else if content.fc.form == "report" {
         KFcSealedReport(fc: content.fc) { actions.onFcOpen("report") }
       }
-      KMePlanetCard(card: planet, actions: cardActions())
+      KMePlanetCard(card: planet, actions: cardActions(), theme: theme)
         .overlay(alignment: .topTrailing) {
           if content.fc.form == "invite" {
             // left of the card's round button
@@ -886,17 +897,17 @@ struct KMePlanetPage<AuraArt: View>: View {
           }
         }
       HStack(alignment: .top, spacing: Self.gap) {
-        KMeAuraTile(aura: content.aura, chip: planet.auraChip, hint: planet.auraHint, onTap: { actions.onAuraOpen() }) {
+        KMeAuraTile(aura: content.aura, chip: planet.auraChip, hint: planet.auraHint, theme: theme, onTap: { actions.onAuraOpen() }) {
           auraArt
         }
-        KMeStampsTile(tile: planet.stamps) { actions.onStamps("album", "") }
+        KMeStampsTile(tile: planet.stamps, theme: theme) { actions.onStamps("album", "") }
       }
       // the two tiles are as tall as the taller one's words need, never the room on offer
       .fixedSize(horizontal: false, vertical: true)
-      if content.report.show {
-        KMeReportRow(report: content.report) { actions.onReport() }
+      if content.report.show, content.fc.form != "report" {
+        KMeReportRow(report: content.report, theme: theme) { actions.onReport() }
       }
-      if !content.firstClass.member {
+      if !content.firstClass.member, !large {
         KMeFirstClassCard(card: content.firstClass) { actions.onFirstClass() }
       }
     }

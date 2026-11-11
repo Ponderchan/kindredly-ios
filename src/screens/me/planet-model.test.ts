@@ -17,6 +17,7 @@ import {
   TRANSIT_SLIP,
   buildMePlanet,
   buildPlanetPage,
+  buildFlightLog,
   buildShelf,
   buildStampsTile,
   letterRows,
@@ -137,14 +138,34 @@ eq("a look the shelf doesn't hold this week: nothing", shelfTap("skin:ink", base
 {
   const courier = { chip: "YOUR COURIER", dayOffTag: "DAY OFF", playing: false, name: "Pip", time: "2H AGO", line: "line", aside: "aside", cta: "Open" };
   const stamps = { count: "", cells: [], madeShow: false, madeQuota: "", emptyTitle: "", emptyText: "", made: [] };
-  const facts = { courier, where: "exploring" as const, dayOff: false, a11y: "sentence", letters: [], shelf: base, stamps, stage: "fledge" as const, wilt: true };
-  const v = buildMePlanet(facts, fmt);
+  const mf = { ...fmt, ago: (at: number) => `ago(${at})` };
+  const noLog = { transit: null, out: null, say: false };
+  const facts = { courier, where: "exploring" as const, dayOff: false, a11y: "sentence", log: noLog, letters: [], shelf: base, stamps, stage: "fledge" as const, wilt: true };
+  const v = buildMePlanet(facts, mf);
   eq("on the way, hungry: she flies, greyed", [v.state, v.look.wilt, v.look.stage], ["out", true, "fledge"]);
-  eq("the card's words are the courier card's", [v.chip, v.name, v.time, v.line, v.aside, v.cta], ["YOUR COURIER", "Pip", "2H AGO", "line", "aside", "Open"]);
+  eq("the card's chip and button are the courier card's", [v.chip, v.cta], ["YOUR COURIER", "Open"]);
+  eq("the log is named after her, in capitals", v.log.title, "PIP · wren.log");
+
+  /* her flight log */
+  const slip = ["left", "door", "waiting"];
+  const log = (where: Parameters<typeof buildFlightLog>[1], f: Partial<typeof noLog> & { transit?: { rows: string[]; back: boolean } | null; out?: { at: number; reads: number } | null }) =>
+    buildFlightLog({ ...noLog, ...f }, where, courier, mf);
+  eq("at their door: her page's slip, the last row (waiting) not yet", [log("delivery", { transit: { rows: slip, back: false } }).rows, log("delivery", { transit: { rows: slip, back: false } }).done], [slip, 2]);
+  eq("back with the reply: all three rows have happened", log("bringing", { transit: { rows: slip, back: true } }).done, 3);
+  const out = log("exploring", { out: { at: 7, reads: 3 } });
+  eq("out with a letter: when it left (as how long ago), the desks, waiting", out.rows, ["wren.slip.left(AGO(7))", "LA.OUT.READSN(3)", "wren.slip.waiting"]);
+  eq("…and the lamp is on the desks row", out.done, 2);
+  eq("one reader: the singular line", log("exploring", { out: { at: 7, reads: 1 } }).rows[1], "LA.OUT.READS1");
+  eq("no reader yet: it says so", log("exploring", { out: { at: 7, reads: 0 } }).rows[1], "LA.OUT.READS0");
+  eq("out, the letters not read yet: only what is known", [log("exploring", {}).rows, log("exploring", {}).done], [["wren.slip.waiting"], 1]);
+  eq("at home: nothing in transit, nothing happened", [log("home", { out: { at: 7, reads: 3 } }).rows, log("home", {}).done], [["wren.slip.nothing", "wren.slip.write"], 0]);
+  eq("a slip with no run to go with it is not shown", log("home", { transit: { rows: slip, back: false } }).rows, ["wren.slip.nothing", "wren.slip.write"]);
+  eq("her own line only when it has to be said", [log("home", {}).note, log("home", { say: true }).note], ["", "line"]);
+  eq("VoiceOver: her name, the log, her line, the rows", log("exploring", { out: { at: 7, reads: 3 }, say: true }).a11y, "Pip, wren.log. line. wren.slip.left(AGO(7)). LA.OUT.READSN(3). wren.slip.waiting");
   eq("the hint is drawn in capitals; Track is the courier page's word", [v.hint, v.track], ["PLANET.HINT.SPIN", "wren.trackShort"]);
   eq("the Aura tile's chip is the segment's name in capitals", v.auraChip, "ME.SEG.AURA");
-  const off = buildMePlanet({ ...facts, dayOff: true, courier: { ...courier, playing: true, time: "DAY OFF", cta: "Play" } }, fmt);
-  eq("her day off: the chip says so once, she isn't greyed, the button plays", [off.state, off.chip, off.time, off.look.wilt, off.cta], ["dayOff", "DAY OFF", "", false, "Play"]);
+  const off = buildMePlanet({ ...facts, dayOff: true, courier: { ...courier, playing: true, time: "DAY OFF", cta: "Play" } }, mf);
+  eq("her day off: the chip says so, she isn't greyed, the button plays", [off.state, off.chip, off.look.wilt, off.cta], ["dayOff", "DAY OFF", false, "Play"]);
 }
 
 /* ── the week ── */

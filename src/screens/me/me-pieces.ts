@@ -240,13 +240,14 @@ export function mePlanetOf(model: MeModel, stamps: PlanetStampsSource, hour?: nu
       where: courier.where.state,
       dayOff: courier.dayOff,
       a11y: model.view.courierA11y,
+      log: model.planet.log,
       letters: model.planet.letters,
       shelf: model.planet.shelf,
       stamps,
       stage: courier.stage,
       wilt: !!courier.hunger?.wilt,
     },
-    { t, upper: (s) => s.toLocaleUpperCase(), wren: courier.wren },
+    { t, upper: (s) => s.toLocaleUpperCase(), wren: courier.wren, ago: (at) => agoLabel(at) },
   );
 }
 
@@ -265,10 +266,7 @@ export function mePlanetData(vm: MePlanetVM, palette: CourierCardModel["palette"
     look,
     chip: vm.chip,
     hint: vm.hint,
-    name: vm.name,
-    time: vm.time,
-    line: vm.line,
-    aside: vm.aside,
+    log: vm.log,
     cta: vm.cta,
     track: vm.track,
     a11y: vm.a11y,
@@ -294,15 +292,13 @@ export function mePlanetData(vm: MePlanetVM, palette: CourierCardModel["palette"
 export function useAuraArtData(art: AuraCardVM["art"] | null, showing: boolean, o: { tile?: boolean } = {}): KAuraArtData | null {
   const on = useSwiftPiece("auraart", showing && !!art);
   const { t: tk, dark } = useTheme();
-  // Me's Aura tile under the courier's planet (o.tile) is the same colour in every theme, and
-  // the picture is multiplied onto it: the light plan, and the desk's strokes on white
-  const plan = on && art ? auraArtPlan(art, AURA_ART_HAS, o.tile ? false : dark) : null;
+  // Me's Aura tile under the courier's planet (o.tile) stands on the theme's surface, as the
+  // tile itself does: the plan follows the theme, and the desk's ground is the surface
+  const plan = on && art ? auraArtPlan(art, AURA_ART_HAS, dark) : null;
   const image = useAssetImageRef(auraPictureModule(plan));
-  return useSameContent(plan && art ? auraArtData(art, plan, image, o.tile ? TILE_TOKENS : tk, o.tile ? false : dark) : null);
+  const tokens: SlotTokens = o.tile ? { soft2: tk.sf, ink: tk.ink, sub: tk.sub, ind: tk.ind, sf: tk.sf } : tk;
+  return useSameContent(plan && art ? auraArtData(art, plan, image, tokens, dark) : null);
 }
-
-/* the Aura tile's slot: white ground, the fixed dark ink the tile's words use */
-const TILE_TOKENS: SlotTokens = { soft2: "#FFFFFF", ink: "#1E1B35", sub: "#55506E", ind: "#3A34D6", sf: "#FFFFFF" };
 
 /** The bundled file of a plan's picture (null for the desk). */
 export function auraPictureModule(plan: AuraArtPlan | null): number | null {

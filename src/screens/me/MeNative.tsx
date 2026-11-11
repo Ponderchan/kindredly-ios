@@ -69,9 +69,9 @@ import { useMyFace } from "../../lib/my-face";
      drawn by Swift at the island's 72 (square inside your stamp), the island left empty;
    - THE COURIER'S PLANET (2026-11-11, docs/courier-planet.md; "meplanet", off by default;
      me-pieces useMePlanetData): KMeView's `planet`. With it Me is one page with no segments:
-     her card (the planet she lives on, her words, four looks), the Aura and Stamps tiles, the
-     report row. The courier island and card are then never filled (nothing of the old card
-     runs), the Aura tile's picture is Swift's (`auraArt`, on white), a look reports its shelf
+     her card (the planet she lives on, her flight log, four looks), the Aura and Stamps tiles,
+     the report row. The courier island and card are then never filled (nothing of the old card
+     runs), the Aura tile's picture is Swift's (`auraArt`, on the theme's surface), a look reports its shelf
      id (act.shelfLook: wear it, take it off, First Class, or her wardrobe), "All looks →"
      opens her wardrobe for everyone, and the round button is act.track. Off, nothing here
      changes. */
@@ -306,7 +306,7 @@ export function MeNative({ model }: { model: MeModel }) {
 
   // the courier's card and the Aura card's picture in Swift, when their switches are on (null:
   // the island, as before); the card's loops run only while the tab is focused. With the planet
-  // the old card never shows, and the Aura picture is the tile's (always on show, on white)
+  // the old card never shows, and the Aura picture is the tile's (always on show, on the theme's surface)
   const showsAura = onPlanet ? !!view.aura && !!aura : segment === 1 && !!view.aura && !!aura;
   const courierCard = useCourierCardData(courier, { showing: !onPlanet && segment === 0, live: focused });
   const auraArt = useAuraArtData(showsAura && view.aura ? view.aura.art : null, showsAura, { tile: onPlanet });

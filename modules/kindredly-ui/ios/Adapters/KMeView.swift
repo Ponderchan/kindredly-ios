@@ -627,10 +627,10 @@ struct KMeView: ExpoSwiftUI.View {
       }
     } auraArt: {
       if props.planet.on {
-        // the Aura tile's strip: the picture covering it, on white (the tile multiplies it onto
-        // its own colour); never the island, which is the card's size
+        // the Aura tile's strip: the picture covering it, on the tile's own ground (the theme's
+        // surface); never the island, which is the card's size
         if props.auraArt.on {
-          KAuraArt(theme: props.kTheme, art: props.auraArt.model, cover: true, ground: Color.white)
+          KAuraArt(theme: props.kTheme, art: props.auraArt.model, cover: true, ground: props.kTheme.sf)
         }
       } else if props.auraArt.on {
         KAuraArt(theme: props.kTheme, art: props.auraArt.model)

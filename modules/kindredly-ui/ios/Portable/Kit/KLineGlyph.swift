@@ -114,6 +114,9 @@ public enum KLineGlyph: String, CaseIterable, Sendable {
   case clock
   /// a globe (language)
   case globe
+  /// the courier's flight log (Me, her card): where she set off, the way she flew, and her as a
+  /// dart at the end of it (the owner, 2026-11-11: a mark of its own, not a stamp)
+  case flightLog
 
   // ── the tab bar's drawings (P:70-75), here on the 24 grid ──
   /// Today's envelope; also the letters stat on Me (H:72)
@@ -389,6 +392,13 @@ enum KLineGlyphTable {
     case .bell: return Drawing(stroke: [.d("M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9 M10.3 21a1.94 1.94 0 0 0 3.4 0")])
     case .clock: return Drawing(stroke: [.circle(12, 12, r: 7), .d("M12 8v4l3 2")])
     case .globe: return Drawing(stroke: [.circle(12, 12, r: 9), .d("M3 12h18 M12 3a14 14 0 0 1 0 18 M12 3a14 14 0 0 0 0 18")])
+    case .flightLog:
+      // three dots along the arc she flew (zero-length strokes: the round caps are the dots), and
+      // solid: the place she left, and her
+      return Drawing(
+        stroke: [.d("M7.6 15.1h.01 M10 11.1h.01 M13.8 8.8h.01")],
+        fill: [.circle(4.3, 19.5, r: 2.5), .d("M22.9 5.7 15.5 2.8l2.2 4.2-.9 4.6z")]
+      )
 
     // the tab bar's drawings, on the mock's 28 grid (P:70-75, H:417-423; the accents are das())
     case .envelope: return Drawing(box: 28, stroke: [.d("M3 8h22v13H3z M3 9l11 8 11-8")])

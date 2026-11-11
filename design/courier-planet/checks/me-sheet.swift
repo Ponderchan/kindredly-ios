@@ -1,8 +1,12 @@
 import SwiftUI
 import UIKit
+#if canImport(KPortable)
+@testable import KPortable
+#endif
 
-/* Her card on Me, the tiles under it, and the whole Me page with the planet.
-   design/courier-planet/checks/render.sh me-sheet.swift out.png */
+/* Her card on Me (the planet, her flight log, her looks), the tiles under it, and the whole Me
+   page with the planet.
+   design/courier-planet/checks/render-fast.sh me-sheet.swift out.png   (or render.sh) */
 
 func palette(_ name: String) -> KCourierPalette {
   var p = KCourierPalette()
@@ -51,9 +55,10 @@ struct Case {
   var member = false
   var kindred = false
   var chip = "YOUR COURIER"
-  var time = "2H AGO"
-  var line = "your letter's out. no one has written back yet"
-  var aside = "i'll bring it the second someone does"
+  /// her flight log: the rows, how many have happened, a line of hers the rows cannot say
+  var rows = ["NOTHING IN TRANSIT", "WRITE, AND SHE FLIES"]
+  var done = 0
+  var note = ""
   var cta = "Open"
   var n = 12
 }
@@ -68,10 +73,10 @@ func planet(_ c: Case) -> KMePlanet {
   p.planet.wren = who
   p.chip = c.chip
   p.hint = "DRAG TO SPIN"
-  p.name = "Pip"
-  p.time = c.time
-  p.line = c.line
-  p.aside = c.aside
+  p.log.title = "PIP · FLIGHT LOG"
+  p.log.rows = c.rows
+  p.log.done = c.done
+  p.log.note = c.note
   p.cta = c.cta
   p.track = "Track"
   p.shelf = shelf(worn: c.worn, member: c.member, kindred: c.kindred, skin: c.look.skin, dress: c.look.accessory)
@@ -89,12 +94,16 @@ func planet(_ c: Case) -> KMePlanet {
   return p
 }
 
+let OUT_ROWS = ["YOUR LETTER LEFT — 2H AGO", "ON 3 STRANGERS' DESKS", "WAITING FOR AN ANSWER"]
+let DOOR_ROWS = ["YOUR LETTER LEFT — 5H AGO", "AT PAPER LANTERN'S DOOR", "WAITING FOR AN ANSWER"]
+let BACK_ROWS = ["PAPER LANTERN WROTE BACK — 5M AGO", "PIP CARRIED IT HOME", "IT'S WAITING FOR YOU"]
+
 let CASES: [Case] = [
-  Case(label: "home · asleep · nothing worn · free reader, no kindred", line: "home. nothing in the bag", aside: "write one and i'll take it"),
-  Case(label: "on the way · beanie worn", state: .out, look: KWrenLook(skin: .sticker, accessory: .beanie), worn: "dress:beanie"),
-  Case(label: "waiting at their door · evening · moss", pal: "evening", state: .waiting, look: KWrenLook(skin: .moss), worn: "skin:moss", kindred: true, line: "it's on someone's desk", aside: "they're reading. i'm staying put"),
-  Case(label: "back with a reply · night · member · peach", pal: "night", state: .back, look: KWrenLook(skin: .peach), worn: "skin:peach", member: true, kindred: true, time: "JUST NOW", line: "someone wrote back", aside: "it's right here"),
-  Case(label: "day off · morning", pal: "morning", state: .dayOff, chip: "DAY OFF", time: "DAY OFF", line: "no letters to carry today", aside: "race me through the gates?", cta: "Play"),
+  Case(label: "home · asleep · nothing worn · free reader, no kindred"),
+  Case(label: "on the way · beanie worn", state: .out, look: KWrenLook(skin: .sticker, accessory: .beanie), worn: "dress:beanie", rows: OUT_ROWS, done: 2),
+  Case(label: "waiting at their door · evening · moss", pal: "evening", state: .waiting, look: KWrenLook(skin: .moss), worn: "skin:moss", kindred: true, rows: DOOR_ROWS, done: 2),
+  Case(label: "back with a reply · night · member · peach", pal: "night", state: .back, look: KWrenLook(skin: .peach), worn: "skin:peach", member: true, kindred: true, rows: BACK_ROWS, done: 3),
+  Case(label: "day off · morning · a line of hers", pal: "morning", state: .dayOff, chip: "DAY OFF", note: "Day off. I'm doing laps between the pillars.", cta: "Play"),
 ]
 
 func aura() -> KMeAura {

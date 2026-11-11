@@ -39,7 +39,8 @@ import "../../data/strings-step5-me";
 import "../../data/strings-me4a";
 import "../../data/strings-planet";
 import { meFormat } from "./me-format";
-import { planetLetters, shelfTap, shelfWeek, type PlanetLetterVM, type ShelfFacts } from "./planet-model";
+import { planetLetters, shelfTap, shelfWeek, type FlightLogFacts, type PlanetLetterVM, type ShelfFacts } from "./planet-model";
+import { flightLogFacts } from "./planet-log";
 import { useSeason } from "../../lib/season";
 import {
   ME4A_ROUTES,
@@ -172,8 +173,8 @@ export type MeModel = {
   /** First Class by the day: the form, its words, and its tap */
   fc: ReturnType<typeof useFcRollout>;
   /** what the courier's planet is drawn from (screens/me/planet-model): the letters behind the
-      stamps, newest first, and what the shelf's four are chosen from */
-  planet: { letters: PlanetLetterVM[]; shelf: ShelfFacts };
+      stamps, newest first, what the shelf's four are chosen from, and her flight log's facts */
+  planet: { letters: PlanetLetterVM[]; shelf: ShelfFacts; log: FlightLogFacts };
 };
 
 /* where the planet's taps go: the round button on her card opens the planet page (app/planet) */
@@ -570,10 +571,22 @@ export function useMeModel(): MeModel {
     return { wren, where, threads, lastWrittenAt, hunger: fc.view.courierLine ? null : hunger, seenToday: seenTodayN, stage: stageFloor, dayOff, best, entry: invite };
   }, [wren, where, threads, lastWrittenAt, hunger, seenTodayN, stageFloor, dayOff, best, entry, fc.view.courierLine, fc.view.courierSub]);
 
+  /* her flight log on the planet's card (planet-log): the run she is on, your newest letter
+     nobody has answered, and whether her own line still has to be said — the Post's letter,
+     hunger, her day off: what the log's rows cannot say */
+  const postLine = !!fc.view.courierLine;
+  const planetAll = useMemo(() => {
+    const cards = writing ? buildLetterCards(writing, threads, []) : null;
+    const log = flightLogFacts({ threads, where, wren, nameOf: (th) => book.threadName(th), cards, say: postLine || !!hunger || dayOff });
+    return { ...planet, log };
+    // lang: the rows are written in the reader's language
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planet, writing, threads, where, wren, book, postLine, hunger, dayOff, lang]);
+
   const avatarId = (profile?.avatarId as string) || null;
   const seed = user?.id || "you";
   const avatar = useMemo(() => ({ id: avatarId, photo, seed }), [avatarId, photo, seed]);
   const scroll = useMemo(() => ({ serial: scrollSerial }), [scrollSerial]);
 
-  return { view, me4a, segment, courier, aura, avatar, kindreds: stats.kindreds, scroll, act, fc, planet };
+  return { view, me4a, segment, courier, aura, avatar, kindreds: stats.kindreds, scroll, act, fc, planet: planetAll };
 }

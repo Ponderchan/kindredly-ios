@@ -300,10 +300,75 @@ export function buildStampsTile(s: PlanetStampsSource, fmt: { t: TFn; upper: (s:
   return { label, title, caption, fan, make: s.madeShow, a11y: [t("me.seg.stamps"), title, caption].filter(Boolean).join(", "), hint: t("planet.a11y.opensAlbum") };
 }
 
+/* ── her flight log on the card ────────────────────────────────────────── */
+
+/** What the card's flight log is written from (owner, 2026-11-11: the log instead of her two
+    sentences, its rows kept up with the hour). */
+export type FlightLogFacts = {
+  /** the run she is on, as her page's slip files it (courier-model slipRows, with its times
+      written as "2H AGO"); null when she is on none. `back`: she has the reply with her */
+  transit: { rows: string[]; back: boolean } | null;
+  /** your newest letter nobody has answered: when it left (epoch ms) and the desks it has been
+      on; null when there is none, or your letters aren't read yet */
+  out: { at: number; reads: number } | null;
+  /** her own line still has to be said, because the rows cannot say it: the Post's letter,
+      hunger, her day off */
+  say: boolean;
+};
+
+export type FlightLogVM = {
+  /** PIP · FLIGHT LOG */
+  title: string;
+  /** in the order they happen */
+  rows: string[];
+  /** how many rows have happened: the last of them is where she is now (the lamp) */
+  done: number;
+  /** a line of hers; "" for none */
+  note: string;
+  a11y: string;
+};
+
+export type MePlanetFormat = ShelfFormat & {
+  /** "2H AGO": how long since a moment (lib/flight-log agoLabel) */
+  ago: (at: number) => string;
+};
+
+/**
+ * Her flight log. A run she is on (at a door, or back with a reply) is her page's own slip; out
+ * with a letter nobody has answered, it is that letter's three lines (when it left, the desks it
+ * has been on — a count, never a time: nothing records when a stranger read it —, waiting);
+ * otherwise nothing is in transit.
+ */
+export function buildFlightLog(f: FlightLogFacts, where: PlanetWhere, c: PlanetCourierWords, fmt: MePlanetFormat): FlightLogVM {
+  const { t, upper } = fmt;
+  let rows: string[];
+  let done: number;
+  if (f.transit && (where === "delivery" || where === "bringing")) {
+    rows = f.transit.rows;
+    // at their door the last row (waiting) hasn't happened; back with the reply, all of it has
+    done = f.transit.back ? rows.length : Math.max(0, rows.length - 1);
+  } else if (where === "exploring" && f.out) {
+    const reads = Math.max(0, Math.round(f.out.reads || 0));
+    const desks = reads === 0 ? t("la.out.reads0") : reads === 1 ? t("la.out.reads1") : t("la.out.readsN", { n: reads });
+    rows = [t("wren.slip.left", { day: upper(fmt.ago(f.out.at)) }), upper(noStop(desks)), t("wren.slip.waiting")];
+    done = 2;
+  } else if (where === "exploring") {
+    // out, and the letter itself not read yet: the one thing known
+    rows = [t("wren.slip.waiting")];
+    done = 1;
+  } else {
+    rows = [t("wren.slip.nothing"), t("wren.slip.write")];
+    done = 0;
+  }
+  const note = f.say ? c.line : "";
+  return { title: `${upper(c.name)} · ${t("wren.log")}`, rows, done, note, a11y: noStops([`${c.name}, ${t("wren.log")}`, note, ...rows]) };
+}
+
 export type MePlanetFacts = {
   courier: PlanetCourierWords;
   where: PlanetWhere;
   dayOff: boolean;
+  log: FlightLogFacts;
   /** VoiceOver's sentence for the card (me-model courierA11y) */
   a11y: string;
   letters: PlanetLetterVM[];
@@ -322,10 +387,7 @@ export type MePlanetVM = {
   letters: PlanetLetterVM[];
   chip: string;
   hint: string;
-  name: string;
-  time: string;
-  line: string;
-  aside: string;
+  log: FlightLogVM;
   cta: string;
   track: string;
   a11y: string;
@@ -339,7 +401,7 @@ export type MePlanetVM = {
 };
 
 /** Everything her card and the tiles under it show. */
-export function buildMePlanet(f: MePlanetFacts, fmt: ShelfFormat): MePlanetVM {
+export function buildMePlanet(f: MePlanetFacts, fmt: MePlanetFormat): MePlanetVM {
   const { t } = fmt;
   const c = f.courier;
   return {
@@ -350,11 +412,7 @@ export function buildMePlanet(f: MePlanetFacts, fmt: ShelfFormat): MePlanetVM {
     letters: f.letters,
     chip: c.playing ? c.dayOffTag : c.chip,
     hint: fmt.upper(t("planet.hint.spin")),
-    name: c.name,
-    // on her day off the chip already says so: no second DAY OFF beside her name
-    time: c.playing ? "" : c.time,
-    line: c.line,
-    aside: c.aside,
+    log: buildFlightLog(f.log, f.where, c, fmt),
     cta: c.cta,
     track: t("wren.trackShort"),
     a11y: f.a11y,

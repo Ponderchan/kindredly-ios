@@ -274,8 +274,40 @@ text and the prototype disagree, the prototype wins unless this text says "chang
 - 2026-11-11 — **the adapters type-check.** `checks/typecheck-module.sh` compiles the whole
   module (Portable, Adapters, the module file) against the real Expo interfaces without a build:
   no errors. What is left for the device is behaviour, not compilation.
-- Next: phase 7, on a device — **ask the owner before building** (a dev client with the new
-  Swift files needs a pod install and a build).
+- 2026-11-11, night — **her card and the tiles redone after the owner looked at them on the
+  simulator** ("信使那块和 all looks 不怎么搭", then round by round on a picker page, the phones
+  rendered from the real views). What he chose, and what is built:
+  - **the card is white under the sky** (`theme.sf`), the shelf's looks on the theme's quiet
+    tiles; a small tail on the scene's lower edge points up at her (`KMeCardTail`);
+  - **no colour on the tiles.** He tried a colour each, the hour's tint, neutral grey, then asked
+    for "纯白底 立体一点 不要配色" and took the **soft shadow** (`KSoftLift`: a hairline, a contact
+    shadow, a wide one) over a block shadow and a thick underside. The Aura and Stamps tiles and
+    the report row are the theme's surface with ink chips; only the sky, the stamps and First
+    Class's gold are coloured (`KMeTileTone(theme)`; decision 10's peach/blue/green are gone);
+  - **her two sentences are gone; the flight log is the block** ("有 flight log … 这些就不用了吧").
+    `KMeFlightLogBlock`: a mark of its own, not a stamp (`KLineGlyph.flightLog`, the route: where
+    she set off, the dots she flew, her as a dart), `PIP · FLIGHT LOG` (`wren.log`), Open; then
+    the run's rows on a spine — an ink dot for what has happened, a ring for what hasn't, a lamp
+    that **breathes** on the row she is at (`KMeLogLamp`; still under Reduce Motion or with the
+    tab behind). The rows are the live slip's own lines, so no new copy in any language:
+    `planet-model buildFlightLog` from `planet-log flightLogFacts` — at a door or back with a
+    reply, her page's slip (`courier-model slipRows`) with its times written as "2H AGO"
+    (`agoLabel`, the owner: rows that read as kept up with the hour); out with a letter nobody
+    has answered, that letter (left / on N desks / waiting); otherwise NOTHING IN TRANSIT.
+    **Only two moments have a time in the data** (a letter leaving, a reply arriving): the desks
+    row is a count and is where the lamp sits. One line of hers stays when the rows cannot say
+    it — the Post's letter, hunger, her day off (`log.note`; my call, the owner saw the Post's);
+  - **First Class on the page**: the forms stay where the rollout puts them (pass and sealed
+    report above her card, the Post's letter on its corner); while a large one is up the report
+    row and the card at the foot step aside; **no pull-tab on this page** (it sat on Open and All
+    looks; the card at the foot is the standing way in). The card at the foot is there from day
+    one for a reader who isn't a member, as the First Class chip is on the live page — the
+    picker drew it from day three; say so if the owner wants that.
+  The exploration's harnesses (her card two ways, three colour schemes, the page by the day, the
+  picker's ninety phones) are in history: commits 1c9a7b7 … 91c7b05. `checks/me-sheet.swift` is
+  the check for what is built. Picker page: https://claude.ai/artifact/WwmHxandc6A8a4QNYVhvVx
+- Next: the rest of phase 7 on the simulator (the drag's feel, the five states in motion, the
+  planet page's pager), then a phone.
 
 ## For the device pass (phase 7), noted along the way
 
@@ -286,7 +318,8 @@ text and the prototype disagree, the prototype wins unless this text says "chang
   the rest of the card scrolls) — does it feel right, or should a mostly-vertical drag scroll?
 - The planet's Canvas redraws at the display's rate while Me is in front (up to 47 stamps):
   measure on a ProMotion phone; cap the card at 60 if it costs.
-- Dynamic Type: the bubble is a fixed 106 high (two lines of her words, one of her aside).
+- Dynamic Type: the flight log's rows wrap to two lines and the card grows with them (the
+  planet page's bubble is still her words, 106 high at the least).
 - Touch feel of the glide, the sweep, the tap on her.
 - The planet page: the pager (does it open on the right slip, snap one slip at a time, and stay
   in step with the planet both ways), pinch against the page's vertical scroll, the back swipe

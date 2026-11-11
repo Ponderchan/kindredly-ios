@@ -18,7 +18,10 @@ import ExpoUI
  - letters: [{ id, ordinal (1 = the first letter ever: where its stamp sits, for good), stamp, hex
    ("" for none), reads, answered, day }], newest first
  - state (home | out | waiting | back | dayOff), napping, look: KWrenLookRecord
- - chip, hint, name, time, line, aside, cta, track, a11y
+ - chip, hint, cta, track, a11y
+ - log: { title (PIP · FLIGHT LOG), rows (the run she is on, as her page's slip files it), done
+   (how many rows have happened: the lamp is on the last of them), note (a line of hers the rows
+   cannot say; "" for none), a11y }
  - shelf: [{ id ("dress:beanie", "skin:moss"), name, look, worn, firstClass, dim, a11y, hint }]
  - allLooks, allLooksHint
  - stamps: { label, title, caption, fan: [{ id, hex }], make, a11y, hint }
@@ -148,6 +151,24 @@ struct KMeStampsTileRecord: Record {
   }
 }
 
+struct KMeFlightLogRecord: Record {
+  @Field var title: String = ""
+  @Field var rows: [String] = []
+  @Field var done: Int = 0
+  @Field var note: String = ""
+  @Field var a11y: String = ""
+
+  var log: KMeFlightLog {
+    var l = KMeFlightLog()
+    l.title = title
+    l.rows = rows.filter { !$0.isEmpty }
+    l.done = max(0, min(done, l.rows.count))
+    l.note = note
+    l.a11y = a11y
+    return l
+  }
+}
+
 /// Her card and the tiles under it, as TS sends them (KMePlanetData).
 struct KMePlanetRecord: Record {
   @Field var on: Bool = false
@@ -159,10 +180,7 @@ struct KMePlanetRecord: Record {
   @Field var look: KWrenLookRecord = KWrenLookRecord()
   @Field var chip: String = ""
   @Field var hint: String = ""
-  @Field var name: String = ""
-  @Field var time: String = ""
-  @Field var line: String = ""
-  @Field var aside: String = ""
+  @Field var log: KMeFlightLogRecord = KMeFlightLogRecord()
   @Field var cta: String = ""
   @Field var track: String = ""
   @Field var a11y: String = ""
@@ -191,10 +209,7 @@ struct KMePlanetRecord: Record {
     p.planet.live = live
     p.chip = chip
     p.hint = hint
-    p.name = name
-    p.time = time
-    p.line = line
-    p.aside = aside
+    p.log = log.log
     p.cta = cta
     p.track = track
     p.a11y = a11y
