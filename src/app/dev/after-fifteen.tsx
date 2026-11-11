@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
-import { Redirect } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isKindredlyUIViewAvailable } from "../../../modules/kindredly-ui";
 import { AFTER_FIFTEEN_VIEW } from "../../../modules/kindredly-ui/src/AfterFifteen";
@@ -12,7 +12,7 @@ import { getStamp, sname } from "../../data/stamps";
 import { deskDay } from "../../lib/day";
 import { activeDays } from "../../lib/fc-rollout-core";
 import { markKept, markReceipt, markShut, markStep, shiftDay, weekTotals, dayTotals, type AfterPage, type AfterState, type AfterToday, type DayLog, type Thing } from "../../lib/after-fifteen-core";
-import { resetAfter } from "../../lib/after-fifteen";
+import { resetAfter, setDevAfterOnDemoDesk } from "../../lib/after-fifteen";
 import { AFTER_FACT_COUNT } from "../../data/after-facts";
 import { countdownLabel } from "../../screens/today/today-cards";
 import { buildAfterView, type AfterFormat } from "../../screens/today/after-view";
@@ -57,6 +57,18 @@ const fresh = (day: string, page: AfterPage, thing: Thing): AfterToday => ({ day
 
 export default function AfterFifteenDev() {
   const { t: tk } = useTheme();
+  /* ?desk=1: let the dev demo desk hand over to the real pages for this run, and open Today —
+     pass its sample letters and the page takes the desk's place as it would on a real day
+     (lib/after-fifteen setDevAfterOnDemoDesk) */
+  const router = useRouter();
+  const { desk } = useLocalSearchParams<{ desk?: string }>();
+  useEffect(() => {
+    if (!__DEV__ || desk !== "1") return;
+    setDevAfterOnDemoDesk(true);
+    router.replace("/(tabs)/letters" as never);
+    // once, on arrival
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const lang = useLang();
   const safe = useSafeAreaInsets();
   const available = isKindredlyUIViewAvailable(AFTER_FIFTEEN_VIEW);

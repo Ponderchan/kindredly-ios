@@ -110,10 +110,10 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   ok("the wrapped report's key is there and off", entries.reportwrapped === false);
   // mute a correspondence (owner's audit, 2026-11-10): off until thread_mutes exists and the push sender reads it
   ok("the thread-mute key is there and off", "threadmute" in entries && entries.threadmute === false);
-  // the courier's planet on Me (owner sign-off 2026-11-11): off until its device pass
-  ok("the courier's planet's key is there and off", "meplanet" in entries && entries.meplanet === false);
-  // Today after the day's fifteen (owner's decisions of 2026-11-11): off until its device pass
-  ok("the after-fifteen key is there and off", "afterfifteen" in entries && entries.afterfifteen === false);
+  // the courier's planet on Me (owner, 2026-11-11 night): on from build 42 of 1.2.8, for his phone
+  ok("the courier's planet's key is there and on", entries.meplanet === true);
+  // Today after the day's fifteen (the same night): on from the same build
+  ok("the after-fifteen key is there and on", entries.afterfifteen === true);
   // the last React Native a reader can see (2026-11-09): on after the simulator pass, except the
   // four that need real media to test, off until a device pass
   const LAST_ON = ["launch", "authcallback", "hatch", "obchick", "obroutebird", "obflight", "kindredsempty", "wardrobesheet", "plush", "composewren", "notewren", "facewren", "myavatar", "faceready", "ratingsheet", "fcreceipt", "chatheader", "inflight", "reels", "freeflight"];

@@ -5,7 +5,7 @@ Branch `today-after-fifteen` (from `courier-planet` at 40aa424, which has the na
 **Not for build 42 / 1.0.9.** Proposed: the release after it (App Store 1.0.10, binary 1.2.9),
 with the courier's planet — the owner has not said yet.
 Pure SwiftUI, no React Native islands, the bird drawn by `KWrenBird`.
-Behind the remote switch `afterfifteen`, **off by default** (`src/lib/surfaces.ts`). Off, Today
+Behind the remote switch `afterfifteen`, **on by default from build 42 of 1.2.8** (`src/lib/surfaces.ts`; it was off until the owner asked to try it on his phone, 2026-11-11 night). Off, Today
 ends the day exactly as it does now (her counted letter and the window to her game), and First
 Class's seven-day rule is the one that is live.
 

@@ -443,10 +443,13 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   reportwrapped: false,
   // mute a correspondence (owner's audit, 2026-11-10): OFF until thread_mutes exists and the push sender reads it
   threadmute: false,
-  // the courier's planet on Me (owner sign-off 2026-11-11): OFF until its device pass
-  meplanet: false,
-  // Today after fifteen (owner's decisions 2026-11-11): OFF until its device pass
-  afterfifteen: false,
+  /* the courier's planet on Me (the cover) and Today after fifteen: ON from build 42 of 1.2.8
+     (owner, 2026-11-11 night: "怎么又出老的 me tab，不是换了新的么" — the new Me is the Me, and he
+     is trying both on his own phone from TestFlight). A false row in app_surfaces
+     ('meplanet' / 'afterfifteen', '1.2.8' or '*', false) turns either back off with no build,
+     and a binary without the views (b41) keeps the old pages whatever this says. */
+  meplanet: true,
+  afterfifteen: true,
 };
 
 /** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages, a kindred's page, Wren's room, the five small pages and three Notes pages (the `surface` prop of NativeSurface) */

@@ -14,7 +14,7 @@ import { removeLore, saveToLore } from "../../lib/lore";
 import { useWrenSkinControl } from "../../lib/wren-skin";
 import { useWrenStage } from "../../lib/wren-stage";
 import { activeDays, dayKey as calendarDay } from "../../lib/fc-rollout-core";
-import { loadAfter, mutateAfter, subscribeAfter, useAfterFifteenOn } from "../../lib/after-fifteen";
+import { devAfterOnDemoDesk, loadAfter, mutateAfter, subscribeAfter, useAfterFifteenOn } from "../../lib/after-fifteen";
 import {
   dayTotals,
   markKept,
@@ -98,7 +98,7 @@ export function useAfterFifteen(model: TodayModel): AfterFifteen {
   const focused = useIsFocused();
   const { user } = useAuth();
   const { view, act: desk } = model;
-  const live = on && !view.demo;
+  const live = on && (!view.demo || devAfterOnDemoDesk());
   const day = view.day;
 
   /* ── the record ── */
