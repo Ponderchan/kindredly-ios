@@ -6,12 +6,12 @@ import UIKit
 
 /* THE COVER IDEA (owner, 2026-11-11 night: "me tab 的结构就改成和我老产品一模一样的"): the pieces the
    prototype in design/courier-planet/cover-prototype is put together from — the planet's scene
-   as a cover (with plain sky above and below it to stretch into), the planet page a pull-down
-   opens, her card as a miniature of her own page (round one: a fixed sky, or on white; round
-   two, after "信使那块除了白底还有啥好的设计": her hill in her own green, an ink perch on white, her
-   badge, her journey — none changes with the hour), the cover's two ways in as small pictures
-   (two real stamps, a red postbox), and the Aura and report tiles side by side over the First
-   Class card. Not built in the app.
+   as a cover (a smaller planet, with plain sky above and below it to stretch into), the planet
+   page a pull-down opens, her card as a miniature of her own page (round one: a fixed sky, or on
+   white; round two: her hill, an ink perch, her badge, her journey; round three, what the owner
+   took: the badge's head with her standing on her mound, and her journey while she grows —
+   miniCombo), the cover's two ways in as small pictures (two real stamps, a red postbox), and the
+   Aura and report tiles side by side over the First Class card. Not built in the app.
    design/courier-planet/checks/render-fast.sh me-banner.swift <out dir>
 
    The helpers below are me-sheet.swift's.
@@ -239,12 +239,13 @@ func pageContent(_ c: Case) -> KPlanetPageContent {
 
 // ── the banner's scene: the card's scene, with plain sky above and below it to stretch into ──
 @MainActor func bannerScene(_ c: Case) -> some View {
-  let p = planet(c)
+  var p = planet(c)
+  p.planet.palette.sunAt = CGPoint(x: 0.86, y: 0.46)
   return VStack(spacing: 0) {
     p.planet.palette.sky0.frame(width: 402, height: 300)
     KPlanetView(kind: .card, content: p.planet, probe: KPlanetProbe())
-      .frame(width: 402, height: 236)
-    p.planet.palette.sky1.frame(width: 402, height: 300)
+      .frame(width: 402, height: 176)
+    p.planet.palette.sky1.frame(width: 402, height: 360)
   }
 }
 
@@ -573,6 +574,77 @@ let SUB2 = KTheme.classic.sub
   }
 }
 
+/// Round three (owner: the badge's head without KINDREDLY POST, her standing as the journey's
+/// card has her, and her journey): her badge with her journey on it while she is still growing;
+/// grown, the journey folds away and the badge says so.
+@MainActor func miniCombo(_ c: Case, grown: Bool) -> some View {
+  let now = 2 // fledge
+  let stages: [(KWrenStage, String)] = [(.egg, "EGG"), (.hatch, "HATCH"), (.fledge, "FLEDGE"), (.wren, "GROWN")]
+  var who = c
+  who.look = KWrenLook(skin: .sticker, stage: grown ? .wren : .fledge)
+  return herCard(who) {
+    VStack(alignment: .leading, spacing: 0) {
+      Capsule().fill(SOFT2).frame(width: 42, height: 8)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 11)
+      HStack(alignment: .center, spacing: 12) {
+        ZStack(alignment: .bottom) {
+          Ellipse().fill(SOFT2).frame(width: 100, height: 26)
+          KWrenBird(who.look, size: 92).offset(y: -9)
+        }
+        .frame(width: 108, height: 98)
+        VStack(alignment: .leading, spacing: 0) {
+          Text("Pip")
+            .font(.system(size: 28, weight: .bold))
+            .foregroundColor(INK2)
+          Text("YOUR COURIER")
+            .kText(.mono(10, .bold, tracking: 0.16))
+            .foregroundStyle(Color(hex: "#1F5C33"))
+            .padding(.top, 4)
+          HStack(spacing: 6) {
+            tag("DAY 12")
+            if grown { tag("GROWN") }
+          }
+          .padding(.top, 9)
+        }
+        Spacer(minLength: 0)
+      }
+      .padding(.top, 4)
+      if !grown {
+        VStack(alignment: .leading, spacing: 7) {
+          Text("PIP'S JOURNEY")
+            .kText(.mono(8.5, .semibold, tracking: 0.18))
+            .foregroundStyle(SUB2)
+          HStack(alignment: .top, spacing: 0) {
+            ForEach(Array(stages.enumerated()), id: \.offset) { i, st in
+              VStack(spacing: 4) {
+                ZStack {
+                  Circle().fill(i == now ? Color.white : SOFT2)
+                  if i == now { Circle().strokeBorder(Color(hex: "#1F5C33"), lineWidth: 2.2) }
+                  KWrenBird(KWrenLook(skin: .sticker, stage: st.0), size: 28).opacity(i > now ? 0.3 : 1)
+                }
+                .frame(width: 42, height: 42)
+                Text(st.1)
+                  .kText(.mono(8.5, i == now ? .bold : .semibold, tracking: 0.12))
+                  .foregroundStyle(i == now ? INK2 : SUB2)
+              }
+              .frame(maxWidth: .infinity)
+            }
+          }
+          .background(alignment: .top) {
+            Rectangle().fill(KTheme.classic.line).frame(height: 1.5).padding(.horizontal, 44).offset(y: 20)
+          }
+          Text("NEXT · GROWN — FIRST KINDRED")
+            .kText(.mono(9.5, .semibold, tracking: 0.12))
+            .foregroundStyle(SUB2)
+        }
+        .padding(.top, 12)
+      }
+    }
+    .padding(.horizontal, 16)
+  }
+}
+
 // ── the cover's two ways in: small pictures of the things themselves ──
 @MainActor func iconStamps() -> some View {
   ZStack(alignment: .leading) {
@@ -660,6 +732,8 @@ struct Shot {
     save(miniJourney(d), "\(dir)/mini-journey.png")
     save(iconStamps(), "\(dir)/ic-stamps.png")
     save(iconMailbox(), "\(dir)/ic-mailbox.png")
+    save(miniCombo(d, grown: false), "\(dir)/mini-combo.png")
+    save(miniCombo(d, grown: true), "\(dir)/mini-grown.png")
     save(rest(), "\(dir)/rest.png")
     print("wrote the banner mock's pieces to", dir)
   }
