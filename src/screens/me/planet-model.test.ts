@@ -1,5 +1,5 @@
 /* Behaviour lock for the courier's planet on Me (screens/me/planet-model): what she is doing
-   on the planet, the letters behind the stamps (an old stamp never moves), the shelf's four and
+   on the planet, the letters behind the stamps (an old stamp never moves), the shelf's six and
    their weekly turnover (what she wears keeps its place; the one she wears comes off), what a tap
    on a look does, the Stamps tile and her card's words.
    Not wired to a runner; run by hand from the repo root with plain node (it strips the types
@@ -12,8 +12,10 @@ import {
   FIGURE_UNKNOWN,
   PLANET_LETTERS,
   SAMPLE_STAMPS,
+  SHELF_CATALOGUE,
   SHELF_FC_DRESS,
   SHELF_FC_SKINS,
+  SHELF_PLACES,
   TRANSIT_SLIP,
   buildMePlanet,
   buildPlanetPage,
@@ -28,6 +30,7 @@ import {
   planetSlips,
   planetNapping,
   planetWrenState,
+  shelfFeatured,
   shelfSlots,
   shelfTap,
   shelfWeek,
@@ -76,32 +79,50 @@ const lf = { day: (iso: string) => `D${iso.slice(8, 10)}`, hexOf: (id: string) =
 
 /* ── the shelf ── */
 const base: ShelfFacts = { skin: "sticker", dress: "none", premium: false, kindreds: 0, hatchSkin: null, week: 0 };
+const ids = (f: ShelfFacts) => shelfSlots(f).map((x) => x.id);
+const slot = (f: ShelfFacts, id: string) => shelfSlots(f).find((x) => x.id === id);
 {
   const s = shelfSlots(base);
-  eq("four looks: a free piece, Moss, a First Class colour, a First Class piece", s.map((x) => x.id), ["dress:beanie", "skin:moss", "skin:peach", "dress:phones"]);
-  eq("a free reader with no kindred: only the free piece is open", s.map((x) => x.open), [true, false, false, false]);
-  eq("Moss is dim, the paid two wear the lock", s.map((x) => [x.dim, x.firstClass]), [[false, false], [true, false], [false, true], [false, true]]);
-  eq("each look is this slot's thing on what she has", s.map((x) => `${x.look.skin}/${x.look.dress}`), ["sticker/beanie", "moss/none", "peach/none", "sticker/phones"]);
-  const w1 = shelfSlots({ ...base, week: 1 });
-  eq("the next week the slots turn over, Moss stays", w1.map((x) => x.id), ["dress:scarf", "skin:moss", "skin:ink", "dress:flower"]);
+  eq("six looks: two free pieces, Moss, two First Class colours, a First Class piece", s.map((x) => x.id), ["dress:beanie", "dress:scarf", "skin:moss", "skin:peach", "skin:ink", "dress:phones"]);
+  eq("a free reader with no kindred: only the free pieces are open", s.map((x) => x.open), [true, true, false, false, false, false]);
+  eq("Moss is dim, the paid three wear the lock", s.map((x) => [x.dim, x.firstClass]), [[false, false], [false, false], [true, false], [false, true], [false, true], [false, true]]);
+  eq("each look is this slot's thing on what she has", s.map((x) => `${x.look.skin}/${x.look.dress}`), ["sticker/beanie", "sticker/scarf", "moss/none", "peach/none", "ink/none", "sticker/phones"]);
+  eq("the next week the groups turn, Moss stays", ids({ ...base, week: 1 }), ["dress:scarf", "dress:beanie", "skin:moss", "skin:ink", "skin:plush", "dress:flower"]);
   const seen = new Set<string>();
   for (let w = 0; w < 12; w++) shelfSlots({ ...base, week: w }).forEach((x) => seen.add(x.id));
   ok("over the weeks every First Class look takes its turn", SHELF_FC_SKINS.every((k) => seen.has(`skin:${k}`)) && SHELF_FC_DRESS.every((k) => seen.has(`dress:${k}`)));
-  eq("a negative week still picks", shelfSlots({ ...base, week: -1 }).length, 4);
+  eq("a negative week still picks", shelfSlots({ ...base, week: -1 }).length, 6);
+  eq("the places: three anyone can have, three First Class", [SHELF_PLACES.freeDress + SHELF_PLACES.kindredSkin, SHELF_PLACES.paidSkin + SHELF_PLACES.paidDress], [3, 3]);
 }
 {
   const s = shelfSlots({ ...base, dress: "scarf", week: 0 });
   eq("what she wears keeps its place whatever the week", [s[0].id, s[0].worn], ["dress:scarf", true]);
-  const p = shelfSlots({ ...base, premium: true, skin: "plush", dress: "shades", week: 0 });
-  eq("a member's worn colour and piece keep theirs", [p[2].id, p[2].worn, p[3].id, p[3].worn], ["skin:plush", true, "dress:shades", true]);
-  eq("a member: no locks", p.map((x) => x.firstClass), [false, false, false, false]);
-  eq("Moss opens with the first kindred, not with First Class", [shelfSlots({ ...base, premium: true })[1].open, shelfSlots({ ...base, kindreds: 1 })[1].open], [false, true]);
-  eq("kindreds not read yet: Moss is not offered as hers", shelfSlots({ ...base, kindreds: null })[1].open, false);
-  eq("the coat she hatched in is hers without First Class", shelfSlots({ ...base, hatchSkin: "peach", week: 0 })[2].open, true);
-  const season = shelfSlots({ ...base, season: ["witch", "ghost"], week: 1 });
-  eq("in a season its looks take the free slot", season[0].id, "dress:ghost");
-  eq("a seasonal look she still wears keeps the slot after the season", shelfSlots({ ...base, dress: "witch" })[0].id, "dress:witch");
-  eq("a season look this build can't draw is skipped", shelfSlots({ ...base, season: ["cape"], week: 0 })[0].id, "dress:beanie");
+  const member: ShelfFacts = { ...base, premium: true, skin: "plush", dress: "shades", week: 0 };
+  eq("a member's worn colour and piece lead their groups", [ids(member)[3], slot(member, "skin:plush")?.worn, ids(member)[5], slot(member, "dress:shades")?.worn], ["skin:plush", true, "dress:shades", true]);
+  eq("a member: no locks", shelfSlots(member).map((x) => x.firstClass), [false, false, false, false, false, false]);
+  eq("Moss opens with the first kindred, not with First Class", [slot({ ...base, premium: true }, "skin:moss")?.open, slot({ ...base, kindreds: 1 }, "skin:moss")?.open], [false, true]);
+  eq("kindreds not read yet: Moss is not offered as hers", slot({ ...base, kindreds: null }, "skin:moss")?.open, false);
+  eq("the coat she hatched in is hers without First Class", slot({ ...base, hatchSkin: "peach", week: 0 }, "skin:peach")?.open, true);
+  eq("in a season its looks take the free places", ids({ ...base, season: ["witch", "ghost"], week: 1 }).slice(0, 2).sort(), ["dress:ghost", "dress:witch"]);
+  eq("a season with one look: it leads, an every-day piece beside it", ids({ ...base, season: ["ghost"], week: 0 }).slice(0, 2), ["dress:ghost", "dress:beanie"]);
+  eq("a seasonal look she still wears keeps its place after the season", ids({ ...base, dress: "witch" })[0], "dress:witch");
+  ok("out of its season, and not on her, a seasonal look is not offered", !ids(base).includes("dress:witch"));
+  eq("a season look this build can't draw is skipped", ids({ ...base, season: ["cape"], week: 0 })[0], "dress:beanie");
+}
+/* which ones stand there is not fixed: the table, the phone's own taps, the catalogue */
+{
+  eq("a look the table puts forward leads its group", [ids({ ...base, featured: ["shades", "plush"] })[5], ids({ ...base, featured: ["shades", "plush"] })[3]], ["dress:shades", "skin:plush"]);
+  eq("what this phone reaches for most comes first", ids({ ...base, heat: { party: 3, flower: 9, ink: 2 } }).slice(3), ["skin:ink", "skin:peach", "dress:flower"]);
+  eq("put forward beats reached for", ids({ ...base, featured: ["party"], heat: { flower: 9 } })[5], "dress:party");
+  eq("in season beats put forward", ids({ ...base, season: ["ghost"], featured: ["scarf"] }).slice(0, 2), ["dress:ghost", "dress:scarf"]);
+  eq("what she wears beats them all", ids({ ...base, dress: "beanie", season: ["ghost"], featured: ["scarf"], heat: { scarf: 50 } })[0], "dress:beanie");
+  eq("a count that isn't a number is no heat", ids({ ...base, heat: { flower: Number.NaN, party: -4 } as Record<string, number> })[5], "dress:phones");
+  eq("the table's rows: only shelf.* set true, bare ids", shelfFeatured({ "shelf.phones": true, "shelf.peach": false, "shelf.": true, halloween: true, "shelf.ink": true }), ["ink", "phones"]);
+  eq("no table yet: nothing put forward", shelfFeatured(null), []);
+  // a look added to the wardrobe is a candidate with nothing more
+  const small: ShelfFacts = { ...base, catalogue: { dress: [{ id: "flower", free: true }, { id: "shades", free: false }], skins: [{ id: "moss", lock: "milestone" }, { id: "ink", lock: "plus" }] } };
+  eq("the candidates are the catalogue passed in (fewer than the places: fewer looks)", ids(small), ["dress:flower", "skin:moss", "skin:ink", "dress:shades"]);
+  eq("with no catalogue passed, this build's own", SHELF_CATALOGUE.dress.filter((d) => !d.seasonal).length + SHELF_CATALOGUE.skins.length, 11);
 }
 
 /* ── a tap on a look ── */
@@ -113,15 +134,15 @@ eq("Moss before the first kindred: her wardrobe", shelfTap("skin:moss", base), {
 eq("Moss after it: she wears it", shelfTap("skin:moss", { ...base, kindreds: 2 }), { do: "skin", value: "moss" });
 eq("the colour she wears comes off: back to Sky", shelfTap("skin:moss", { ...base, kindreds: 2, skin: "moss" }), { do: "skin", value: "sticker" });
 eq("a paid colour, not a member: First Class", shelfTap("skin:peach", base), { do: "firstClass" });
-eq("a look the shelf doesn't hold this week: nothing", shelfTap("skin:ink", base), null);
+eq("a look the shelf doesn't hold this week: nothing", shelfTap("skin:plush", base), null);
 
 /* ── the shelf's words ── */
 {
   const s = buildShelf({ ...base, dress: "beanie" }, fmt);
-  eq("names are the catalogue's, upper-cased", s.map((x) => x.name), ["WS.ACC.BEANIE", "SKIN.MOSS.NAME", "SKIN.PEACH.NAME", "WS.ACC.PHONES"]);
-  eq("VoiceOver: a look that isn't hers says locked", s.map((x) => x.a11y), ["ws.acc.beanie", "skin.moss.name, m4.a11y.locked", "skin.peach.name, m4.a11y.locked", "ws.acc.phones, m4.a11y.locked"]);
-  eq("VoiceOver: what a tap does", s.map((x) => x.hint), ["planet.a11y.takeOff", "m4.a11y.opensWardrobe(Pip)", "m4.a11y.opensFc", "m4.a11y.opensFc"]);
-  eq("a look that is hers and off: wear", buildShelf({ ...base, kindreds: 1 }, fmt)[1].hint, "planet.a11y.wear");
+  eq("names are the catalogue's, upper-cased", s.map((x) => x.name), ["WS.ACC.BEANIE", "WS.ACC.SCARF", "SKIN.MOSS.NAME", "SKIN.PEACH.NAME", "SKIN.INK.NAME", "WS.ACC.PHONES"]);
+  eq("VoiceOver: a look that isn't hers says locked", s.map((x) => x.a11y), ["ws.acc.beanie", "ws.acc.scarf", "skin.moss.name, m4.a11y.locked", "skin.peach.name, m4.a11y.locked", "skin.ink.name, m4.a11y.locked", "ws.acc.phones, m4.a11y.locked"]);
+  eq("VoiceOver: what a tap does", s.map((x) => x.hint), ["planet.a11y.takeOff", "planet.a11y.wear", "m4.a11y.opensWardrobe(Pip)", "m4.a11y.opensFc", "m4.a11y.opensFc", "m4.a11y.opensFc"]);
+  eq("a look that is hers and off: wear", buildShelf({ ...base, kindreds: 1 }, fmt)[2].hint, "planet.a11y.wear");
 }
 
 /* ── the Stamps tile ── */

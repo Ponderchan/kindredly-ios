@@ -11,11 +11,12 @@
      with the place it keeps for good (its ordinal: 1 is the first letter you ever sent, so a
      new letter never moves an old stamp), its stamp, how many strangers have had it on their
      desk (letters.reads: a lamp each) and whether anyone wrote back (a postmark).
-   - THE SHELF: four looks, the defaults (Sky, Bare) not counted, left to right by "can I use
-     it now": one free piece · the colour a first kindred unlocks · one First Class colour ·
-     one First Class piece. Which one stands in a slot turns over each week (Monday, UTC);
-     what she is wearing keeps its place whatever the week; tapping the one she wears takes it
-     off. A season's free looks take the free slot while the season lasts.
+   - THE SHELF: six looks, the defaults (Sky, Bare) not counted, left to right by "can I use
+     it now": two free pieces · the colour a first kindred unlocks · two First Class colours ·
+     one First Class piece. Which ones stand there is not fixed: the wardrobe's catalogue put
+     in order by what she wears, the season on now, what the server puts forward, what this
+     phone has reached for, and the week's turn (see THE SHELF below). Tapping the one she
+     wears takes it off.
    - what a tap on a look does: wear it, take it off, open First Class (a paid look, not a
      member), or open her wardrobe (Moss before the first kindred: the wardrobe says why).
    - THE PLANET PAGE (app/planet; buildPlanetPage): the three figures — ON THE WAY (what she is
@@ -113,18 +114,69 @@ export function planetLetters(
   });
 }
 
-/* ── the shelf ─────────────────────────────────────────────────────────── */
+/* ── the shelf ───────────────────────────────────────────────────────────
+   Six looks under her flight log: three anyone can have on the left (two free pieces and the
+   colour a first kindred opens), three First Class ones on the right (two colours and a piece).
 
-/** the free pieces, the season's aside */
-export const SHELF_FREE: readonly PlanetDress[] = ["beanie", "scarf"];
-/** the season's free looks this build can draw (lib/season-core) */
-export const SHELF_SEASON: readonly PlanetDress[] = ["witch", "ghost"];
-/** the colour a first kindred unlocks */
-export const SHELF_KINDRED: PlanetSkin = "moss";
-/** the First Class colours: Peach, Night, Mist */
-export const SHELF_FC_SKINS: readonly PlanetSkin[] = ["peach", "ink", "plush"];
-/** the First Class pieces */
-export const SHELF_FC_DRESS: readonly PlanetDress[] = ["phones", "flower", "party", "shades"];
+   WHICH six is not written here (owner, 2026-11-11: "这些放出来的不是固定的，可以是基于节日或者
+   用户点击的热度，这个别写死"). The candidates are the wardrobe's own catalogue (lib/wren-style,
+   passed in as `catalogue`), and inside each group they are put in order by, first to last:
+     1. what she has on: it keeps its place;
+     2. the season on now (lib/season: a festival's looks by date, with its remote switch);
+     3. what the server puts forward (`featured`: app_surfaces rows "shelf.<look>" set true —
+        a festival, a drop, what is popular; a row, not a build);
+     4. what this phone has reached for most (`heat`, lib/look-heat: taps on the shelf and looks
+        put on, kept on the phone);
+     5. the week's turn, so a shelf nobody has touched still changes.
+   A new look is a line in the wardrobe's catalogue (and its drawing in Swift's KWrenBird); it
+   is then a candidate here with nothing to add. */
+
+/** What the wardrobe holds, as the shelf needs it. */
+export type ShelfCatalogue = {
+  /** every piece she can have on (not "none"): free or First Class, a season's or every day's */
+  dress: readonly { id: PlanetDress; free: boolean; seasonal?: boolean }[];
+  /** every colour: sticker is the default (never on the shelf), a milestone is the first kindred */
+  skins: readonly { id: PlanetSkin; lock: "free" | "milestone" | "plus" }[];
+};
+
+/** The catalogue when none is passed (tests, the dev page): lib/wren-style's, as of 2026-11. */
+export const SHELF_CATALOGUE: ShelfCatalogue = {
+  dress: [
+    { id: "beanie", free: true },
+    { id: "scarf", free: true },
+    { id: "phones", free: false },
+    { id: "flower", free: false },
+    { id: "party", free: false },
+    { id: "shades", free: false },
+    { id: "witch", free: true, seasonal: true },
+    { id: "ghost", free: true, seasonal: true },
+  ],
+  skins: [
+    { id: "sticker", lock: "free" },
+    { id: "moss", lock: "milestone" },
+    { id: "peach", lock: "plus" },
+    { id: "ink", lock: "plus" },
+    { id: "plush", lock: "plus" },
+  ],
+};
+/** the First Class colours and pieces of that catalogue */
+export const SHELF_FC_SKINS: readonly PlanetSkin[] = SHELF_CATALOGUE.skins.filter((x) => x.lock === "plus").map((x) => x.id);
+export const SHELF_FC_DRESS: readonly PlanetDress[] = SHELF_CATALOGUE.dress.filter((x) => !x.free).map((x) => x.id);
+
+/** How many of each the shelf holds, left to right. */
+export const SHELF_PLACES = { freeDress: 2, kindredSkin: 1, paidSkin: 2, paidDress: 1 } as const;
+
+/** The app_surfaces keys that put a look forward: "shelf.phones", "shelf.peach". */
+export const SHELF_FEATURE_PREFIX = "shelf.";
+/** The looks the table puts forward (bare ids, sorted); none for no table yet. */
+export function shelfFeatured(remote: Readonly<Record<string, boolean>> | null): string[] {
+  if (!remote) return [];
+  return Object.keys(remote)
+    .filter((k) => k.startsWith(SHELF_FEATURE_PREFIX) && remote[k] === true)
+    .map((k) => k.slice(SHELF_FEATURE_PREFIX.length).trim())
+    .filter(Boolean)
+    .sort();
+}
 
 const WEEK_MS = 7 * 86_400_000;
 /** The week a moment falls in, counted from a Monday (UTC): the shelf turns over when it changes. */
@@ -143,6 +195,12 @@ export type ShelfFacts = {
   season?: readonly string[];
   /** shelfWeek(now) */
   week: number;
+  /** the wardrobe's catalogue (lib/wren-style ACCESSORY_META, SKINS); SHELF_CATALOGUE when absent */
+  catalogue?: ShelfCatalogue;
+  /** looks the server puts forward now, bare ids (shelfFeatured) */
+  featured?: readonly string[];
+  /** how often this phone has reached for each look, by bare id (lib/look-heat) */
+  heat?: Readonly<Record<string, number>>;
 };
 
 export type ShelfSlot = {
@@ -161,17 +219,41 @@ export type ShelfSlot = {
   dim: boolean;
 };
 
-const pick = <T,>(list: readonly T[], week: number): T => list[((week % list.length) + list.length) % list.length];
-const has = <T,>(list: readonly T[], v: unknown): v is T => (list as readonly unknown[]).includes(v);
+/** a look's count in the heat record; only a real, own, positive number counts */
+const warmth = (heat: Readonly<Record<string, number>>, id: string): number => {
+  const v: unknown = Object.prototype.hasOwnProperty.call(heat, id) ? heat[id] : 0;
+  return typeof v === "number" && Number.isFinite(v) && v > 0 ? v : 0;
+};
 
-/** The shelf's four, left to right (see the top). */
+/** A group's candidates in the shelf's order (see the top): worn, in season, put forward, reached
+    for, then the week's turn. */
+function inOrder<T extends string>(pool: readonly T[], worn: string, season: readonly string[], f: ShelfFacts): T[] {
+  const n = pool.length;
+  const featured = f.featured ?? [];
+  const heat = f.heat ?? {};
+  const turn = (i: number) => (((i - f.week) % n) + n) % n;
+  return pool
+    .map((v, i) => ({ v, i }))
+    .sort(
+      (a, b) =>
+        Number(b.v === worn) - Number(a.v === worn) ||
+        Number(season.includes(b.v)) - Number(season.includes(a.v)) ||
+        Number(featured.includes(b.v)) - Number(featured.includes(a.v)) ||
+        warmth(heat, b.v) - warmth(heat, a.v) ||
+        turn(a.i) - turn(b.i),
+    )
+    .map((x) => x.v);
+}
+
+/** The shelf's six, left to right (see the top). */
 export function shelfSlots(f: ShelfFacts): ShelfSlot[] {
-  const season = (f.season ?? []).filter((id): id is PlanetDress => has(SHELF_SEASON, id));
-  const freeList = season.length ? season : SHELF_FREE;
-  // what she wears keeps its place, whatever the week (a seasonal look she still has on, too)
-  const free = has(SHELF_FREE, f.dress) || has(SHELF_SEASON, f.dress) ? f.dress : pick(freeList, f.week);
-  const colour = has(SHELF_FC_SKINS, f.skin) ? f.skin : pick(SHELF_FC_SKINS, f.week);
-  const piece = has(SHELF_FC_DRESS, f.dress) ? f.dress : pick(SHELF_FC_DRESS, f.week);
+  const cat = f.catalogue ?? SHELF_CATALOGUE;
+  const season = (f.season ?? []).filter((id) => cat.dress.some((d) => d.id === id && d.seasonal));
+  // the every-day pieces, a season's while it lasts, and a seasonal one she still has on
+  const freeDress = cat.dress.filter((d) => d.free && (!d.seasonal || season.includes(d.id) || d.id === f.dress)).map((d) => d.id);
+  const paidDress = cat.dress.filter((d) => !d.free).map((d) => d.id);
+  const kindredSkins = cat.skins.filter((x) => x.lock === "milestone").map((x) => x.id);
+  const paidSkins = cat.skins.filter((x) => x.lock === "plus").map((x) => x.id);
 
   const dress = (value: PlanetDress, paid: boolean): ShelfSlot => {
     const worn = f.dress === value;
@@ -184,7 +266,12 @@ export function shelfSlots(f: ShelfFacts): ShelfSlot[] {
     const open = hatched || worn || (lock === "plus" ? f.premium : (f.kindreds ?? 0) >= 1);
     return { id: `skin:${value}`, kind: "skin", value, look: { skin: value, dress: f.dress }, worn, open, firstClass: lock === "plus" && !open, dim: lock === "kindred" && !open };
   };
-  return [dress(free, false), skin(SHELF_KINDRED, "kindred"), skin(colour, "plus"), dress(piece, true)];
+  return [
+    ...inOrder(freeDress, f.dress, season, f).slice(0, SHELF_PLACES.freeDress).map((v) => dress(v, false)),
+    ...inOrder(kindredSkins, f.skin, season, f).slice(0, SHELF_PLACES.kindredSkin).map((v) => skin(v, "kindred")),
+    ...inOrder(paidSkins, f.skin, season, f).slice(0, SHELF_PLACES.paidSkin).map((v) => skin(v, "plus")),
+    ...inOrder(paidDress, f.dress, season, f).slice(0, SHELF_PLACES.paidDress).map((v) => dress(v, true)),
+  ];
 }
 
 /** What a tap on a look does. */

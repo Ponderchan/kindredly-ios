@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { WrenAccessory, WrenSkin } from "../components/WrenBird";
 import { getWrenAccessory, getWrenSkin, setWrenAccessory, setWrenSkin } from "./wren-style";
+import { bumpLookHeat } from "./look-heat";
 
 /* App-wide Wren skin AND dress. WrenBird reads both when no explicit prop
    is passed, so a look or a piece chosen anywhere — her room, onboarding —
@@ -27,13 +28,17 @@ export function WrenSkinProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // a look put on, anywhere, is one more reach for it (lib/look-heat: her card's shelf on Me
+  // follows what this phone reaches for; the defaults are not counted there)
   const pick = useCallback((s: WrenSkin) => {
     setSkin(s);
     void setWrenSkin(s);
+    bumpLookHeat(s);
   }, []);
   const dress = useCallback((a: WrenAccessory) => {
     setAccessory(a);
     void setWrenAccessory(a);
+    bumpLookHeat(a);
   }, []);
 
   return <SkinCtx.Provider value={{ skin, pick, accessory, dress }}>{children}</SkinCtx.Provider>;

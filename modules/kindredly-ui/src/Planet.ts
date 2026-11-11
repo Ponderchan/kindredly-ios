@@ -3,7 +3,7 @@ import type { KCourierPalette } from "./MePieces";
 /* THE COURIER'S PLANET ON ME (2026-11-11, docs/courier-planet.md), behind its own switch
    ("meplanet" in src/lib/surfaces.ts, off by default): KMeView's `planet` record. With `on`,
    the Swift Me tab is one page under the same sticky header, with no segments — her card (a
-   small whole planet she lives on, her flight log, four looks), the Aura and Stamps
+   small whole planet she lives on, her flight log, her looks), the Aura and Stamps
    tiles, the report row (ios/Portable/Me/KMePlanetCard.swift, KMeScreen.swift KMePlanetPage;
    the planet itself is ios/Portable/Planet, Wren is ios/Portable/Kit/KWrenBird.swift — drawn
    by Swift from the family's data, never a snapshot or an island).

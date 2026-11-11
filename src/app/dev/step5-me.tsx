@@ -72,7 +72,7 @@ import "../../data/strings-planet";
      override; off again with a second tap). Then WHERE puts her somewhere (AUTO = what the demo
      threads say; UNSENT, HOME, EXPLORING = on the way, DELIVERY = waiting at their door,
      BRINGING = back with a reply; DAY OFF above is her day off), SKIN is the colour she wears,
-     LOOK what she has on, WEEK steps the shelf's week (the four turn over), LETTERS how many
+     LOOK what she has on, WEEK steps the shelf's week (the looks turn over), LETTERS how many
      stamps (their lamps and postmarks are the fixtures'), KIN whether Moss is hers, FC whether
      the paid looks are. A shelf look dresses the page's own Wren, never the real one. The
      card's round button opens the planet page on demo data (kindredly:///dev/planet-page); with

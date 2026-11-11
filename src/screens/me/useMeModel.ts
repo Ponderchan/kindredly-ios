@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { InteractionManager } from "react-native";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { t, useLang } from "../../lib/i18n";
@@ -9,7 +9,7 @@ import { useEntitlement } from "../../lib/entitlement";
 import { useWrenName } from "../../lib/wren-name";
 import { useWrenSkinControl } from "../../lib/wren-skin";
 import { getAvatarPhoto } from "../../lib/avatar-photo";
-import { bumpStageFloor, getStageFloor, loadHatchSkin, skinUnlocked, stageIndex, useHatchSkin, wrenStage } from "../../lib/wren-style";
+import { ACCESSORY_META, SKINS, bumpStageFloor, getStageFloor, loadHatchSkin, skinUnlocked, stageIndex, useHatchSkin, wrenStage } from "../../lib/wren-style";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { fetchMyWriting, myAura, readAuraCache, readUsedStamps, recordAuraSnapshot, type Aura, type UsedStamp, type WritingRow } from "../../lib/aura";
 import { observeAuraLocks, replanLocal } from "../../lib/local-push";
@@ -39,10 +39,12 @@ import "../../data/strings-step5-me";
 import "../../data/strings-me4a";
 import "../../data/strings-planet";
 import { meFormat } from "./me-format";
-import { planetLetters, shelfTap, shelfWeek, type CoverFacts, type FlightLogFacts, type PlanetLetterVM, type ShelfFacts } from "./planet-model";
+import { planetLetters, shelfFeatured, shelfTap, shelfWeek, type CoverFacts, type FlightLogFacts, type PlanetLetterVM, type ShelfCatalogue, type ShelfFacts } from "./planet-model";
 import { zodiacFromDob } from "../../lib/zodiac";
 import { flightLogFacts } from "./planet-log";
 import { useSeason } from "../../lib/season";
+import { remoteSurfaces, subscribeSurfaces } from "../../lib/surfaces";
+import { bumpLookHeat, loadLookHeat, lookHeat } from "../../lib/look-heat";
 import {
   ME4A_ROUTES,
   ME_ROUTES,
@@ -176,7 +178,7 @@ export type MeModel = {
   /** First Class by the day: the form, its words, and its tap */
   fc: ReturnType<typeof useFcRollout>;
   /** what the courier's planet is drawn from (screens/me/planet-model): the letters behind the
-      stamps, newest first, what the shelf's four are chosen from, and her flight log's facts */
+      stamps, newest first, what the shelf's six are chosen from, and her flight log's facts */
   planet: { letters: PlanetLetterVM[]; shelf: ShelfFacts; log: FlightLogFacts; cover: CoverFacts };
 };
 
@@ -196,6 +198,15 @@ export function stampFacts(used: readonly UsedStamp[]): StampFacts[] {
     return { id: s.id, at: s.at, name: def ? sname(def.name) : "", hex: def?.color ?? "" };
   });
 }
+
+/** The wardrobe's catalogue as her card's shelf takes it (planet-model shelfSlots): every piece
+    but Bare, every colour. A look added to lib/wren-style is a candidate there with nothing more. */
+const WARDROBE: ShelfCatalogue = {
+  dress: ACCESSORY_META.filter((a) => a.id !== "none").map((a) => ({ id: a.id, free: a.free, seasonal: !!a.seasonal })),
+  skins: SKINS.map((k) => ({ id: k.id, lock: k.lock })),
+};
+/** the looks the table puts forward right now, joined (a string compares by value) */
+const featuredNow = (): string => shelfFeatured(remoteSurfaces()).join(",");
 
 /** The shelf's facts: the name in the reader's language and whether the catalog can draw it. */
 /** A stamp's colour from stamps.ts ("" when it doesn't list it). */
@@ -230,6 +241,9 @@ export function useMeModel(): MeModel {
   const [writing, setWriting] = useState<WritingRow[] | null>(null);
   const [door, setDoor] = useState<ReportDoor | null>(null);
   const [notesN, setNotesN] = useState<number | null>(null);
+  const [heat, setHeat] = useState(lookHeat);
+  // the looks the table puts forward ("shelf.<look>" rows), as a string so it only changes when they do
+  const featuredKey = useSyncExternalStore(subscribeSurfaces, featuredNow, featuredNow);
   const [doorSerial, setDoorSerial] = useState(0);
   const doorOpened = useRef(false);
   const [seenTodayN, setSeenTodayN] = useState(0);
@@ -268,6 +282,11 @@ export function useMeModel(): MeModel {
       getAvatarPhoto()
         .then((p) => alive && setPhoto(p))
         .catch((e) => console.warn("[me] the avatar photo wasn't read:", e));
+      // what this phone has reached for, for the shelf's order: taken when you come to the page,
+      // so a look doesn't change places under your thumb as you tap it
+      loadLookHeat()
+        .then(() => alive && setHeat(lookHeat()))
+        .catch((e) => console.warn("[me] the looks' heat wasn't read:", e));
       // how many notes you have, for the number under the cover
       loadJournal()
         .then((j) => alive && setNotesN(j.length))
@@ -492,7 +511,8 @@ export function useMeModel(): MeModel {
   }, [handle, user?.created_at, cofounderNo, writing, aura, statsIn, stats.kindreds, threads, threadsIn, book, accessory, premium, wren, seasonLooks, trial, report, lang, hexOf]);
 
   /* THE COURIER'S PLANET (docs/courier-planet.md): the letters behind its stamps and what the
-     shelf's four looks are chosen from. Cheap and pure, so it is kept whether or not the
+     shelf's six looks are chosen from (the wardrobe's catalogue, the season, what the table
+     puts forward, what this phone reaches for). Cheap and pure, so it is kept whether or not the
      planet is on (MeNative asks the switch). The week is read when the page's facts change:
      a shelf that turned over at midnight shows on the next visit, not mid-scroll. */
   const hatchSkin = useHatchSkin();
@@ -500,11 +520,22 @@ export function useMeModel(): MeModel {
     const fmt = meFormat();
     const cards = writing ? buildLetterCards(writing, threads, []) : null;
     const letters = planetLetters(cards, aura ? aura.sources.letters : null, { day: (iso) => fmt.upper(fmt.dateShort(iso)), hexOf });
-    const shelf: ShelfFacts = { skin, dress: accessory, premium, kindreds: statsIn ? stats.kindreds : null, hatchSkin, season: seasonLooks, week: shelfWeek(Date.now()) };
+    const shelf: ShelfFacts = {
+      skin,
+      dress: accessory,
+      premium,
+      kindreds: statsIn ? stats.kindreds : null,
+      hatchSkin,
+      season: seasonLooks,
+      week: shelfWeek(Date.now()),
+      catalogue: WARDROBE,
+      featured: featuredKey ? featuredKey.split(",") : [],
+      heat,
+    };
     return { letters, shelf };
     // lang: the days are written in the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [writing, threads, aura, hexOf, skin, accessory, premium, statsIn, stats.kindreds, hatchSkin, seasonLooks, lang]);
+  }, [writing, threads, aura, hexOf, skin, accessory, premium, statsIn, stats.kindreds, hatchSkin, seasonLooks, featuredKey, heat, lang]);
   const shelfRef = useRef(planet.shelf);
   shelfRef.current = planet.shelf;
 
@@ -555,6 +586,9 @@ export function useMeModel(): MeModel {
       shelfLook: (id) => {
         const tap = shelfTap(id, shelfRef.current);
         if (!tap) return;
+        // a look that isn't hers yet still counts as reached for (one she puts on is counted
+        // where it is put on, lib/wren-skin)
+        if (tap.do === "firstClass" || tap.do === "wardrobe") bumpLookHeat(id.slice(id.indexOf(":") + 1));
         if (tap.do === "dress") dress(tap.value);
         else if (tap.do === "skin") pick(tap.value);
         else if (tap.do === "firstClass") router.push(ME_PLANET_ROUTES.looksPaywall);

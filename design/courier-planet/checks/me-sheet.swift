@@ -41,9 +41,11 @@ func letters(_ n: Int) -> [KPlanetLetter] {
 func shelf(worn: String, member: Bool, kindred: Bool, skin: KWrenSkin = .sticker, dress: KWrenAccessory = .none) -> [KMeShelfLook] {
   [
     KMeShelfLook(id: "dress:beanie", name: "BEANIE", look: KWrenLook(skin: skin, accessory: .beanie), worn: worn == "dress:beanie"),
+    KMeShelfLook(id: "dress:scarf", name: "SCARF", look: KWrenLook(skin: skin, accessory: .scarf), worn: worn == "dress:scarf"),
     KMeShelfLook(id: "skin:moss", name: "MOSS", look: KWrenLook(skin: .moss, accessory: dress), worn: worn == "skin:moss", dim: !kindred),
-    KMeShelfLook(id: "skin:peach", name: "PEACH", look: KWrenLook(skin: .peach, accessory: dress), worn: worn == "skin:peach", firstClass: !member),
-    KMeShelfLook(id: "dress:phones", name: "HEADPHONES", look: KWrenLook(skin: skin, accessory: .phones), worn: worn == "dress:phones", firstClass: !member),
+    KMeShelfLook(id: "skin:peach", name: "PEACH", look: KWrenLook(skin: .peach, accessory: dress), worn: worn == "skin:peach", firstClass: !member && worn != "skin:peach"),
+    KMeShelfLook(id: "skin:ink", name: "NIGHT", look: KWrenLook(skin: .ink, accessory: dress), worn: worn == "skin:ink", firstClass: !member && worn != "skin:ink"),
+    KMeShelfLook(id: "dress:phones", name: "HEADPHONES", look: KWrenLook(skin: skin, accessory: .phones), worn: worn == "dress:phones", firstClass: !member && worn != "dress:phones"),
   ]
 }
 

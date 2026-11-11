@@ -354,6 +354,28 @@ text and the prototype disagree, the prototype wins unless this text says "chang
   twice before calling a tap dead.
   Still to check: a day sky and a dark theme in the app, a small screen, the First Class forms
   on this page, the pull against the planet's own drag by hand; then a phone.
+- 2026-11-11, night — **the shelf holds six, and which six is not written down** (owner: "all
+  looks 那里去掉 all looks 文字只留 > 或者箭头，感觉还能放出来两个，一个 looks 一个 dress，一个免费
+  一个付费的"; then "这些放出来的不是固定的，可以是基于节日或者用户点击的热度，这个别写死").
+  - **the row**: two free pieces, the colour a first kindred opens | two First Class colours, a
+    First Class piece; the looks share the row's width (46pt tiles on a 402pt screen, a name
+    takes a second line before it shrinks); "All looks" is an arrow with no words (VoiceOver
+    still says the words).
+  - **which looks** (`planet-model shelfSlots`, tested): the candidates are the wardrobe's own
+    catalogue (`lib/wren-style ACCESSORY_META / SKINS`, passed in), and each group is put in
+    order by what she wears → the season on now (`lib/season`) → what the server puts forward
+    → what this phone reaches for → the week's turn. A new look is a line in the wardrobe's
+    catalogue plus its drawing in `KWrenBird`; nothing to add here.
+  - **the server's say**: rows in the table that already carries the switches (app_surfaces,
+    web 0033) with the key `shelf.<look>` and `native` true, e.g. `('shelf.phones', '*',
+    true)`: that look leads its group from the next read of the table, on every phone, with
+    no build. A festival, a drop, or a job that counts what couriers wear can write them.
+  - **the phone's say** (`lib/look-heat`): a count per look — a tap on the shelf (a locked one
+    too), a look put on anywhere — kept with the account's things on the phone, never sent.
+    Read when you come to Me, so a look doesn't change places under the thumb.
+  - Not built: counting across everyone ("what is popular"). What each courier wears is on
+    the account already, so it is one function and a schedule on the server writing the
+    `shelf.*` rows; it needs the owner's word and his SQL.
 - Next: the rest of phase 7 on the simulator (the drag's feel, the five states in motion, the
   planet page's pager), then a phone.
 

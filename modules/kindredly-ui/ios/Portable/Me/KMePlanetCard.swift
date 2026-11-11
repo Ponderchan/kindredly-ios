@@ -14,7 +14,8 @@ import SwiftUI
       (Open: her page; Play on her day off); the run she is on, a row to a line on a thin spine,
       with a lamp that breathes on the row she is at. One line of hers when the rows cannot say
       it (the Post's letter, hunger, her day off): `log.note`;
-   4  the shelf, under a hairline: four looks on the theme's quiet tiles. "All looks →".
+   4  the shelf, under a hairline: her looks (six, as the model picks them) on the theme's
+      quiet tiles, sharing the row, and an arrow to all of them.
 
    Under it, WRITING AURA and WRITING REPORT, built alike (KMeWritingTile): the name on an ink
    chip, a picture in a 16:9 panel, a title, a line of state. The Aura's picture is its own
@@ -585,57 +586,81 @@ struct KMeShelf: View {
   let actions: KMePlanetActions
   let theme: KTheme
 
+  /// the row's width, read once it is laid out (the card's inner width on a 402pt screen until then)
+  @State private var width: CGFloat = 338
+
+  /// the arrow's column
+  private static let arrow: CGFloat = 26
+
   var body: some View {
     let palette = card.planet.palette
     // the hour's green by day; at night, and on a dark theme, the theme's indigo
     let accent = (palette.moon || theme.isDark) ? theme.ind : palette.button
-    HStack(alignment: .top, spacing: 10) {
+    let n = max(1, card.shelf.count)
+    let gap: CGFloat = n > 4 ? 6 : 10
+    // the looks share what the arrow leaves, and are never larger than a chip of four was
+    let side = min(52, max(30, ((width - Self.arrow - gap * CGFloat(n)) / CGFloat(n)).rounded(.down)))
+    HStack(alignment: .top, spacing: gap) {
       ForEach(card.shelf) { item in
-        KMeShelfChip(item: item, ground: theme.soft2, ring: accent, ink: theme.sub) {
+        // a First Class look stands on its own cream paper; on a dark theme that paper would be
+        // six white squares in a row, so it keeps the theme's tile and the gold dashes say it
+        KMeShelfChip(item: item, side: side, nameWidth: side + gap - 2, ground: theme.soft2, paper: theme.isDark ? theme.soft2 : KMePlanetMetrics.chipPaper, cut: theme.sf, ring: accent, ink: theme.sub) {
           actions.onLook(item.id)
         }
       }
-      Spacer(minLength: 4)
+      // all of her looks: an arrow, no words (owner, 2026-11-11); it takes what is left of the row
       SwiftUI.Button(action: { actions.onAllLooks() }) {
-        Text(card.allLooks)
-          .kText(.system(12.5, .semibold))
-          .foregroundStyle(accent)
-          .lineLimit(1)
-          .padding(.vertical, 10)
-          .contentShape(Rectangle())
+        HStack(spacing: 0) {
+          Spacer(minLength: 0)
+          KLineIcon(.chevronRight, size: 18, lineWidth: 2.2, color: accent)
+        }
+        .frame(minWidth: Self.arrow - gap, maxWidth: .infinity)
+        .frame(height: side)
+        .contentShape(Rectangle())
       }
       .buttonStyle(KFadePressStyle())
+      .accessibilityLabel(card.allLooks)
       .accessibilityHint(card.allLooksHint)
-      .padding(.top, 8)
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
   }
 }
 
 struct KMeShelfChip: View {
   let item: KMeShelfLook
-  /// the tile she stands on (First Class looks stand on their own paper)
+  /// the tile's side: 52 for a shelf of four, smaller when six share the row
+  var side: CGFloat = 52
+  /// how wide the name may run under it
+  var nameWidth: CGFloat = 62
+  /// the tile she stands on
   let ground: Color
+  /// the tile a First Class look stands on
+  var paper: Color = KMePlanetMetrics.chipPaper
+  /// the card's own colour: a badge is cut out of the tile in it (white would ring it on a dark card)
+  var cut: Color = .white
   let ring: Color
   let ink: Color
   let onTap: () -> Void
 
   var body: some View {
+    let k = side / 52
     SwiftUI.Button(action: onTap) {
       VStack(spacing: 5) {
         ZStack {
-          RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(item.firstClass ? KMePlanetMetrics.chipPaper : ground)
+          RoundedRectangle(cornerRadius: 16 * k, style: .continuous)
+            .fill(item.firstClass ? paper : ground)
           if item.firstClass {
-            RoundedRectangle(cornerRadius: 15, style: .continuous)
+            RoundedRectangle(cornerRadius: 15 * k, style: .continuous)
               .strokeBorder(KBrand.waxGold, style: StrokeStyle(lineWidth: 2, dash: [5, 4]))
           }
-          KWrenBird(item.look, size: 42)
+          KWrenBird(item.look, size: 42 * k)
             .opacity(item.dim ? 0.45 : 1)
         }
-        .frame(width: 52, height: 52)
+        .frame(width: side, height: side)
         .overlay {
           if item.worn {
-            RoundedRectangle(cornerRadius: 18.5, style: .continuous)
+            RoundedRectangle(cornerRadius: 16 * k + 2.5, style: .continuous)
               .strokeBorder(ring, lineWidth: 2.5)
               .padding(-2.5)
           }
@@ -650,15 +675,16 @@ struct KMeShelfChip: View {
             badge(KBrand.waxGold, .lock).offset(x: 5, y: -5)
           }
         }
-        // a long name (HEADPHONES, a translation) may run 5 past the chip on each side, then shrinks
+        // a long name (HEADPHONES, a translation) takes a second line before it shrinks
         Text(item.name)
           .kText(.mono(7.5, .semibold, tracking: 0.08))
           .foregroundStyle(ink)
-          .lineLimit(1)
-          .minimumScaleFactor(0.7)
-          .frame(width: 62)
+          .multilineTextAlignment(.center)
+          .lineLimit(2)
+          .minimumScaleFactor(0.75)
+          .frame(width: nameWidth, alignment: .top)
       }
-      .frame(width: 52)
+      .frame(width: side)
       .contentShape(Rectangle())
     }
     .buttonStyle(KFadePressStyle())
@@ -668,12 +694,14 @@ struct KMeShelfChip: View {
   }
 
   private func badge(_ fill: Color, _ glyph: KLineGlyph) -> some View {
-    ZStack {
-      Circle().fill(Color.white)
+    // a little smaller on a smaller tile, so two neighbours' badges keep apart
+    let d: CGFloat = side >= 50 ? 21 : 18
+    return ZStack {
+      Circle().fill(cut)
       Circle().fill(fill).padding(2)
-      KLineIcon(glyph, size: 9, lineWidth: 3, color: .white)
+      KLineIcon(glyph, size: d * 0.43, lineWidth: 3, color: .white)
     }
-    .frame(width: 21, height: 21)
+    .frame(width: d, height: d)
   }
 }
 
