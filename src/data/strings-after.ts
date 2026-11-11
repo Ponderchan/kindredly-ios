@@ -59,7 +59,7 @@ import { strings } from "../lib/i18n";
      af.bed.sleepTag      over her fact once she sleeps, capitals
      af.bed.streak.*      the bar's left line: days in a row ({n}; one; none before tonight)
      af.bed.makes         its right line before lights out: what tonight brings the count to
-     af.bed.week          …after lights out when the count is a whole number of weeks
+     af.bed.week          …after lights out on the night the count reaches seven
      af.bed.seeYou        …after lights out otherwise; {t} is 8 in the morning
      af.bed.next          the bar's right label before the hour ("next letters 8:00 AM")
      af.bed.bird.a11y     VoiceOver: her, as a button

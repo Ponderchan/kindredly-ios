@@ -233,7 +233,8 @@ export function buildAfterView(f: AfterFacts, fmt: AfterFormat): AfterVM {
   const streak = before === 0 ? t("af.bed.streak.0") : count(t, "af.bed.streak", before);
   const streakSub = t("af.bed.makes", { n: run });
   const streakDone = count(t, "af.bed.streak", run);
-  const streakSubDone = run % 7 === 0 ? t("af.bed.week") : t("af.bed.seeYou", { t: morning });
+  // "a full week" is said once, at seven; a longer run goes back to "see you at 8"
+  const streakSubDone = run === 7 ? t("af.bed.week") : t("af.bed.seeYou", { t: morning });
 
   return {
     page: today.page,
