@@ -5,8 +5,11 @@
      none    days 1–2 (and no threshold touched): First Class isn't mentioned at all
      invite  from day 3, or the first time a threshold is touched (a third photo stamp, a seventh
              pen pal, a First Class filter tapped in the Stamp Press): THE POST's gold-edged letter on the Courier card, for 48 hours
-     seat    seven days in a row with something written (a letter or a note): the boarding pass
-             over the Courier card, for 48 hours, once ever
+     seat    seven days in a row that count: the boarding pass over the Courier card, for 48
+             hours, once ever. A day counts when something was written (a letter or a note) or,
+             once Today's end-of-day pages are on (docs/today-after-fifteen.md, the owner's
+             2026-11-11 decision: one streak only), when the day's letters were finished.
+             Bedtime's seven dots read the same days (activeDays below)
      report  from day 30: last month's writing report, sealed, over the Courier card, each month
              (it starts again on the 1st), until it's opened
      tab     the quietest one: a gold pull-tab on the right edge, once any of the above has been
@@ -42,8 +45,8 @@ export type FcFacts = {
   /** the account's created_at, epoch ms; null when unknown (nothing shows) */
   createdAt: number | null;
   now: number;
-  /** local calendar days ("2026-10-20") with a letter or a note written */
-  writtenDays: ReadonlySet<string>;
+  /** the days that count ("2026-10-20"): activeDays below */
+  activeDays: ReadonlySet<string>;
   /** a threshold touched: a third photo stamp, a seventh pen pal */
   threshold: boolean;
   state: FcRolloutState;
@@ -78,8 +81,19 @@ export function accountDay(createdAt: number, now: number): number {
   return Math.floor((startOfDay(now) - startOfDay(createdAt) + DAY_MS / 2) / DAY_MS) + 1;
 }
 
-/** days in a row with writing, counting back from today (or from yesterday, when today is still empty) */
-export function writingStreak(days: ReadonlySet<string>, now: number): number {
+/**
+ * The days that count for the one streak: local calendar days with a letter or a note written,
+ * and the desk days (lib/day, kept on this phone) on which the day's letters were finished.
+ * Pass no finished days while Today's end-of-day pages are off: the rule is then the old one.
+ */
+export function activeDays(written: Iterable<string>, finished: Iterable<string> = []): Set<string> {
+  const days = new Set(written);
+  for (const d of finished) days.add(d);
+  return days;
+}
+
+/** days in a row that count, counting back from today (or from yesterday, when today is still empty) */
+export function activeStreak(days: ReadonlySet<string>, now: number): number {
   let d = new Date(startOfDay(now));
   if (!days.has(dayKey(d.getTime()))) d.setDate(d.getDate() - 1);
   let n = 0;
@@ -108,7 +122,7 @@ export function decideFc(f: FcFacts): FcDecision {
   const s = f.state;
   const open = day >= 3 || f.threshold || !!s.threshold;
 
-  if (!s.seatDone && live(s.seatShown, f.now) && writingStreak(f.writtenDays, f.now) >= 7) {
+  if (!s.seatDone && live(s.seatShown, f.now) && activeStreak(f.activeDays, f.now) >= 7) {
     return { form: "seat", tab: false, ...base, day };
   }
   if (day >= 30 && s.reportDone !== month.key) {

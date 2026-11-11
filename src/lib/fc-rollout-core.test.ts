@@ -2,12 +2,12 @@
    root with plain node:
      node src/lib/fc-rollout-core.test.ts */
 import assert from "node:assert/strict";
-import { FC_WINDOW_MS, accountDay, dayKey, decideFc, lastMonth, markOpened, markShown, writingStreak, type FcFacts } from "./fc-rollout-core.ts";
+import { FC_WINDOW_MS, accountDay, dayKey, decideFc, lastMonth, markOpened, markShown, activeDays, activeStreak, type FcFacts } from "./fc-rollout-core.ts";
 
 const DAY = 24 * 3600 * 1000;
 const t0 = new Date(2026, 9, 1, 10, 0).getTime(); // Oct 1, 10:00, local
 const at = (day: number, hour = 12) => new Date(2026, 9, day, hour, 0).getTime();
-const facts = (o: Partial<FcFacts>): FcFacts => ({ premium: false, createdAt: t0, now: at(1), writtenDays: new Set(), threshold: false, state: {}, ...o });
+const facts = (o: Partial<FcFacts>): FcFacts => ({ premium: false, createdAt: t0, now: at(1), activeDays: new Set(), threshold: false, state: {}, ...o });
 const days = (from: number, to: number) => new Set(Array.from({ length: to - from + 1 }, (_, i) => dayKey(at(from + i))));
 
 // the account's day
@@ -27,14 +27,22 @@ assert.deepEqual(decideFc(facts({ now: at(3, 12) + FC_WINDOW_MS + 1, state: show
 assert.equal(decideFc(facts({ now: at(3, 13), state: markOpened(shown, "invite", "") })).form, "tab");
 
 // seven days in a row: the seat (today may still be empty)
-assert.equal(writingStreak(days(1, 7), at(7)), 7);
-assert.equal(writingStreak(days(1, 7), at(8)), 7);
-assert.equal(writingStreak(days(1, 7), at(9)), 0);
-assert.equal(decideFc(facts({ now: at(7), writtenDays: days(1, 7) })).form, "seat");
-assert.equal(decideFc(facts({ now: at(6), writtenDays: days(1, 6) })).form, "invite");
+assert.equal(activeStreak(days(1, 7), at(7)), 7);
+assert.equal(activeStreak(days(1, 7), at(8)), 7);
+assert.equal(activeStreak(days(1, 7), at(9)), 0);
+assert.equal(decideFc(facts({ now: at(7), activeDays: days(1, 7) })).form, "seat");
+assert.equal(decideFc(facts({ now: at(6), activeDays: days(1, 6) })).form, "invite");
+// one streak (owner, 2026-11-11): a day counts when something was written or the day's letters were finished
+const mixed = activeDays([dayKey(at(1)), dayKey(at(2)), dayKey(at(5))], [dayKey(at(3)), dayKey(at(4)), dayKey(at(6)), dayKey(at(7)), dayKey(at(7))]);
+assert.equal(mixed.size, 7);
+assert.equal(activeStreak(mixed, at(7)), 7);
+assert.equal(decideFc(facts({ now: at(7), activeDays: mixed })).form, "seat");
+// with no finished days passed (the pages are off) it is the old rule: writing only
+assert.equal(activeStreak(activeDays([dayKey(at(1)), dayKey(at(2)), dayKey(at(5))]), at(7)), 0);
+assert.equal(decideFc(facts({ now: at(7), activeDays: activeDays([dayKey(at(5)), dayKey(at(6)), dayKey(at(7))]) })).form, "invite");
 // once ever: run out, it doesn't come back with a new streak
 const seatGone = markShown({}, "seat", at(7));
-assert.equal(decideFc(facts({ now: at(10), writtenDays: days(1, 10), state: seatGone })).form, "invite");
+assert.equal(decideFc(facts({ now: at(10), activeDays: days(1, 10), state: seatGone })).form, "invite");
 
 // day 30 on: last month's report, sealed, with the tab; spent for that month, back on the 1st
 const nov = (d: number) => new Date(2026, 10, d, 12).getTime();

@@ -326,7 +326,20 @@ import {
      meplanet     Me as one page: her card (a small whole planet she lives
                   on, her words, four looks), the Aura and Stamps tiles,
                   the report row — KMeView's `planet` record; Wren and the
-                  planet are drawn by Swift (KWrenBird, Portable/Planet) */
+                  planet are drawn by Swift (KWrenBird, Portable/Planet)
+
+   Today, after fifteen (the owner's decisions of 2026-11-11,
+   docs/today-after-fifteen.md): a new end of the day, not a port. OFF
+   until it has been checked on a phone; off, Today ends the day exactly
+   as it did (her counted letter and the window to her game) and First
+   Class's seven days count writing only:
+
+     afterfifteen once the day's last letter has gone past, Today is one
+                  of three pages until the morning: the mailbox, the
+                  receipt, bedtime, each with one small thing to Keep —
+                  KAfterFifteenView (screens/today/AfterFifteenNative);
+                  the same switch starts the reading timer and lets a
+                  finished day count for the one streak (lib/fc-rollout) */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
   room: true,
@@ -432,10 +445,12 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   threadmute: false,
   // the courier's planet on Me (owner sign-off 2026-11-11): OFF until its device pass
   meplanet: false,
+  // Today after fifteen (owner's decisions 2026-11-11): OFF until its device pass
+  afterfifteen: false,
 };
 
 /** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages, a kindred's page, Wren's room, the five small pages and three Notes pages (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "kindredpage" | "wrenroom" | "report" | "voice" | "drafts" | "stampbook" | "lore" | "noteentry" | "noteday" | "photoroll" | "introritual" | "lightbox" | "songshelf" | "signsheet" | "leavesheet" | "reportsheet" | "signupsheet" | "toast" | "letterreader" | "wardrobeslip" | "parcel" | "growthmoment" | "identitynote" | "firstflight" | "recorder" | "audiocard" | "lettertravel" | "couriercard" | "auraart" | "reportwrapped" | "launch" | "authcallback" | "hatch" | "obchick" | "obroutebird" | "obflight" | "kindredsempty" | "wardrobesheet" | "plush" | "composewren" | "notewren" | "facewren" | "myavatar" | "faceready" | "ratingsheet" | "fcreceipt" | "chatheader" | "inflight" | "notevoice" | "notefilm" | "frameviewer" | "postmedia" | "reels" | "freeflight" | "meplanet";
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "kindredpage" | "wrenroom" | "report" | "voice" | "drafts" | "stampbook" | "lore" | "noteentry" | "noteday" | "photoroll" | "introritual" | "lightbox" | "songshelf" | "signsheet" | "leavesheet" | "reportsheet" | "signupsheet" | "toast" | "letterreader" | "wardrobeslip" | "parcel" | "growthmoment" | "identitynote" | "firstflight" | "recorder" | "audiocard" | "lettertravel" | "couriercard" | "auraart" | "reportwrapped" | "launch" | "authcallback" | "hatch" | "obchick" | "obroutebird" | "obflight" | "kindredsempty" | "wardrobesheet" | "plush" | "composewren" | "notewren" | "facewren" | "myavatar" | "faceready" | "ratingsheet" | "fcreceipt" | "chatheader" | "inflight" | "notevoice" | "notefilm" | "frameviewer" | "postmedia" | "reels" | "freeflight" | "meplanet" | "afterfifteen";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */
