@@ -236,6 +236,8 @@ export const KSCREEN_VIEWS = [
   "KMePlanetView",
   // the planet page (the same switch): src/app/planet.tsx
   "KPlanetPageView",
+  // Today, after fifteen (2026-11-11, "afterfifteen"): the page Today becomes once the day's letters are read
+  "KAfterFifteenView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];
