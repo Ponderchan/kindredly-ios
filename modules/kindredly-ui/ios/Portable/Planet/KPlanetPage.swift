@@ -516,6 +516,8 @@ struct KPlanetSlipCard: View {
   let onGo: () -> Void
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  /// how the letter opens is content: the reader's own font (Settings)
+  @Environment(\.kLetterFace) private var face
 
   var body: some View {
     let ink = palette.text
@@ -535,7 +537,7 @@ struct KPlanetSlipCard: View {
             if !slip.body.isEmpty {
               // two lines when it has them: never squeezed to one by a tight page
               Text(slip.body)
-                .kText(.letter(13.5, lineHeight: 18.0 / 13.5))
+                .kText(.content(face.fitSize(13.5), lineHeight: 18.0 / 13.5))
                 .foregroundStyle(ink)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)

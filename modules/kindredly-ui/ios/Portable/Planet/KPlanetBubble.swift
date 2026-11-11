@@ -1,17 +1,18 @@
 import SwiftUI
 
 /* HER WORDS, IN A BUBBLE (docs/courier-planet.md): white, under the planet's scene, with a tail
-   that follows her across it. Who and when (mono caps), her line (the Letter face, two lines at
-   most), her aside (italic), and one button when there is something to open (Open, or Play on
-   her day off; the planet page has none).
+   that follows her across it. Who and when (mono caps), her line and her aside in italic (the
+   reader's content font from Settings, System for most, exactly as her old card sets them:
+   KTextStyle.content, not .letter, which never follows the setting), and one button when there
+   is something to open (Open, or Play on her day off; the planet page has none).
 
    The words are laid out once; only the bubble's shape is redrawn each frame, from the probe the
    planet reports her place to. VoiceOver hears the words in the scene's sentence, so here it
    gets the button only.
 
    ITS HEIGHT IS ITS WORDS'. At the default type size with one or two lines of hers it is the
-   prototype's 106 (the band 122); larger type, or Japanese and Korean in the Letter face (their
-   lines stand taller, KType.tallScript), make it taller rather than clip her. The shape is the
+   prototype's 106 (the band 122); larger type, or Japanese and Korean in a serif content font
+   (their lines stand taller, KType.tallScript), make it taller rather than clip her. The shape is the
    words' background, so it is always exactly as tall as they are. */
 
 public struct KPlanetBubble: View {
@@ -37,6 +38,9 @@ public struct KPlanetBubble: View {
   private let probe: KPlanetProbe
   private let live: Bool
   private let onCta: () -> Void
+
+  /// her words are content: set in the reader's own font (Settings), as her old card sets them
+  @Environment(\.kLetterFace) private var face
 
   /// - Parameters:
   ///   - time: "2H AGO"; "" for none
@@ -70,7 +74,7 @@ public struct KPlanetBubble: View {
       .lineLimit(1)
       .accessibilityHidden(true)
       Text(line)
-        .kText(.letter(14, lineHeight: 18.0 / 14.0))
+        .kText(.content(face.fitSize(14), lineHeight: 18.0 / 14.0))
         .foregroundStyle(KBrand.inkOnBrand)
         .lineLimit(3)
         .multilineTextAlignment(.leading)
@@ -79,7 +83,7 @@ public struct KPlanetBubble: View {
         .accessibilityHidden(true)
       HStack(alignment: .center, spacing: 10) {
         Text(aside)
-          .kText(.letter(12.5, italic: true))
+          .kText(.content(face.fitSize(12.5), italic: true))
           .foregroundStyle(Self.asideInk)
           .lineLimit(2)
           .multilineTextAlignment(.leading)
