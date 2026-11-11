@@ -124,6 +124,14 @@ text and the prototype disagree, the prototype wins unless this text says "chang
    tests, the changelog.
 7. **On a device.** Dev build, simulator and phone, fixes.
 
+## Progress
+
+- 2026-11-11 — spec and prototype committed (580a26e).
+- 2026-11-11 — **phase 1 done** (e7dc458): `Portable/Kit/KWrenBird.swift` + generated
+  `KWrenFamilyData.swift`; check sheet in `design/courier-planet/checks/` (source + render).
+  Not yet wired into any screen: the existing screens still show snapshots.
+- Next: phase 2, the planet.
+
 ## Not decided yet
 
 - How often the shelf turns over (assumed weekly).
