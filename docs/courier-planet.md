@@ -95,8 +95,9 @@ text and the prototype disagree, the prototype wins unless this text says "chang
   `cd modules/kindredly-ui/ios && xcrun -sdk iphonesimulator swiftc -typecheck -target arm64-apple-ios18.0-simulator $(find Portable -name '*.swift')`
   (the target must be iOS 18.0, the podspec's). Local Xcode is 27.0, the cloud image 26.5: keep
   expressions in small typed steps (see commit 85b7266).
-- **Render a SwiftUI view to a PNG on this Mac:** compile for Mac Catalyst and run it as a
-  command-line tool — `xcrun swiftc -parse-as-library -target arm64-apple-ios18.0-macabi -sdk $SDK
+- **Render a SwiftUI view to a PNG on this Mac:** `design/courier-planet/checks/render.sh
+  <harness.swift> <out.png>` (about two minutes: it compiles the whole portable layer). What it
+  does: compile for Mac Catalyst and run it as a command-line tool — `xcrun swiftc -parse-as-library -target arm64-apple-ios18.0-macabi -sdk $SDK
   -Fsystem $SDK/System/iOSSupport/System/Library/Frameworks -L $SDK/System/iOSSupport/usr/lib/swift
   -I $SDK/System/iOSSupport/usr/lib/swift <sources> -o shot` with `SDK=$(xcrun --sdk macosx --show-sdk-path)`,
   and a `@main` that writes `ImageRenderer(content:).uiImage.pngData()`. Canvas, gradients and
@@ -130,7 +131,15 @@ text and the prototype disagree, the prototype wins unless this text says "chang
 - 2026-11-11 — **phase 1 done** (e7dc458): `Portable/Kit/KWrenBird.swift` + generated
   `KWrenFamilyData.swift`; check sheet in `design/courier-planet/checks/` (source + render).
   Not yet wired into any screen: the existing screens still show snapshots.
-- Next: phase 2, the planet.
+- 2026-11-11 — **phase 2 done** (3fdc232): `Portable/Planet/` — KPlanetMath (vectors, turns, the
+  trackball, the land caps, the stamp sites), KPlanetEngine (attitude, the finger, the glide, the
+  page's settle and pick, zoom, fixed 60 Hz steps), KPlanetPaint (one frame, back to front),
+  KPlanetView (Canvas on a TimelineView, drag / pinch / double tap, taps reported).
+  A letter's stamp sits at the site its *ordinal* picks (1 = the first letter she ever carried),
+  so stamps never move when a new letter arrives; the planet shows the newest 47.
+  Check: `design/courier-planet/checks/render.sh planet-sheet.swift out.png` (render kept beside it).
+  Touch, glide feel and gesture conflicts with the Me scroll view are not checked yet (phase 7).
+- Next: phase 3, her motion.
 
 ## Not decided yet
 
