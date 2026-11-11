@@ -229,7 +229,7 @@ export function buildShelf(f: ShelfFacts, fmt: ShelfFormat): ShelfLookVM[] {
   const { t, upper } = fmt;
   return shelfSlots(f).map((s) => {
     const name = lookName(s, t);
-    const hint = s.worn ? t("cp.a11y.takeOff") : s.firstClass ? t("m4.a11y.opensFc") : s.dim ? t("m4.a11y.opensWardrobe", { wren: fmt.wren }) : t("cp.a11y.wear");
+    const hint = s.worn ? t("planet.a11y.takeOff") : s.firstClass ? t("m4.a11y.opensFc") : s.dim ? t("m4.a11y.opensWardrobe", { wren: fmt.wren }) : t("planet.a11y.wear");
     return {
       id: s.id,
       name: upper(name),
@@ -291,7 +291,7 @@ export function buildStampsTile(s: PlanetStampsSource, fmt: { t: TFn; upper: (s:
   const label = upper(t("me.seg.stamps"));
   const title = s.madeShow ? s.emptyTitle : s.emptyText;
   const caption = s.cells.length > 0 ? s.count : s.madeQuota;
-  return { label, title, caption, fan, make: s.madeShow, a11y: [t("me.seg.stamps"), title, caption].filter(Boolean).join(", "), hint: t("cp.a11y.opensAlbum") };
+  return { label, title, caption, fan, make: s.madeShow, a11y: [t("me.seg.stamps"), title, caption].filter(Boolean).join(", "), hint: t("planet.a11y.opensAlbum") };
 }
 
 export type MePlanetFacts = {
@@ -341,7 +341,7 @@ export function buildMePlanet(f: MePlanetFacts, fmt: ShelfFormat): MePlanetVM {
     look: { skin: f.shelf.skin, dress: f.shelf.dress, stage: f.stage, wilt: f.wilt && !f.dayOff },
     letters: f.letters,
     chip: c.playing ? c.dayOffTag : c.chip,
-    hint: fmt.upper(t("cp.hint.spin")),
+    hint: fmt.upper(t("planet.hint.spin")),
     name: c.name,
     // on her day off the chip already says so: no second DAY OFF beside her name
     time: c.playing ? "" : c.time,
@@ -354,7 +354,7 @@ export function buildMePlanet(f: MePlanetFacts, fmt: ShelfFormat): MePlanetVM {
     allLooks: t("m4.looks.all"),
     allLooksHint: t("m4.a11y.opensWardrobe", { wren: fmt.wren }),
     stamps: buildStampsTile(f.stamps, fmt),
-    auraHint: t("cp.a11y.opensAura"),
+    auraHint: t("planet.a11y.opensAura"),
   };
 }
 
@@ -483,7 +483,7 @@ export function planetFigures(f: FigureFacts, fmt: Pick<PageFormat, "t" | "upper
     const value = n == null ? FIGURE_UNKNOWN : String(n);
     return { id, value, label: upper(t(key)), lamp, a11y: n == null ? t(key) : `${value}, ${t(key)}` };
   };
-  return [fig("way", way, "cp.page.way"), fig("carried", f.carried, "cp.page.carried"), fig("desks", f.desks, "cp.page.desks", true)];
+  return [fig("way", way, "planet.page.way"), fig("carried", f.carried, "planet.page.carried"), fig("desks", f.desks, "planet.page.desks", true)];
 }
 
 export type PlanetPageFacts = {
@@ -539,7 +539,7 @@ export function buildPlanetPage(f: PlanetPageFacts, fmt: PageFormat): PlanetPage
     look: { ...f.look, wilt: f.look.wilt && !f.dayOff },
     letters: f.letters,
     chip: c.playing ? c.dayOffTag : c.chip,
-    hint: `${upper(t("cp.hint.spin"))} · ${upper(t("cp.hint.zoom"))}`,
+    hint: `${upper(t("planet.hint.spin"))} · ${upper(t("planet.hint.zoom"))}`,
     name: c.name,
     time: c.playing ? "" : c.time,
     line: c.line,
@@ -561,8 +561,8 @@ export function buildPlanetPage(f: PlanetPageFacts, fmt: PageFormat): PlanetPage
     myLetters: t("ml.title"),
     myLettersCount: carried == null ? "" : String(carried),
     back: t("a11y.back"),
-    zoomIn: t("cp.a11y.zoomIn"),
-    zoomOut: t("cp.a11y.zoomOut"),
+    zoomIn: t("planet.a11y.zoomIn"),
+    zoomOut: t("planet.a11y.zoomOut"),
     a11y: f.a11y,
   };
 }

@@ -7,12 +7,19 @@ import SwiftUI
 
    The words are laid out once; only the bubble's shape is redrawn each frame, from the probe the
    planet reports her place to. VoiceOver hears the words in the scene's sentence, so here it
-   gets the button only. */
+   gets the button only.
+
+   ITS HEIGHT IS ITS WORDS'. At the default type size with one or two lines of hers it is the
+   prototype's 106 (the band 122); larger type, or Japanese and Korean in the Letter face (their
+   lines stand taller, KType.tallScript), make it taller rather than clip her. The shape is the
+   words' background, so it is always exactly as tall as they are. */
 
 public struct KPlanetBubble: View {
-  /// the band's height: the bubble (106), 10 over it for the tail and 6 under
+  /// the band's least height: the bubble (106), 10 over it for the tail and 6 under
   public static let height: CGFloat = 122
   static let inset: CGFloat = 10
+  static let foot: CGFloat = 6
+  /// the bubble's least height
   static let bubbleHeight: CGFloat = 106
   static let tailWidth: CGFloat = 16
   static let tailRise: CGFloat = 7
@@ -50,56 +57,60 @@ public struct KPlanetBubble: View {
 
   public var body: some View {
     let night = palette.moon
-    ZStack(alignment: .topLeading) {
-      KPlanetBubbleShape(probe: probe, live: live)
-      VStack(alignment: .leading, spacing: 1) {
-        HStack(alignment: .firstTextBaseline, spacing: 0) {
-          Text(name.uppercased())
-          if !time.isEmpty {
-            Text(verbatim: " · ")
-            Text(time)
-          }
+    VStack(alignment: .leading, spacing: 1) {
+      HStack(alignment: .firstTextBaseline, spacing: 0) {
+        Text(name.uppercased())
+        if !time.isEmpty {
+          Text(verbatim: " · ")
+          Text(time)
         }
-        .kText(.mono(9.5, .semibold, tracking: 0.14))
-        .foregroundStyle(Self.captionInk)
-        .lineLimit(1)
-        .accessibilityHidden(true)
-        Text(line)
-          .kText(.letter(14, lineHeight: 18.0 / 14.0))
-          .foregroundStyle(KBrand.inkOnBrand)
-          .lineLimit(2)
-          .frame(maxWidth: .infinity, minHeight: 36, alignment: .topLeading)
-          .accessibilityHidden(true)
-        HStack(alignment: .center, spacing: 10) {
-          Text(aside)
-            .kText(.letter(12.5, italic: true))
-            .foregroundStyle(Self.asideInk)
-            .lineLimit(2)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityHidden(true)
-          if !cta.isEmpty {
-            SwiftUI.Button(action: onCta) {
-              Text(cta)
-                .kText(.system(13.5, .semibold))
-                .foregroundStyle(night ? Color.white : palette.buttonText)
-                .lineLimit(1)
-                .padding(.horizontal, 15)
-                .frame(height: 30)
-                .background(Capsule().fill(night ? KBrand.inkOnBrand : palette.button))
-            }
-            .buttonStyle(KFadePressStyle())
-            .fixedSize()
-          }
-        }
-        .frame(minHeight: 30)
       }
-      .padding(.horizontal, 14)
-      .padding(.vertical, 10)
-      .frame(height: Self.bubbleHeight, alignment: .top)
-      .padding(.horizontal, Self.inset)
-      .padding(.top, Self.inset)
+      .kText(.mono(9.5, .semibold, tracking: 0.14))
+      .foregroundStyle(Self.captionInk)
+      .lineLimit(1)
+      .accessibilityHidden(true)
+      Text(line)
+        .kText(.letter(14, lineHeight: 18.0 / 14.0))
+        .foregroundStyle(KBrand.inkOnBrand)
+        .lineLimit(3)
+        .multilineTextAlignment(.leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, minHeight: 36, alignment: .topLeading)
+        .accessibilityHidden(true)
+      HStack(alignment: .center, spacing: 10) {
+        Text(aside)
+          .kText(.letter(12.5, italic: true))
+          .foregroundStyle(Self.asideInk)
+          .lineLimit(2)
+          .multilineTextAlignment(.leading)
+          .fixedSize(horizontal: false, vertical: true)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .accessibilityHidden(true)
+        if !cta.isEmpty {
+          SwiftUI.Button(action: onCta) {
+            Text(cta)
+              .kText(.system(13.5, .semibold))
+              .foregroundStyle(night ? Color.white : palette.buttonText)
+              .lineLimit(1)
+              .padding(.horizontal, 15)
+              .frame(minHeight: 30)
+              .background(Capsule().fill(night ? KBrand.inkOnBrand : palette.button))
+          }
+          .buttonStyle(KFadePressStyle())
+          .fixedSize()
+        }
+      }
+      .frame(minHeight: 30)
     }
-    .frame(height: Self.height, alignment: .top)
+    .padding(.horizontal, 14)
+    .padding(.vertical, 10)
+    .frame(maxWidth: .infinity, minHeight: Self.bubbleHeight, alignment: .topLeading)
+    .padding(.horizontal, Self.inset)
+    .padding(.top, Self.inset)
+    .padding(.bottom, Self.foot)
+    .background {
+      KPlanetBubbleShape(probe: probe, live: live)
+    }
   }
 }
 
@@ -112,9 +123,10 @@ private struct KPlanetBubbleShape: View {
   var body: some View {
     TimelineView(.animation(minimumInterval: nil, paused: !live)) { _ in
       Canvas { context, size in
+        // the band less its margins: 10 at the sides and over it (the tail's room), 6 under
         let inset = KPlanetBubble.inset
         let top = inset
-        let box = CGRect(x: inset, y: top, width: size.width - inset * 2, height: KPlanetBubble.bubbleHeight)
+        let box = CGRect(x: inset, y: top, width: size.width - inset * 2, height: max(0, size.height - top - KPlanetBubble.foot))
         let half = KPlanetBubble.tailWidth / 2
         let x = min(max(probe.wrenX, box.minX + 24 + half), box.maxX - 24 - half)
         var shape = Path(roundedRect: box, cornerRadius: 20, style: .continuous)

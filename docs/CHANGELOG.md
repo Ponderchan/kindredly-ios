@@ -38,6 +38,19 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 ## Unreleased
 
+The courier's planet (owner sign-off 2026-11-11; branch `courier-planet`, **not in 1.0.9**: it needs the binary after it; built and OFF) [switch: meplanet]
+- Me is one page: the Courier / Aura / Stamps switch is gone. Under your name: her card, then Aura and Stamps side by side, then your writing report. The header still sticks and shrinks as you scroll.
+- Her card is a small planet you can turn with a finger; it never turns by itself. Every letter she has carried is a stamp on it, every stranger who has had one on their desk is a lamp near it (lit after dark), and a letter someone answered is postmarked.
+- Wren lives on the planet and you can see what she is doing: asleep on top at home, flying round it with your letter while nobody has answered, waiting on its shoulder at someone's door, back on top with the reply set down beside her, or racing through two gates on her day off. Turn the planet and she is swept along; tap her and she hops.
+- Her words are in a speech bubble whose tail follows her, with Open (her page) or Play (her day off) in it. The YOU and SOMEWHERE windows and the route line are gone.
+- Four of her looks sit under her words: one free piece, Moss (your first kindred), one First Class colour and one First Class piece. They change every Monday; what she is wearing stays; tapping the one she wears takes it off. All looks → opens her wardrobe.
+- A new page, the planet page, from the round button on her card and from Track on her page: the planet larger (pinch, double tap or + − to zoom; closer in, each stamp shows its day), three figures (On the way, Carried, On desks) and one slip a letter — when it left, how many desks it has been on, where it stands. Swiping to a slip turns the planet to its stamp; tapping a stamp or turning the planet brings its slip. A letter with a reply opens on its own slip with Go to the Door.
+- Her page (Open) is unchanged, except that Track now opens the planet page.
+- The Aura and Stamps tiles and the report row each have a colour of their own (sand, blue, green) instead of the page's grey.
+
+Changed with it (ships with or without the switch) [OTA]
+- Wren says plainly when a letter is out: "your letter's out. no one has written back yet" / "i'll bring it the second someone does" (it used to be "still hunting for the right window"), in all nine languages, by day and by night.
+
 Fixed after the first TestFlight build of 1.0.9 (b41, owner's notes 2026-11-10)
 - Make your own face and the faces you already made are back in Edit profile on a new build without anyone switching them on. [switch: makeface, now on by default]
 - Me: the look Wren is wearing is ringed in the pen colour, not a black frame.

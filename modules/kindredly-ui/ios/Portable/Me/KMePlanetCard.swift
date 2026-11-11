@@ -140,7 +140,7 @@ public struct KMePlanetCard: View {
       scene
       words
       KMeShelf(card: card, actions: actions)
-        .frame(height: KMePlanetMetrics.shelf)
+        .frame(minHeight: KMePlanetMetrics.shelf, alignment: .top)
     }
     .background(palette.sky1)
     .clipShape(RoundedRectangle(cornerRadius: KMePlanetMetrics.corner, style: .continuous))
@@ -245,7 +245,7 @@ struct KMeShelf: View {
     }
     .padding(.horizontal, 14)
     .padding(.top, 4)
-    .frame(maxHeight: .infinity, alignment: .top)
+    .padding(.bottom, 8)
   }
 }
 

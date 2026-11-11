@@ -116,8 +116,8 @@ eq("a look the shelf doesn't hold this week: nothing", shelfTap("skin:ink", base
   const s = buildShelf({ ...base, dress: "beanie" }, fmt);
   eq("names are the catalogue's, upper-cased", s.map((x) => x.name), ["WS.ACC.BEANIE", "SKIN.MOSS.NAME", "SKIN.PEACH.NAME", "WS.ACC.PHONES"]);
   eq("VoiceOver: a look that isn't hers says locked", s.map((x) => x.a11y), ["ws.acc.beanie", "skin.moss.name, m4.a11y.locked", "skin.peach.name, m4.a11y.locked", "ws.acc.phones, m4.a11y.locked"]);
-  eq("VoiceOver: what a tap does", s.map((x) => x.hint), ["cp.a11y.takeOff", "m4.a11y.opensWardrobe(Pip)", "m4.a11y.opensFc", "m4.a11y.opensFc"]);
-  eq("a look that is hers and off: wear", buildShelf({ ...base, kindreds: 1 }, fmt)[1].hint, "cp.a11y.wear");
+  eq("VoiceOver: what a tap does", s.map((x) => x.hint), ["planet.a11y.takeOff", "m4.a11y.opensWardrobe(Pip)", "m4.a11y.opensFc", "m4.a11y.opensFc"]);
+  eq("a look that is hers and off: wear", buildShelf({ ...base, kindreds: 1 }, fmt)[1].hint, "planet.a11y.wear");
 }
 
 /* ── the Stamps tile ── */
@@ -138,7 +138,7 @@ eq("a look the shelf doesn't hold this week: nothing", shelfTap("skin:ink", base
   const v = buildMePlanet(facts, fmt);
   eq("on the way, hungry: she flies, greyed", [v.state, v.look.wilt, v.look.stage], ["out", true, "fledge"]);
   eq("the card's words are the courier card's", [v.chip, v.name, v.time, v.line, v.aside, v.cta], ["YOUR COURIER", "Pip", "2H AGO", "line", "aside", "Open"]);
-  eq("the hint is drawn in capitals; Track is the courier page's word", [v.hint, v.track], ["CP.HINT.SPIN", "wren.trackShort"]);
+  eq("the hint is drawn in capitals; Track is the courier page's word", [v.hint, v.track], ["PLANET.HINT.SPIN", "wren.trackShort"]);
   const off = buildMePlanet({ ...facts, dayOff: true, courier: { ...courier, playing: true, time: "DAY OFF", cta: "Play" } }, fmt);
   eq("her day off: the chip says so once, she isn't greyed, the button plays", [off.state, off.chip, off.time, off.look.wilt, off.cta], ["dayOff", "DAY OFF", "", false, "Play"]);
 }
@@ -199,7 +199,7 @@ eq("a look the shelf doesn't hold this week: nothing", shelfTap("skin:ink", base
   const v = buildPlanetPage({ courier, where: "bringing", dayOff: false, a11y: "sentence", cards, letters, total: null, transit: { rows: ["R1", "R2", "R3"], thread: "th9", letter: "b", back: true }, atDoors: 0, look }, pf);
   eq("the page: she is back, it opens on the answered letter", [v.state, v.open], ["back", "b"]);
   eq("its figures count the read letters", v.figures.map((x) => x.value), ["0", "3", "5"]);
-  eq("the hint names both gestures; My letters carries the count", [v.hint, v.myLetters, v.myLettersCount, v.track], ["CP.HINT.SPIN · CP.HINT.ZOOM", "ml.title", "3", "WREN.TRACKSHORT"]);
+  eq("the hint names both gestures; My letters carries the count", [v.hint, v.myLetters, v.myLettersCount, v.track], ["PLANET.HINT.SPIN · PLANET.HINT.ZOOM", "ml.title", "3", "WREN.TRACKSHORT"]);
   const cold = buildPlanetPage({ courier, where: "exploring", dayOff: false, a11y: "", cards: null, letters: [], total: null, transit: null, atDoors: 0, look }, pf);
   eq("before the letters are read: dashes, no count, the two waiting rows", [cold.figures.map((x) => x.value), cold.myLettersCount, cold.slips.length, cold.emptyRows], [[FIGURE_UNKNOWN, FIGURE_UNKNOWN, FIGURE_UNKNOWN], "", 0, ["wren.slip.nothing", "wren.slip.write"]]);
   eq("the total wins when the list is only its newest", buildPlanetPage({ courier, where: "home", dayOff: false, a11y: "", cards, letters, total: 250, transit: null, atDoors: 0, look }, pf).figures[1].value, "250");

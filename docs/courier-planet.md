@@ -218,7 +218,32 @@ text and the prototype disagree, the prototype wins unless this text says "chang
     `KPlanetProbe`), so the planet has turned to the letter on show.
   - Try it on a dev client: `kindredly:///dev/planet-page` (WHERE / DAY OFF / HOUR / LETTERS /
     RUN / SKIN / LOOK), or the round button on the dev Me page.
-- Next: phase 6, words and care.
+- 2026-11-11 — **phase 6 done**: words and care.
+  - **Nine languages, written natively.** `src/data/strings-planet.ts` (keys `planet.*`: the two
+    hints, the three figures' labels, VoiceOver's hints and names) and, in `src/data/strings.ts`,
+    the plain "on the way" lines in all nine blocks: `fl.exploring` = `fl.exploring.notime`
+    (no `{time}` any more), `fl.exploring.sub`, `fl.night.flying`, and `fl.night.flying.sub` =
+    the day's aside (no language promises delivery at any hour). These change her old card too:
+    they ship with or without the switch. How: one native writer a language from a brief of what
+    each string must do, then a native editor who read only the result (two workflows of eight;
+    the editors changed eight strings — the reasons are in the strings file's header).
+    `node src/data/strings-planet.test.ts` (236 checks): the nine blocks agree, the labels fit
+    where they sit, nothing is left in English, no "on the way" line has a window or a sill in it.
+  - **Dynamic Type and tall scripts.** The bubble is as tall as its words (never under the
+    prototype's 106): larger type, or Japanese and Korean in the Letter face, grow it instead of
+    clipping her. The shelf, the page's rows and the tiles grow the same way. Her card and the
+    page stop at xxLarge.
+  - **VoiceOver.** The scene is one sentence (who, when, what she says, what Open does); the
+    bubble's words are not read twice; a look says its name, whether it is locked, and what a
+    double tap does; a slip is one sentence, or three elements when it has Go to the Door; the
+    figures read as "3, On the way"; the two zoom keys and the round button are named.
+  - **Reduce Motion.** The planet still turns under the finger; nothing glides, drifts, twinkles
+    or bobs, she stays where her state puts her, a picked letter is turned to at once, slips
+    change without the slide.
+  - `docs/CHANGELOG.md`: the planet's lines under Unreleased (not in 1.0.9; `[switch: meplanet]`)
+    and the plain lines (`[OTA]`).
+- Next: phase 7, on a device — **ask the owner before building** (a dev client with the new
+  Swift files needs a pod install and a build).
 
 ## For the device pass (phase 7), noted along the way
 

@@ -454,7 +454,8 @@ struct KPlanetTrackHead: View {
     }
     .kText(.mono(9.5, .semibold, tracking: 0.14))
     .foregroundStyle(palette.text.opacity(0.7))
-    .frame(height: 22)
+    .lineLimit(1)
+    .frame(minHeight: 22)
     .padding(.horizontal, KPlanetPageMetrics.side)
     .accessibilityElement(children: .combine)
     .accessibilityAddTraits(.isHeader)
@@ -482,7 +483,7 @@ struct KPlanetMyLettersRow: View {
         KLineIcon(.chevronRight, size: 12, lineWidth: 2.2, color: palette.text.opacity(0.6))
       }
       .padding(.horizontal, 14)
-      .frame(height: 44)
+      .frame(minHeight: 44)
       .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(palette.planetGlass))
       .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
@@ -543,6 +544,7 @@ struct KPlanetSlipCard: View {
           }
           .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .accessibilityElement(children: .combine)
       }
       HStack(alignment: .bottom, spacing: 8) {
         VStack(alignment: .leading, spacing: 6) {
@@ -564,6 +566,7 @@ struct KPlanetSlipCard: View {
           }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
         if !slip.cta.isEmpty {
           SwiftUI.Button(action: onGo) {
             Text(slip.cta)
@@ -586,7 +589,26 @@ struct KPlanetSlipCard: View {
     .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     .opacity(onShow ? 1 : 0.55)
     .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: onShow)
-    .accessibilityElement(children: slip.cta.isEmpty ? .ignore : .contain)
-    .accessibilityLabel(slip.a11y.isEmpty ? ([slip.head, slip.body] + slip.rows).filter { !$0.isEmpty }.joined(separator: ". ") : slip.a11y)
+    .modifier(KPlanetSlipVoice(slip: slip, onShow: onShow))
+  }
+}
+
+/// How VoiceOver hears a slip. Without a button it is one element: its day and stamp, how the
+/// letter opens, its rows, in one sentence. With Go to the Door it is three: the letter, where it
+/// stands, the button. The slip on show is the selected one.
+private struct KPlanetSlipVoice: ViewModifier {
+  let slip: KPlanetSlip
+  let onShow: Bool
+
+  func body(content: Content) -> some View {
+    if slip.cta.isEmpty {
+      content
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(slip.a11y.isEmpty ? ([slip.head, slip.body] + slip.rows).filter { !$0.isEmpty }.joined(separator: ". ") : slip.a11y)
+        .accessibilityAddTraits(onShow ? .isSelected : [])
+    } else {
+      content
+        .accessibilityElement(children: .contain)
+    }
   }
 }
