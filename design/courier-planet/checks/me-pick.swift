@@ -5,8 +5,10 @@ import UIKit
 #endif
 
 /* Me, one phone per choice, for the owner's picker page (2026-11-11: "me 页面 看不清 啊 还没选呢"):
-   her card as built (A) or as one white body (B) x three colour schemes x day / evening / night
-   x the five days of First Class. Writes <out dir>/<A|B>-<1|2|3>-<hour>-<day>.png, 402pt wide at 2x.
+   round two — her card as one white body, and the blocks under it four ways (neutral grey tiles /
+   white with a soft shadow / white with a block shadow / white with a thick underside) x day /
+   evening / night x the five days of First Class. Writes <out dir>/<style>-<hour>-<day>.png, 402pt
+   wide at 2x. (Round one, commit 40aa424: her card A/B x three colour schemes.)
    design/courier-planet/checks/render-fast.sh me-pick.swift <out dir>
 
    The rest of this header is me-by-day.swift's.
@@ -402,7 +404,35 @@ let PICK_DAYS: [(String, Day)] = [
              reportTitle: "This month's writing report", reportSub: "Ready to read", reportOpens: true, worn: "skin:peach", look: KWrenLook(skin: .peach))),
 ]
 
-@MainActor func phone(body: String, scheme: Scheme, hour: String, d: Day) -> some View {
+/// How a block stands off a pure white page (owner, 11-11 night: "纯白底 立体一点 不要配色").
+/// grey = the neutral-grey tiles he half liked; the other three are white blocks with no colour.
+enum Lift: String, CaseIterable {
+  case grey, soft, hard, key
+}
+
+@ViewBuilder func lifted<V: View>(_ v: V, radius r: CGFloat, _ s: Lift) -> some View {
+  let shape = RoundedRectangle(cornerRadius: r, style: .continuous)
+  switch s {
+  case .grey:
+    v
+  case .soft:
+    // floats: a hairline, a contact shadow, a wide soft one
+    v.overlay(shape.strokeBorder(Color(hex: "#EEECF2"), lineWidth: 1))
+      .compositingGroup()
+      .shadow(color: Color(hex: "#1E1B35").opacity(0.07), radius: 1.5, x: 0, y: 1)
+      .shadow(color: Color(hex: "#1E1B35").opacity(0.15), radius: 14, x: 0, y: 10)
+  case .hard:
+    // a sticker: a thin edge and a block of shadow down and to the right
+    v.overlay(shape.strokeBorder(Color(hex: "#E2E0E8"), lineWidth: 1.5))
+      .background(shape.fill(Color(hex: "#DDDBE5")).offset(x: 4, y: 5))
+  case .key:
+    // a key: a thin edge and a thick underside
+    v.overlay(shape.strokeBorder(Color(hex: "#E2E0E8"), lineWidth: 1.5))
+      .background(shape.fill(Color(hex: "#D8D6E0")).offset(x: 0, y: 5))
+  }
+}
+
+@MainActor func phone(lift: Lift, hour: String, d: Day) -> some View {
   var c = Case(label: "", pal: hour, state: d.state, look: d.look, worn: d.worn, member: d.member, kindred: d.member)
   c.line = d.line
   c.aside = d.aside
@@ -414,34 +444,29 @@ let PICK_DAYS: [(String, Day)] = [
   rep.title = d.reportTitle
   rep.sub = d.reportSub
   rep.enabled = d.reportOpens
-  let auraTone = scheme.aura(hour)
+  let grey = lift == .grey
+  let tile = grey ? KMeTileTone(fill: Color(hex: "#F1F0EE"), chip: INK) : KMeTileTone(fill: .white, chip: INK)
   return VStack(spacing: 0) {
     Color.clear.frame(height: 54)
     KMeHeader(theme: .classic, content: content, chrome: chrome, selection: .constant(0), actions: KMeActions(), onMetrics: { _ in }) {
       Circle().fill(Color(hex: "#CFE3F5"))
     }
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: grey ? 12 : 15) {
       if d.form == "seat" { KFcBoardingPass(fc: fc) {} }
       if d.form == "report" { KFcSealedReport(fc: fc) {} }
-      Group {
-        if body == "A" {
-          KMePlanetCard(card: planet(c), actions: KMePlanetActions())
-        } else {
-          CardB(card: planet(c), theme: .classic)
+      lifted(CardB(card: planet(c), theme: .classic), radius: 26, lift)
+        .overlay(alignment: .topTrailing) {
+          if d.form == "invite" {
+            KFcEnvelope(fc: fc) {}.padding(.trailing, 58).offset(y: -12)
+          }
         }
-      }
-      .overlay(alignment: .topTrailing) {
-        if d.form == "invite" {
-          KFcEnvelope(fc: fc) {}.padding(.trailing, 58).offset(y: -12)
-        }
-      }
-      HStack(alignment: .top, spacing: 12) {
-        KMeAuraTile(aura: aura(), chip: "AURA", hint: "", tone: auraTone, onTap: {}) { art(night: !auraTone.multiply) }
-        KMeStampsTile(tile: planet(c).stamps, tone: scheme.stamps(hour)) {}
+      HStack(alignment: .top, spacing: grey ? 12 : 14) {
+        lifted(KMeAuraTile(aura: aura(), chip: "AURA", hint: "", tone: tile, onTap: {}) { art() }, radius: 24, lift)
+        lifted(KMeStampsTile(tile: planet(c).stamps, tone: tile) {}, radius: 24, lift)
       }
       .fixedSize(horizontal: false, vertical: true)
       if d.form != "report" {
-        KMeReportRow(report: rep, tone: scheme.report(hour)) {}
+        lifted(KMeReportRow(report: rep, tone: tile) {}, radius: 20, lift)
       }
       if d.bottom { KMeFirstClassCard(card: firstClass(c)) {} }
     }
@@ -459,16 +484,14 @@ struct Shot {
   @MainActor static func main() {
     let dir = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "."
     var n = 0
-    for body in ["A", "B"] {
-      for (i, scheme) in SCHEMES.enumerated() {
-        for hour in ["day", "evening", "night"] {
-          for (key, d) in PICK_DAYS {
-            let renderer = ImageRenderer(content: phone(body: body, scheme: scheme, hour: hour, d: d).environment(\.colorScheme, .light))
-            renderer.scale = 2
-            guard let data = renderer.uiImage?.pngData() else { fatalError("no image") }
-            try! data.write(to: URL(fileURLWithPath: "\(dir)/\(body)-\(i + 1)-\(hour)-\(key).png"))
-            n += 1
-          }
+    for lift in Lift.allCases {
+      for hour in ["day", "evening", "night"] {
+        for (key, d) in PICK_DAYS {
+          let renderer = ImageRenderer(content: phone(lift: lift, hour: hour, d: d).environment(\.colorScheme, .light))
+          renderer.scale = 2
+          guard let data = renderer.uiImage?.pngData() else { fatalError("no image") }
+          try! data.write(to: URL(fileURLWithPath: "\(dir)/\(lift.rawValue)-\(hour)-\(key).png"))
+          n += 1
         }
       }
     }
