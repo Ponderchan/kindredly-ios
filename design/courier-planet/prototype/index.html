@@ -1,0 +1,753 @@
+<meta charset="utf-8">
+<title>信使星球原型</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* layout: the phone prototype on the left, switches and notes on the right; one column on a phone */
+:root{
+  --bg:#F1EFF9; --panel:#FFFFFF; --ink:#1E1B35; --muted:#6B6785; --line:#DDD9EF;
+  --accent:#3A34D6; --accent-ink:#FFFFFF; --chipbg:#E7E4F6;
+  --font:-apple-system,"SF Pro Text","PingFang SC","Hiragino Sans GB",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#141226; --panel:#1E1B38; --ink:#ECEAF8; --muted:#A8A4C6; --line:#35315A;
+  --accent:#8B85F2; --accent-ink:#141226; --chipbg:#2A2650; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#141226; --panel:#1E1B38; --ink:#ECEAF8; --muted:#A8A4C6; --line:#35315A;
+  --accent:#8B85F2; --accent-ink:#141226; --chipbg:#2A2650; color-scheme:dark }
+
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.55;
+  padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1000px;margin:0 auto;display:flex;flex-wrap:wrap;gap:36px 44px;align-items:flex-start}
+.stage{flex:0 0 auto;width:min(402px,100%);position:relative}
+.side{flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:20px}
+h1{margin:0;font-size:26px;line-height:1.2;font-weight:800;letter-spacing:-.01em;text-wrap:balance}
+.lede{margin:8px 0 0;color:var(--muted)}
+.grp{display:flex;flex-direction:column;gap:8px}
+.grp h2{margin:0;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;color:var(--muted)}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{font:600 14px var(--font);color:var(--ink);background:var(--chipbg);border:0;border-radius:999px;padding:9px 15px;min-height:40px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.seg button:focus-visible,#cv:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px 18px}
+.panel h2{margin:0 0 6px;font-size:15px}
+.panel ul{margin:0;padding-left:1.1em;color:var(--muted)}
+.panel li{margin:4px 0}
+.panel li b{color:var(--ink);font-weight:600}
+
+/* ── the phone: the app's default theme (Classic: white page, soft tiles), one look in either page theme ── */
+.phone{position:absolute;left:0;top:0;width:402px;height:800px;transform-origin:top left;background:#FFFFFF;border-radius:44px;overflow:hidden;
+  box-shadow:0 0 0 8px #1E1B35,0 0 0 9px var(--line);color:#1E1B35;font-family:-apple-system,"SF Pro Text",system-ui,sans-serif}
+[hidden]{display:none!important}
+.phone img.r{position:absolute;display:block;max-width:none}
+.phone button:focus-visible{outline:3px solid #3A34D6;outline-offset:2px}
+.scroll{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+.card{position:absolute;overflow:hidden;z-index:3;background:#ADDBB5}
+.card.full{overflow-y:auto;overscroll-behavior:contain}
+#cv{position:absolute;left:0;top:0;display:block;touch-action:none;cursor:grab}
+#cv.drag{cursor:grabbing}
+.cchip{position:absolute;left:12px;top:12px;font:700 11px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.16em;padding:7px 10px;border-radius:7px;pointer-events:none}
+.pbtn{position:absolute;right:12px;top:10px;width:34px;height:34px;border:0;border-radius:17px;background:rgba(255,255,255,.72);display:grid;place-items:center;cursor:pointer;padding:0}
+.card.full .cchip{left:60px;top:60px}
+.card.full .pbtn{left:16px;right:auto;top:54px}
+.hint{position:absolute;left:14px;top:42px;font:600 9.5px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.14em;pointer-events:none;opacity:.6;transition:opacity .4s}
+.card.full .hint{left:18px;top:98px}
+.zoomc{position:absolute;right:14px;display:flex;gap:8px}
+.zoomc button{width:34px;height:34px;padding:0;border:0;border-radius:17px;background:rgba(255,255,255,.72);color:#1E1B35;font:600 19px/1 -apple-system,system-ui,sans-serif;cursor:pointer}
+.hint.gone{opacity:0}
+.tip{position:absolute;z-index:4;background:#FFFFFF;color:#1E1B35;border-radius:12px;padding:7px 11px;box-shadow:0 8px 20px -8px rgba(30,27,53,.5);line-height:1.3;pointer-events:none;white-space:nowrap;transform:translate(-50%,-100%)}
+.tip small{display:block;font:600 9.5px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.14em;color:#6B6785}
+.tip span{font-size:13.5px;font-weight:600}
+
+/* what she says — the old strip, and the speech bubble */
+.band{position:absolute;left:0;width:100%;box-sizing:border-box;padding:9px 16px 0 17px}
+.band p{margin:0}
+.band .nm{font-size:16px;font-weight:600;line-height:20px}
+.band .ago{font:500 10.5px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.12em;margin-left:7px;opacity:.7}
+.band .ln{font-size:13.5px;line-height:17px;width:268px}
+.band .sub{font-style:italic;font-size:12px;line-height:16px;opacity:.8}
+.band .open{position:absolute;right:15px;top:27px;height:38px;padding:0 18px;border:0;border-radius:19px;font:600 15px -apple-system,system-ui,sans-serif;cursor:pointer}
+.band .tail{display:none}
+.band.bub{padding:10px 10px 0}
+.band.bub .bb{position:relative;box-sizing:border-box;height:106px;background:#FFFFFF;color:#1E1B35;border-radius:20px;padding:10px 14px;box-shadow:0 8px 18px -10px rgba(30,27,53,.4)}
+.band.bub .tail{display:block;position:absolute;top:4px;left:60px;width:14px;height:14px;background:#FFFFFF;border-radius:3px;transform:rotate(45deg)}
+.band.bub .nm{font:600 9.5px/14px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#6B6785}
+.band.bub .ago{font-size:9.5px;letter-spacing:.14em;margin-left:0;opacity:1}
+.band.bub .ago::before{content:" · "}
+.band.bub .ln{width:auto;font-size:14px;line-height:18px;min-height:36px;margin-top:1px}
+.band.bub .row2{display:flex;align-items:center;gap:10px;min-height:30px}
+.band.bub .sub{flex:1;min-width:0;font-size:12.5px;color:#5B5873;opacity:1}
+.band.bub .open{position:static;flex:0 0 auto;height:30px;padding:0 15px;border-radius:15px;font-size:13.5px}
+.card.full .open{display:none}
+.card.full .band .ln{width:auto}
+
+/* her looks, on a shelf of her own card */
+.shelf{position:absolute;left:0;width:100%;height:84px;box-sizing:border-box;padding:4px 14px 8px;display:flex;align-items:flex-start;gap:10px}
+.lk{width:52px;padding:0;border:0;background:none;color:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px}
+.lk .ch{position:relative;display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:#FFFFFF}
+.lk img{display:block;max-width:40px;max-height:38px}
+.lk small{font:600 7.5px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.08em;white-space:nowrap;opacity:.85}
+.lk.on .ch::after{content:"";position:absolute;left:-5px;top:-5px;width:17px;height:17px;border-radius:9px;background:#2E7D4F url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 17 17'%3E%3Cpath d='M5 8.8l2.4 2.3L12 6.2' fill='none' stroke='%23fff' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/17px no-repeat;box-shadow:0 0 0 2px #FFFFFF}
+.lk.fc .ch{background:#FFFDF6;outline:2px dashed #D8A63F;outline-offset:-2px}
+.lk.fc .ch::after{content:"";position:absolute;right:-5px;top:-5px;width:17px;height:17px;border-radius:9px;background:#D8A63F url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 17 17'%3E%3Crect x='5' y='8' width='7' height='5' rx='1.2' fill='%23fff'/%3E%3Cpath d='M6.6 8V6.6a1.9 1.9 0 0 1 3.8 0V8' fill='none' stroke='%23fff' stroke-width='1.3'/%3E%3C/svg%3E") center/17px no-repeat;box-shadow:0 0 0 2px #FFFFFF}
+.lkall{margin-left:auto;margin-top:8px;border:0;background:none;font:600 12.5px -apple-system,system-ui,sans-serif;cursor:pointer;padding:10px 2px}
+
+/* the planet page */
+.stats{position:absolute;left:0;width:100%;height:84px;box-sizing:border-box;padding:10px 16px 0;display:flex;gap:10px}
+.stats div{flex:1;border-radius:16px;background:rgba(255,255,255,.5);padding:9px 12px}
+.stats b{display:block;font-size:22px;font-weight:600;line-height:26px;font-variant-numeric:tabular-nums}
+.stats small{font:600 9.5px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.14em;opacity:.75}
+.slip{position:absolute;left:0;width:100%;box-sizing:border-box;padding:4px 16px 4px}
+.slip .sh{display:flex;justify-content:space-between;height:22px;font:600 9.5px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.14em;opacity:.7}
+.pager{position:relative;display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:0 16px 4px;scrollbar-width:none}
+.pager::-webkit-scrollbar{display:none}
+.scard{position:relative;flex:0 0 calc(100% - 36px);box-sizing:border-box;scroll-snap-align:center;border-radius:18px;background:rgba(255,255,255,.5);padding:12px 14px;opacity:.55;transition:opacity .2s}
+.scard.cur{opacity:1}
+.sc-top{display:flex;gap:12px;align-items:center}
+.sc-top img{flex:0 0 auto;display:block;width:38px;height:44px}
+.scard .lm{min-width:0}
+.scard .l1{font:600 10px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.1em;opacity:.75;white-space:nowrap}
+.scard .l2{font-size:13.5px;line-height:18px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tl{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.tl li{display:flex;align-items:center;gap:8px;font:600 10.5px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.1em}
+.tl li::before{content:"";flex:0 0 auto;width:9px;height:9px;border-radius:5px;border:2px solid currentColor;box-sizing:border-box}
+.tl li.on::before{background:currentColor}
+.go{position:absolute;right:12px;bottom:10px;height:30px;padding:0 13px;border:0;border-radius:15px;font:600 12.5px -apple-system,system-ui,sans-serif;cursor:pointer}
+.lampdot{display:inline-block;flex:0 0 auto;width:7px;height:7px;border-radius:4px;background:#FFD98A;box-shadow:0 0 0 1.5px rgba(30,27,53,.3),0 0 6px #FFD98A;margin-right:5px;vertical-align:1px}
+.tl .lampdot{margin-right:-2px}
+.allrow{display:flex;justify-content:space-between;align-items:center;width:100%;height:40px;margin-top:8px;padding:0 14px;border:0;border-radius:12px;background:rgba(255,255,255,.5);color:inherit;font:600 13px -apple-system,system-ui,sans-serif;cursor:pointer}
+.allrow span:last-child{font:600 11px ui-monospace,"SF Mono",Menlo,monospace;opacity:.75}
+
+/* the rest of the Me page */
+.tiles{position:absolute;left:16px;width:370px;display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-bottom:130px}
+.tile{box-sizing:border-box;height:152px;border:0;border-radius:24px;background:#F6F5F9;padding:14px;text-align:left;color:#1E1B35;font:inherit;cursor:pointer}
+.rep{grid-column:1 / 3;display:flex;align-items:center;gap:14px;box-sizing:border-box;height:67px;border:0;border-radius:20px;background:#F6F5F9;padding:0 16px;text-align:left;color:#1E1B35;font:inherit;cursor:pointer}
+.rep .ic{flex:0 0 auto;display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#E4E2F4;color:#3A34D6}
+.rep .tx{flex:1;min-width:0}
+.rep b{display:block;font-size:15px;font-weight:600;line-height:20px}
+.rep small{display:block;font-size:13px;line-height:17px;color:#55506E}
+.tile img.mul{mix-blend-mode:multiply}
+/* each its own colour: the app's own mood pairs (happy sand, low blue, calm green) */
+.tiles[data-c="mood"] .t-aura{background:#F6E7C6}
+.tiles[data-c="mood"] .t-stamps{background:#CFE3F5}
+.tiles[data-c="mood"] .rep{background:#DDEFD6}
+.tiles[data-c="mood"] .rep .ic{background:rgba(46,125,79,.16);color:#2E7D4F}
+.tiles[data-c="mood"] .tile .eb,.tiles[data-c="mood"] .tile .cap,.tiles[data-c="mood"] .rep small{color:#55506E}
+/* white, with a hairline */
+.tiles[data-c="white"] .tile,.tiles[data-c="white"] .rep{background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6E4EC}
+.tile span{display:block}
+.tile .eb{font:600 9.5px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.16em;color:#6B6785}
+.tile .tt{margin-top:8px;font-size:15px;font-weight:600;line-height:19px}
+.tile .cap{margin-top:5px;font:500 9.5px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.14em;color:#6B6785}
+.tile .fan{position:relative;height:54px;margin-top:8px}
+.tile .fan img{position:absolute;display:block}
+
+/* the courier page as it is today, and little notes */
+.live{position:absolute;inset:0;z-index:5;background:#EEEDFB;overflow:hidden}
+.live img{position:absolute;left:0;display:block;max-width:none;width:402px}
+.live button{position:absolute;border:0;background:transparent;cursor:pointer;border-radius:12px;padding:0}
+.livetag{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:#1E1B35;color:#FFFFFF;font:600 11.5px/1 -apple-system,"PingFang SC",system-ui,sans-serif;padding:9px 13px;border-radius:10px;white-space:nowrap}
+.toast{position:absolute;left:50%;bottom:124px;transform:translateX(-50%);z-index:6;background:#1E1B35;color:#FFFFFF;font:600 12px/1.3 -apple-system,"PingFang SC",system-ui,sans-serif;padding:9px 13px;border-radius:10px;white-space:nowrap}
+@media (prefers-reduced-motion: reduce){ .hint,.scard{transition:none} }
+</style>
+
+<div class="wrap">
+  <div class="stage" id="stage">
+    <div class="phone" id="phone">
+      <div class="scroll" id="scroll">
+        <img class="r" src="img/hdr-c.jpg" alt="" style="left:0;top:0;width:402px;height:157px">
+        <div class="tiles" id="tiles">
+          <button class="tile t-aura" type="button" data-t="Aura">
+            <span class="eb">WRITING AURA</span>
+            <img class="mul" src="img/aura-art-c.jpg" alt="" style="display:block;width:151px;height:52px;object-fit:cover;border-radius:12px;margin-top:9px">
+            <span class="tt">The Quiet Observer</span>
+            <span class="cap">FROM 14 LETTERS</span>
+          </button>
+          <button class="tile t-stamps" type="button" data-t="Stamps">
+            <span class="eb">STAMPS</span>
+            <span class="fan">
+              <img src="img/st6.png" alt="" style="left:0;top:5px;width:40px;height:46px;transform:rotate(-8deg)">
+              <img src="img/st3.png" alt="" style="left:30px;top:2px;width:40px;height:46px;transform:rotate(3deg)">
+              <img src="img/st1.png" alt="" style="left:60px;top:6px;width:40px;height:46px;transform:rotate(10deg)">
+              <img class="mul" src="img/makeone.jpg" alt="" style="right:-2px;top:4px;width:44px;height:48px;border-radius:8px">
+            </span>
+            <span class="tt">Snap a moment.</span>
+            <span class="cap">3 RECENTLY USED</span>
+          </button>
+          <button class="rep" type="button" id="rep">
+            <span class="ic"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect x="4.5" y="2.5" width="11" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7.5 7H12.5M7.5 10H12.5M7.5 13H10.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+            <span class="tx"><b>Your first writing report</b><small>Ready to read</small></span>
+            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M5 2.5L9.5 7L5 11.5" fill="none" stroke="#8A86A3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="card" id="card">
+          <canvas id="cv" tabindex="0" role="img" aria-label="信使的星球。拖动可以转,方向键也可以转。"></canvas>
+          <span class="cchip" id="cchip">YOUR COURIER</span>
+          <button class="pbtn" id="exp" type="button" aria-label="打开星球页">
+            <svg id="expi" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"></svg>
+          </button>
+          <div class="hint" id="hint">DRAG TO SPIN</div>
+          <div class="zoomc" id="zoomc" hidden><button id="zo" type="button" aria-label="缩小">−</button><button id="zi" type="button" aria-label="放大">+</button></div>
+          <div class="tip" id="tip" hidden><small id="tipa"></small><span id="tipb"></span></div>
+          <div class="band" id="band">
+            <i class="tail" id="tail"></i>
+            <div class="bb">
+              <div class="nm">Pip<span class="ago" id="ago"></span></div>
+              <p class="ln" id="ln"></p>
+              <div class="row2"><p class="sub" id="sub"></p><button class="open" id="open" type="button">Open</button></div>
+            </div>
+          </div>
+          <div class="shelf" id="shelf">
+            <span id="lks" style="display:contents"></span>
+            <button class="lkall" id="lkall" type="button">All looks →</button>
+          </div>
+          <div class="stats" id="stats" hidden>
+            <div><b id="s1">0</b><small>ON THE WAY</small></div>
+            <div><b id="s2">0</b><small>CARRIED</small></div>
+            <div><b id="s3">0</b><small><i class="lampdot"></i>ON DESKS</small></div>
+          </div>
+          <div class="slip" id="slip" hidden>
+            <div class="sh"><span>TRACK</span><span id="cnt"></span></div>
+            <div class="pager" id="rows"></div>
+            <button class="allrow" id="all" type="button"><span>My letters</span><span id="alln"></span></button>
+          </div>
+        </div>
+      </div>
+      <img class="r" src="img/bar-c.jpg" alt="" style="left:0;bottom:0;width:402px;height:111px;z-index:2">
+      <div class="live" id="live" hidden>
+        <img src="img/cour-full.jpg" alt="线上的信使详情页" style="top:0;height:874px">
+        <button id="liveback" type="button" aria-label="返回" style="left:6px;top:62px;width:48px;height:44px"></button>
+        <button id="livetrack" type="button" aria-label="Track:打开星球页" style="left:314px;top:372px;width:78px;height:38px"></button>
+        <span class="livetag">线上原样 · 信使详情页 · 点 Track 进星球页</span>
+      </div>
+      <div class="toast" id="toast" hidden></div>
+    </div>
+  </div>
+
+  <div class="side">
+    <div>
+      <h1>信使的星球,能拿在手里转</h1>
+      <p class="lede">星球不会自己转。用手指或鼠标拖它,松手带着惯性滑一段就停。拨的时候看 Wren。右上角的小按钮进星球页,Open 进信使详情页。手机里的 Me 页可以上下滑。</p>
+    </div>
+    <div class="grp"><h2>她现在</h2><div class="seg" data-k="st">
+      <button type="button" data-v="home">在家</button><button type="button" data-v="out">在路上</button><button type="button" data-v="wait">在对方窗台等</button><button type="button" data-v="back">带信回来</button><button type="button" data-v="off">休息日</button></div></div>
+    <div class="grp"><h2>她的话</h2><div class="seg" data-k="band">
+      <button type="button" data-v="bubble">气泡(推荐)</button><button type="button" data-v="bar">原来的横条</button></div></div>
+    <div class="grp"><h2>皮肤那一排(会轮换)</h2><div class="seg"><button type="button" id="rotbtn">换一批</button></div></div>
+    <div class="grp"><h2>下面几格的颜色</h2><div class="seg" data-k="tile">
+      <button type="button" data-v="mood">各有各的颜色(推荐)</button><button type="button" data-v="soft">现在的浅灰紫</button><button type="button" data-v="white">白底细边</button></div></div>
+    <div class="grp"><h2>拨星球时,WREN</h2><div class="seg" data-k="follow">
+      <button type="button" data-v="swept">被带着走(推荐)</button><button type="button" data-v="ride">贴在星球上</button><button type="button" data-v="ignore">不受影响</button></div></div>
+    <div class="grp"><h2>星球</h2><div class="seg" data-k="mode">
+      <button type="button" data-v="small">小星球</button><button type="button" data-v="big">大星球</button><button type="button" data-v="full">星球页</button></div></div>
+    <div class="grp"><h2>时段</h2><div class="seg" data-k="tod">
+      <button type="button" data-v="morning">早晨</button><button type="button" data-v="day">白天</button><button type="button" data-v="evening">傍晚</button><button type="button" data-v="night">夜里</button></div></div>
+    <div class="grp"><h2>送过的信</h2><div class="seg" data-k="n">
+      <button type="button" data-v="0">0</button><button type="button" data-v="1">1</button><button type="button" data-v="12">12</button><button type="button" data-v="40">40</button></div></div>
+    <div class="panel">
+      <h2>Wren 的动作(星球不自己转)</h2>
+      <ul>
+        <li><b>在家:</b>趴在最上面睡,有呼吸。你一拨她就醒,逆着小跑留在原地;拨猛了飞起来再落回,落地一个星星眼,过一会儿又睡。</li>
+        <li><b>在路上:</b>整个画面只有她在动。叼着信绕星球飞,会飞到球后面。你拨星球,她被顺着带一下,前倾、身后几道风。</li>
+        <li><b>在对方窗台等:</b>站在星球右肩上,脸朝外。隔几秒回头看你一眼、跺一下脚。</li>
+        <li><b>带信回来:</b>叼着信飞进来,落在最上面,蹦三下,信放在脚边。之后隔几秒蹦一下,直到你去读。</li>
+        <li><b>休息日:</b>星球两边立起两道门柱,她空着手一圈一圈穿过去,身后一串小点。她说的是线上那句「Day off. I'm doing laps between the pillars.」,按钮从 Open 变成 Play,点了进小游戏。</li>
+        <li><b>点她:</b>跳一下,换一个表情。</li>
+        <li>这些都只是把现有的六张图移动、倾斜、压扁,不用新画。门柱是线上休息日那张卡片上已有的样子。</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h2>她的卡片:星球、她的话、她的衣服</h2>
+      <ul>
+        <li><b>气泡:</b>她的话从她嘴里说出来,尖角跟着她走。原来那条横条可以切回去对比。</li>
+        <li><b>皮肤那一排四格,默认的不算:</b>两个颜色、两个穿戴;一个免费、一个有了 kindred 就能用、两个 First Class。具体哪一件会轮换,点右边「换一批」看。正在穿的那件一直留在这一排。</li>
+        <li>点 Moss,星球上的她当场换成绿色;再点一下换回默认。First Class 的两格是金色虚线加小锁。</li>
+        <li>下面才是 Aura、Stamps 两格和写作报告。三格各用一个颜色:沙色、淡蓝、淡绿,都是 App 里日历心情已经在用的颜色。</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h2>星球页:一封信一张回执</h2>
+      <ul>
+        <li><b>一次只看一张。</b>左右滑换下一封,星球转到那枚邮票;点球上的邮票,回执跳到那一封;自己拨星球,停下时正对哪枚邮票,回执就换到哪一封。</li>
+        <li><b>带回来的信:</b>切到「带信回来」再进星球页,它直接停在被回的那一封上。回执是线上那三行,多一个去读的按钮。</li>
+        <li><b>邮戳:</b>有人回过的信,邮票上盖一个邮戳。这是我对「通信对象的窗」的替代。</li>
+        <li><b>灯:</b>一盏灯是一位读过这封信的陌生人。白天小亮点,傍晚和夜里发光。</li>
+        <li><b>缩放:</b>只在星球页。双指捏合、滚轮、双击,或右下角的加减号。放大后邮票变大,每枚下面显示日期。</li>
+        <li><b>入口:</b>右上角小按钮,或信使详情页里的 Track。全部的信还在 My letters。</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h2>哪些是真的</h2>
+      <ul>
+        <li>四个时段的配色、Wren 的六个姿势、六枚邮票、四个皮肤小图、她说的每句话、回执上的措辞,都取自线上 App 和官方素材。</li>
+        <li>头像行、写作报告那一行、底栏、信使详情页是线上截图,用的是默认主题(白底)。</li>
+        <li>「被多少陌生人读过」线上已经有:My letters 里每封信旁边那只眼睛。只有人数,不显示是谁。</li>
+        <li><b>例外:</b>「在路上」时她说的两句是我提议的大白话版本,线上还是原来那句「still hunting for the right window」。</li>
+        <li>Moss、Peach、Night、Mist 四种颜色的鸟,是用官方那张图按 App 里各皮肤的配色换色出来的。</li>
+        <li>名字、日期、每封信的读过次数、邮票落在哪里是示意。原型里穿戴(帽子、围巾)点了不会真的戴到星球上的她身上,First Class 的穿戴用的是线上锁着时那张淡色的图。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const D = Math.PI / 180;
+
+/* ── tiny vector / matrix kit (row-major 3×3) ── */
+const dot = (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+const cross = (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+const len = a => Math.hypot(a[0], a[1], a[2]);
+const norm = a => { const l = len(a) || 1; return [a[0]/l, a[1]/l, a[2]/l]; };
+const mix = (a, b, s, t) => [a[0]*s+b[0]*t, a[1]*s+b[1]*t, a[2]*s+b[2]*t];
+const dir = (lon, lat) => [Math.cos(lat*D)*Math.sin(lon*D), -Math.sin(lat*D), Math.cos(lat*D)*Math.cos(lon*D)];
+const mul = (a, b) => { const o = []; for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) o.push(a[r*3]*b[c] + a[r*3+1]*b[3+c] + a[r*3+2]*b[6+c]); return o; };
+const app = (m, v) => [m[0]*v[0]+m[1]*v[1]+m[2]*v[2], m[3]*v[0]+m[4]*v[1]+m[5]*v[2], m[6]*v[0]+m[7]*v[1]+m[8]*v[2]];
+const rot = (ax, ang) => { const [x, y, z] = ax, c = Math.cos(ang), s = Math.sin(ang), t = 1 - c;
+  return [t*x*x+c, t*x*y-s*z, t*x*z+s*y, t*x*y+s*z, t*y*y+c, t*y*z-s*x, t*x*z-s*y, t*y*z+s*x, t*z*z+c]; };
+const tidy = m => { const a = norm([m[0], m[1], m[2]]); let b = [m[3], m[4], m[5]]; const k = dot(a, b); b = norm([b[0]-k*a[0], b[1]-k*a[1], b[2]-k*a[2]]); const c = cross(a, b); return [...a, ...b, ...c]; };
+const ease = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+/* ── the app's four skies (courier-card-model PALETTE) ── */
+const PAL = {
+  morning: { text:'#1E1B35', scrim:'#C4E1C6', button:'#2D5B3A', buttonText:'#FFFFFF', land:'#B4DCA6', forest:'#4E9A5C', rock:'#9AA3B0', sea:'#9CC8E6', sky:['#FBE3D6','#EAF1E4'], ink:'#2D5B3A', chip:'#2D5B3A', chipText:'#FFFFFF', sun:'#FFD79A', sunAt:[.1,.42], moon:false, lit:false, cloud:'#FFFFFF' },
+  day:     { text:'#1E1B35', scrim:'#ADDBB5', button:'#1F5C33', buttonText:'#FFFFFF', land:'#9CD48C', forest:'#3F8F52', rock:'#8E9AA6', sea:'#6FB6E8', sky:['#BFE3F8','#E3F3FB'], ink:'#1F5C33', chip:'#1F5C33', chipText:'#FFFFFF', sun:'#FFD54A', sunAt:[.82,.16], moon:false, lit:false, cloud:'#FFFFFF' },
+  evening: { text:'#3B2634', scrim:'#E6CBD3', button:'#4A2F3F', buttonText:'#FFFFFF', land:'#93BB8C', forest:'#3A6F46', rock:'#7E7A8E', sea:'#8FA6CF', sky:['#F6C39A','#E8C7E6'], ink:'#4A2F3F', chip:'#4A2F3F', chipText:'#FFFFFF', sun:'#FF9A57', sunAt:[.9,.42], moon:false, lit:true, cloud:'#FFE0CC' },
+  night:   { text:'#FFFFFF', scrim:'#2B2660', button:'#FFFFFF', buttonText:'#1E1B35', land:'#2F5148', forest:'#1B3530', rock:'#3A3F5C', sea:'#1F2E5E', sky:['#1E1B35','#2E2A6B'], ink:'#DAD6F2', chip:'#FFFFFF', chipText:'#1E1B35', sun:null, sunAt:[.84,.18], moon:true, lit:true, cloud:null },
+};
+
+/* ── what she says (data/strings.ts, fl.*) ── */
+const SAY = {
+  unsent: ['JUST NOW', "bag's empty. give me one and watch me go", "i'm fast. promise"],
+  home:   ['JUST NOW', 'home. quiet desk today. napping', 'up again at 8 tomorrow'],
+  homeN:  ['JUST NOW', 'roosting. crossed the night side twice this week, wings are done', "don't wake me unless it's a letter"],
+  out:    ['2H AGO', "your letter's out. no one has written back yet", "i'll bring it the second someone does"],
+  outN:   ['2H AGO', "out with your letter tonight. no one has written back yet", "i'll bring it the second someone does"],
+  wait:   ['1D AGO', "dropped your reply at Mira's sill. sitting here till they're back", "just got here. i can wait, i'm great at waiting"],
+  back:   ['JUST NOW', 'BACK. Mira wrote you and i flew it here in one go', "it's on your desk. read it read it read it"],
+  off:    ['DAY OFF', "Day off. I'm doing laps between the pillars.", 'Your best: 12 gates. Beat it?'],
+};
+/* the tracking slip, as the courier page files it (wren.slip.*) */
+const SLIP = { wait: ['YOUR LETTER LEFT — NOV 9', "AT MIRA'S DOOR", 'WAITING FOR AN ANSWER'],
+               back: ['MIRA WROTE BACK — NOV 10', 'PIP CARRIED IT HOME', "IT'S WAITING FOR YOU"],
+               none: ['NOTHING IN TRANSIT', 'WRITE, AND SHE FLIES'] };
+const BACKI = 2;                                  // the letter Mira answered: not the newest one, an older letter
+
+/* ── the world, in the planet's own frame. Nothing here is a real place. ── */
+const NORTH = [0, -1, 0];
+const TREES = [dir(-88, 14), dir(86, 8), dir(18, 30), dir(-150, 40), dir(170, -20), dir(96, -34), dir(-20, -62), dir(122, 60)];
+const PEAK = dir(-96, -24);
+const CAPS = [[-50,35,30],[-25,50,22],[-70,10,20],[-85,45,18],[45,20,28],[70,40,20],[30,-5,18],[0,-45,26],[30,-60,18],[150,30,32],[180,5,22],[130,55,18],[-140,-20,28],[-115,10,16],[0,82,14]]
+  .map(([lo, la, r]) => { const c = dir(lo, la), u = norm(cross(c, Math.abs(c[1]) < .9 ? [0,1,0] : [1,0,0])), v = cross(c, u), a = r*D, rim = [];
+    for (let i = 0; i < 30; i++) { const th = i/30*Math.PI*2; rim.push(norm(mix(c, mix(u, v, Math.cos(th), Math.sin(th)), Math.cos(a), Math.sin(a)))); }
+    return { c, sin: Math.sin(a), rim }; });
+const WAVES = [dir(0,20), dir(-10,-10), dir(100,-20), dir(-170,10), dir(60,-35)];
+const MOODS = ['off my chest', 'crush', "can't sleep", 'ordinary', 'growing', 'miss someone'];
+const MON = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const STAMPS = (() => {
+  const N = 52, pts = [], rest0 = rot([1,0,0], -22*D);
+  for (let i = 0; i < N; i++) { const y = 1 - 2*(i+.5)/N, r = Math.sqrt(1-y*y), th = i*2.399963; const p = [r*Math.cos(th), y, r*Math.sin(th)];
+    if ([NORTH, PEAK].every(q => dot(p, q) < Math.cos(17*D))) pts.push(p); }
+  pts.sort((a, b) => app(rest0, b)[2] - app(rest0, a)[2]);
+  const step = pts.length % 3 ? 3 : 5, out = [];
+  for (let i = 0; i < pts.length; i++) { const p = pts[(i*step) % pts.length];
+    let e = norm(cross(p, NORTH)); if (Math.abs(p[1]) > .97) e = norm(cross(p, [1,0,0]));
+    const s0 = cross(p, e), j = ((i*37) % 31 - 15)*D;                              // each one stuck on a little crooked
+    const e1 = mix(e, s0, Math.cos(j), Math.sin(j)), s1 = mix(e, s0, -Math.sin(j), Math.cos(j));
+    const d = new Date(2026, 10, 9 - i*2), d2 = new Date(2026, 10, 10 - i*2), lamps = [];
+    /* a lamp for each stranger who has had that letter on their desk: up to eight, close round its stamp */
+    for (let k = 0; k < 8; k++) { const a = k*2.4 + i, r = (10 + (k % 3)*4)*D; lamps.push(norm(mix(p, mix(e1, s1, Math.cos(a), Math.sin(a)), Math.cos(r), Math.sin(r)))); }
+    out.push({ p, e: e1, s: s1, k: i % 6, lamps, when: MON[d.getMonth()] + ' ' + d.getDate(), next: MON[d2.getMonth()] + ' ' + d2.getDate() }); }
+  return out;
+})();
+/* how a letter opens — the app's own demo letters (lib/dev-store DEMO_TEXT) */
+const LINES = ["It's 2am and I just reorganised my whole bookshelf by colour instead of texting him back.", "I've never told anyone this, but I still sleep with the hallway light on.", "the light did this on the kitchen wall for exactly four minutes", "I said no to something today and the world did not end.", "3am thoughts, recorded so I'd stop thinking them.", "Mum called. We talked about nothing for an hour.", "Long day. The kind where nothing happens and you're tired anyway.", "So it turns out we both kept the box marked KITCHEN. Solidarity.", "Still not unpacked. Three years. I think it's load-bearing now.", "I read this twice on the bus and missed my stop."];
+const SPOT = norm(mix(STAMPS[0].p, STAMPS[0].e, 1, .26));   // "painted on" only: where she waits, beside the newest stamp
+
+/* ── pictures ── */
+const img = n => { const i = new Image(); i.src = 'img/' + n; return i; };
+const SPR = { sky:  { stand: img('wren.png'), fly: img('wren-fly.png'), sleep: img('wren-sleepy.png'), curious: img('wren-curious.png'), delight: img('wren-delight.png') },
+              moss: { stand: img('w-moss-wren.svg'), fly: img('w-moss-fly.svg'), sleep: img('w-moss-sleepy.svg'), curious: img('w-moss-curious.svg'), delight: img('w-moss-delight.svg') } };
+let WREN = SPR.sky;
+/* the shelf's four: a free piece, the colour a first kindred unlocks, a First Class colour, a First Class piece. Which ones turns over. */
+const FREE_DRESS = [['beanie', 'BEANIE', 'bird-beanie.png'], ['scarf', 'SCARF', 'bird-scarf.png']], FC_COLOUR = [['peach', 'PEACH'], ['night', 'NIGHT'], ['mist', 'MIST']], FC_DRESS = ['HEADPHONES', 'FLOWER CROWN', 'PARTY HAT', 'SHADES'];
+const STAMP = [1,2,3,4,5,6].map(i => img('st' + i + '.png'));
+
+/* ── state ── */
+/* shelf: her looks, under her words; col: how wide her loop is (degrees from its axis); alt: how far above the ground she flies */
+const LAY = { small: { x:16, y:162, w:370, ch:200, rad:26, R:66,  cx:185, cy:128, stats:0,  slip:0,   shelf:84, col:80, alt:22 },
+              big:   { x:16, y:162, w:370, ch:200, rad:26, R:163, cx:185, cy:256, stats:0,  slip:0,   shelf:84, col:30, alt:30 },
+              full:  { x:0,  y:0,   w:402, ch:380, rad:0,  R:100, cx:201, cy:226, stats:84, slip:150, shelf:0,  col:78, alt:26 } };
+const S = { mode: 'small', st: 'out', tod: 'day', n: 12, follow: 'swept', band: 'bubble', tile: 'mood', skin: 'sky', dress: 'none', rot: 0 };
+try { const h = JSON.parse(localStorage.getItem('courier-planet-3') || '{}'); for (const k in S) if (h[k] != null) S[k] = h[k]; } catch (e) {}
+if (!LAY[S.mode]) S.mode = 'small';
+if (!SPR[S.skin]) S.skin = 'sky';
+WREN = SPR[S.skin];
+const BH = () => S.band === 'bubble' ? 122 : 92;                       // how tall her words are
+let L = { ...LAY[S.mode] }, Lfrom = null, Lt0 = 0;
+let M = rot([1,0,0], -24*D), spin = null, ping = null, dragging = false, hits = [], t0 = performance.now(), touched = false, frames = 0;
+let om = [0, 0, 0];                                                    // how the planet turned this step, as a rotation vector on the screen
+const addOm = (ax, ang) => { om[0] += ax[0]*ang; om[1] += ax[1]*ang; om[2] += ax[2]*ang; };
+const CRUISE = -.0075, LOOP_AXIS = [0, -Math.cos(30*D), Math.sin(30*D)], FRONT = norm([0, -.3, .95]);
+/* Wren's own motion: th/w her place and extra speed on the loop; phi/dphi where she stands on the rim and how fast she is carried; air 0 = on the ground, 1 = up */
+const Wn = { th: -Math.PI/2 - .9, w: 0, phi: 0, dphi: 0, air: 0, airUntil: 0, awakeUntil: 0, wheeUntil: 0, tapAt: -1e9, swapAt: performance.now(), face: 1, lastX: 0, trail: [], tk: 0 };
+let WD = null, lastT = 0, acc = 0, tailX = 60;
+let LET = [], cur = 0, needPick = false, settle = false, quietUntil = 0;
+let zoom = 1, zoomS = 1, pinch = null; const ZMIN = .8, ZMAX = 2.3, pts = new Map();        // the planet page only: pinch, wheel, double tap, or the two buttons
+
+/* one letter's slip. What it knows is what My letters knows (letters-model LetterCardFacts): when it left, its stamp, how it opens,
+   how many strangers had it on their desk, who answered. The rows are worded as the courier page's slip and the lock screen word them. */
+const letterOf = i => { const s = STAMPS[i]; let reads = (i*7 + 3) % 9, who = null, more = 0, ans = false;
+  if (i % 7 === 4) { who = 'NOA'; more = 2; } else if (i % 5 === 1) who = 'JUN'; else if (i % 5 === 3) ans = true;
+  if ((who || ans) && reads === 0) reads = 1;
+  const left = 'YOUR LETTER LEFT — ' + s.when, desks = 'ON ' + reads + (reads === 1 ? " STRANGER'S DESK" : " STRANGERS' DESKS");
+  let rows = [left, desks, who ? (more ? who + ' AND ' + more + ' MORE REPLIED' : who + ' WROTE BACK — ' + s.next) : ans ? 'ANSWERED' : 'WAITING FOR AN ANSWER'], lamp = 1, cta = false, answered = !!(who || ans);
+  if (i === 0 && S.st === 'wait') { rows = SLIP.wait; reads = 0; lamp = -1; answered = false; }                          // a reply to one person: nobody else reads it
+  else if (i === 0 && S.st === 'out') { rows = [left, 'WAITING FOR AN ANSWER']; reads = 0; lamp = -1; answered = false; }
+  else if (i === BACKI && S.st === 'back') { rows = SLIP.back; lamp = -1; cta = true; answered = true; if (!reads) reads = 1; }
+  return { when: s.when, k: s.k, line: LINES[i % LINES.length], reads, rows, lamp, cta, answered }; };
+
+const cv = $('cv'), ctx = cv.getContext('2d'), card = $('card');
+let dpr = 1, cw = 0, chh = 0;
+
+function layout() {
+  const bh = BH();
+  card.style.left = L.x + 'px'; card.style.top = L.y + 'px'; card.style.width = L.w + 'px';
+  card.style.height = (S.mode === 'full' && !Lfrom ? 800 : L.ch + bh + L.shelf + L.stats + L.slip) + 'px'; card.style.borderRadius = L.rad + 'px';
+  $('band').style.top = L.ch + 'px'; $('band').style.height = bh + 'px';
+  $('shelf').style.top = (L.ch + bh) + 'px'; $('shelf').hidden = L.shelf < 2;
+  $('stats').style.top = (L.ch + bh + L.shelf) + 'px'; $('slip').style.top = (L.ch + bh + L.shelf + L.stats) + 'px';
+  $('tiles').style.top = (LAY.small.y + LAY.small.ch + bh + LAY.small.shelf + 12) + 'px';
+  $('zoomc').style.top = (L.ch - 46) + 'px'; $('zoomc').hidden = !(S.mode === 'full' && !Lfrom);
+  const d = Math.min(3, window.devicePixelRatio || 1);
+  if (d !== dpr || cw !== L.w || chh !== Math.round(L.ch)) { dpr = d; cw = L.w; chh = Math.round(L.ch); cv.width = Math.round(cw*dpr); cv.height = Math.round(chh*dpr); cv.style.width = cw + 'px'; cv.style.height = chh + 'px'; }
+}
+
+/* TRACK: one slip on show at a time. The planet is the index — its stamps are the letters. */
+function buildTrack() {
+  const slipCard = (l, i) => '<article class="scard" data-i="' + i + '"><div class="sc-top"><img src="img/st' + (l.k + 1) + '.png" alt=""><div class="lm"><div class="l1">' + l.when + ' · ' + MOODS[l.k].toUpperCase() + '</div><div class="l2">' + l.line + '</div></div></div><ol class="tl">'
+    + l.rows.map((r, j) => '<li' + (j === l.rows.length - 1 ? ' class="on"' : '') + '>' + (j === l.lamp ? '<i class="lampdot"></i>' : '') + r + '</li>').join('') + '</ol>' + (l.cta ? '<button class="go" type="button">Go to the Door</button>' : '') + '</article>';
+  $('rows').innerHTML = LET.length ? LET.map(slipCard).join('') : '<article class="scard cur"><ol class="tl" style="margin:0">' + SLIP.none.map(r => '<li>' + r + '</li>').join('') + '</ol></article>';
+  $('alln').textContent = LET.length; cur = Math.min(cur, Math.max(0, LET.length - 1)); showCur(false);
+}
+function showCur(smooth) { const pg = $('rows'), c = pg.children[cur]; $('cnt').textContent = LET.length ? (cur + 1) + ' / ' + LET.length : '';
+  if (LET.length) [...pg.children].forEach((el, i) => el.classList.toggle('cur', i === cur));
+  if (c && pg.clientWidth) { quietUntil = performance.now() + 600; pg.scrollTo({ left: c.offsetLeft - (pg.clientWidth - c.offsetWidth)/2, behavior: smooth && !RM ? 'smooth' : 'auto' }); } }
+/* a letter is picked — from its slip, or from its stamp on the planet: the planet turns to face it */
+function select(i, fromPager) { if (!LET.length) return; cur = clamp(i, 0, LET.length - 1); spin = null; needPick = false; settle = true; $('tip').hidden = true;
+  ping = { kind: 'stamp', i: cur, at: performance.now() };
+  if (fromPager) { $('cnt').textContent = (cur + 1) + ' / ' + LET.length; [...$('rows').children].forEach((el, k) => el.classList.toggle('cur', k === cur)); } else showCur(true); }
+let pagT = 0;
+$('rows').addEventListener('scroll', () => { if (performance.now() < quietUntil || !LET.length) return; clearTimeout(pagT);
+  pagT = setTimeout(() => { const pg = $('rows'), mid = pg.scrollLeft + pg.clientWidth/2; let bi = 0, bd = 1e9;
+    [...pg.children].forEach((c, i) => { const d = Math.abs(c.offsetLeft + c.offsetWidth/2 - mid); if (d < bd) { bd = d; bi = i; } });
+    if (bi !== cur) select(bi, true); }, 80); });
+let toastT = 0;
+const toast = msg => { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2600); };
+$('rows').addEventListener('click', e => { if (e.target.closest('.go')) { toast('线上:打开和 Mira 的对话,读这封回信'); return; }
+  const c = e.target.closest('.scard'); if (c && c.dataset.i != null && +c.dataset.i !== cur) select(+c.dataset.i, false); });
+$('all').addEventListener('click', () => toast('线上:打开 My letters,全部的信在那里'));
+$('tiles').addEventListener('click', e => { const t = e.target.closest('.tile'); if (t) toast('线上:打开 ' + t.dataset.t + ' 整页'); else if (e.target.closest('.rep')) toast('线上:打开写作报告'); });
+function buildShelf() { const r = S.rot, fd = FREE_DRESS.find(d => d[0] === S.dress) || FREE_DRESS[r % 2], fcC = FC_COLOUR[r % 3], fcD = FC_DRESS[r % 4];   // what she wears keeps its place
+  const chip = (cls, key, src, label, alt) => '<button class="lk ' + cls + '" type="button" data-l="' + key + '"><span class="ch"><img src="img/' + src + '" alt="' + alt + '"></span><small>' + label + '</small></button>';
+  $('lks').innerHTML = chip(S.dress === fd[0] ? 'on' : '', 'dress:' + fd[0], fd[2], fd[1], fd[1] + ',免费')
+    + chip(S.skin === 'moss' ? 'on' : '', 'skin:moss', 'w-moss-wren.svg', 'MOSS', 'Moss,有了第一个 kindred 解锁')
+    + chip('fc', 'fc:', 'w-' + fcC[0] + '.svg', fcC[1], fcC[1] + ',First Class')
+    + chip('fc', 'fc:', 'bird-fc.png', fcD, fcD + ',First Class'); }
+$('shelf').addEventListener('click', e => { const b = e.target.closest('.lk'); if (!b) return; const now = performance.now(), [kind, id] = b.dataset.l.split(':');
+  if (kind === 'fc') { toast('线上:First Class 才有'); return; }
+  if (kind === 'skin') { set('skin', S.skin === id ? 'sky' : id); toast(S.skin === 'moss' ? 'Moss:有了第一个 kindred 就能穿' : '换回默认的 Sky'); }
+  else { set('dress', S.dress === id ? 'none' : id); toast(S.dress === 'none' ? '摘掉了' : '线上:星球上的她当场戴上'); }
+  Wn.tapAt = now; Wn.wheeUntil = now + 1000; Wn.awakeUntil = now + 2200; });
+$('rotbtn').addEventListener('click', () => { S.rot = (S.rot + 1) % 12; words(); });
+
+function words() {
+  const P = PAL[S.tod], night = S.tod === 'night', bub = S.band === 'bubble', full = S.mode === 'full';
+  const key = S.st === 'home' ? (S.n === 0 ? 'unsent' : night ? 'homeN' : 'home') : S.st === 'out' ? (night ? 'outN' : 'out') : S.st;
+  const [ago, ln, sub] = SAY[key];
+  $('ago').textContent = ago; $('ln').textContent = ln; $('sub').textContent = sub;
+  $('open').textContent = S.st === 'off' ? 'Play' : 'Open'; $('cchip').textContent = S.st === 'off' ? 'DAY OFF' : 'YOUR COURIER';
+  const band = $('band'); band.classList.toggle('bub', bub); band.style.background = bub ? 'transparent' : P.scrim; band.style.color = bub ? '#1E1B35' : P.text;
+  card.style.background = bub && !full ? P.sky[1] : P.scrim;
+  $('open').style.background = P.moon && bub ? '#1E1B35' : P.button; $('open').style.color = P.moon && bub ? '#FFFFFF' : P.buttonText;
+  $('lkall').style.color = P.moon ? '#FFFFFF' : P.button; $('shelf').style.color = bub ? (P.moon ? '#FFFFFF' : '#1E1B35') : P.text; buildShelf();
+  document.querySelectorAll('.lk.on .ch').forEach(el => { el.style.boxShadow = '0 0 0 2.5px ' + (P.moon ? '#FFD98A' : P.button); });
+  $('cchip').style.background = P.chip; $('cchip').style.color = P.chipText;
+  $('stats').style.color = P.text; $('stats').hidden = L.stats < 1 && !full;
+  const slip = $('slip'); slip.style.color = P.text; slip.hidden = L.slip < 1 && !full;
+  LET = Array.from({ length: Math.min(S.n, STAMPS.length) }, (_, i) => letterOf(i)); buildTrack();
+  $('s1').textContent = S.st === 'out' || S.st === 'wait' ? 1 : 0; $('s2').textContent = S.n; $('s3').textContent = LET.reduce((a, l) => a + l.reads, 0);
+  $('hint').style.color = P.ink; $('hint').textContent = full ? 'DRAG TO SPIN · PINCH TO ZOOM' : 'DRAG TO SPIN';
+  const glass = P.moon ? 'rgba(255,255,255,.14)' : 'rgba(255,255,255,.5)'; document.querySelectorAll('.stats div, .scard, .allrow').forEach(el => { el.style.background = glass; });
+  document.querySelectorAll('.go').forEach(el => { el.style.background = P.button; el.style.color = P.buttonText; });
+  card.classList.toggle('full', full); $('scroll').style.overflowY = full ? 'hidden' : 'auto'; $('tiles').dataset.c = S.tile;
+  $('exp').setAttribute('aria-label', full ? '返回' : '打开星球页');
+  $('expi').innerHTML = full
+    ? '<path d="M10 3.5L5.5 8L10 12.5" fill="none" stroke="#1E1B35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+    : '<path d="M9.5 2.5H13.5V6.5M13.5 2.5L9 7M6.5 13.5H2.5V9.5M2.5 13.5L7 9" fill="none" stroke="#1E1B35" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>';
+  document.querySelectorAll('.seg').forEach(g => g.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(String(S[g.dataset.k]) === b.dataset.v))));
+  try { localStorage.setItem('courier-planet-3', JSON.stringify(S)); } catch (e) {}
+}
+function set(k, v) {
+  if (S[k] === v) return; const now = performance.now(); $('tip').hidden = true;
+  if (k === 'n') cur = 0;
+  if (k === 'mode') { Lfrom = { ...L }; Lt0 = now; zoom = 1; zoomS = 1; card.scrollTop = 0; $('scroll').scrollTop = 0; if (v === 'full') settle = true; if (RM) { L = { ...LAY[v] }; Lfrom = null; } }
+  if (k === 'st' || k === 'follow') { const st = k === 'st' ? v : S.st; Wn.w = 0; Wn.trail = []; Wn.swapAt = now; Wn.awakeUntil = now + 1200; Wn.wheeUntil = 0;
+    if (st === 'back') { Wn.phi = -1.15; Wn.dphi = 0; Wn.air = 1; Wn.airUntil = now + 500; if (k === 'st') { cur = BACKI; settle = true; } }   // she flies in with it
+    else if (st !== 'out' && st !== 'off') Wn.airUntil = now + 500; }                                                                                        // she flies to her new place
+  S[k] = v; if (k === 'skin') WREN = SPR[v] || SPR.sky; spin = null; ping = null; needPick = false; words(); layout();
+}
+document.querySelectorAll('.seg').forEach(g => g.addEventListener('click', e => { const b = e.target.closest('button'); if (b && g.dataset.k) set(g.dataset.k, g.dataset.k === 'n' ? +b.dataset.v : b.dataset.v); }));
+let before = 'small';
+$('exp').addEventListener('click', () => { if (S.mode === 'full') set('mode', before); else { before = S.mode; set('mode', 'full'); } });
+/* Open is her page, as it is today; its own Track button comes to the planet page */
+const openCourier = () => { $('live').hidden = false; };
+$('open').addEventListener('click', () => { if (S.st === 'off') toast('线上:打开小游戏 Free Flight'); else openCourier(); }); $('lkall').addEventListener('click', openCourier);
+$('liveback').addEventListener('click', () => { $('live').hidden = true; });
+$('livetrack').addEventListener('click', () => { $('live').hidden = true; if (S.mode !== 'full') { before = S.mode; set('mode', 'full'); } });
+
+/* ── the virtual trackball: the point under the finger follows the finger ── */
+const ball = (x, y) => { const rb = Math.max(L.R, 105), X = (x - L.cx)/rb, Y = (y - L.cy)/rb, d = X*X + Y*Y; return norm(d < .5 ? [X, Y, Math.sqrt(1-d)] : [X, Y, .5/Math.sqrt(d)]); };
+const pos = e => { const r = cv.getBoundingClientRect(), k = L.w / r.width; return [(e.clientX - r.left)*k, (e.clientY - r.top)*k]; };
+let v0 = null, down = null, last = null;
+cv.addEventListener('pointerdown', e => { try { cv.setPointerCapture(e.pointerId); } catch (err) {} pts.set(e.pointerId, pos(e));
+  if (pts.size === 2 && S.mode === 'full' && !Lfrom) { const [a, b] = [...pts.values()]; pinch = { d0: Math.hypot(a[0]-b[0], a[1]-b[1]) || 1, z0: zoom }; dragging = false; spin = null; cv.classList.remove('drag'); return; }
+  const [x, y] = pos(e); v0 = ball(x, y); down = [x, y, performance.now()]; dragging = true; spin = null; settle = false; last = null; cv.classList.add('drag'); });
+cv.addEventListener('pointermove', e => { if (pts.has(e.pointerId)) pts.set(e.pointerId, pos(e));
+  if (pinch) { const [a, b] = [...pts.values()]; if (b) zoom = clamp(pinch.z0*Math.hypot(a[0]-b[0], a[1]-b[1])/pinch.d0, ZMIN, ZMAX); return; }
+  if (!dragging) return; const [x, y] = pos(e), v1 = ball(x, y), c = clamp(dot(v0, v1), -1, 1), ang = Math.acos(c);
+  if (ang > 1e-4) { const ax = norm(cross(v0, v1)); M = mul(rot(ax, ang), M); addOm(ax, ang); last = { ax, ang, at: performance.now() }; v0 = v1; }
+  if (Math.hypot(x - down[0], y - down[1]) > 6) { $('tip').hidden = true; if (!touched) { touched = true; $('hint').classList.add('gone'); } } });
+const up = e => { pts.delete(e.pointerId); if (pinch) { if (pts.size < 2) pinch = null; return; }
+  if (!dragging) return; dragging = false; cv.classList.remove('drag'); const [x, y] = pos(e), now = performance.now();
+  if (Math.hypot(x - down[0], y - down[1]) <= 6 && now - down[2] < 500) tap(x, y);
+  else { needPick = true; if (last && now - last.at < 90 && !RM) spin = { ax: last.ax, ang: Math.min(last.ang, .22) }; } };
+cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+const canZoom = () => S.mode === 'full' && !Lfrom;
+cv.addEventListener('wheel', e => { if (!canZoom()) return; e.preventDefault(); zoom = clamp(zoom*Math.exp(-e.deltaY*.0025), ZMIN, ZMAX); }, { passive: false });
+cv.addEventListener('dblclick', () => { if (canZoom()) zoom = zoom > 1.3 ? 1 : 1.8; });
+$('zi').addEventListener('click', () => { zoom = clamp(zoom*1.35, ZMIN, ZMAX); }); $('zo').addEventListener('click', () => { zoom = clamp(zoom/1.35, ZMIN, ZMAX); });
+cv.addEventListener('keydown', e => { const k = { ArrowLeft: [[0,1,0], -1], ArrowRight: [[0,1,0], 1], ArrowUp: [[1,0,0], 1], ArrowDown: [[1,0,0], -1] }[e.key]; if (!k) return; e.preventDefault(); const a = k[1]*12*D; M = mul(rot(k[0], a), M); addOm(k[0], a*.4); spin = null; settle = false; needPick = true; });
+
+function tap(x, y) {
+  let best = null, bd = 22;
+  for (const h of hits) { const d = Math.hypot(h.x - x, h.y - y) - (h.pri || 0); if (d < bd) { bd = d; best = h; } }
+  const tip = $('tip'); if (!best) { tip.hidden = true; return; }
+  if (best.wren) { const now = performance.now(); Wn.tapAt = now; Wn.wheeUntil = now + 1000; Wn.awakeUntil = now + 2200; }
+  if (best.stamp != null && S.mode === 'full' && !Lfrom) { tip.hidden = true; select(best.stamp, false); return; }
+  if (best.env) toast('线上:打开和 Mira 的对话,读这封回信');
+  $('tipa').textContent = best.a; $('tipb').textContent = best.b; tip.hidden = false;
+  tip.style.left = clamp(best.x, 70, L.w - 70) + 'px'; tip.style.top = Math.max(46, best.y - 16) + 'px';
+}
+
+/* ── Wren. She is not painted on the ground: she keeps her place on the screen, and answers your hand. ── */
+function stepWren(now) {
+  const R = L.R, cx = L.cx, cy = L.cy, F = S.follow, tsec = now/1000, wsz = clamp(R*.42, 32, 44), since = (now - Wn.swapAt)/1000;
+  const pop = RM ? 1 : Math.min(1, .55 + (now - Wn.swapAt)/260*.45);
+  const jump = now - Wn.tapAt < 420 ? Math.sin((now - Wn.tapAt)/420*Math.PI)*9 : 0;
+  WD = { wsz, pop, breath: 1 };
+
+  /* "painted on": she goes round with the ground */
+  if (F === 'ride' && S.st !== 'out' && S.st !== 'off') {
+    const P = app(M, S.st === 'wait' ? SPOT : NORTH), gs = len(cross(om, P));
+    if (gs > .004) Wn.awakeUntil = now + 1500;
+    WD.glued = P; WD.hop = jump; WD.x = cx + R*P[0];
+    WD.sprite = now < Wn.wheeUntil ? WREN.delight : (gs > .004 || now < Wn.awakeUntil) ? WREN.curious : S.st === 'home' && S.n > 0 ? WREN.sleep : WREN.stand;
+    return;
+  }
+
+  /* in the air, on her own loop round the planet */
+  if (S.st === 'out' || S.st === 'off') {
+    const c = L.col*D, sc = Math.sin(c), cc = Math.cos(c), off = S.st === 'off';
+    let p, t;
+    if (F === 'ride' && !off) { p = app(M, [sc*Math.cos(Wn.th), -cc, sc*Math.sin(Wn.th)]); Wn.w = 0; }
+    else { const a = LOOP_AXIS, u = norm(cross(a, [0,0,1])), v = cross(a, u);
+      p = [0,1,2].map(i => cc*a[i] + sc*(u[i]*Math.cos(Wn.th) + v[i]*Math.sin(Wn.th)));
+      t = norm([0,1,2].map(i => -u[i]*Math.sin(Wn.th) + v[i]*Math.cos(Wn.th)));
+      if (F === 'swept') { const push = dot(cross(om, p), t)/sc*.8;                    // the ground under her, moving: it drags the air with it
+        if (Math.abs(push) > Math.abs(Wn.w)) Wn.w += (push - Wn.w)*.3; else Wn.w *= .962; } else Wn.w = 0; }
+    Wn.th += (RM ? 0 : CRUISE*(off ? 2.4 : 1)) + Wn.w;
+    const fast = Math.abs(Wn.w), rho = R + L.alt + Math.min(16, fast*150), bob = RM ? 0 : Math.sin(tsec*2.2)*2;
+    WD.x = cx + rho*p[0]; WD.y = cy + rho*p[1] + bob - jump; WD.behind = p[2] < 0; WD.hidden = p[2] < 0 && Math.hypot(rho*p[0], rho*p[1]) < R - 4;
+    const dx = WD.x - Wn.lastX; if (Math.abs(dx) > .08) Wn.face = dx > 0 ? 1 : -1; Wn.lastX = WD.x;
+    WD.flip = Wn.face; WD.tilt = clamp(fast*4.5, 0, .5) + (off ? .12 : 0); WD.sprite = WREN.fly; WD.cut = off; WD.whoosh = clamp((fast - .008)*60, 0, 1);
+    if (off && !RM && ++Wn.tk % 4 === 0) { Wn.trail.push({ x: WD.x, y: WD.y, behind: WD.behind, hidden: WD.hidden }); if (Wn.trail.length > 16) Wn.trail.shift(); }                 // the dotted trail of her laps
+    WD.off = off;
+    WD.scale = (1 + p[2]*.08)*pop; WD.flap = RM ? 1 : 1 + .05*Math.sin(tsec*(13 + fast*300));
+    return;
+  }
+
+  /* on the rim: at home on top, on the right shoulder while she waits, on top again with the letter. The planet rolls under her. */
+  const phi0 = S.st === 'wait' ? 1.02 : 0;
+  if (RM) { Wn.phi = phi0; Wn.dphi = 0; }
+  const q = [Math.sin(Wn.phi), -Math.cos(Wn.phi), 0], e = [Math.cos(Wn.phi), Math.sin(Wn.phi), 0];
+  const g = F === 'swept' ? cross(om, q) : [0, 0, 0], vt = dot(g, e), gs = len(g), off = Wn.phi - phi0;
+  if (gs > .004) Wn.awakeUntil = now + 1600;
+  if (!RM && (gs > .075 || (Wn.air < .5 && Math.abs(off) > .9))) Wn.airUntil = Math.max(Wn.airUntil, now + 900);     // too fast to run: up she goes
+  const want = now < Wn.airUntil || (Wn.air > .5 && (gs > .022 || Math.abs(off) > .22)) ? 1 : 0, was = Wn.air;
+  Wn.air += (want - Wn.air)*(RM ? 1 : .16);
+  if (was > .5 && Wn.air <= .5) Wn.wheeUntil = Math.max(Wn.wheeUntil, now + 1100);                                      // just landed
+  if (Wn.air < .5) { Wn.dphi += (vt - Wn.dphi)*.4; Wn.dphi -= off*.05; }                                               // the ground carries her; she runs back to her place
+  else { Wn.dphi += (vt*.35 - Wn.dphi)*.08; Wn.dphi -= off*.012; Wn.dphi *= .95; }                                     // in the air only the wind does
+  Wn.phi = clamp(Wn.phi + Wn.dphi, -1.5, 1.5);
+  const run = vt - Wn.dphi, up = Wn.air > .5, calm = !up && gs < .004 && now > Wn.awakeUntil && now > Wn.wheeUntil;
+  if (up) { if (Math.abs(Wn.dphi) > .004) Wn.face = Wn.dphi > 0 ? 1 : -1; } else if (Math.abs(run) > .003) Wn.face = run > 0 ? -1 : 1;   // she runs against the ground
+  let hop = !up && !RM ? Math.abs(Math.sin(now/42))*Math.min(5, gs*150) : 0, look = false;
+  if (!up && !RM) {                                                                                                     // what she does when nobody is touching anything
+    if (S.st === 'back') { if (since < 3.4) { hop += Math.abs(Math.sin(since*7))*6; Wn.wheeUntil = Math.max(Wn.wheeUntil, now + 120); } else { const k = (since % 2.8)/.42; if (k < 1) hop += Math.sin(k*Math.PI)*4; } }
+    if (S.st === 'wait' && calm) { const c = since % 6.5; look = c > 5.1; Wn.face = look ? -1 : 1; if (c < .4) hop += Math.sin(c/.4*Math.PI)*4; }
+    if (S.st === 'home' && S.n > 0 && calm) WD.breath = 1 + .035*Math.sin(tsec*1.7);
+  }
+  const bob = up && !RM ? Math.sin(tsec*2.4)*2 : 0;
+  WD.top = { phi: Wn.phi, h: Wn.air*24 + hop + bob + jump, lean: up ? clamp(Wn.dphi*8, -.45, .45) : clamp(-run*7, -.4, .4) };
+  WD.up = up; WD.flip = Wn.face; WD.flap = up && !RM ? 1 + .06*Math.sin(tsec*16) : 1; WD.env = S.st === 'back' && !up; WD.x = cx + (R + WD.top.h)*Math.sin(Wn.phi);
+  WD.cut = up && S.st !== 'back';
+  WD.sprite = up ? WREN.fly : now < Wn.wheeUntil ? WREN.delight : (gs > .004 || now < Wn.awakeUntil || look) ? WREN.curious : S.st === 'home' && S.n > 0 ? WREN.sleep : WREN.stand;
+}
+
+/* ── drawing ── */
+const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r); ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath(); };
+function radial(P, fn, upright) { const l = Math.hypot(P[0], P[1]), ux = l > 1e-3 ? P[0]/l : 0, uy = l > 1e-3 ? P[1]/l : -1;
+  ctx.save(); ctx.translate(L.cx + L.R*P[0], L.cy + L.R*P[1]); ctx.rotate(Math.atan2(uy, ux) + Math.PI/2); if (!upright) ctx.scale(1, .42 + .58*l); fn(); ctx.restore(); }
+const tree = P => () => { ctx.fillStyle = P.forest; for (const [x, y, r] of [[-4,-4,4.2],[3.5,-5,4.6],[0,-9.5,4.2]]) { ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); } };
+const peak = P => () => { ctx.fillStyle = P.rock; ctx.beginPath(); ctx.moveTo(-11, 1); ctx.lineTo(-1, -18); ctx.lineTo(9, 1); ctx.fill();
+  ctx.globalAlpha = .85; ctx.beginPath(); ctx.moveTo(2, 1); ctx.lineTo(9, -12); ctx.lineTo(16, 1); ctx.fill(); ctx.globalAlpha = 1;
+  ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.moveTo(-4.4, -11.5); ctx.lineTo(-1, -18); ctx.lineTo(2.2, -11.5); ctx.lineTo(.6, -10); ctx.lineTo(-1, -12); ctx.lineTo(-2.6, -10); ctx.fill(); };
+const wrenOn = d => () => { const sz = d.wsz*.92*d.pop; ctx.translate(0, -d.hop); ctx.scale(Wn.face, 1); if (d.sprite.complete) ctx.drawImage(d.sprite, -sz/2, -sz*.87, sz, sz); };
+
+/* her day off: two gates in the sky at either side of the planet (the pillars of the day-off card), and the dots she leaves behind her */
+function drawGates(P) { const c = L.col*D, sc = Math.sin(c), cc = Math.cos(c), a = LOOP_AXIS, rho = L.R + L.alt, gap = WD.wsz*.44, tall = clamp(L.R*.2, 13, 22);
+  ctx.fillStyle = P.scrim; ctx.strokeStyle = P.ink; ctx.lineWidth = 1.6; ctx.lineJoin = 'round';
+  for (const sgn of [-1, 1]) { const px = cc*a[0] + sc*sgn, py = cc*a[1], ang = Math.atan2(py, px) + Math.PI/2, inner = Math.max(4, rho - gap - L.R - 3);
+    ctx.save(); ctx.translate(L.cx, L.cy); ctx.rotate(ang);
+    for (const [y, h, cap] of [[-(rho - gap), inner, 0], [-(rho + gap + tall), tall, tall - 4]]) { rr(-4.5, y, 9, h, 2); ctx.fill(); ctx.stroke(); rr(-6.5, y + cap, 13, 4, 1.5); ctx.fill(); ctx.stroke(); }
+    ctx.restore(); } }
+function drawTrail(P, behind) { const n = Wn.trail.length; ctx.fillStyle = P.ink;
+  Wn.trail.forEach((d, i) => { if (d.behind !== behind || d.hidden) return; ctx.globalAlpha = .12 + .5*i/n; ctx.beginPath(); ctx.arc(d.x, d.y, 1.7, 0, 7); ctx.fill(); }); ctx.globalAlpha = 1; }
+
+const put = (im, x, y, sz, cut) => { if (!im.complete || !im.naturalWidth) return; if (cut) ctx.drawImage(im, 0, 0, im.naturalWidth, im.naturalHeight*.8, x, y, sz, sz*.8); else ctx.drawImage(im, x, y, sz, sz); };
+function drawWren(P, now) {
+  const d = WD, tipText = $('sub').textContent;
+  if (d.top) {                                                                      // on the rim, or just over it
+    const u = [Math.sin(d.top.phi), -Math.cos(d.top.phi)], bx = L.cx + (L.R + d.top.h)*u[0], by = L.cy + (L.R + d.top.h)*u[1], sz = d.wsz*(d.up ? 1 : .92)*d.pop;
+    if (d.env) { const a = d.top.phi + (30 + 200/L.R)*D, k = RM ? 0 : Math.abs(Math.sin(now/300))*2.5, ex = L.cx + (L.R + 7 + k)*Math.sin(a), ey = L.cy - (L.R + 7 + k)*Math.cos(a);   // the letter, set down beside her
+      ctx.save(); ctx.translate(ex, ey); ctx.rotate(a); ctx.fillStyle = '#FFFFFF'; ctx.strokeStyle = '#C9C5E8'; ctx.lineWidth = 1; rr(-8, -6, 16, 12, 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-8, -6); ctx.lineTo(0, 1); ctx.lineTo(8, -6); ctx.stroke(); ctx.fillStyle = '#F2A33C'; ctx.beginPath(); ctx.arc(0, 2.5, 2, 0, 7); ctx.fill(); ctx.restore();
+      hits.push({ x: ex, y: ey, pri: 6, env: true, a: 'MIRA WROTE BACK', b: "it's waiting for you" }); }
+    ctx.save(); ctx.translate(bx, by); ctx.rotate(d.top.phi + d.top.lean); ctx.scale(d.flip, d.flap*d.breath);
+    put(d.sprite, -sz/2, d.up ? -sz*.8 : -sz*.87, sz, d.cut); ctx.restore();
+    hits.push({ x: bx + u[0]*sz*.45, y: by + u[1]*sz*.45, pri: 10, wren: true, a: 'PIP', b: tipText }); return; }
+  const sz = d.wsz;
+  ctx.save(); ctx.translate(d.x, d.y); ctx.scale(d.flip*d.scale, d.scale*d.flap); ctx.rotate(d.tilt);
+  if (d.whoosh > 0) { ctx.strokeStyle = P.ink; ctx.lineCap = 'round'; ctx.lineWidth = 1.8; ctx.globalAlpha = .7*d.whoosh;
+    for (const [y, a, b] of [[-9, .62, 1.05], [0, .7, 1.25], [8, .6, .98]]) { ctx.beginPath(); ctx.moveTo(-sz*a, y); ctx.lineTo(-sz*(a + (b - a)*d.whoosh), y); ctx.stroke(); } ctx.globalAlpha = 1; }
+  put(d.sprite, -sz/2, -sz*.5, sz, d.cut); ctx.restore();
+  if (!d.hidden) hits.push({ x: d.x, y: d.y, pri: 10, wren: true, a: 'PIP', b: d.off ? 'day off! race me?' : tipText });
+}
+
+function frame(now) {
+  /* mode tween */
+  if (Lfrom) { const k = Math.min(1, (now - Lt0)/520), e = ease(k), T = LAY[S.mode]; for (const p in T) L[p] = Lfrom[p] + (T[p] - Lfrom[p])*e; if (k >= 1) { L = { ...T }; Lfrom = null; words(); } layout(); }
+  if (S.mode === 'full' && !Lfrom) { zoomS += (zoom - zoomS)*(RM ? 1 : .2); L.R = LAY.full.R*zoomS; }
+  /* the world runs in fixed 60 Hz steps, so it feels the same on a 120 Hz phone or a slow tab */
+  if (!lastT) lastT = now; acc += Math.min(1200, now - lastT); lastT = now;
+  let n = 0; while ((acc >= 16.6 || !WD) && n < 80) { tick(now); acc = Math.max(0, acc - 16.667); n++; }
+  draw(now);
+  /* the bubble's tail follows her */
+  if (S.band === 'bubble' && WD && WD.x != null) { tailX += (clamp(WD.x - 17, 24, L.w - 58) - tailX)*(RM ? 1 : .2); $('tail').style.left = tailX.toFixed(1) + 'px'; }
+  requestAnimationFrame(frame);
+}
+function tick(now) {
+  /* the planet never turns by itself. It moves under your finger, glides to a stop when thrown, and — on the planet page — turns to the letter you pick. */
+  if (dragging) settle = false;
+  else if (spin) { M = mul(rot(spin.ax, spin.ang), M); addOm(spin.ax, spin.ang); spin.ang *= .955; if (spin.ang < 5e-4) spin = null; }
+  else if (S.mode === 'full' && !Lfrom && LET.length) {
+    if (needPick) { needPick = false; let bi = cur, bd = -2;               // you turned it yourself: the stamp now facing you is the letter on show
+      for (let i = 0; i < LET.length; i++) { const d = dot(app(M, STAMPS[i].p), FRONT); if (d > bd) { bd = d; bi = i; } }
+      if (bi !== cur) { cur = bi; showCur(true); ping = { kind: 'stamp', i: bi, at: now }; } }
+    if (settle) { const at = app(M, STAMPS[cur].p), c = clamp(dot(at, FRONT), -1, 1);
+      if (c < .9998) { const ax = norm(cross(at, FRONT)), ang = Math.acos(c)*(RM ? 1 : .09); M = mul(rot(ax, ang), M); addOm(ax, ang); } else settle = false; } }
+  else needPick = false;
+  if (++frames % 240 === 0) M = tidy(M);
+  stepWren(now); om = [0, 0, 0];
+}
+
+function draw(now) {
+  const P = PAL[S.tod], w = L.w, h = L.ch, R = L.R, cx = L.cx, cy = L.cy, tsec = (now - t0)/1000;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, P.sky[0]); g.addColorStop(1, P.sky[1]); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  /* sky things */
+  const sx = P.sunAt[0]*w, sy = P.sunAt[1]*236 + Math.max(0, h - 210)*.14;
+  if (P.moon) { for (let i = 0; i < 26; i++) { const x = (i*97.3 + 31) % w, y = (i*53.7 + 11) % h, tw = RM ? .8 : .55 + .45*Math.sin(tsec*1.3 + i); ctx.fillStyle = 'rgba(255,255,255,' + tw.toFixed(2) + ')'; ctx.beginPath(); ctx.arc(x, y, i % 5 ? .9 : 1.4, 0, 7); ctx.fill(); }
+    ctx.fillStyle = '#F3EFD8'; ctx.beginPath(); ctx.arc(sx, sy, 12, 0, 7); ctx.fill(); ctx.fillStyle = P.sky[0]; ctx.beginPath(); ctx.arc(sx + 5, sy - 3, 10, 0, 7); ctx.fill(); }
+  else { ctx.fillStyle = P.sun; ctx.beginPath(); ctx.arc(sx, sy, 13, 0, 7); ctx.fill(); }
+  if (P.cloud) { ctx.fillStyle = P.cloud; ctx.globalAlpha = .9; for (const [bx, by, sp, sc] of [[.62, .17, 5, 1], [.12, .3, 3, .7]]) { const x = ((bx*w + (RM ? 0 : tsec*sp)) % (w + 80)) - 40, y = by*Math.min(h, 236);
+      ctx.beginPath(); ctx.ellipse(x, y, 20*sc, 8*sc, 0, 0, 7); ctx.ellipse(x + 15*sc, y - 5*sc, 13*sc, 8*sc, 0, 0, 7); ctx.fill(); } ctx.globalAlpha = 1; }
+
+  /* what stands on the planet */
+  hits = [];
+  const things = [];
+  TREES.forEach(t => things.push({ P: app(M, t), fn: tree(P) }));
+  things.push({ P: app(M, PEAK), fn: peak(P) });
+  if (WD.glued) things.push({ P: WD.glued, fn: wrenOn(WD), upright: true, wren: true });
+  const loose = !WD.glued;
+
+  /* 1 — what is behind the planet */
+  things.filter(t => t.P[2] < 0).forEach(t => radial(t.P, t.fn, t.upright));
+  if (WD.off) drawTrail(P, true);
+  if (loose && WD.behind) drawWren(P, now);
+
+  /* 2 — the planet */
+  ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(cx, cy, R + 5, 0, 7); ctx.stroke();
+  ctx.fillStyle = P.sea; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
+  ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.clip();
+  ctx.fillStyle = P.land;
+  for (const c of CAPS) { const C = app(M, c.c); if (C[2] < -c.sin) continue; ctx.beginPath();
+    c.rim.forEach((b, i) => { const q = app(M, b); let x = q[0], y = q[1]; if (q[2] < 0) { const l = Math.hypot(x, y) || 1; x /= l; y /= l; } i ? ctx.lineTo(cx + R*x, cy + R*y) : ctx.moveTo(cx + R*x, cy + R*y); }); ctx.fill(); }
+  ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.lineWidth = 1;
+  for (const la of [35, -20]) { ctx.beginPath(); let pen = false; for (let i = 0; i <= 72; i++) { const q = app(M, dir(i*5, la)); if (q[2] > 0) { pen ? ctx.lineTo(cx + R*q[0], cy + R*q[1]) : ctx.moveTo(cx + R*q[0], cy + R*q[1]); pen = true; } else pen = false; } ctx.stroke(); }
+  ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1.2;
+  for (const wv of WAVES) { const q = app(M, wv); if (q[2] < .3) continue; const x = cx + R*q[0] - 7, y = cy + R*q[1]; ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 3.5, y - 2.5, x + 7, y); ctx.quadraticCurveTo(x + 10.5, y + 2.5, x + 14, y); ctx.stroke(); }
+  /* a lamp for every stranger who has had that letter on their desk: a pale dot by day, lit after dark, brighter for the letter on show */
+  for (let i = 0; i < LET.length; i++) { const n = Math.min(LET[i].reads, 8), sel = S.mode === 'full' && i === cur;
+    for (let k = 0; k < n; k++) { const q = app(M, STAMPS[i].lamps[k]); if (q[2] < .1) continue; const x = cx + R*q[0], y = cy + R*q[1];
+      if (P.lit || sel) { ctx.fillStyle = '#FFD98A'; ctx.shadowColor = '#FFD98A'; ctx.shadowBlur = sel ? 9 : 4; ctx.beginPath(); ctx.arc(x, y, sel ? 2.7 : 1.8, 0, 7); ctx.fill(); ctx.shadowBlur = 0; }
+      else { ctx.fillStyle = '#FFF6CF'; ctx.strokeStyle = 'rgba(30,27,53,.32)'; ctx.lineWidth = .8; ctx.beginPath(); ctx.arc(x, y, 1.7, 0, 7); ctx.fill(); ctx.stroke(); } } }
+  /* the letters she has carried, stuck where they landed; one that was answered is postmarked */
+  const sw = clamp(R*.32, 20, S.mode === 'full' ? 48 : 26), sh = sw*1.15, near = S.mode === 'full' ? clamp((zoomS - 1.3)*3, 0, 1) : 0;
+  for (let i = 0; i < LET.length; i++) { const s = STAMPS[i], q = app(M, s.p); if (q[2] < .06) continue; const e = app(M, s.e), d = app(M, s.s), im = STAMP[s.k], x = cx + R*q[0], y = cy + R*q[1];
+    ctx.save(); ctx.transform(e[0], e[1], d[0], d[1], x, y); ctx.globalAlpha = P.moon ? .85 : 1;
+    if (im.complete) ctx.drawImage(im, -sw/2, -sh/2, sw, sh);
+    if (LET[i].answered) { const px = sw*.34, py = -sh*.3, pr = sw*.3; ctx.strokeStyle = P.moon ? 'rgba(255,255,255,.85)' : 'rgba(30,27,53,.62)'; ctx.lineWidth = 1.1; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(px, py, pr, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.arc(px, py, pr*.55, 0, 7); ctx.stroke();
+      for (const dy of [-pr*.5, 0, pr*.5]) { ctx.beginPath(); ctx.moveTo(px - pr*2.3, py + dy); ctx.quadraticCurveTo(px - pr*1.85, py + dy - 1.5, px - pr*1.4, py + dy); ctx.quadraticCurveTo(px - pr*1.1, py + dy + 1.2, px - pr*.95, py + dy); ctx.stroke(); } }
+    ctx.restore();
+    if (near > 0 && q[2] > .35) { ctx.globalAlpha = near*Math.min(1, (q[2] - .35)*4); ctx.fillStyle = P.moon ? '#FFFFFF' : '#1E1B35'; ctx.font = '600 8.5px ui-monospace, "SF Mono", Menlo, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; if ('letterSpacing' in ctx) ctx.letterSpacing = '1px'; ctx.fillText(s.when, x, y + sh*.5 + 3); ctx.globalAlpha = 1; }
+    if (q[2] > .25) hits.push({ x, y, stamp: i, a: s.when + ' · ' + MOODS[s.k].toUpperCase(), b: LET[i].rows[LET[i].rows.length - 1].toLowerCase() }); }
+  /* a soft terminator, so it reads as a ball and not a disc */
+  const sg = ctx.createRadialGradient(cx - R*.38, cy - R*.42, R*.15, cx, cy, R*1.04); sg.addColorStop(0, 'rgba(255,255,255,.12)'); sg.addColorStop(.6, 'rgba(255,255,255,0)'); sg.addColorStop(1, 'rgba(24,20,70,.26)'); ctx.fillStyle = sg; ctx.fillRect(cx - R, cy - R, R*2, R*2);
+  ctx.restore();
+
+  /* 3 — what is in front */
+  things.filter(t => t.P[2] >= 0).sort((a, b) => a.P[2] - b.P[2]).forEach(t => radial(t.P, t.fn, t.upright));
+  for (const t of things) { if (!t.wren || t.P[2] < -.4) continue; const l = Math.hypot(t.P[0], t.P[1]), ux = l > 1e-3 ? t.P[0]/l : 0, uy = l > 1e-3 ? t.P[1]/l : -1;
+    hits.push({ x: cx + R*t.P[0] + ux*WD.wsz*.45, y: cy + R*t.P[1] + uy*WD.wsz*.45, pri: 10, wren: true, a: 'PIP', b: $('sub').textContent }); }
+  if (WD.off) { drawGates(P); drawTrail(P, false); }
+  if (loose && !WD.behind) drawWren(P, now);
+
+  /* the ring round the letter just picked */
+  if (ping) { if (now - ping.at > 3200) ping = null; else { const k = ((now - ping.at) % 1100)/1100, q = app(M, STAMPS[ping.i].p);
+      if (q[2] > -.05) { ctx.strokeStyle = P.ink; ctx.globalAlpha = 1 - k; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx + R*q[0], cy + R*q[1], 12 + 16*k, 0, 7); ctx.stroke(); ctx.globalAlpha = 1; } } }
+}
+
+/* ── fit the phone to the column ── */
+function fit() { const st = $('stage'), s = st.clientWidth / 402; $('phone').style.transform = 'scale(' + s + ')'; st.style.height = (800*s + 2) + 'px'; }
+addEventListener('resize', fit);
+if (S.st === 'back') { Wn.air = 1; cur = BACKI; }
+fit(); layout(); words(); requestAnimationFrame(frame);
+})();
+</script>

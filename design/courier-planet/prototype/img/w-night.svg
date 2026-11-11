@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 200 200" width="256" height="256"><defs><symbol id="wren-sticker-adult-content" viewBox="0 0 200 200">
+<path d="M47.5,92.5L5.5,68L19.5,97.8L2,124L47.5,113.5Z" fill="#1B1A33"></path>
+<ellipse cx="49.3" cy="117" rx="14" ry="26.25" fill="#1B1A33" transform="rotate(24 49.3 117)"></ellipse>
+<path d="M40.5,110C40.5,68 72,40 110.5,40C142,40 159.5,64.5 159.5,92.5C163,127.5 142,159 100,159C65,159 40.5,141.5 40.5,110Z" fill="#2B2A4A"></path>
+<ellipse cx="96.5" cy="131" rx="35" ry="24.5" fill="#F6E7C9"></ellipse>
+<ellipse cx="149" cy="120.5" rx="15.75" ry="29.75" fill="#1B1A33" transform="rotate(-22 149 120.5)"></ellipse>
+<circle cx="93" cy="75" r="6.3" fill="#1E1B33"></circle>
+<circle cx="95.2" cy="72.8" r="1.89" fill="#FFFFFF"></circle>
+<circle cx="121" cy="69.8" r="7" fill="#1E1B33"></circle>
+<circle cx="123.5" cy="67.3" r="2.1" fill="#FFFFFF"></circle>
+<path d="M124.5,83.8L152.5,92.5L124.5,101.3Z" fill="#F2A0B5"></path>
+<path d="M82.5,157.3L82.5,173M114,157.3L114,173" fill="none" stroke="#F2A0B5" stroke-width="5.25" stroke-linecap="round"></path>
+<path d="M72,173L94.8,173M103.5,173L126.3,173" fill="none" stroke="#F2A0B5" stroke-width="5.6" stroke-linecap="round"></path>
+</symbol></defs><use href="#wren-sticker-adult-content"/></svg>

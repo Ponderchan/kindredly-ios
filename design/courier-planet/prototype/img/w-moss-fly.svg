@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 200 200" width="256" height="256"><defs><symbol id="wren-sticker-fly" viewBox="0 0 200 200">
+<path d="M47.5,92.5L5.5,68L19.5,97.8L2,124L47.5,113.5Z" fill="#4F8F5C" transform="rotate(-12 100 103) translate(3.5 -14)"></path>
+<ellipse cx="47.5" cy="82" rx="14" ry="28" fill="#4F8F5C" transform="rotate(-12 100 103) translate(3.5 -14) rotate(55 47.5 82)"></ellipse>
+<path d="M40.5,110C40.5,68 72,40 110.5,40C142,40 159.5,64.5 159.5,92.5C163,127.5 142,159 100,159C65,159 40.5,141.5 40.5,110Z" fill="#6DAE78" transform="rotate(-12 100 103) translate(3.5 -14)"></path>
+<ellipse cx="96.5" cy="131" rx="35" ry="24.5" fill="#F1E8CE" transform="rotate(-12 100 103) translate(3.5 -14)"></ellipse>
+<ellipse cx="145.5" cy="78.5" rx="15.75" ry="31.5" fill="#4F8F5C" transform="rotate(-12 100 103) translate(3.5 -14) rotate(-55 145.5 78.5)"></ellipse>
+<circle cx="93" cy="75" r="6.3" fill="#1E1B33" transform="rotate(-12 100 103) translate(3.5 -14)"></circle>
+<circle cx="95.2" cy="72.8" r="1.89" fill="#FFFFFF" transform="rotate(-12 100 103) translate(3.5 -14)"></circle>
+<circle cx="121" cy="69.8" r="7" fill="#1E1B33" transform="rotate(-12 100 103) translate(3.5 -14)"></circle>
+<circle cx="123.5" cy="67.3" r="2.1" fill="#FFFFFF" transform="rotate(-12 100 103) translate(3.5 -14)"></circle>
+<path d="M124.5,83.8L152.5,92.5L124.5,101.3Z" fill="#E8B04A" transform="rotate(-12 100 103) translate(3.5 -14)"></path>
+<path d="M86,145Q82.5,159 93,166M110.5,143.3Q110.5,157.3 119.3,164.3" fill="none" stroke="#F2A0B5" stroke-width="4.55" stroke-linecap="round"></path>
+<rect x="80.8" y="160.8" width="45.5" height="31.5" rx="3" fill="#FFFFFF" stroke="#D8D2C2" stroke-width="2.4"></rect>
+<path d="M80.8,160.8L103.5,180L126.3,160.8" fill="none" stroke="#D8D2C2" stroke-width="4.2"></path>
+<circle cx="103.5" cy="183.5" r="5.25" fill="#E8A63C"></circle>
+</symbol></defs><use href="#wren-sticker-fly"/></svg>
