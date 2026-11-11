@@ -130,16 +130,34 @@ enum KMeTileColour {
   static let report = KMood.calm.fill
 }
 
+/// One tile's colours: its ground, its chip, its inks, and a hairline when the ground is the page's.
+struct KMeTileTone: Equatable {
+  var fill: Color
+  var chip: Color
+  var chipText: Color = .white
+  var ink: Color = KBrand.inkOnBrand
+  var sub: Color = KBrand.subOnCream
+  /// a 1pt edge, for a ground as pale as the page
+  var line: Color?
+  /// the Aura picture is multiplied onto a light ground; on a dark one it is laid on as it is
+  var multiply = true
+
+  static let aura = KMeTileTone(fill: KMeTileColour.aura, chip: KMeTileColour.auraChip)
+  static let stamps = KMeTileTone(fill: KMeTileColour.stamps, chip: KMeTileColour.stampsChip)
+  static let report = KMeTileTone(fill: KMeTileColour.report, chip: KBrand.greenText)
+}
+
 /// A tile's name, drawn as her card's own chip is (YOUR COURIER): white mono capitals on a deep
 /// fill, corners 7. One line; a long name in another language shrinks to fit the tile.
 struct KMeTileChip: View {
   let text: String
   let fill: Color
+  var ink: Color = .white
 
   var body: some View {
     Text(text)
       .kText(.mono(11, .bold, tracking: 0.16))
-      .foregroundStyle(Color.white)
+      .foregroundStyle(ink)
       .lineLimit(1)
       .minimumScaleFactor(0.7)
       .padding(.horizontal, 10)
@@ -359,36 +377,42 @@ struct KMeAuraTile<Art: View>: View {
   /// AURA, on the chip; "" falls back to the card's own label
   let chip: String
   let hint: String
+  var tone: KMeTileTone = .aura
   let onTap: () -> Void
   @ViewBuilder let art: Art
 
   var body: some View {
     SwiftUI.Button(action: onTap) {
       VStack(alignment: .leading, spacing: 0) {
-        KMeTileChip(text: chip.isEmpty ? (aura?.label ?? "") : chip, fill: KMeTileColour.auraChip)
+        KMeTileChip(text: chip.isEmpty ? (aura?.label ?? "") : chip, fill: tone.chip, ink: tone.chipText)
         art
           .frame(height: 52)
           .frame(maxWidth: .infinity)
           .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-          .blendMode(.multiply)
+          .blendMode(tone.multiply ? .multiply : .normal)
           .padding(.top, 9)
           .accessibilityHidden(true)
         Text(aura?.title ?? "")
           .kText(.system(15, .semibold, lineHeight: 19.0 / 15.0))
-          .foregroundStyle(KBrand.inkOnBrand)
+          .foregroundStyle(tone.ink)
           .lineLimit(2)
           .multilineTextAlignment(.leading)
           .padding(.top, 8)
         Text(aura?.from ?? "")
           .kText(.mono(9.5, .medium, tracking: 0.14))
-          .foregroundStyle(KBrand.subOnCream)
+          .foregroundStyle(tone.sub)
           .lineLimit(1)
           .padding(.top, 5)
         Spacer(minLength: 0)
       }
       .padding(14)
       .frame(maxWidth: .infinity, minHeight: 152, maxHeight: .infinity, alignment: .topLeading)
-      .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(KMeTileColour.aura))
+      .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(tone.fill))
+      .overlay {
+        if let line = tone.line {
+          RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(line, lineWidth: 1)
+        }
+      }
       .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
     .buttonStyle(KFadePressStyle())
@@ -403,6 +427,7 @@ struct KMeAuraTile<Art: View>: View {
 /// a count. A tap opens the album.
 struct KMeStampsTile: View {
   let tile: KMeStampsTileContent
+  var tone: KMeTileTone = .stamps
   let onTap: () -> Void
 
   var body: some View {
@@ -410,7 +435,7 @@ struct KMeStampsTile: View {
     let fanWidth: CGFloat = fan.isEmpty ? 0 : 36 + CGFloat(fan.count - 1) * 28
     SwiftUI.Button(action: onTap) {
       VStack(alignment: .leading, spacing: 0) {
-        KMeTileChip(text: tile.label, fill: KMeTileColour.stampsChip)
+        KMeTileChip(text: tile.label, fill: tone.chip, ink: tone.chipText)
         HStack(alignment: .center, spacing: 0) {
           ZStack(alignment: .leading) {
             ForEach(Array(fan.enumerated()), id: \.element.id) { i, cell in
@@ -422,7 +447,7 @@ struct KMeStampsTile: View {
           .frame(width: fanWidth, height: 50, alignment: .leading)
           Spacer(minLength: 6)
           if tile.make {
-            KStampSlot(width: 34, stroke: KBrand.inkOnBrand.opacity(0.55))
+            KStampSlot(width: 34, stroke: tone.ink.opacity(0.55))
           }
         }
         .frame(height: 54)
@@ -430,20 +455,25 @@ struct KMeStampsTile: View {
         .accessibilityHidden(true)
         Text(tile.title)
           .kText(.system(15, .semibold, lineHeight: 19.0 / 15.0))
-          .foregroundStyle(KBrand.inkOnBrand)
+          .foregroundStyle(tone.ink)
           .lineLimit(2)
           .multilineTextAlignment(.leading)
           .padding(.top, 8)
         Text(tile.caption)
           .kText(.mono(9.5, .medium, tracking: 0.14))
-          .foregroundStyle(KBrand.subOnCream)
+          .foregroundStyle(tone.sub)
           .lineLimit(1)
           .padding(.top, 5)
         Spacer(minLength: 0)
       }
       .padding(14)
       .frame(maxWidth: .infinity, minHeight: 152, maxHeight: .infinity, alignment: .topLeading)
-      .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(KMeTileColour.stamps))
+      .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(tone.fill))
+      .overlay {
+        if let line = tone.line {
+          RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(line, lineWidth: 1)
+        }
+      }
       .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
     .buttonStyle(KFadePressStyle())
@@ -460,6 +490,7 @@ struct KMeStampsTile: View {
 /// The report row, in the calm green.
 struct KMeReportRow: View {
   let report: KMeReport
+  var tone: KMeTileTone = .report
   let onTap: () -> Void
 
   var body: some View {
@@ -468,7 +499,7 @@ struct KMeReportRow: View {
       HStack(alignment: .center, spacing: 14) {
         ZStack {
           RoundedRectangle(cornerRadius: 11, style: .continuous)
-            .fill(report.locked ? KBrand.cream : KBrand.greenText.opacity(0.16))
+            .fill(report.locked ? KBrand.cream : tone.chip.opacity(0.16))
           if report.locked {
             ZStack {
               Circle().fill(KBrand.waxGold)
@@ -476,31 +507,36 @@ struct KMeReportRow: View {
             }
             .frame(width: 22, height: 22)
           } else {
-            KLineIcon(.ruledCard, size: 20, lineWidth: 1.9, color: KBrand.greenText)
+            KLineIcon(.ruledCard, size: 20, lineWidth: 1.9, color: tone.chip)
           }
         }
         .frame(width: 38, height: 38)
         VStack(alignment: .leading, spacing: 2) {
           Text(report.title)
             .kText(.system(15, .semibold))
-            .foregroundStyle(KBrand.inkOnBrand)
+            .foregroundStyle(tone.ink)
             .fixedSize(horizontal: false, vertical: true)
           if !report.sub.isEmpty {
             Text(report.sub)
               .kText(.system(13))
-              .foregroundStyle(KBrand.subOnCream)
+              .foregroundStyle(tone.sub)
               .fixedSize(horizontal: false, vertical: true)
           }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         if report.enabled {
-          KLineIcon(.chevronRight, size: 14, lineWidth: 2.4, color: KBrand.subOnCream)
+          KLineIcon(.chevronRight, size: 14, lineWidth: 2.4, color: tone.sub)
         }
       }
       .padding(.horizontal, 16)
       .padding(.vertical, 14)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .background(shape.fill(KMeTileColour.report))
+      .background(shape.fill(tone.fill))
+      .overlay {
+        if let line = tone.line {
+          shape.strokeBorder(line, lineWidth: 1)
+        }
+      }
       .contentShape(shape)
     }
     .buttonStyle(KFadePressStyle())

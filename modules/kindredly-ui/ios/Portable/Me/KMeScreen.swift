@@ -995,6 +995,8 @@ struct KFcStripe: View {
       }
     }
     .frame(width: width, height: height)
+    // the bars are drawn past the edges on purpose; an offscreen render doesn't clip a Canvas
+    .clipped()
   }
 }
 
