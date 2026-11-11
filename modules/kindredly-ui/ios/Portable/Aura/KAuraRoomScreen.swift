@@ -18,7 +18,7 @@ import SwiftUI
  - DIMENSIONS: "DIMENSION n OF 9" and "All dimensions ▦"; the nine cards, one page each, paged
    sideways down to the controls; ‹ "swipe" › and the dots. A card: the number in a lav2 tab and
    the dimension's name in ind, what she found (or "no lean yet" / "still reading"), its line and
-   count, the state in mono (green once established), your sentence in the Letter font on lav2
+   count, the state in mono (green once established), your sentence in the Letter font on soft2
    with where it came from, and "See the read ↗", which opens the read sheet: the whole piece
    with the words the rule fired on marked, and what the sticker says it means. The grid sheet
    jumps to any of the nine.
@@ -26,6 +26,12 @@ import SwiftUI
    came from), how you pause, the stickers without a seat, the counted ones by group (a lock on
    the private ones), and the scope row, which opens the scope sheet (letters always in, sealed
    pages if you tick them; Done reports the choice, TS saves it and reads the aura again).
+
+ NO PURPLE GROUNDS (owner, 2026-11-11, on the simulator: "切换那里怎么还是紫色的" then "换掉"). The
+ lens switch is Me's control, and every block that sat on lav or lav2 — the sentence a word came
+ from, the pauses' tracks, the note under the nine, a dimension's number, your sentence — sits on
+ soft2, the theme's neutral. The grid's tile for the dimension on show is ringed in the pen
+ colour (as the look she wears is on Me) instead of being filled with lav.
 
  VISUAL RULE B (owner, 2026-10-26): the controls are flat, no ink outline and no hard shadow:
  a primary is a pen capsule (the scope sheet's Done), a secondary a soft-filled one (‹ › and the
@@ -620,7 +626,7 @@ public struct KAuraRoomScreen<Art: View>: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(RoundedRectangle(cornerRadius: 10, style: .circular).fill(theme.lav2))
+            .background(RoundedRectangle(cornerRadius: 10, style: .circular).fill(theme.soft2))
             .transition(.opacity)
         }
       }
@@ -673,7 +679,7 @@ public struct KAuraRoomScreen<Art: View>: View {
               .frame(width: 44, alignment: .leading)
             GeometryReader { g in
               ZStack(alignment: .leading) {
-                Capsule(style: .circular).fill(theme.lav)
+                Capsule(style: .circular).fill(theme.soft2)
                 Capsule(style: .circular)
                   .fill(i == 0 ? theme.ind : theme.mute)
                   .frame(width: g.size.width * CGFloat(min(1, max(0, Double(p.count) / Double(maxCount)))))
@@ -816,7 +822,7 @@ public struct KAuraRoomScreen<Art: View>: View {
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(.horizontal, 16)
       .padding(.vertical, 14)
-      .background(RoundedRectangle(cornerRadius: 12, style: .circular).fill(theme.lav2))
+      .background(RoundedRectangle(cornerRadius: 12, style: .circular).fill(theme.soft2))
       .accessibilityElement(children: .combine)
       .padding(.top, 16)
     }
@@ -849,7 +855,12 @@ public struct KAuraRoomScreen<Art: View>: View {
             .padding(.vertical, 14)
             .padding(.horizontal, 4)
             .frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 12, style: .circular).fill(on ? theme.lav : theme.soft2))
+            .background(RoundedRectangle(cornerRadius: 12, style: .circular).fill(theme.soft2))
+            .overlay {
+              if on {
+                RoundedRectangle(cornerRadius: 12, style: .circular).strokeBorder(theme.ind, lineWidth: 2)
+              }
+            }
             .contentShape(Rectangle())
           }
           .buttonStyle(KFadePressStyle())
@@ -971,7 +982,7 @@ struct KAuraDimCard: View {
           .foregroundStyle(theme.ind)
           .padding(.horizontal, 7)
           .padding(.vertical, 3)
-          .background(RoundedRectangle(cornerRadius: 6, style: .circular).fill(theme.lav2))
+          .background(RoundedRectangle(cornerRadius: 6, style: .circular).fill(theme.soft2))
         Text(dim.label)
           .kText(.system(12.5))
           .foregroundStyle(theme.ind)
@@ -1008,7 +1019,7 @@ struct KAuraDimCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-        .background(RoundedRectangle(cornerRadius: 12, style: .circular).fill(theme.lav2))
+        .background(RoundedRectangle(cornerRadius: 12, style: .circular).fill(theme.soft2))
         .accessibilityElement(children: .combine)
         .padding(.top, 16)
       }

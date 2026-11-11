@@ -50,7 +50,7 @@ The courier's planet (owner sign-off 2026-11-11; branch `courier-planet`, **not 
 
 Fixed with it (needs the binary)
 - The long letter (Unfold): the ✕ beside Fold It Back is the app's close icon, the size every other closing page uses (it was a smaller typed ✕).
-- Writing Aura details: Portrait / Dimensions / Habits is the same switch as everywhere else (a grey track with a white pill that slides); it was a purple track of its own.
+- Writing Aura details: Portrait / Dimensions / Habits is the same switch as everywhere else (a grey track with a white pill that slides); it was a purple track of its own. The purple grounds inside the page are neutral grey too (a dimension's number, your quoted sentence, the sentence a word came from, the pauses' bars, the note under the nine), and in the grid of nine the dimension on show is ringed in the pen colour instead of filled purple.
 
 Changed with it (ships with or without the switch) [OTA]
 - Wren says plainly when a letter is out: "your letter's out. no one has written back yet" / "i'll bring it the second someone does" (it used to be "still hunting for the right window"), in all nine languages, by day and by night.
