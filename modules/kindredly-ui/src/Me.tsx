@@ -6,7 +6,7 @@ import { nativeFrost, type KFrost, type KImageRefProps, type KInsets, type KScre
 import type { KKindredsFace } from "./Kindreds";
 import { nativeAuraArt, nativeCourierCard, type KAuraArtData, type KCourierCardData, type NativeAuraArt, type NativeCourierCard } from "./MePieces";
 import { nativeMyFace, type KMyFaceData } from "./LastIslands";
-import { nativeMePlanet, type KMePlanetData, type NativeMePlanet } from "./Planet";
+import { nativeMePlanet, nativeWrenLook, type KMePlanetData, type KWrenLookData, type NativeMePlanet } from "./Planet";
 
 /* THE ME TAB (4a, 2026-10-19), drawn by SwiftUI (ios/Portable/Me/KMeScreen.swift, adapter
    ios/Adapters/KMeView.swift), for src/screens/me/MeNative.tsx. Every word, figure and destination
@@ -181,6 +181,9 @@ export type KMeFirstClass = {
   /** the courier's snapshot for the stamp (lib/bird-images fcFree / fcMember); null for none */
   bird: KImageRefProps | null;
   member: boolean;
+  /** her look, drawn by Swift on the stamp instead of the snapshot (the courier's planet, Planet.ts);
+      absent or null keeps the snapshot */
+  wren?: KWrenLookData | null;
 };
 
 /** First Class by the day (src/lib/fc-rollout): the form on the page and its words. */
@@ -312,7 +315,7 @@ type NativeKMeViewProps = Omit<KMeViewProps, "letterFont" | "insets" | "rev" | "
     ref?: Ref<KScreenHandle>;
     peekKindreds: Omit<KMePeekKindreds, "items"> & { items: (Omit<KMePeekKindred, "face"> & { face: NativeFace })[] };
     looks: Omit<KMeLooks, "tiles"> & { tiles: (Omit<KMeLookTile, "bird"> & { bird: NativeImage })[] };
-    firstClass: Omit<KMeFirstClass, "bird"> & { bird: NativeImage };
+    firstClass: Omit<KMeFirstClass, "bird" | "wren"> & { bird: NativeImage; wrenOn: boolean; wren: ReturnType<typeof nativeWrenLook> };
     onMeSettings?: None;
     onMeEdit?: None;
     onMePeek?: Ev<{ key: "letters" | "kindreds"; open: boolean }>;
@@ -397,7 +400,10 @@ export const KMeView = forwardRef<KScreenHandle, KMeViewProps>(function KMeView(
   // else doesn't send them again
   const sentKindreds = useMemo(() => ({ ...peekKindreds, items: peekKindreds.items.map((k) => ({ ...k, face: face(k.face) })) }), [peekKindreds]);
   const sentLooks = useMemo(() => ({ ...looks, tiles: looks.tiles.map((t) => ({ ...t, bird: image(t.bird) })) }), [looks]);
-  const sentFirstClass = useMemo(() => ({ ...firstClass, bird: image(firstClass.bird) }), [firstClass]);
+  const sentFirstClass = useMemo(
+    () => ({ ...firstClass, bird: image(firstClass.bird), wrenOn: !!firstClass.wren, wren: nativeWrenLook(firstClass.wren ?? { skin: "sticker", stage: "wren", accessory: "none" }) }),
+    [firstClass],
+  );
   const sentCourierCard = useMemo(() => nativeCourierCard(courierCard), [courierCard]);
   const sentAuraArt = useMemo(() => nativeAuraArt(auraArt), [auraArt]);
   const sentMyFace = useMemo(() => nativeMyFace(myFace), [myFace]);

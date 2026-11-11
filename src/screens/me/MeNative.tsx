@@ -23,7 +23,7 @@ import { CourierCard } from "../../components/CourierCard";
 import { AURA_ART_H, AuraArtSlot, auraArtWidth } from "../../components/AuraCard";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
-import { useBirdImageRef, type BirdPose } from "../../lib/bird-images";
+import { useBirdImageRefs, type BirdPose } from "../../lib/bird-images";
 import { faceRecord, useFaceSources, type FaceInput, type FaceSource } from "../../lib/faces";
 import type { ImageRefRecord } from "../../lib/images";
 import { t } from "../../lib/i18n";
@@ -220,18 +220,31 @@ export function MeNative({ model }: { model: MeModel }) {
   const myStamp = useMyStamp();
   const stampOf = useMemberStamps(me4a.peekKindreds.items.map((k) => k.face.seed));
 
+  /* the Stamps card (custom stamps, Prompt 1): MADE BY YOU, FROM STRANGERS, YOUR STAMPS, the album
+     (useStampCollection: the facts, the words and the taps; the album route shares it) */
+  const collection = useStampCollection({ where: "me" });
+  // the courier's planet, when "meplanet" is on (null: the page of segments, as before); its
+  // clock runs only while the tab is focused. Kept by content like the records below, and in
+  // the rev with them: Swift converts it with the page's content
+  const focused = useIsFocused();
+  const planet = useMePlanetData(model, collection.card, { live: focused });
+  const onPlanet = !!planet;
+
   // her pictures: the looks tiles (grown, each look pinned; lookWorn is whatever she has on) and
   // the First Class stamp
   // the middle two tiles' poses come from the model (beanie and scarf, or the season's two looks),
-  // so only the four pictures on the row are captured
-  const lookNone = useBirdImageRef("lookNone");
+  // so only the four pictures on the row are captured.
+  // WITH THE PLANET NONE IS CAPTURED: nothing on that page is a picture of her (the shelf and
+  // the First Class stamp are drawn by Swift from her look)
   const pose1 = me4a.looks.tiles[1]?.pose ?? "lookBeanie";
   const pose2 = me4a.looks.tiles[2]?.pose ?? "lookScarf";
-  const look1 = useBirdImageRef(pose1);
-  const look2 = useBirdImageRef(pose2);
-  const lookWorn = useBirdImageRef("lookWorn");
   const fcPose: BirdPose = me4a.firstClass.pose;
-  const fcBird = useBirdImageRef(fcPose);
+  const snaps = useBirdImageRefs<BirdPose>(onPlanet ? [] : ["lookNone", pose1, pose2, "lookWorn", fcPose]);
+  const lookNone = snaps.lookNone ?? null;
+  const look1 = snaps[pose1] ?? null;
+  const look2 = snaps[pose2] ?? null;
+  const lookWorn = snaps.lookWorn ?? null;
+  const fcBird = snaps[fcPose] ?? null;
   const birds = useMemo(() => {
     const b: Record<LookPose, ImageRefRecord | null> = { lookNone, lookBeanie: null, lookScarf: null, lookWitch: null, lookGhost: null, lookWorn };
     b[pose1] = look1;
@@ -246,9 +259,6 @@ export function MeNative({ model }: { model: MeModel }) {
   const looks = useSameContent(useMemo(() => nativeLooks(me4a, birds), [me4a, birds]));
   const auraRec = useSameContent(useMemo(() => nativeAura(view.aura), [view.aura]));
   const report = useSameContent(useMemo(() => nativeReport(me4a), [me4a]));
-  /* the Stamps card (custom stamps, Prompt 1): MADE BY YOU, FROM STRANGERS, YOUR STAMPS, the album
-     (useStampCollection: the facts, the words and the taps; the album route shares it) */
-  const collection = useStampCollection({ where: "me" });
   const stamps = useSameContent<KMeStamps>(collection.card);
   const firstClass = useSameContent<KMeFirstClass>(
     useMemo(
@@ -261,8 +271,11 @@ export function MeNative({ model }: { model: MeModel }) {
         stampLabel: me4a.firstClass.stampLabel,
         bird: fcBird,
         member: me4a.firstClass.member,
+        // with the planet her stamp is drawn by Swift, in the face the snapshot has (lib/bird-images
+        // fcFree: curious; fcMember: delight), grown, in what she wears
+        wren: onPlanet ? { skin: model.planet.shelf.skin, stage: "wren" as const, mood: me4a.firstClass.member ? ("delight" as const) : ("curious" as const), accessory: model.planet.shelf.dress } : null,
       }),
-      [me4a.firstClass, fcBird],
+      [me4a.firstClass, fcBird, onPlanet, model.planet.shelf.skin, model.planet.shelf.dress],
     ),
   );
   /* First Class by the day (lib/fc-rollout): the record without the courier's words */
@@ -271,12 +284,6 @@ export function MeNative({ model }: { model: MeModel }) {
   void _cs;
   const fcSent = useSameContent<KMeFcRollout>(fcRecord);
   const fcOpen = fc.open;
-  // the courier's planet, when "meplanet" is on (null: the page of segments, as before); its
-  // clock runs only while the tab is focused. Kept by content like the records above, and in
-  // the rev with them: Swift converts it with the page's content
-  const focused = useIsFocused();
-  const planet = useMePlanetData(model, collection.card, { live: focused });
-  const onPlanet = !!planet;
   const rev = useRev(strings, profile, peekLetters, peekKindreds, looks, auraRec, report, stamps, firstClass, fcSent, planet);
 
   // a free reader's First Class look and "All looks →": the First Class segment, shown as its

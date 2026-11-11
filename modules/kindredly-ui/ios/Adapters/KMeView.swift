@@ -35,7 +35,8 @@ import ExpoUI
    made: [{ id, topic, fresh, note, a11y }], newLabel, full, fullTitle, fullSub, fullCta, notNow,
    ready, readyCta, readyId, strangersLabel, strangersCount, strangers: [{ id, from, a11y }],
    strangersEmpty, album } (custom stamps: Portable/Me/KStampsCard.swift)
- - firstClass: { eyebrow, headline, rows, cta, trial ("" = none), stampLabel, bird, member }
+ - firstClass: { eyebrow, headline, rows, cta, trial ("" = none), stampLabel, bird, member,
+   wrenOn, wren (KWrenLookRecord: with wrenOn, Swift draws her on the stamp and `bird` is unused) }
  - initialSegment: the segment to open on (read when the view first draws)
  Every record above is converted once per rev (useRev in TS).
 
@@ -422,6 +423,11 @@ struct KMeFirstClassRecord: Record {
   @Field var stampLabel: String = ""
   @Field var bird: KImageRefRecord = KImageRefRecord()
   @Field var member: Bool = false
+  /// her look for the stamp, drawn by Swift instead of the snapshot (the courier's planet;
+  /// Adapters/KMePlanetView.swift has the record). Off, and all a record from before it can be:
+  /// the snapshot
+  @Field var wrenOn: Bool = false
+  @Field var wren: KWrenLookRecord = KWrenLookRecord()
 
   var firstClass: KMeFirstClass {
     var f = KMeFirstClass()
@@ -432,6 +438,7 @@ struct KMeFirstClassRecord: Record {
     f.trial = trial
     f.stampLabel = stampLabel
     f.bird = bird.ref
+    f.wren = wrenOn ? wren.look : nil
     f.member = member
     return f
   }

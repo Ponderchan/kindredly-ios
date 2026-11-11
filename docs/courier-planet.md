@@ -249,6 +249,9 @@ text and the prototype disagree, the prototype wins unless this text says "chang
     change without the slide.
   - `docs/CHANGELOG.md`: the planet's lines under Unreleased (not in 1.0.9; `[switch: meplanet]`)
     and the plain lines (`[OTA]`).
+- 2026-11-11 — **nothing on the planet's Me is a picture of her.** The First Class card's stamp
+  takes her look (`KMeFirstClass.wren`) and is drawn by KWrenBird; with the planet on, MeNative
+  captures no bird snapshot at all (the old looks tiles and the stamp were the last five).
 - 2026-11-11 — **the adapters type-check.** `checks/typecheck-module.sh` compiles the whole
   module (Portable, Adapters, the module file) against the real Expo interfaces without a build:
   no errors. What is left for the device is behaviour, not compilation.

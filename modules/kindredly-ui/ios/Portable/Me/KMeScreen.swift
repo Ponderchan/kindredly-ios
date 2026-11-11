@@ -415,6 +415,9 @@ public struct KMeFirstClass: Equatable, Sendable {
   public var stampLabel = ""
   /// the courier's live snapshot for the stamp; nil leaves its face cream
   public var bird: KImageRef?
+  /// her look, drawn by Swift (KWrenBird) on the stamp instead of the snapshot; nil for the
+  /// snapshot. The courier's planet sends this: nothing on that page is a picture of her
+  public var wren: KWrenLook?
   public var member = false
 
   public init() {}
@@ -1271,7 +1274,11 @@ struct KMeFirstClassCard: View {
     let inner = CGSize(width: size.width - 14, height: size.height - 14)
     return ZStack {
       RoundedRectangle(cornerRadius: 2, style: .circular).fill(KBrand.cream)
-      KImage(card.bird, size: CGSize(width: inner.width * 0.7, height: inner.width * 0.7), contentMode: .fit, placeholder: .clear)
+      if let look = card.wren {
+        KWrenBird(look, size: inner.width * 0.7)
+      } else {
+        KImage(card.bird, size: CGSize(width: inner.width * 0.7, height: inner.width * 0.7), contentMode: .fit, placeholder: .clear)
+      }
     }
     .frame(width: inner.width, height: inner.height)
     .overlay(alignment: .bottomTrailing) {

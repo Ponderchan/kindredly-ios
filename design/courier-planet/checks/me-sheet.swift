@@ -159,6 +159,10 @@ func meContent(_ c: Case) -> KMeContent {
   m.firstClass.rows = ["Every look and colour for Pip", "Your writing report, every month", "Unlimited photo stamps"]
   m.firstClass.cta = "See First Class →"
   m.firstClass.stampLabel = "1ST"
+  // with the planet her stamp is drawn by Swift: curious, grown, in what she wears
+  var onStamp = KWrenLook(skin: c.look.skin, stage: .wren, mood: .curious, accessory: c.look.accessory)
+  onStamp.letter = false
+  m.firstClass.wren = onStamp
   m.planet = planet(c)
   return m
 }
