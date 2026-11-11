@@ -7,8 +7,11 @@ import UIKit
 /* THE COVER IDEA (owner, 2026-11-11 night: "me tab 的结构就改成和我老产品一模一样的"): the pieces the
    prototype in design/courier-planet/cover-prototype is put together from — the planet's scene
    as a cover (with plain sky above and below it to stretch into), the planet page a pull-down
-   opens, her card as a miniature of her own page two ways (A a fixed sky, B on white), and the
-   Aura and report tiles side by side over the First Class card. Not built in the app.
+   opens, her card as a miniature of her own page (round one: a fixed sky, or on white; round
+   two, after "信使那块除了白底还有啥好的设计": her hill in her own green, an ink perch on white, her
+   badge, her journey — none changes with the hour), the cover's two ways in as small pictures
+   (two real stamps, a red postbox), and the Aura and report tiles side by side over the First
+   Class card. Not built in the app.
    design/courier-planet/checks/render-fast.sh me-banner.swift <out dir>
 
    The helpers below are me-sheet.swift's.
@@ -359,6 +362,242 @@ func cover(_ pal: String) -> KCourierCover {
   .background(Color.white)
 }
 
+// ── round two: her card four more ways, none of them a sky, none changing with the hour ──
+let INK2 = Color(hex: "#1E1B35")
+let SOFT2 = KTheme.classic.soft2
+let SUB2 = KTheme.classic.sub
+
+@MainActor func herCard<Top: View>(_ c: Case, @ViewBuilder top: () -> Top) -> some View {
+  VStack(spacing: 0) {
+    top()
+    herBody(c)
+  }
+  .background(Color.white)
+  .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+  .kSoftLift(.classic, radius: 26)
+  .frame(width: 370)
+  .padding(.horizontal, 16)
+  .padding(.top, 6)
+  .padding(.bottom, 26)
+  .background(Color.white)
+}
+
+/// what she says, in a bubble with a tail toward her
+@MainActor func saying(_ text: String, fill: Color = SOFT2) -> some View {
+  Text(text)
+    .font(.system(size: 17))
+    .foregroundColor(INK2)
+    .padding(.horizontal, 13)
+    .padding(.vertical, 9)
+    .fixedSize()
+    .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(fill))
+    .background(alignment: .leading) {
+      Path { p in
+        p.move(to: CGPoint(x: 0, y: 6)); p.addLine(to: CGPoint(x: -8, y: 12)); p.addLine(to: CGPoint(x: 0, y: 18)); p.closeSubpath()
+      }
+      .fill(fill)
+      .frame(width: 1, height: 24)
+    }
+}
+
+@MainActor func tag(_ text: String) -> some View {
+  Text(text)
+    .kText(.mono(9.5, .semibold, tracking: 0.14))
+    .foregroundStyle(INK2)
+    .padding(.horizontal, 8)
+    .padding(.vertical, 5)
+    .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(SOFT2))
+}
+
+/// 1 — on white, on a perch drawn in ink (the Aura tile's own kind of drawing); only she is coloured
+@MainActor func miniPerch(_ c: Case) -> some View {
+  herCard(c) {
+    HStack(alignment: .center, spacing: 10) {
+      ZStack(alignment: .bottom) {
+        Canvas { ctx, size in
+          let y = size.height - 16
+          var branch = Path()
+          branch.move(to: CGPoint(x: 2, y: y + 2))
+          branch.addQuadCurve(to: CGPoint(x: size.width - 2, y: y - 6), control: CGPoint(x: size.width * 0.5, y: y + 9))
+          ctx.stroke(branch, with: .color(INK2), style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
+          var twig = Path()
+          twig.move(to: CGPoint(x: size.width - 26, y: y - 3))
+          twig.addQuadCurve(to: CGPoint(x: size.width - 10, y: y - 22), control: CGPoint(x: size.width - 14, y: y - 8))
+          ctx.stroke(twig, with: .color(INK2), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+          var leaf = Path()
+          leaf.move(to: CGPoint(x: size.width - 10, y: y - 22))
+          leaf.addQuadCurve(to: CGPoint(x: size.width - 2, y: y - 34), control: CGPoint(x: size.width - 14, y: y - 32))
+          leaf.addQuadCurve(to: CGPoint(x: size.width - 10, y: y - 22), control: CGPoint(x: size.width + 2, y: y - 24))
+          ctx.stroke(leaf, with: .color(INK2), style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round))
+        }
+        KWrenBird(c.look, size: 104).offset(x: -10, y: -17)
+      }
+      .frame(width: 128, height: 122)
+      VStack(alignment: .leading, spacing: 9) {
+        Text("PIP · DAY 12")
+          .kText(.mono(9.5, .semibold, tracking: 0.14))
+          .foregroundStyle(SUB2)
+        saying("someone's out there…")
+      }
+      Spacer(minLength: 0)
+    }
+    .padding(.horizontal, 14)
+    .padding(.top, 12)
+  }
+}
+
+/// 2 — her badge: the Post's courier, her picture, her name, how long
+@MainActor func miniBadge(_ c: Case) -> some View {
+  herCard(c) {
+    VStack(spacing: 0) {
+      Capsule().fill(SOFT2).frame(width: 42, height: 8).padding(.top, 11)
+      HStack(alignment: .center, spacing: 14) {
+        ZStack(alignment: .bottom) {
+          RoundedRectangle(cornerRadius: 16, style: .continuous).fill(SOFT2)
+          KWrenBird(c.look, size: 84).offset(x: 5, y: 4)
+        }
+        .frame(width: 98, height: 106)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        VStack(alignment: .leading, spacing: 0) {
+          Text("KINDREDLY POST")
+            .kText(.mono(8.5, .semibold, tracking: 0.18))
+            .foregroundStyle(SUB2)
+          Text("Pip")
+            .font(.system(size: 28, weight: .bold))
+            .foregroundColor(INK2)
+            .padding(.top, 3)
+          Text("YOUR COURIER")
+            .kText(.mono(10, .bold, tracking: 0.16))
+            .foregroundStyle(Color(hex: "#1F5C33"))
+            .padding(.top, 5)
+          HStack(spacing: 6) {
+            tag("DAY 12")
+            tag("GROWN")
+          }
+          .padding(.top, 9)
+        }
+        Spacer(minLength: 0)
+      }
+      .padding(.horizontal, 16)
+      .padding(.top, 8)
+    }
+  }
+}
+
+/// 3 — her own hill, in her green, the same at any hour
+@MainActor func miniHill(_ c: Case) -> some View {
+  let w: CGFloat = 370
+  let h: CGFloat = 138
+  return herCard(c) {
+    ZStack(alignment: .topLeading) {
+      Color(hex: "#F1F8ED").frame(width: w, height: h)
+      Ellipse().fill(Color(hex: "#E1F0DA")).frame(width: 300, height: 150).position(x: w * 0.1, y: h + 34)
+      Ellipse().fill(Color(hex: "#CFE7C4")).frame(width: 400, height: 170).position(x: w * 0.66, y: h + 44)
+      KWrenBird(c.look, size: 108).position(x: w * 0.62, y: h - 60)
+      saying("someone's out there…", fill: .white)
+        .fixedSize()
+        .position(x: 16 + 86, y: h - 30)
+      Text("YOUR COURIER")
+        .kText(.mono(11, .bold, tracking: 0.16))
+        .foregroundStyle(Color.white)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(RoundedRectangle(cornerRadius: 7, style: .circular).fill(Color(hex: "#1F5C33")))
+        .offset(x: 12, y: 12)
+      Text("DAY 12")
+        .kText(.mono(10, .bold, tracking: 0.16))
+        .foregroundStyle(Color(hex: "#1F5C33"))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Capsule().fill(Color.white.opacity(0.85)))
+        .fixedSize()
+        .position(x: w - 42, y: 25)
+    }
+    .frame(width: w, height: h, alignment: .topLeading)
+    .clipped()
+  }
+}
+
+/// 4 — her journey: where she is on the way from an egg, and what comes next
+@MainActor func miniJourney(_ c: Case) -> some View {
+  let now = 2 // fledge
+  let stages: [(KWrenStage, String)] = [(.egg, "EGG"), (.hatch, "HATCH"), (.fledge, "FLEDGE"), (.wren, "GROWN")]
+  var young = c
+  young.look = KWrenLook(skin: .sticker, stage: .fledge)
+  return herCard(young) {
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(alignment: .center, spacing: 12) {
+        ZStack(alignment: .bottom) {
+          Ellipse().fill(SOFT2).frame(width: 96, height: 26)
+          KWrenBird(young.look, size: 86).offset(y: -9)
+        }
+        .frame(width: 104, height: 92)
+        VStack(alignment: .leading, spacing: 9) {
+          Text("PIP · DAY 12")
+            .kText(.mono(9.5, .semibold, tracking: 0.14))
+            .foregroundStyle(SUB2)
+          saying("someone's out there…")
+        }
+        Spacer(minLength: 0)
+      }
+      VStack(alignment: .leading, spacing: 8) {
+        Text("PIP'S JOURNEY")
+          .kText(.mono(8.5, .semibold, tracking: 0.18))
+          .foregroundStyle(SUB2)
+        HStack(alignment: .top, spacing: 0) {
+          ForEach(Array(stages.enumerated()), id: \.offset) { i, st in
+            VStack(spacing: 5) {
+              ZStack {
+                Circle().fill(i == now ? Color.white : SOFT2)
+                if i == now { Circle().strokeBorder(Color(hex: "#1F5C33"), lineWidth: 2.2) }
+                KWrenBird(KWrenLook(skin: .sticker, stage: st.0), size: 32).opacity(i > now ? 0.3 : 1)
+              }
+              .frame(width: 48, height: 48)
+              Text(st.1)
+                .kText(.mono(8.5, i == now ? .bold : .semibold, tracking: 0.12))
+                .foregroundStyle(i == now ? INK2 : SUB2)
+            }
+            .frame(maxWidth: .infinity)
+          }
+        }
+        .background(alignment: .top) {
+          Rectangle().fill(KTheme.classic.line).frame(height: 1.5).padding(.horizontal, 44).offset(y: 23)
+        }
+        Text("NEXT · GROWN — FIRST KINDRED")
+          .kText(.mono(9.5, .semibold, tracking: 0.12))
+          .foregroundStyle(SUB2)
+      }
+    }
+    .padding(.horizontal, 16)
+    .padding(.top, 12)
+  }
+}
+
+// ── the cover's two ways in: small pictures of the things themselves ──
+@MainActor func iconStamps() -> some View {
+  ZStack(alignment: .leading) {
+    KStamp(id: "cant-sleep", width: 15, dark: false, fallbackHex: nil).rotationEffect(.degrees(9)).offset(x: 10, y: 1)
+    KStamp(id: "tiny-win", width: 15, dark: false, fallbackHex: nil).rotationEffect(.degrees(-9)).offset(x: 1)
+  }
+  .frame(width: 28, height: 24, alignment: .leading)
+}
+
+@MainActor func iconMailbox() -> some View {
+  Canvas { ctx, size in
+    let roof = Color(hex: "#D2574A"), body = Color(hex: "#E46A5A")
+    ctx.fill(Path(roundedRect: CGRect(x: 3, y: 6, width: 16, height: 14), cornerRadius: 1.5), with: .color(body))
+    var dome = Path()
+    dome.move(to: CGPoint(x: 1.5, y: 8.5))
+    dome.addQuadCurve(to: CGPoint(x: 20.5, y: 8.5), control: CGPoint(x: 11, y: -4.5))
+    dome.closeSubpath()
+    ctx.fill(dome, with: .color(roof))
+    ctx.fill(Path(roundedRect: CGRect(x: 6, y: 10.5, width: 10, height: 2.6), cornerRadius: 1.3), with: .color(INK2))
+    ctx.fill(Path(roundedRect: CGRect(x: 7, y: 14.6, width: 8, height: 3.2), cornerRadius: 1), with: .color(.white.opacity(0.92)))
+    ctx.fill(Path(roundedRect: CGRect(x: 1.5, y: 19.5, width: 19, height: 3), cornerRadius: 1.5), with: .color(roof))
+  }
+  .frame(width: 22, height: 24)
+}
+
 @MainActor func rest() -> some View {
   var fc = KMeFirstClass()
   fc.eyebrow = "FIRST CLASS"
@@ -414,6 +653,13 @@ struct Shot {
       save(miniA(c), "\(dir)/mini-a-\(pal).png")
       save(miniB(c), "\(dir)/mini-b-\(pal).png")
     }
+    let d = Case(label: "", pal: "day", state: .out, rows: OUT_ROWS, done: 2)
+    save(miniPerch(d), "\(dir)/mini-perch.png")
+    save(miniBadge(d), "\(dir)/mini-badge.png")
+    save(miniHill(d), "\(dir)/mini-hill.png")
+    save(miniJourney(d), "\(dir)/mini-journey.png")
+    save(iconStamps(), "\(dir)/ic-stamps.png")
+    save(iconMailbox(), "\(dir)/ic-mailbox.png")
     save(rest(), "\(dir)/rest.png")
     print("wrote the banner mock's pieces to", dir)
   }

@@ -69,7 +69,7 @@ h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 650; text-wrap:
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
 }
 .phone.held { cursor: grabbing; }
-.banner { position: absolute; left: 0; top: 0; width: 402px; height: 258px; overflow: hidden; z-index: 2; background: #E3F3FB; }
+.banner { position: absolute; left: 0; top: 0; width: 402px; height: 268px; overflow: hidden; z-index: 2; background: #E3F3FB; }
 .phone.night .banner { background: #2E2A6B; }
 .scene { position: absolute; left: 0; top: 0; width: 402px; height: 836px; max-width: none; transform-origin: 201px 451px; pointer-events: none; }
 .island { position: absolute; left: 138px; top: 11px; width: 126px; height: 37px; border-radius: 19px; background: #000; z-index: 6; pointer-events: none; }
@@ -81,30 +81,32 @@ h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 650; text-wrap:
 .pullhint { position: absolute; left: 16px; top: 62px; font: 600 9.5px/1 var(--label); letter-spacing: .14em; opacity: .6; color: #1F5C33; pointer-events: none; }
 .chips { position: absolute; left: 14px; bottom: 12px; display: flex; gap: 8px; }
 .chip {
-  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px 0 8px; border-radius: 9px;
-  font: 700 11px/1 var(--label); letter-spacing: .12em; background: rgba(255, 255, 255, .78); color: #1E1B35;
+  display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 11px 0 7px; border-radius: 11px;
+  font: 700 11px/1 var(--label); letter-spacing: .12em; background: rgba(255, 255, 255, .72); color: #1E1B35;
 }
+.chip img { display: block; flex: none; }
 .phone.night .chip { background: rgba(255, 255, 255, .16); color: #FFFFFF; }
-.chip svg { width: 15px; height: 15px; flex: none; }
 .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 44px; display: flex; align-items: center; padding: 0 16px; gap: 14px; color: #1E1B35; opacity: 0; }
 .bar .n { font: 600 17px/1 -apple-system, "SF Pro Text", sans-serif; flex: 1; }
-.bar svg { width: 20px; height: 20px; }
+.bar svg { width: 20px; height: 20px; flex: none; }
 .avatar {
-  position: absolute; right: 16px; top: 214px; width: 88px; height: 88px; border-radius: 50%; z-index: 4;
+  position: absolute; right: 16px; top: 224px; width: 88px; height: 88px; border-radius: 50%; z-index: 4;
   background: #CFE3F5; box-shadow: 0 0 0 4px #FFFFFF; transform-origin: 50% 100%; pointer-events: none;
 }
 .avatar::after { content: ""; position: absolute; left: 30px; top: 30px; width: 28px; height: 28px; border-radius: 50%; background: #55607C; }
 .content { position: absolute; left: 0; top: 0; width: 402px; z-index: 1; background: #FFFFFF; will-change: transform; }
-.id { padding: 14px 16px 6px; }
-.id .name { font: 700 24px/1.15 -apple-system, "SF Pro Display", sans-serif; letter-spacing: -.01em; padding-right: 110px; }
-.id .meta { margin-top: 8px; display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 7px; background: #F1F0EE; font: 500 12px/1 -apple-system, sans-serif; color: #55506E; }
-.id .row { margin-top: 14px; display: flex; align-items: center; gap: 22px; }
-.id .stat b { display: block; font: 600 19px/1 -apple-system, sans-serif; font-variant-numeric: tabular-nums; }
-.id .stat span { display: block; margin-top: 5px; font: 500 12px/1 -apple-system, sans-serif; color: #8A86A3; }
+.id { padding: 14px 16px 8px; }
+.id .name { font: 700 22px/1.15 -apple-system, "SF Pro Display", sans-serif; letter-spacing: -.01em; padding-right: 112px; }
+.id .facts { margin-top: 7px; font: 400 15px/1.2 -apple-system, sans-serif; color: #55506E; }
+.id .facts b { font-weight: 600; color: #1E1B35; font-variant-numeric: tabular-nums; }
+.id .facts svg { width: 11px; height: 11px; vertical-align: -1px; color: #B6B2D0; }
+.id .row { margin-top: 10px; display: flex; align-items: center; }
+.id .joined { font: 400 13px/1 -apple-system, sans-serif; color: #55506E; }
 .id .acts { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-.id .edit { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 17px; background: #FFFFFF; box-shadow: 0 0 0 1px #E6E4EC, 0 6px 14px -8px rgba(30, 27, 53, .35); font: 600 14px/1 -apple-system, sans-serif; }
-.id .gear { width: 34px; height: 34px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 0 0 1px #E6E4EC, 0 6px 14px -8px rgba(30, 27, 53, .35); display: grid; place-items: center; }
-.id svg { width: 16px; height: 16px; }
+.id .edit { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px 0 12px; border-radius: 17px; background: #F1F0EE; font: 600 14px/1 -apple-system, sans-serif; }
+.id .gear { width: 34px; height: 34px; border-radius: 50%; background: #F1F0EE; display: grid; place-items: center; }
+.id .edit svg { width: 15px; height: 15px; }
+.id .gear svg { width: 19px; height: 19px; }
 .content img { display: block; width: 402px; max-width: none; height: auto; pointer-events: none; }
 .page { position: absolute; left: 0; top: 0; width: 402px; height: 874px; max-width: none; z-index: 7; opacity: 0; pointer-events: none; }
 .back {
@@ -140,10 +142,12 @@ h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 650; text-wrap:
     </section>
 
     <section class="group" aria-labelledby="g-mini">
-      <h2 id="g-mini">信使那张卡（背景不随时间变）</h2>
+      <h2 id="g-mini">信使那张卡（不随时间变；点 Open 进她的详情页）</h2>
       <div class="seg" data-key="mini">
-        <button type="button" data-v="a">A 固定一片天</button>
-        <button type="button" data-v="b">B 白底</button>
+        <button type="button" data-v="hill">她的小山坡</button>
+        <button type="button" data-v="perch">白底 · 线稿栖木</button>
+        <button type="button" data-v="badge">工牌</button>
+        <button type="button" data-v="journey">成长旅程</button>
       </div>
       <p class="note" id="n-mini"></p>
     </section>
@@ -157,11 +161,10 @@ h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 650; text-wrap:
     </section>
 
     <ul class="list">
+      <li><b>封面左下两个入口</b>换成了东西本身的小图：两枚真邮票、一只红邮筒。设置和编辑用的是 App 里现成的齿轮和笔。</li>
       <li><b>封面</b>就是星球那一幕。星球本身照旧能用手指转（原型里是张图，转不了）；在星球以外的地方往下拉，才是展开。</li>
       <li><b>拉下来</b>就是现在的星球页，一点没改。</li>
-      <li><b>STAMPS / LETTERS</b> 两个小入口在封面左下，像你老产品的「邮票 / 邮筒」：一个进邮票册，一个进 My letters。所以下面不再有 Stamps 那一格。</li>
-      <li><b>信使那张卡</b>是她详情页的缩略：她本人、她说的一句、flight log、皮肤一排。整张卡点进去就是她的页面。</li>
-      <li><b>再往下</b>是 Aura 和写作报告并排，然后是 First Class 卡。老产品里「动态」的位置先空着，日记放不放这里以后再说。</li>
+      <li><b>再往下</b>是 Aura 和写作报告并排，然后是 First Class 卡。「动态」的位置先空着，日记以后再说。</li>
     </ul>
   </div>
 
@@ -172,13 +175,13 @@ h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 650; text-wrap:
           <img class="scene" id="scene" alt="">
           <div class="pullhint" id="pullhint">DRAG TO SPIN · PULL DOWN</div>
           <div class="chips" id="chips">
-            <span class="chip"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3 2.5h10v11H3z"/><path d="M5.5 5h5v6h-5z"/></svg>STAMPS 7</span>
-            <span class="chip"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5a3 3 0 0 1 6 0V12h-6z"/><path d="M5.5 5.5h5a3 3 0 0 1 3 3V12h-5"/><path d="M8.5 14v-2M10.5 8.5h1.5"/></svg>LETTERS 14</span>
+            <span class="chip"><img src="img/ic-stamps.webp" width="28" height="24" alt="">STAMPS 7</span>
+            <span class="chip"><img src="img/ic-mailbox.webp" width="22" height="24" alt="">LETTERS 14</span>
           </div>
           <div class="bar" id="bar">
             <span class="n">Sunday Kite</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
           </div>
         </div>
         <div class="status" aria-hidden="true"><span class="time">9:41</span><span class="batt"></span></div>
@@ -187,12 +190,12 @@ h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 650; text-wrap:
         <div class="content" id="content">
           <div class="id">
             <div class="name">Sunday Kite</div>
-            <div class="meta">joined Jul 27</div>
+            <div class="facts"><span class="k"><b>2</b> kindreds <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></div>
             <div class="row">
-              <div class="stat"><b>2</b><span>kindreds</span></div>
+              <span class="joined">joined Jul 27</span>
               <div class="acts">
-                <span class="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>Edit</span>
-                <span class="gear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></span>
+                <span class="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Edit</span>
+                <span class="gear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>
               </div>
             </div>
           </div>
@@ -210,15 +213,17 @@ h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 650; text-wrap:
 
 <script>
 (function () {
-  var B0 = 258, BAR = 98, P = 150, FULL = 874;
+  var B0 = 268, BAR = 98, P = 150, FULL = 874;
   var NOTES = {
-    a: "她站在一小片固定的天空下，像她详情页的开头。不管几点都是这个颜色。",
-    b: "不再多画一片天：她站在白卡片上的一个小土坡上，旁边是她说的那句。和下面几格是一家。"
+    hill: "她详情页开头那一幕缩小了放进来：YOUR COURIER、DAY 12、她站在自己的小山坡上、她说的一句。颜色固定用她的绿，几点看都一样，也不会和上面的天空封面撞。",
+    perch: "白底，和下面几格是一家。她站在一根墨线画的树枝上，和 Aura 那格的线稿是同一种画法；整张卡只有她有颜色。",
+    badge: "邮局给她的工牌：照片、名字、YOUR COURIER、第几天、长到哪一步。信息最清楚，但少了她说话的那一句。",
+    journey: "把详情页的「Pip's Journey」带出来：蛋、破壳、学飞、长成四步，她现在在哪一步、下一步要什么。她还没长成的那段时间最有用。"
   };
-  var opt = { mini: "a", hour: "day" };
+  var opt = { mini: "hill", hour: "day" };
   try {
-    var saved = JSON.parse(localStorage.getItem("me-cover") || "{}");
-    if (saved.mini === "a" || saved.mini === "b") opt.mini = saved.mini;
+    var saved = JSON.parse(localStorage.getItem("me-cover-2") || "{}");
+    if (NOTES[saved.mini]) opt.mini = saved.mini;
     if (saved.hour === "day" || saved.hour === "night") opt.hour = saved.hour;
   } catch (e) {}
 
@@ -333,10 +338,10 @@ h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 650; text-wrap:
       var key = seg.getAttribute("data-key");
       seg.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-v") === opt[key] ? "true" : "false"); });
     });
-    try { localStorage.setItem("me-cover", JSON.stringify(opt)); } catch (e) {}
+    try { localStorage.setItem("me-cover-2", JSON.stringify(opt)); } catch (e) {}
     new Image().src = "img/scene-" + (opt.hour === "day" ? "night" : "day") + ".webp";
     new Image().src = "img/page-" + (opt.hour === "day" ? "night" : "day") + ".webp";
-    new Image().src = "img/mini-" + (opt.mini === "a" ? "b" : "a") + ".webp";
+    Object.keys(NOTES).forEach(function (m) { if (m !== opt.mini) new Image().src = "img/mini-" + m + ".webp"; });
   }
   document.querySelectorAll(".seg[data-key] button").forEach(function (b) {
     b.addEventListener("click", function () { opt[b.parentNode.getAttribute("data-key")] = b.getAttribute("data-v"); paint(); layout(); });
