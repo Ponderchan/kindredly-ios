@@ -1,7 +1,7 @@
 import { FC_NONE } from "../../lib/fc-rollout";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
-import { Redirect, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isKindredlyUIViewAvailable } from "../../../modules/kindredly-ui";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
@@ -32,7 +32,7 @@ import "../../data/strings-me4a";
 import "../../data/strings-planet";
 
 /* dev only — THE ME TAB ON DEMO DATA (10a step 5, slice me).
-   kindredly:///dev/step5-me
+   kindredly:///dev/step5-me            (?planet=1 the courier's planet on, ?panel=0 the panel hidden)
 
    The Me screen as either renderer draws it, from fixtures (no network, no
    account): data/demo's threads for the courier and the kindreds figure,
@@ -180,6 +180,12 @@ function MeLab() {
   const forced = useDevThemeOverride();
   const safe = useSafeAreaInsets();
   const swiftAvailable = isKindredlyUIViewAvailable("KMeView");
+  // ?planet=1 turns the switch on as the page opens and ?panel=0 opens it with the panel hidden
+  // (a relaunch forgets both: one link brings a simulator straight back to the planet's Me)
+  const params = useLocalSearchParams<{ planet?: string; panel?: string }>();
+  useEffect(() => {
+    if (params.planet === "1") setDevSurfaceOverride("meplanet", true);
+  }, [params.planet]);
 
   const [swift, setSwift] = useState(swiftAvailable);
   const [segment, setSegment] = useState(0);
@@ -192,7 +198,7 @@ function MeLab() {
   const [noName, setNoName] = useState(false);
   const [hungry, setHungry] = useState(false);
   const [serial, setSerial] = useState(0);
-  const [panel, setPanel] = useState(true);
+  const [panel, setPanel] = useState(params.panel !== "0");
   const [lettersN, setLettersN] = useState<(typeof LETTER_COUNTS)[number]>(10);
   const [kinN, setKinN] = useState<(typeof KIN_MODES)[number]>(3);
   const [look, setLook] = useState<(typeof LOOKS)[number]>("none");
