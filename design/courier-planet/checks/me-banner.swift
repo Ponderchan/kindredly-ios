@@ -10,8 +10,10 @@ import UIKit
    page a pull-down opens, her card as a miniature of her own page (round one: a fixed sky, or on
    white; round two: her hill, an ink perch, her badge, her journey; round three, what the owner
    took: the badge's head with her standing on her mound, and her journey while she grows —
-   miniCombo), the cover's two ways in as small pictures (two real stamps, a red postbox), and the
-   Aura and report tiles side by side over the First Class card. Not built in the app.
+   miniCombo), the cover's two ways in as small pictures (two real stamps, a red postbox), and,
+   round four ("writing aura 和 writing report 两块好好设计一下 … 得有一个初始状态"), the two tiles
+   about your writing as a pair with every state they have (auraTileV2, reportTileV2). Not built
+   in the app.
    design/courier-planet/checks/render-fast.sh me-banner.swift <out dir>
 
    The helpers below are me-sheet.swift's.
@@ -364,6 +366,7 @@ func cover(_ pal: String) -> KCourierCover {
 }
 
 // ── round two: her card four more ways, none of them a sky, none changing with the hour ──
+let SCENE_FILE = "/Users/redbeardlord/Desktop/claude-projects/kindredly-ios/assets/aura-scenes/01-quiet-observer.png"
 let INK2 = Color(hex: "#1E1B35")
 let SOFT2 = KTheme.classic.soft2
 let SUB2 = KTheme.classic.sub
@@ -645,6 +648,219 @@ let SUB2 = KTheme.classic.sub
   }
 }
 
+// ── round four: the two tiles about your writing, as a pair, with every state they have ──
+enum AuraStage { case none, some, forming, named }
+enum ReportStage { case none, some, ready, done, locked }
+
+@MainActor func tileShell<Art: View, Foot: View>(chip: String, title: String, @ViewBuilder art: () -> Art, @ViewBuilder foot: () -> Foot) -> some View {
+  VStack(alignment: .leading, spacing: 0) {
+    KMeTileChip(text: chip, fill: INK2, ink: .white)
+    art()
+      .frame(maxWidth: .infinity)
+      .frame(height: 84)
+      .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(SOFT2))
+      .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+      .padding(.top, 10)
+    Text(title)
+      .kText(.system(15, .semibold, lineHeight: 19.0 / 15.0))
+      .foregroundStyle(INK2)
+      .lineLimit(2)
+      .multilineTextAlignment(.leading)
+      .fixedSize(horizontal: false, vertical: true)
+      .frame(maxWidth: .infinity, minHeight: 38, alignment: .topLeading)
+      .padding(.top, 10)
+    foot()
+      .frame(maxWidth: .infinity, minHeight: 28, alignment: .topLeading)
+      .padding(.top, 6)
+  }
+  .padding(14)
+  .frame(width: 178, alignment: .topLeading)
+  .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Color.white))
+  .kSoftLift(.classic, radius: 24)
+}
+
+@MainActor func footLine(_ text: String, ink: Color = SUB2) -> some View {
+  Text(text)
+    .kText(.mono(9.5, .semibold, tracking: 0.1))
+    .foregroundStyle(ink)
+    .lineLimit(2)
+    .multilineTextAlignment(.leading)
+    .fixedSize(horizontal: false, vertical: true)
+}
+
+@MainActor func ticks(_ filled: Int, of total: Int, caption: String) -> some View {
+  VStack(alignment: .leading, spacing: 6) {
+    HStack(spacing: 4) {
+      ForEach(0..<total, id: \.self) { i in
+        Capsule().fill(i < filled ? INK2 : KTheme.classic.line).frame(width: 18, height: 4)
+      }
+    }
+    footLine(caption)
+  }
+}
+
+@MainActor func auraArtV2(_ stage: AuraStage) -> some View {
+  var model = KAuraArtModel()
+  model.desk.ground = SOFT2
+  model.desk.lines = INK2
+  switch stage {
+  case .none:
+    model.desk.fidelity = .lines
+  case .some:
+    model.desk.fidelity = .pencil
+    model.desk.stroke = Color(hex: "#8A86A3")
+  case .forming, .named:
+    model.desk.fidelity = .sketch
+    model.desk.stroke = INK2
+    model.desk.window = .white
+    model.desk.head = .white
+    model.desk.body = .white
+    model.desk.page = .white
+    model.desk.sun = true
+    model.desk.sunStroke = INK2
+  }
+  return ZStack {
+    if stage == .named, let scene = UIImage(contentsOfFile: SCENE_FILE) {
+      Image(uiImage: scene).resizable().aspectRatio(contentMode: .fill)
+    } else {
+      // the whole desk, never cropped: it sits in the panel at its own shape
+      KAuraArt(theme: .classic, art: model, cover: false, ground: SOFT2)
+        .frame(width: 150, height: 48)
+    }
+  }
+}
+
+@MainActor func auraTileV2(_ stage: AuraStage) -> some View {
+  let title = stage == .named ? "The Quiet Observer" : "What your writing says about you"
+  return tileShell(chip: "WRITING AURA", title: title) {
+    auraArtV2(stage)
+  } foot: {
+    switch stage {
+    case .none: ticks(0, of: 3, caption: "0 OF 3 LETTERS")
+    case .some: ticks(4, of: 5, caption: "4 OF 5 LETTERS")
+    case .forming: ticks(2, of: 3, caption: "2 OF 3 LABELS HELD")
+    case .named: footLine("FROM 14 LETTERS")
+    }
+  }
+}
+
+/// the report as a thing: a card to punch until the first one, then a sheet
+@MainActor func reportArtV2(_ stage: ReportStage) -> some View {
+  ZStack {
+    switch stage {
+    case .none, .some:
+      let have = stage == .some ? 4 : 0
+      VStack(spacing: 7) {
+        ForEach(0..<2, id: \.self) { r in
+          HStack(spacing: 7) {
+            ForEach(0..<5, id: \.self) { c in
+              let i = r * 5 + c
+              ZStack {
+                if i < have {
+                  Circle().fill(INK2)
+                  KLineIcon(.check, size: 9, lineWidth: 3.2, color: .white)
+                } else {
+                  Circle().strokeBorder(Color(hex: "#C9C6D6"), style: StrokeStyle(lineWidth: 1.6, dash: [3, 3]))
+                }
+              }
+              .frame(width: 18, height: 18)
+            }
+          }
+        }
+      }
+    case .ready, .done, .locked:
+      let quiet = stage != .ready
+      ZStack {
+        RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Color.white)
+          .frame(width: 58, height: 66)
+          .shadow(color: INK2.opacity(0.10), radius: 3, x: 0, y: 2)
+          .rotationEffect(.degrees(6))
+          .offset(x: 9, y: 2)
+        VStack(alignment: .leading, spacing: 5) {
+          Text(stage == .ready ? "NO. 1" : "NOV")
+            .kText(.mono(8.5, .bold, tracking: 0.12))
+            .foregroundStyle(quiet ? SUB2 : INK2)
+          Capsule().fill(quiet ? KTheme.classic.line : INK2).frame(width: 38, height: 4)
+          Capsule().fill(KTheme.classic.line).frame(width: 26, height: 4)
+          Capsule().fill(KTheme.classic.line).frame(width: 32, height: 4)
+          Capsule().fill(KTheme.classic.line).frame(width: 20, height: 4)
+        }
+        .padding(9)
+        .frame(width: 58, height: 66, alignment: .topLeading)
+        .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Color.white))
+        .shadow(color: INK2.opacity(0.14), radius: 4, x: 0, y: 3)
+        .rotationEffect(.degrees(-4))
+        .overlay(alignment: .bottomTrailing) {
+          if stage == .done {
+            ZStack { Circle().fill(Color(hex: "#2E7D4F")); KLineIcon(.check, size: 10, lineWidth: 3.2, color: .white) }
+              .frame(width: 20, height: 20)
+              .offset(x: 8, y: 6)
+          } else if stage == .locked {
+            ZStack { Circle().fill(KBrand.waxGold); KLineIcon(.lock, size: 10, lineWidth: 2.6, color: INK2) }
+              .frame(width: 22, height: 22)
+              .offset(x: 9, y: 7)
+          }
+        }
+      }
+    }
+  }
+}
+
+@MainActor func reportTileV2(_ stage: ReportStage) -> some View {
+  let title: String = {
+    switch stage {
+    case .none, .some: return "Your writing report"
+    case .ready: return "Your first writing report"
+    case .done: return "This month's report is read"
+    case .locked: return "A monthly writing report"
+    }
+  }()
+  return tileShell(chip: "WRITING REPORT", title: title) {
+    reportArtV2(stage)
+  } foot: {
+    switch stage {
+    case .none: footLine("0 OF 10 PIECES")
+    case .some: footLine("4 OF 10 PIECES")
+    case .ready:
+      HStack(spacing: 6) {
+        ZStack {
+          Circle().fill(KPlanetBubble.lampGold.opacity(0.45)).frame(width: 14, height: 14)
+          Circle().fill(KPlanetBubble.lampGold).frame(width: 8, height: 8)
+            .overlay(Circle().strokeBorder(INK2.opacity(0.3), lineWidth: 1))
+        }
+        .frame(width: 12, height: 12)
+        footLine("READY TO READ", ink: INK2)
+      }
+    case .done: footLine("THE NEXT ONE COMES IN DECEMBER")
+    case .locked: footLine("ONE EVERY MONTH WITH FIRST CLASS")
+    }
+  }
+}
+
+@MainActor func restV2(_ aura: AuraStage, _ report: ReportStage) -> some View {
+  var fc = KMeFirstClass()
+  fc.eyebrow = "FIRST CLASS"
+  fc.headline = "More room for your people."
+  fc.rows = ["Rooms that never close", "Pip's full wardrobe", "Voice letters"]
+  fc.cta = "See First Class →"
+  fc.stampLabel = "1ST"
+  var onStamp = KWrenLook(skin: .sticker, stage: .wren, mood: .curious, accessory: .none)
+  onStamp.letter = false
+  fc.wren = onStamp
+  return VStack(spacing: 14) {
+    HStack(alignment: .top, spacing: 14) {
+      auraTileV2(aura)
+      reportTileV2(report)
+    }
+    .fixedSize(horizontal: false, vertical: true)
+    KMeFirstClassCard(card: fc) {}
+  }
+  .frame(width: 370)
+  .padding(.horizontal, 16)
+  .padding(.bottom, 30)
+  .background(Color.white)
+}
+
 // ── the cover's two ways in: small pictures of the things themselves ──
 @MainActor func iconStamps() -> some View {
   ZStack(alignment: .leading) {
@@ -734,6 +950,12 @@ struct Shot {
     save(iconMailbox(), "\(dir)/ic-mailbox.png")
     save(miniCombo(d, grown: false), "\(dir)/mini-combo.png")
     save(miniCombo(d, grown: true), "\(dir)/mini-grown.png")
+    save(restV2(.none, .none), "\(dir)/rest-new.png")
+    save(restV2(.some, .some), "\(dir)/rest-some.png")
+    save(restV2(.forming, .some), "\(dir)/rest-forming.png")
+    save(restV2(.named, .ready), "\(dir)/rest-ready.png")
+    save(restV2(.named, .done), "\(dir)/rest-done.png")
+    save(restV2(.named, .locked), "\(dir)/rest-locked.png")
     save(rest(), "\(dir)/rest.png")
     print("wrote the banner mock's pieces to", dir)
   }

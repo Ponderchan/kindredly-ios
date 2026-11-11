@@ -97,9 +97,11 @@ h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 650; text-wrap:
 .content { position: absolute; left: 0; top: 0; width: 402px; z-index: 1; background: #FFFFFF; will-change: transform; }
 .id { padding: 12px 16px 12px; }
 .id .name { font: 700 24px/1.15 -apple-system, "SF Pro Display", sans-serif; letter-spacing: -.01em; padding-right: 112px; }
-.id .sign { margin-top: 9px; display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 11px 0 8px; border-radius: 13px; background: #F1F0EE; color: #55506E; font: 500 13px/1 -apple-system, sans-serif; }
-.id .sign svg { width: 15px; height: 15px; flex: none; }
-.id .sign span { margin-left: 1px; }
+.id .sign { margin-top: 9px; display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 11px 0 6px; border-radius: 13px; background: #F1F0EE; color: #55506E; font: 500 13px/1 -apple-system, sans-serif; }
+.id .sign .sex { width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; background: #56B8F5; color: #FFFFFF; flex: none; }
+.id .sign .sex.she { background: #F58FB4; }
+.id .sign .sex svg { width: 12px; height: 12px; }
+.id .sign .zodiac { font: 15px/1 "Apple Color Emoji", "Segoe UI Emoji", sans-serif; margin-left: 1px; }
 .id .tick { margin-top: 14px; width: 28px; height: 2px; border-radius: 1px; background: #E6E4EC; }
 .id .row { margin-top: 12px; display: flex; align-items: center; gap: 30px; }
 .id .stat b { display: block; font: 600 20px/1 -apple-system, sans-serif; font-variant-numeric: tabular-nums; }
@@ -152,6 +154,27 @@ h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 650; text-wrap:
       <p class="note" id="n-mini"></p>
     </section>
 
+    <section class="group" aria-labelledby="g-rest">
+      <h2 id="g-rest">Writing Aura 和 Writing Report 两格：各个状态</h2>
+      <div class="seg" data-key="rest">
+        <button type="button" data-v="new">刚来</button>
+        <button type="button" data-v="some">写了几封</button>
+        <button type="button" data-v="forming">快有了</button>
+        <button type="button" data-v="ready">都有了</button>
+        <button type="button" data-v="done">报告看过了</button>
+        <button type="button" data-v="locked">要 First Class</button>
+      </div>
+      <p class="note" id="n-rest"></p>
+    </section>
+
+    <section class="group" aria-labelledby="g-sex">
+      <h2 id="g-sex">名字下面那一条</h2>
+      <div class="seg" data-key="sex">
+        <button type="button" data-v="he">男 · 淡蓝</button>
+        <button type="button" data-v="she">女 · 粉色</button>
+      </div>
+    </section>
+
     <section class="group" aria-labelledby="g-hour">
       <h2 id="g-hour">封面的时间（只有封面和星球页跟着变）</h2>
       <div class="seg" data-key="hour">
@@ -161,11 +184,9 @@ h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 650; text-wrap:
     </section>
 
     <ul class="list">
-      <li><b>封面压矮了</b>，和你老产品差不多高；星球跟着小一圈。头像往上提了一些。</li>
-      <li><b>封面左下</b>两个入口只留小图和数字：邮票 7、信 14。</li>
-      <li><b>名字下面</b>照你老产品：性别和星座那一条，然后两个数（kindreds、pen pals），右边是 Edit 和设置。</li>
+      <li><b>两格的名字统一</b>成 WRITING AURA 和 WRITING REPORT；两格长得一样：名字、一块画、一句标题、一行状态。</li>
       <li><b>封面上的星球</b>照旧能用手指转（原型里是张图，转不了）；在星球以外的地方往下拉，才是展开。拉下来就是现在的星球页。</li>
-      <li><b>再往下</b>是 Aura 和写作报告并排，然后是 First Class 卡。「动态」的位置先空着，日记以后再说。</li>
+      <li>「动态」的位置先空着，日记以后再说。</li>
     </ul>
   </div>
 
@@ -191,7 +212,7 @@ h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 650; text-wrap:
         <div class="content" id="content">
           <div class="id">
             <div class="name">Sunday Kite</div>
-            <div class="sign"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.25 14.25a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z M12.93 11.07 18.75 5.25 M13.5 5.25h5.25v5.25"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6c1-.8 2-.3 2 1v9 M5.5 7a2.25 2.25 0 0 1 4.5 0v9 M10 7a2.25 2.25 0 0 1 4.5 0V14.75c0 1.6 1.2 2.75 2.75 2.75H20.5 M18.3 15.3l2.2 2.2-2.2 2.2"/></svg><span>Scorpio</span></div>
+            <div class="sign"><span class="sex" id="sex"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path id="sexpath" d=""/></svg></span><span class="zodiac" aria-hidden="true">♏️</span><span>Scorpio</span></div>
             <div class="tick"></div>
             <div class="row">
               <div class="stat"><b>2</b><span>kindreds</span></div>
@@ -203,7 +224,7 @@ h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 650; text-wrap:
             </div>
           </div>
           <img id="mini" alt="">
-          <img id="rest" src="img/rest.webp" alt="">
+          <img id="rest" alt="">
         </div>
         <img class="page" id="page" alt="">
         <button type="button" class="back" id="back" hidden>↑ 往上推，回到 Me</button>
@@ -223,11 +244,25 @@ h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 650; text-wrap:
     combo: "工牌的头部（去掉了 KINDREDLY POST），她站在小土坡上；下面是她的成长旅程，四步里她走到哪一步、下一步要什么；再下面是 flight log 和皮肤一排。点 Open 进她的详情页。",
     grown: "她长成以后，成长那一排收起来，工牌上多一个 GROWN。卡片短一截，下面的 Aura 和报告就上来了。"
   };
-  var opt = { mini: "combo", hour: "day" };
+  var TILES = {
+    "new": "还没写信：Aura 那格是几行等着被写的横线，下面三个空刻度；报告那格是一张十个孔的卡，一个都没打。两格都告诉你「还差多少」。",
+    some: "写了几封：Aura 的画开始有铅笔稿，刻度走到 4 / 5；报告的卡打了 4 个孔。",
+    forming: "标签在形成：Aura 的画变成墨线稿，写着「3 个标签里稳住了 2 个」。",
+    ready: "都有了：Aura 换成你那张画和名字；第一份报告摆出来，一个会呼吸的小黄点写着 READY TO READ。",
+    done: "这个月的报告看过了：打一个绿勾，写着下一份几月来。",
+    locked: "不是会员、第一份已经看过：报告上一把金锁，写着每月一份要 First Class。"
+  };
+  var SEX = {
+    he: "M14.25 14.25a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z M12.93 11.07 18.75 5.25 M13.5 5.25h5.25v5.25",
+    she: "M16.5 8.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z M12 13.25v6.25 M9 16.5h6"
+  };
+  var opt = { mini: "combo", hour: "day", rest: "new", sex: "he" };
   try {
-    var saved = JSON.parse(localStorage.getItem("me-cover-3") || "{}");
+    var saved = JSON.parse(localStorage.getItem("me-cover-4") || "{}");
     if (NOTES[saved.mini]) opt.mini = saved.mini;
     if (saved.hour === "day" || saved.hour === "night") opt.hour = saved.hour;
+    if (TILES[saved.rest]) opt.rest = saved.rest;
+    if (SEX[saved.sex]) opt.sex = saved.sex;
   } catch (e) {}
 
   var $ = function (id) { return document.getElementById(id); };
@@ -337,19 +372,28 @@ h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: 650; text-wrap:
     page.src = "img/page-" + opt.hour + ".webp";
     $("mini").src = "img/mini-" + opt.mini + ".webp";
     $("n-mini").textContent = NOTES[opt.mini];
+    $("rest").src = "img/rest-" + opt.rest + ".webp";
+    $("n-rest").textContent = TILES[opt.rest];
+    $("sex").classList.toggle("she", opt.sex === "she");
+    $("sexpath").setAttribute("d", SEX[opt.sex]);
     document.querySelectorAll(".seg[data-key]").forEach(function (seg) {
       var key = seg.getAttribute("data-key");
       seg.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-v") === opt[key] ? "true" : "false"); });
     });
-    try { localStorage.setItem("me-cover-3", JSON.stringify(opt)); } catch (e) {}
+    try { localStorage.setItem("me-cover-4", JSON.stringify(opt)); } catch (e) {}
     new Image().src = "img/scene-" + (opt.hour === "day" ? "night" : "day") + ".webp";
     new Image().src = "img/page-" + (opt.hour === "day" ? "night" : "day") + ".webp";
     Object.keys(NOTES).forEach(function (m) { if (m !== opt.mini) new Image().src = "img/mini-" + m + ".webp"; });
+    Object.keys(TILES).forEach(function (m) { if (m !== opt.rest) new Image().src = "img/rest-" + m + ".webp"; });
   }
   document.querySelectorAll(".seg[data-key] button").forEach(function (b) {
     b.addEventListener("click", function () { opt[b.parentNode.getAttribute("data-key")] = b.getAttribute("data-v"); paint(); layout(); });
   });
-  $("mini").addEventListener("load", function () { st.scroll = Math.min(st.scroll, maxScroll()); layout(); });
+  ["mini", "rest"].forEach(function (id) { $(id).addEventListener("load", function () { st.scroll = Math.min(st.scroll, maxScroll()); layout(); }); });
+  // choosing a state of the two tiles brings them into view
+  document.querySelectorAll('.seg[data-key="rest"] button').forEach(function (b) {
+    b.addEventListener("click", function () { if (st.k === 0) run({ pull: 0, scroll: Math.min(maxScroll(), 420), k: 0 }, 420); });
+  });
 
   // the phone keeps its proportions and shrinks to fit the window
   var fit = $("fit");
