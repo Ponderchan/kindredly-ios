@@ -112,6 +112,8 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   ok("the thread-mute key is there and off", "threadmute" in entries && entries.threadmute === false);
   // the courier's planet on Me (owner sign-off 2026-11-11): off until its device pass
   ok("the courier's planet's key is there and off", "meplanet" in entries && entries.meplanet === false);
+  // Today after the day's fifteen (owner's decisions of 2026-11-11): off until its device pass
+  ok("the after-fifteen key is there and off", "afterfifteen" in entries && entries.afterfifteen === false);
   // the last React Native a reader can see (2026-11-09): on after the simulator pass, except the
   // four that need real media to test, off until a device pass
   const LAST_ON = ["launch", "authcallback", "hatch", "obchick", "obroutebird", "obflight", "kindredsempty", "wardrobesheet", "plush", "composewren", "notewren", "facewren", "myavatar", "faceready", "ratingsheet", "fcreceipt", "chatheader", "inflight", "reels", "freeflight"];
@@ -119,7 +121,7 @@ ok("a cached map with junk values falls to the default", surfaceOn({ chat: "yes"
   const LAST_RN = [...LAST_ON, ...LAST_OFF];
   ok("the last pieces' keys: twenty on", LAST_ON.every((k) => entries[k] === true));
   ok("the last pieces' keys: the four media pieces off", LAST_OFF.every((k) => entries[k] === false));
-  ok("nothing else is in the table", Object.keys(entries).length === LAST_RN.length + NINE.length + ME4A.length + AURA.length + ME_LAST.length + SMALL.length + NOTE_PAGES.length + CHAT_OVERLAYS.length + SHEETS.length + TODAY_OVERLAYS.length + MOMENTS.length + COMPOSE_PIECES.length + ME_PIECES.length + 13);
+  ok("nothing else is in the table", Object.keys(entries).length === LAST_RN.length + NINE.length + ME4A.length + AURA.length + ME_LAST.length + SMALL.length + NOTE_PAGES.length + CHAT_OVERLAYS.length + SHEETS.length + TODAY_OVERLAYS.length + MOMENTS.length + COMPOSE_PIECES.length + ME_PIECES.length + 14);
 }
 
 /* ── the crash breadcrumb ── */

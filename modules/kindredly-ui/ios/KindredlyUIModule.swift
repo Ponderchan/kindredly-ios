@@ -502,6 +502,12 @@ public class KindredlyUIModule: Module {
     // Track on her page. No commands: it draws and reports taps.
     ExpoUIView(KPlanetPageView.self)
 
+    // Today, after fifteen (2026-11-11, docs/today-after-fifteen.md), behind "afterfifteen" (off
+    // by default): the mailbox, the receipt and bedtime, the page Today becomes once the day's
+    // last letter has gone past (Adapters/KAfterFifteenView.swift, Portable/Today/After). No
+    // commands: it draws and reports taps. New files: a pod install before the build.
+    ExpoUIView(KAfterFifteenView.self)
+
     // batch 3: slice 3 (2026-11-09), each behind its own switch (off by default) with its React
     // Native piece as the fallback: the empty Kindreds tab ("kindredsempty": Adapters/
     // KKindredsEmptyView.swift, Portable/Kindreds/KKindredsEmpty.swift), the wardrobe slip's sheet

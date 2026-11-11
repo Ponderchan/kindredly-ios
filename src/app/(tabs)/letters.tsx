@@ -6,6 +6,8 @@ import { TodayNative } from "../../screens/today/TodayNative";
 import { TodayRN } from "../../screens/today/TodayRN";
 import { TodayOverlays } from "../../screens/today/TodayOverlays";
 import { TodayUpdate } from "../../screens/today/TodayUpdate";
+import { useAfterFifteen } from "../../screens/today/useAfterFifteen";
+import { AfterFifteenNative } from "../../screens/today/AfterFifteenNative";
 import "../../data/strings-step5-today";
 
 /* TODAY (Today 3d × 25b) — the post: today's strangers' letters, one card
@@ -31,21 +33,46 @@ import "../../data/strings-step5-today";
    The toast, the sheets, the report card and the unfolded reader sit over
    either (TodayOverlays). The update prompt (TodayUpdate) wraps them all: its
    sheet when the server asks this binary to update, then its banner at the
-   top, which both renderers and the overlays make room for. */
+   top, which both renderers and the overlays make room for.
+
+   AFTER FIFTEEN (docs/today-after-fifteen.md; the "afterfifteen" switch, off
+   by default). Once the day's last letter has gone past, the desk gives its
+   place to one of three pages until the morning: the mailbox, the receipt,
+   bedtime (screens/today/useAfterFifteen decides, AfterFifteenNative draws,
+   SwiftUI only). They stand where the desk stood, behind the same switch
+   machinery (NativeSurface: the table, the binary having the view, the crash
+   strikes), with the desk itself as the fallback; off, or before the day is
+   done, this route is exactly what it was. */
 export default function LettersTab() {
   const { t: tk } = useTheme();
   const model = useTodayDesk();
+  const after = useAfterFifteen(model);
+  const desk = () => (
+    <NativeSurface
+      surface="today"
+      view="KTodayView"
+      mode="mount"
+      native={() => <TodayNative model={model} />}
+      fallback={() => <TodayRN model={model} />}
+    />
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
       <TodayUpdate model={model}>
-        <NativeSurface
-          surface="today"
-          view="KTodayView"
-          mode="mount"
-          native={() => <TodayNative model={model} />}
-          fallback={() => <TodayRN model={model} />}
-        />
+        {after.pending ? (
+          <View style={{ flex: 1 }} />
+        ) : after.show && after.vm ? (
+          <NativeSurface
+            surface="afterfifteen"
+            view="KAfterFifteenView"
+            mode="mount"
+            native={() => (after.vm ? <AfterFifteenNative vm={after.vm} look={after.look} act={after.act} /> : null)}
+            fallback={desk}
+          />
+        ) : (
+          desk()
+        )}
         <TodayOverlays model={model} />
       </TodayUpdate>
     </View>

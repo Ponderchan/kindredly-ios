@@ -429,6 +429,24 @@ export {
 } from "./src/Planet";
 // the planet page (the same switch): the route src/app/planet.tsx
 export { KPlanetPageView, PLANET_PAGE_VIEW, type KPlanetFigure, type KPlanetPageViewProps, type KPlanetScene, type KPlanetSlip, type KPlanetWords } from "./src/PlanetPage";
+
+// Today, after fifteen (2026-11-11, docs/today-after-fifteen.md; "afterfifteen", off by default)
+export {
+  AFTER_FIFTEEN_VIEW,
+  KAfterFifteenView,
+  type KAfterBed,
+  type KAfterBox,
+  type KAfterDot,
+  type KAfterFifteenViewProps,
+  type KAfterPage,
+  type KAfterReceipt,
+  type KAfterReceiptPhase,
+  type KAfterRow,
+  type KAfterStep,
+  type KAfterStepName,
+  type KAfterStrip,
+  type KAfterThing,
+} from "./src/AfterFifteen";
 // batch 3: launch + authcallback (2026-11-09), each behind its own switch, off by default: the launch
 // and its held last frame ("launch"), where the magic link lands ("authcallback")
 export {

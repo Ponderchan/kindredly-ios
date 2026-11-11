@@ -3,7 +3,8 @@ import { scoped as AsyncStorage } from "./scoped-store";
 import { loadJournal } from "./journal";
 import { localeTag } from "./format";
 import { t, useLang } from "./i18n";
-import { dayKey, decideFc, markOpened, markShown, type FcForm, type FcRolloutState } from "./fc-rollout-core";
+import { activeDays, dayKey, decideFc, markOpened, markShown, type FcForm, type FcRolloutState } from "./fc-rollout-core";
+import { finishedDays as readFinishedDays, subscribeAfter, useAfterFifteenOn } from "./after-fifteen";
 import "../data/strings-fc-rollout";
 
 /* FIRST CLASS, BY THE DAY — the Me page's side (rules: lib/fc-rollout-core).
@@ -89,6 +90,23 @@ export function useFcRollout(f: FcRolloutFacts, go: (src: string) => void): { vi
   const lang = useLang();
   const [state, setState] = useState<FcRolloutState | null>(null);
   const [noteDays, setNoteDays] = useState<string[]>([]);
+  // the days finished on Today: counted only while its end-of-day pages are on
+  const afterOn = useAfterFifteenOn();
+  const [finishedDays, setFinishedDays] = useState<string[]>([]);
+  useEffect(() => {
+    if (!afterOn) {
+      setFinishedDays([]);
+      return;
+    }
+    let alive = true;
+    const read = () => void readFinishedDays().then((d) => alive && setFinishedDays(d));
+    read();
+    const off = subscribeAfter((s) => (s ? alive && setFinishedDays(s.finished) : read()));
+    return () => {
+      alive = false;
+      off();
+    };
+  }, [afterOn]);
   const [now, setNow] = useState(() => Date.now());
   const [forced, setForced] = useState<FcForm | null>(devForm);
   useEffect(() => {
@@ -121,11 +139,11 @@ export function useFcRollout(f: FcRolloutFacts, go: (src: string) => void): { vi
       premium: f.premium,
       createdAt: f.createdAt ? Date.parse(f.createdAt) : null,
       now,
-      writtenDays: written,
+      activeDays: activeDays(written, finishedDays),
       threshold: f.penPals >= 7 || f.stampsMade >= 3,
       state,
     });
-  }, [state, noteDays, f.premium, f.createdAt, f.letterDates, f.penPals, f.stampsMade, now]);
+  }, [state, noteDays, finishedDays, f.premium, f.createdAt, f.letterDates, f.penPals, f.stampsMade, now]);
 
   // shown: its 48 hours start the first time it's on screen
   useEffect(() => {

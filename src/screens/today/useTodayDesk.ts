@@ -693,6 +693,10 @@ export type TodayView = {
   window: C.WindowVM;
   /** her yawn hours (21:00–07:59) */
   night: boolean;
+  /** today's desk as the end-of-day pages count it (lib/after-fifteen-core; docs/today-after-fifteen.md): the desk's
+      day, what went past it and what was written back to, when it was first seen done, and whether it is done now
+      (her birthday letter standing in front doesn't change `done`; it changes `phase`) */
+  day: { key: string; read: number; answered: readonly string[]; doneAt: number | null; done: boolean; canPlay: boolean };
   /**
    * her, for the pictures and the band: the reader's own courier (name, stage,
    * wilted), the face she rests in (C.wrenRest: sleepy in her night hours),
@@ -1681,6 +1685,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     wrenLetter,
     window: flightWindow,
     night: isNightHour(hour),
+    day: { key: rec.day, read: factsCount, answered: rec.answered, doneAt: rec.doneAt, done: phase === "done", canPlay },
     wren: { name: wren, stage: source.stage, wilt: rest.wilt, rest: rest.face, carry, a11y: t("me.sec.courier") },
     draftEpoch,
     answeredSerial,
