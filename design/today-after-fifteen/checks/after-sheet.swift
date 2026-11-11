@@ -11,6 +11,7 @@ import UIKit
    receipt.png (idle, printed for the day, torn for the week, the shared picture),
    bed.png (awake, fed and patted, asleep with a fact, asleep with a line),
    themes.png (Lavender, Paper and Midnight for each page) and small.png (an iPhone SE's height,
+   the sheets kept beside this file are those, as lighter .jpg (sips -s format jpeg -Z 2400):
    the longest words, and a courier who can't play). Dynamic Type is not drawn here (a still
    takes the default size whatever it is told): it is checked on a device.
    The copy here is the English of src/data/strings-after.ts as it stood when the sheet was made;

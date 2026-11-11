@@ -195,7 +195,7 @@ struct KAfterBedView: View {
           tag: thing.isLine ? thing.tag : bed.sleepTag,
           tagInk: palette.accent,
           ink: theme.ink,
-          footInk: theme.mute,
+          footInk: theme.sub,
           keepOff: palette.sleepKeep,
           keepInk: theme.ink,
           size: 16,
@@ -363,7 +363,7 @@ struct KAfterBedView: View {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
           Text(bed.next)
             .kText(.system(10))
-            .foregroundStyle(theme.mute)
+            .foregroundStyle(theme.sub)
           Text(bed.nextAt)
             .kText(.system(11, .semibold))
             .foregroundStyle(palette.accent)
@@ -375,7 +375,7 @@ struct KAfterBedView: View {
         ForEach(bed.dots) { dot in self.dot(dot) }
         Text(asleep ? bed.streakSubDone : bed.streakSub)
           .kText(.system(10))
-          .foregroundStyle(theme.mute)
+          .foregroundStyle(theme.sub)
           .lineLimit(1)
           .minimumScaleFactor(0.7)
           .frame(maxWidth: .infinity, alignment: .trailing)
@@ -392,7 +392,7 @@ struct KAfterBedView: View {
   private func dot(_ d: KAfterDot) -> some View {
     let lit = d.tonight && asleep
     let fill: Color = lit ? palette.lime : d.tonight ? palette.dotOff : d.on ? palette.dotOn : Color.clear
-    let ink: Color = lit ? palette.limeInk : d.tonight ? theme.mute : d.on ? palette.dotOnInk : theme.mute
+    let ink: Color = lit ? palette.limeInk : d.tonight ? theme.sub : d.on ? palette.dotOnInk : theme.sub
     let ring: CGFloat = lit ? 0 : d.tonight ? 2 : d.on ? 0 : 1.5
     return Text(d.letter)
       .font(.system(size: 9, weight: .bold))

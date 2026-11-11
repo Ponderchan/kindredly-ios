@@ -153,9 +153,11 @@ uses the name the reader gave her wherever the prototype says Pond.
 - **The type follows the app** (the owner's 2026-10-20 rule): labels in SF Mono, her words and a
   stranger's line in the reader's Letter font, everything else in the system font.
 - **Small labels are 9 points** (the app's smallest), not 8.
-- **Colour fixes for contrast**: the line under the slot in ink (5.15:1); PULL THE CORD → in
-  `#B23F31` (the prototype's `#C94F40` was 4.2:1 on the window); the strip's label `#2B557F`;
-  the gold tag on the cream note `#94681C`.
+- **Colour fixes for contrast** (every small text is at least 4.5:1; computed, not judged by
+  eye): the line under the slot in ink (5.15:1); PULL THE CORD → in `#B23F31` (5.4:1; the
+  prototype's `#C94F40` was 4.2:1 on the window); the strip's label `#2B557F` (5.9:1); the gold
+  tag on the cream note `#94681C` (4.7:1); the note's foot and the locked step `#6B6785`; the
+  streak bar's small words in the theme's secondary text (the label tone was 3.1:1 on the bar).
 - **The receipt's rows** are the prototype file's (letters read, written back, stayed on, next
   delivery, back in), not the prompt's older list. "Stayed on" replaces "lingered on" and is only
   printed when the timer saw it.

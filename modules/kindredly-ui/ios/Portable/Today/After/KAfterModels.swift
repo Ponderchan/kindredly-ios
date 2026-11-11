@@ -290,7 +290,7 @@ public struct KAfterPalette: Equatable, Sendable {
   public var note = Color(hex: "#FFF8E8")
   public var noteInk = Color(hex: "#1E1B35")
   public var noteTag = Color(hex: "#94681C")
-  public var noteFoot = Color(hex: "#77738F")
+  public var noteFoot = Color(hex: "#6B6785")
   public var noteKeep = Color(hex: "#FFFFFF")
   // the card of the receipt and of bedtime
   public var card = Color(hex: "#FFFFFF")
@@ -329,7 +329,7 @@ public struct KAfterPalette: Equatable, Sendable {
   public var lightsInk = Color(hex: "#2B557F")
   public var lockedFill = Color(hex: "#F1F0EE")
   public var lockedIcon = Color(hex: "#B6B2D0")
-  public var lockedInk = Color(hex: "#77738F")
+  public var lockedInk = Color(hex: "#6B6785")
   public var stepInk = Color(hex: "#1E1B35")
   public var stepSub = Color(hex: "#55506E")
   public var stepDisc = Color(hex: "#FFFFFF")
@@ -389,9 +389,11 @@ public struct KAfterPalette: Equatable, Sendable {
       p.flap = Color(hex: "#F6EEDB")
       p.envelope = Color(hex: "#FFFDF8")
     case "midnight":
-      p.roof = Color(hex: "#B84A3E")
-      p.body = Color(hex: "#C9584A")
-      p.lip = Color(hex: "#B84A3E")
+      p.roof = Color(hex: "#C4554A")
+      p.body = Color(hex: "#D9655A")
+      p.lip = Color(hex: "#C4554A")
+      p.slot = Color(hex: "#0F0E1C")
+      p.slotText = Color(hex: "#0F0E1C")
       p.slatA = Color(hex: "#3B2A33")
       p.slatB = Color(hex: "#32232B")
       p.windowTop = Color(hex: "#242150")
@@ -416,7 +418,7 @@ public struct KAfterPalette: Equatable, Sendable {
       p.sleepKeep = Color(hex: "#3A3766")
       p.lockedFill = theme.soft2
       p.lockedIcon = theme.faint
-      p.lockedInk = theme.mute
+      p.lockedInk = theme.sub
       p.streakBar = theme.soft2
       p.dotOff = theme.sf
       p.dotRing = theme.faint
