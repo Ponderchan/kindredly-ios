@@ -50,8 +50,8 @@ ok("thirteen chips in three groups, each with its words", faceChips(t).length ==
 ok("the groups name the strings file's chips", CHIP_GROUPS.flatMap((g) => g.chips).every((c) => `mf.chip.${c}` in en));
 ok("four painting lines", genLines(t).length === 4 && genLines(t).every((l) => !l.includes("<<")));
 for (const reason of ["no_face", "many_faces", "minor", "unsafe", "words"] as const) faceStrings(t, { ...base, reason });
-const unused = Object.keys(en).filter((k) => !asked.has(k) && !k.startsWith("mf.tag.") && !["mf.entry.a11y", "mf.notif", "mf.photoFail"].includes(k));
-ok("every flow word in the strings file is used (the doors' tags, the knock and the photo alert are the hosts')", unused.length === 0, unused.join(" "));
+const unused = Object.keys(en).filter((k) => !asked.has(k) && !k.startsWith("mf.tag.") && !["mf.entry.a11y", "mf.notif", "mf.photoFail", "mf.ep.avatarNote", "mf.banner.title", "mf.banner.see"].includes(k));
+ok("every flow word in the strings file is used (the doors' tags, the knock, the photo alert, Edit profile's note and the banner are the hosts')", unused.length === 0, unused.join(" "));
 
 console.log(fails ? `\n${fails} failed` : "\nall passed");
 if (fails) process.exit(1);
