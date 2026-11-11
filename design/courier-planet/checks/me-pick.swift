@@ -9,6 +9,8 @@ import UIKit
    white with a soft shadow / white with a block shadow / white with a thick underside) x day /
    evening / night x the five days of First Class. Writes <out dir>/<style>-<hour>-<day>.png, 402pt
    wide at 2x. (Round one, commit 40aa424: her card A/B x three colour schemes.)
+   round three — white with a soft or a block shadow x what sits under her words (her words only /
+   one line of progress / the trip's slip) x the hour x the day: <lift>-<words>-<hour>-<day>.png.
    design/courier-planet/checks/render-fast.sh me-pick.swift <out dir>
 
    The rest of this header is me-by-day.swift's.
@@ -146,10 +148,38 @@ func art(night: Bool = false) -> some View {
 }
 
 
+struct Line: Shape {
+  func path(in rect: CGRect) -> Path {
+    var p = Path()
+    p.move(to: CGPoint(x: 0, y: rect.midY))
+    p.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+    return p
+  }
+}
+
+/// What sits under her words (owner, 11-11 night: "pip 下面字 送信 log 那里感觉缺点意思"):
+/// plain = her words only; track = her words larger and one line of progress; slip = her words
+/// larger and the trip's own slip (the stamp, the three lines the live tracking slip already says).
+enum Words: String, CaseIterable {
+  case plain, track, slip
+}
+
+/// The trip as the live slip words it (strings.ts wren.slip.*, la.out.reads*).
+struct Log {
+  var rows: [String] = ["NOTHING IN TRANSIT", "WRITE, AND SHE FLIES"]
+  /// how many of the rows have happened
+  var done = 0
+  /// the row that counts readers (a lamp beside it); -1 for none
+  var lamp = -1
+  var stamp = ""
+}
+
 /// The alternative: sky on top, one white body under it.
 struct CardB: View {
   let card: KMePlanet
   let theme: KTheme
+  var words: Words = .plain
+  var log = Log()
   @State private var probe = KPlanetProbe()
   @Environment(\.kLetterFace) private var face
 
@@ -206,7 +236,7 @@ struct CardB: View {
         .kText(.mono(9.5, .semibold, tracking: 0.14))
         .foregroundStyle(theme.sub)
         Text(card.line)
-          .kText(.content(face.fitSize(14), lineHeight: 18.0 / 14.0))
+          .kText(.content(face.fitSize(words == .plain ? 14 : 16.5), lineHeight: words == .plain ? 18.0 / 14.0 : 21.0 / 16.5))
           .foregroundStyle(theme.ink)
           .lineLimit(3)
           .fixedSize(horizontal: false, vertical: true)
@@ -226,6 +256,8 @@ struct CardB: View {
             .frame(minHeight: 30)
             .background(Capsule().fill(night ? theme.ink : palette.button))
         }
+        if words == .track { trackRow.padding(.top, 11) }
+        if words == .slip { slipPanel.padding(.top, 12) }
         Rectangle().fill(theme.line).frame(height: 1).padding(.top, 12).padding(.bottom, 12)
         HStack(alignment: .top, spacing: 10) {
           ForEach(card.shelf) { item in
@@ -276,6 +308,79 @@ struct CardB: View {
     .background(theme.sf)
     .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
     .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(theme.line, lineWidth: 1))
+  }
+
+  private var pending: Color { Color(hex: "#C9C6D6") }
+
+  /// one line: three stops, and the words of the one she is at
+  private var trackRow: some View {
+    let at = max(0, min(log.rows.count - 1, log.done - 1))
+    return HStack(spacing: 9) {
+      HStack(spacing: 0) {
+        stop(log.done > 0, size: 9)
+        link(log.done > 1)
+        stop(log.done > 1, size: 9)
+        link(log.done > 2)
+        stop(log.done > 2, size: 9)
+      }
+      if at == log.lamp { KPlanetLampDot() }
+      Text(log.rows[at])
+        .kText(.mono(9.5, .semibold, tracking: 0.12))
+        .foregroundStyle(theme.sub)
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+      Spacer(minLength: 0)
+    }
+  }
+
+  /// the trip's slip, small: the letter's stamp, FLIGHT LOG, the rows
+  private var slipPanel: some View {
+    HStack(alignment: .center, spacing: 12) {
+      if !log.stamp.isEmpty {
+        KStamp(id: log.stamp, width: 40, dark: false, fallbackHex: nil)
+          .rotationEffect(.degrees(-4))
+      }
+      VStack(alignment: .leading, spacing: 5) {
+        Text("FLIGHT LOG")
+          .kText(.mono(8.5, .semibold, tracking: 0.18))
+          .foregroundStyle(theme.sub)
+          .padding(.bottom, 1)
+        ForEach(Array(log.rows.enumerated()), id: \.offset) { i, row in
+          HStack(spacing: 7) {
+            stop(i < log.done, size: 7)
+            Text(row)
+              .kText(.mono(9.5, .semibold, tracking: 0.1))
+              .foregroundStyle(i < log.done ? theme.ink : theme.sub)
+              .lineLimit(1)
+              .minimumScaleFactor(0.7)
+            if i == log.lamp { KPlanetLampDot() }
+          }
+        }
+      }
+      Spacer(minLength: 0)
+    }
+    .padding(.horizontal, 12)
+    .padding(.vertical, 11)
+    .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(theme.soft2))
+  }
+
+  @ViewBuilder private func link(_ reached: Bool) -> some View {
+    if reached {
+      Rectangle().fill(theme.ink).frame(width: 16, height: 2)
+    } else {
+      Line().stroke(pending, style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [2, 4])).frame(width: 16, height: 2)
+    }
+  }
+
+  private func stop(_ reached: Bool, size: CGFloat) -> some View {
+    ZStack {
+      if reached {
+        Circle().fill(theme.ink)
+      } else {
+        Circle().strokeBorder(pending, lineWidth: 1.6)
+      }
+    }
+    .frame(width: size, height: size)
   }
 
   private func badge(_ fill: Color, _ glyph: KLineGlyph) -> some View {
@@ -376,6 +481,7 @@ struct Day {
   var reportOpens = false
   var worn = ""
   var look = KWrenLook()
+  var log = Log()
 }
 
 func rollout(_ d: Day) -> KMeFcRollout {
@@ -395,11 +501,15 @@ func rollout(_ d: Day) -> KMeFcRollout {
   return f
 }
 
+let OUT_LOG = Log(rows: ["YOUR LETTER LEFT — NOV 11", "ON 3 STRANGERS' DESKS", "WAITING FOR AN ANSWER"], done: 2, lamp: 1, stamp: "tiny-win")
+let DOOR_LOG = Log(rows: ["YOUR LETTER LEFT — NOV 10", "AT PAPER LANTERN'S DOOR", "WAITING FOR AN ANSWER"], done: 2, stamp: "cant-sleep")
+let BACK_LOG = Log(rows: ["PAPER LANTERN WROTE BACK — NOV 11", "PIP CARRIED IT HOME", "IT'S WAITING FOR YOU"], done: 3, stamp: "crush")
+
 let PICK_DAYS: [(String, Day)] = [
-  ("d1", Day(title: "", note: "")),
+  ("d1", Day(title: "", note: "", log: OUT_LOG)),
   ("d3", Day(title: "", note: "", form: "invite", bottom: true, state: .home, line: "the Post asked me to bring you a letter. it's on your sill", aside: "gold edges. fancy")),
-  ("d7", Day(title: "", note: "", form: "seat", state: .waiting, line: "it's on someone's desk", aside: "they're reading. i'm staying put", worn: "dress:beanie", look: KWrenLook(skin: .sticker, accessory: .beanie))),
-  ("d30", Day(title: "", note: "", form: "report", state: .back, line: "BACK. someone wrote you and i flew it here in one go", aside: "it's on your desk. read it read it read it")),
+  ("d7", Day(title: "", note: "", form: "seat", state: .waiting, line: "it's on someone's desk", aside: "they're reading. i'm staying put", worn: "dress:beanie", look: KWrenLook(skin: .sticker, accessory: .beanie), log: DOOR_LOG)),
+  ("d30", Day(title: "", note: "", form: "report", state: .back, line: "BACK. someone wrote you and i flew it here in one go", aside: "it's on your desk. read it read it read it", log: BACK_LOG)),
   ("fc", Day(title: "", note: "", member: true, state: .home, line: "home. nothing in the bag", aside: "write one and i'll take it",
              reportTitle: "This month's writing report", reportSub: "Ready to read", reportOpens: true, worn: "skin:peach", look: KWrenLook(skin: .peach))),
 ]
@@ -432,7 +542,7 @@ enum Lift: String, CaseIterable {
   }
 }
 
-@MainActor func phone(lift: Lift, hour: String, d: Day) -> some View {
+@MainActor func phone(lift: Lift, words: Words, hour: String, d: Day) -> some View {
   var c = Case(label: "", pal: hour, state: d.state, look: d.look, worn: d.worn, member: d.member, kindred: d.member)
   c.line = d.line
   c.aside = d.aside
@@ -454,7 +564,7 @@ enum Lift: String, CaseIterable {
     VStack(alignment: .leading, spacing: grey ? 12 : 15) {
       if d.form == "seat" { KFcBoardingPass(fc: fc) {} }
       if d.form == "report" { KFcSealedReport(fc: fc) {} }
-      lifted(CardB(card: planet(c), theme: .classic), radius: 26, lift)
+      lifted(CardB(card: planet(c), theme: .classic, words: words, log: d.log), radius: 26, lift)
         .overlay(alignment: .topTrailing) {
           if d.form == "invite" {
             KFcEnvelope(fc: fc) {}.padding(.trailing, 58).offset(y: -12)
@@ -484,14 +594,16 @@ struct Shot {
   @MainActor static func main() {
     let dir = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "."
     var n = 0
-    for lift in Lift.allCases {
-      for hour in ["day", "evening", "night"] {
-        for (key, d) in PICK_DAYS {
-          let renderer = ImageRenderer(content: phone(lift: lift, hour: hour, d: d).environment(\.colorScheme, .light))
-          renderer.scale = 2
-          guard let data = renderer.uiImage?.pngData() else { fatalError("no image") }
-          try! data.write(to: URL(fileURLWithPath: "\(dir)/\(lift.rawValue)-\(hour)-\(key).png"))
-          n += 1
+    for lift in [Lift.soft, Lift.hard] {
+      for words in Words.allCases {
+        for hour in ["day", "evening", "night"] {
+          for (key, d) in PICK_DAYS {
+            let renderer = ImageRenderer(content: phone(lift: lift, words: words, hour: hour, d: d).environment(\.colorScheme, .light))
+            renderer.scale = 2
+            guard let data = renderer.uiImage?.pngData() else { fatalError("no image") }
+            try! data.write(to: URL(fileURLWithPath: "\(dir)/\(lift.rawValue)-\(words.rawValue)-\(hour)-\(key).png"))
+            n += 1
+          }
         }
       }
     }
