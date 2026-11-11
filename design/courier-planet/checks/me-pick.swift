@@ -11,6 +11,8 @@ import UIKit
    wide at 2x. (Round one, commit 40aa424: her card A/B x three colour schemes.)
    round three — white with a soft or a block shadow x what sits under her words (her words only /
    one line of progress / the trip's slip) x the hour x the day: <lift>-<words>-<hour>-<day>.png.
+   round four — her sentences go; the flight log is the block, with a mark of its own (three
+   candidates) and times in its rows: <lift>-<icon>-<hour>-<day>.png.
    design/courier-planet/checks/render-fast.sh me-pick.swift <out dir>
 
    The rest of this header is me-by-day.swift's.
@@ -148,6 +150,67 @@ func art(night: Bool = false) -> some View {
 }
 
 
+/// The flight log's mark, drawn in a 22pt box.
+struct LogMark: View {
+  let kind: LogIcon
+  let ink: Color
+
+  var body: some View {
+    Canvas { ctx, size in
+      let k = size.width / 22
+      func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * k, y: y * k) }
+      let line = StrokeStyle(lineWidth: 1.9 * k, lineCap: .round, lineJoin: .round)
+      switch kind {
+      case .route:
+        // where she set off, the way she flew (dashed), and her, as a dart
+        ctx.fill(Path(ellipseIn: CGRect(x: 1.6 * k, y: 15.6 * k, width: 4.6 * k, height: 4.6 * k)), with: .color(ink))
+        var arc = Path()
+        arc.move(to: p(6.6, 15.2))
+        arc.addQuadCurve(to: p(15.2, 7.6), control: p(8.2, 8.2))
+        ctx.stroke(arc, with: .color(ink), style: StrokeStyle(lineWidth: 1.9 * k, lineCap: .round, dash: [0.1 * k, 3.4 * k]))
+        var dart = Path()
+        dart.move(to: p(21, 5.2))
+        dart.addLine(to: p(14.2, 2.6))
+        dart.addLine(to: p(16.2, 6.4))
+        dart.addLine(to: p(15.4, 10.6))
+        dart.closeSubpath()
+        ctx.fill(dart, with: .color(ink))
+        ctx.stroke(dart, with: .color(ink), style: StrokeStyle(lineWidth: 1 * k, lineJoin: .round))
+      case .tag:
+        // a luggage tag: its eye, two lines written on it
+        var tag = Path()
+        tag.move(to: p(8.4, 3))
+        tag.addLine(to: p(13.6, 3))
+        tag.addLine(to: p(17.6, 7))
+        tag.addLine(to: p(17.6, 19))
+        tag.addLine(to: p(4.4, 19))
+        tag.addLine(to: p(4.4, 7))
+        tag.closeSubpath()
+        ctx.stroke(tag, with: .color(ink), style: line)
+        ctx.stroke(Path(ellipseIn: CGRect(x: 9.6 * k, y: 5.6 * k, width: 2.8 * k, height: 2.8 * k)), with: .color(ink), style: StrokeStyle(lineWidth: 1.5 * k))
+        var words = Path()
+        words.move(to: p(7.6, 12.2)); words.addLine(to: p(14.4, 12.2))
+        words.move(to: p(7.6, 15.6)); words.addLine(to: p(12, 15.6))
+        ctx.stroke(words, with: .color(ink), style: line)
+      case .postmark:
+        // a postmark: the ring with its date bar, and the cancel's waves
+        ctx.stroke(Path(ellipseIn: CGRect(x: 1.6 * k, y: 4.4 * k, width: 13.2 * k, height: 13.2 * k)), with: .color(ink), style: line)
+        var bar = Path()
+        bar.move(to: p(4.6, 9.6)); bar.addLine(to: p(11.8, 9.6))
+        bar.move(to: p(4.6, 12.6)); bar.addLine(to: p(11.8, 12.6))
+        ctx.stroke(bar, with: .color(ink), style: StrokeStyle(lineWidth: 1.5 * k, lineCap: .round))
+        var waves = Path()
+        for y in [7.4, 11.0, 14.6] as [CGFloat] {
+          waves.move(to: p(16.6, y))
+          waves.addCurve(to: p(18.8, y), control1: p(17.2, y - 1.5), control2: p(18.2, y + 1.5))
+          waves.addCurve(to: p(21, y), control1: p(19.4, y - 1.5), control2: p(20.4, y + 1.5))
+        }
+        ctx.stroke(waves, with: .color(ink), style: StrokeStyle(lineWidth: 1.5 * k, lineCap: .round))
+      }
+    }
+  }
+}
+
 struct Line: Shape {
   func path(in rect: CGRect) -> Path {
     var p = Path()
@@ -162,6 +225,13 @@ struct Line: Shape {
 /// larger and the trip's own slip (the stamp, the three lines the live tracking slip already says).
 enum Words: String, CaseIterable {
   case plain, track, slip
+  /// round four: no sentences of hers at all; the flight log is the block
+  case log
+}
+
+/// The flight log's own mark, three candidates.
+enum LogIcon: String, CaseIterable {
+  case route, tag, postmark
 }
 
 /// The trip as the live slip words it (strings.ts wren.slip.*, la.out.reads*).
@@ -172,6 +242,8 @@ struct Log {
   /// the row that counts readers (a lamp beside it); -1 for none
   var lamp = -1
   var stamp = ""
+  /// a line of hers that still has to be said (the Post's letter, for its 48 hours); "" for none
+  var note = ""
 }
 
 /// The alternative: sky on top, one white body under it.
@@ -180,6 +252,7 @@ struct CardB: View {
   let theme: KTheme
   var words: Words = .plain
   var log = Log()
+  var icon: LogIcon = .route
   @State private var probe = KPlanetProbe()
   @Environment(\.kLetterFace) private var face
 
@@ -226,35 +299,39 @@ struct CardB: View {
         .frame(height: 8)
       }
       VStack(alignment: .leading, spacing: 0) {
-        HStack(alignment: .firstTextBaseline, spacing: 0) {
-          Text(card.name.uppercased())
-          if !card.time.isEmpty {
-            Text(verbatim: " · ")
-            Text(card.time)
+        if words == .log {
+          logBlock(night: night, palette: palette)
+        } else {
+          HStack(alignment: .firstTextBaseline, spacing: 0) {
+            Text(card.name.uppercased())
+            if !card.time.isEmpty {
+              Text(verbatim: " · ")
+              Text(card.time)
+            }
           }
-        }
-        .kText(.mono(9.5, .semibold, tracking: 0.14))
-        .foregroundStyle(theme.sub)
-        Text(card.line)
-          .kText(.content(face.fitSize(words == .plain ? 14 : 16.5), lineHeight: words == .plain ? 18.0 / 14.0 : 21.0 / 16.5))
-          .foregroundStyle(theme.ink)
-          .lineLimit(3)
-          .fixedSize(horizontal: false, vertical: true)
-          .frame(maxWidth: .infinity, minHeight: 36, alignment: .topLeading)
-          .padding(.top, 2)
-        HStack(alignment: .center, spacing: 10) {
-          Text(card.aside)
-            .kText(.content(face.fitSize(12.5), italic: true))
-            .foregroundStyle(theme.sub)
-            .lineLimit(2)
+          .kText(.mono(9.5, .semibold, tracking: 0.14))
+          .foregroundStyle(theme.sub)
+          Text(card.line)
+            .kText(.content(face.fitSize(words == .plain ? 14 : 16.5), lineHeight: words == .plain ? 18.0 / 14.0 : 21.0 / 16.5))
+            .foregroundStyle(theme.ink)
+            .lineLimit(3)
             .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-          Text(card.cta)
-            .kText(.system(13.5, .semibold))
-            .foregroundStyle(night ? theme.bg : palette.buttonText)
-            .padding(.horizontal, 15)
-            .frame(minHeight: 30)
-            .background(Capsule().fill(night ? theme.ink : palette.button))
+            .frame(maxWidth: .infinity, minHeight: 36, alignment: .topLeading)
+            .padding(.top, 2)
+          HStack(alignment: .center, spacing: 10) {
+            Text(card.aside)
+              .kText(.content(face.fitSize(12.5), italic: true))
+              .foregroundStyle(theme.sub)
+              .lineLimit(2)
+              .fixedSize(horizontal: false, vertical: true)
+              .frame(maxWidth: .infinity, alignment: .leading)
+            Text(card.cta)
+              .kText(.system(13.5, .semibold))
+              .foregroundStyle(night ? theme.bg : palette.buttonText)
+              .padding(.horizontal, 15)
+              .frame(minHeight: 30)
+              .background(Capsule().fill(night ? theme.ink : palette.button))
+          }
         }
         if words == .track { trackRow.padding(.top, 11) }
         if words == .slip { slipPanel.padding(.top, 12) }
@@ -311,6 +388,71 @@ struct CardB: View {
   }
 
   private var pending: Color { Color(hex: "#C9C6D6") }
+
+  /// The flight log as the whole block: its mark, PIP · FLIGHT LOG, Open; then the trip's rows on
+  /// a spine, the one she is at with the lamp (it breathes in the app).
+  private func logBlock(night: Bool, palette: KCourierPalette) -> some View {
+    let at = log.done - 1
+    return HStack(alignment: .top, spacing: 12) {
+      ZStack {
+        RoundedRectangle(cornerRadius: 11, style: .continuous).fill(theme.ink.opacity(0.07))
+        LogMark(kind: icon, ink: theme.ink).frame(width: 22, height: 22)
+      }
+      .frame(width: 36, height: 36)
+      VStack(alignment: .leading, spacing: 8) {
+        HStack(alignment: .center, spacing: 8) {
+          Text(card.name.uppercased() + " · FLIGHT LOG")
+            .kText(.mono(9.5, .semibold, tracking: 0.14))
+            .foregroundStyle(theme.sub)
+            .lineLimit(1)
+          Spacer(minLength: 4)
+          Text(card.cta)
+            .kText(.system(13.5, .semibold))
+            .foregroundStyle(night ? theme.bg : palette.buttonText)
+            .padding(.horizontal, 15)
+            .frame(minHeight: 30)
+            .background(Capsule().fill(night ? theme.ink : palette.button))
+        }
+        .frame(minHeight: 36)
+        if !log.note.isEmpty {
+          Text(log.note)
+            .kText(.content(face.fitSize(14), lineHeight: 18.0 / 14.0))
+            .foregroundStyle(theme.ink)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        VStack(alignment: .leading, spacing: 8) {
+          ForEach(Array(log.rows.enumerated()), id: \.offset) { i, row in
+            HStack(spacing: 9) {
+              marker(reached: i < log.done, live: i == at)
+              Text(row)
+                .kText(.mono(10, .semibold, tracking: 0.1))
+                .foregroundStyle(i < log.done ? theme.ink : theme.sub)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            }
+          }
+        }
+        .background(alignment: .leading) {
+          Rectangle().fill(Color(hex: "#DEDCE6")).frame(width: 1.5).padding(.vertical, 7).offset(x: 5.25)
+        }
+      }
+    }
+  }
+
+  @ViewBuilder private func marker(reached: Bool, live: Bool) -> some View {
+    if live {
+      ZStack {
+        Circle().fill(KPlanetBubble.lampGold.opacity(0.28)).frame(width: 16, height: 16)
+        Circle().fill(KPlanetBubble.lampGold).frame(width: 8, height: 8)
+          .overlay(Circle().strokeBorder(Color(hex: "#1E1B35").opacity(0.3), lineWidth: 1))
+      }
+      .frame(width: 12, height: 12)
+    } else if reached {
+      Circle().fill(theme.ink).frame(width: 7, height: 7).frame(width: 12, height: 12).background(Circle().fill(theme.sf).frame(width: 11, height: 11))
+    } else {
+      Circle().strokeBorder(pending, lineWidth: 1.6).frame(width: 8, height: 8).frame(width: 12, height: 12).background(Circle().fill(theme.sf).frame(width: 11, height: 11))
+    }
+  }
 
   /// one line: three stops, and the words of the one she is at
   private var trackRow: some View {
@@ -501,13 +643,14 @@ func rollout(_ d: Day) -> KMeFcRollout {
   return f
 }
 
-let OUT_LOG = Log(rows: ["YOUR LETTER LEFT — NOV 11", "ON 3 STRANGERS' DESKS", "WAITING FOR AN ANSWER"], done: 2, lamp: 1, stamp: "tiny-win")
-let DOOR_LOG = Log(rows: ["YOUR LETTER LEFT — NOV 10", "AT PAPER LANTERN'S DOOR", "WAITING FOR AN ANSWER"], done: 2, stamp: "cant-sleep")
-let BACK_LOG = Log(rows: ["PAPER LANTERN WROTE BACK — NOV 11", "PIP CARRIED IT HOME", "IT'S WAITING FOR YOU"], done: 3, stamp: "crush")
+let OUT_LOG = Log(rows: ["YOUR LETTER LEFT — 2H AGO", "ON 3 STRANGERS' DESKS", "WAITING FOR AN ANSWER"], done: 2, lamp: 1, stamp: "tiny-win")
+let DOOR_LOG = Log(rows: ["YOUR LETTER LEFT — 5H AGO", "AT PAPER LANTERN'S DOOR", "WAITING FOR AN ANSWER"], done: 2, stamp: "cant-sleep")
+let BACK_LOG = Log(rows: ["PAPER LANTERN WROTE BACK — 5M AGO", "PIP CARRIED IT HOME", "IT'S WAITING FOR YOU"], done: 3, stamp: "crush")
+let POST_LOG = Log(note: "the Post asked me to bring you a letter. it's on your sill")
 
 let PICK_DAYS: [(String, Day)] = [
   ("d1", Day(title: "", note: "", log: OUT_LOG)),
-  ("d3", Day(title: "", note: "", form: "invite", bottom: true, state: .home, line: "the Post asked me to bring you a letter. it's on your sill", aside: "gold edges. fancy")),
+  ("d3", Day(title: "", note: "", form: "invite", bottom: true, state: .home, line: "the Post asked me to bring you a letter. it's on your sill", aside: "gold edges. fancy", log: POST_LOG)),
   ("d7", Day(title: "", note: "", form: "seat", state: .waiting, line: "it's on someone's desk", aside: "they're reading. i'm staying put", worn: "dress:beanie", look: KWrenLook(skin: .sticker, accessory: .beanie), log: DOOR_LOG)),
   ("d30", Day(title: "", note: "", form: "report", state: .back, line: "BACK. someone wrote you and i flew it here in one go", aside: "it's on your desk. read it read it read it", log: BACK_LOG)),
   ("fc", Day(title: "", note: "", member: true, state: .home, line: "home. nothing in the bag", aside: "write one and i'll take it",
@@ -542,7 +685,7 @@ enum Lift: String, CaseIterable {
   }
 }
 
-@MainActor func phone(lift: Lift, words: Words, hour: String, d: Day) -> some View {
+@MainActor func phone(lift: Lift, words: Words, icon: LogIcon, hour: String, d: Day) -> some View {
   var c = Case(label: "", pal: hour, state: d.state, look: d.look, worn: d.worn, member: d.member, kindred: d.member)
   c.line = d.line
   c.aside = d.aside
@@ -564,7 +707,7 @@ enum Lift: String, CaseIterable {
     VStack(alignment: .leading, spacing: grey ? 12 : 15) {
       if d.form == "seat" { KFcBoardingPass(fc: fc) {} }
       if d.form == "report" { KFcSealedReport(fc: fc) {} }
-      lifted(CardB(card: planet(c), theme: .classic, words: words, log: d.log), radius: 26, lift)
+      lifted(CardB(card: planet(c), theme: .classic, words: words, log: d.log, icon: icon), radius: 26, lift)
         .overlay(alignment: .topTrailing) {
           if d.form == "invite" {
             KFcEnvelope(fc: fc) {}.padding(.trailing, 58).offset(y: -12)
@@ -595,13 +738,13 @@ struct Shot {
     let dir = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "."
     var n = 0
     for lift in [Lift.soft, Lift.hard] {
-      for words in Words.allCases {
+      for icon in LogIcon.allCases {
         for hour in ["day", "evening", "night"] {
           for (key, d) in PICK_DAYS {
-            let renderer = ImageRenderer(content: phone(lift: lift, words: words, hour: hour, d: d).environment(\.colorScheme, .light))
+            let renderer = ImageRenderer(content: phone(lift: lift, words: .log, icon: icon, hour: hour, d: d).environment(\.colorScheme, .light))
             renderer.scale = 2
             guard let data = renderer.uiImage?.pngData() else { fatalError("no image") }
-            try! data.write(to: URL(fileURLWithPath: "\(dir)/\(lift.rawValue)-\(words.rawValue)-\(hour)-\(key).png"))
+            try! data.write(to: URL(fileURLWithPath: "\(dir)/\(lift.rawValue)-\(icon.rawValue)-\(hour)-\(key).png"))
             n += 1
           }
         }
