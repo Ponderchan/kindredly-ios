@@ -234,6 +234,8 @@ export const KSCREEN_VIEWS = [
   "KAuraArtView",
   // the courier's planet on Me (2026-11-11): the binary's marker that KMeView draws its `planet` record
   "KMePlanetView",
+  // the planet page (the same switch): src/app/planet.tsx
+  "KPlanetPageView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

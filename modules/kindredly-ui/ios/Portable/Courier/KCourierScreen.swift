@@ -251,6 +251,8 @@ public struct KCourierTile: Equatable, Sendable, Identifiable {
 
 /// Everything the page shows, from TS.
 public struct KCourierContent: Equatable, Sendable {
+  /// Track opens the planet page (actions.onTrack) instead of the tracking slip here
+  public var trackPlanet = false
   public var strings = KCourierStrings()
   public var cover = KCourierCover()
   public var hero = KCourierHero()
@@ -283,6 +285,8 @@ public struct KCourierContent: Equatable, Sendable {
 
 /// Where the page's taps go. One object for the life of the surface.
 public final class KCourierActions {
+  /// Track, when it opens the planet page (content.trackPlanet)
+  public var onTrack: () -> Void = {}
   public var onBack: () -> Void = {}
   public var onPlay: () -> Void = {}
   public var onSlipGo: (String) -> Void = { _ in }
@@ -474,7 +478,13 @@ public struct KCourierScreen: View {
       .accessibilityElement(children: .combine)
       // rule B: a soft capsule, no white slab
       SwiftUI.Button {
-        toggle { tracking.toggle() }
+        // (2026-11-11) with the courier's planet on, Track opens the planet page, where the
+        // slips now live; otherwise it opens her tracking slip here, as before
+        if content.trackPlanet {
+          actions.onTrack()
+        } else {
+          toggle { tracking.toggle() }
+        }
       } label: {
         Text(tracking ? content.strings.trackClose : content.strings.track)
           .kText(.system(13, .semibold))
@@ -486,7 +496,7 @@ public struct KCourierScreen: View {
           .contentShape(Capsule())
       }
       .buttonStyle(KFadePressStyle())
-      .accessibilityValue(tracking ? content.strings.expanded : content.strings.collapsed)
+      .accessibilityValue(content.trackPlanet ? "" : (tracking ? content.strings.expanded : content.strings.collapsed))
     }
     .padding(.horizontal, 18)
     .padding(.vertical, 12)

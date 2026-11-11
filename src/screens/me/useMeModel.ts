@@ -176,10 +176,9 @@ export type MeModel = {
   planet: { letters: PlanetLetterVM[]; shelf: ShelfFacts };
 };
 
-/* where the planet's taps go. `track` is the planet page (docs/courier-planet.md, phase 5); until
-   it exists the round button opens her page, where Track is today */
+/* where the planet's taps go: the round button on her card opens the planet page (app/planet) */
 const ME_PLANET_ROUTES = {
-  track: "/courier",
+  track: "/planet",
   looksPaywall: "/paywall?src=me_looks",
 } as const;
 

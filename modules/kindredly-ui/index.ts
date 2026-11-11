@@ -427,6 +427,8 @@ export {
   type KWrenForm,
   type KWrenLookData,
 } from "./src/Planet";
+// the planet page (the same switch): the route src/app/planet.tsx
+export { KPlanetPageView, PLANET_PAGE_VIEW, type KPlanetFigure, type KPlanetPageViewProps, type KPlanetScene, type KPlanetSlip, type KPlanetWords } from "./src/PlanetPage";
 // batch 3: launch + authcallback (2026-11-09), each behind its own switch, off by default: the launch
 // and its held last frame ("launch"), where the magic link lands ("authcallback")
 export {

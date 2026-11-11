@@ -9,7 +9,7 @@ import SwiftUI
       first turned, and a small round button that opens the planet page;
    2  her words (122): a white speech bubble whose tail follows her across the
       scene — who and when, her line, her aside, and the one button (Open, or
-      Play on her day off);
+      Play on her day off): KPlanetBubble, which the planet page shares;
    3  the shelf (84): four looks, a name under each. Worn: the card's own green
       ring and a tick. First Class: gold dashes and a lock. "All looks →".
 
@@ -113,18 +113,11 @@ public final class KMePlanetActions {
 
 enum KMePlanetMetrics {
   static let scene: CGFloat = 200
-  static let words: CGFloat = 122
   static let shelf: CGFloat = 84
   static let corner: CGFloat = 26
-  static let bubbleInset: CGFloat = 10
-  static let bubbleHeight: CGFloat = 106
-  static let tailWidth: CGFloat = 16
-  static let tailRise: CGFloat = 7
-  static let lampGold = Color(hex: "#FFD98A")
+  static let lampGold = KPlanetBubble.lampGold
   static let tick = Color(hex: "#2E7D4F")
   static let chipPaper = Color(hex: "#FFFDF6")
-  static let captionInk = Color(hex: "#6B6785")
-  static let asideInk = Color(hex: "#5B5873")
 }
 
 // MARK: - The card
@@ -208,86 +201,17 @@ public struct KMePlanetCard: View {
   // ── 2: her words ──
 
   private var words: some View {
-    let palette = card.planet.palette
-    let night = palette.moon
-    return ZStack(alignment: .topLeading) {
-      KMeBubbleShape(probe: probe, live: card.planet.live)
-      VStack(alignment: .leading, spacing: 1) {
-        HStack(alignment: .firstTextBaseline, spacing: 0) {
-          Text(card.name.uppercased())
-          if !card.time.isEmpty {
-            Text(verbatim: " · ")
-            Text(card.time)
-          }
-        }
-        .kText(.mono(9.5, .semibold, tracking: 0.14))
-        .foregroundStyle(KMePlanetMetrics.captionInk)
-        .lineLimit(1)
-        .accessibilityHidden(true)
-        Text(card.line)
-          .kText(.letter(14, lineHeight: 18.0 / 14.0))
-          .foregroundStyle(KBrand.inkOnBrand)
-          .lineLimit(2)
-          .frame(maxWidth: .infinity, minHeight: 36, alignment: .topLeading)
-          .accessibilityHidden(true)
-        HStack(alignment: .center, spacing: 10) {
-          Text(card.aside)
-            .kText(.letter(12.5, italic: true))
-            .foregroundStyle(KMePlanetMetrics.asideInk)
-            .lineLimit(2)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityHidden(true)
-          SwiftUI.Button(action: { actions.onOpen() }) {
-            Text(card.cta)
-              .kText(.system(13.5, .semibold))
-              .foregroundStyle(night ? Color.white : palette.buttonText)
-              .lineLimit(1)
-              .padding(.horizontal, 15)
-              .frame(height: 30)
-              .background(Capsule().fill(night ? KBrand.inkOnBrand : palette.button))
-          }
-          .buttonStyle(KFadePressStyle())
-          .fixedSize()
-        }
-        .frame(minHeight: 30)
-      }
-      .padding(.horizontal, 14)
-      .padding(.vertical, 10)
-      .frame(height: KMePlanetMetrics.bubbleHeight, alignment: .top)
-      .padding(.horizontal, KMePlanetMetrics.bubbleInset)
-      .padding(.top, KMePlanetMetrics.bubbleInset)
-    }
-    .frame(height: KMePlanetMetrics.words, alignment: .top)
-  }
-}
-
-/// The bubble and its tail, which follows her: redrawn each frame from the probe, the words above
-/// it are not.
-private struct KMeBubbleShape: View {
-  let probe: KPlanetProbe
-  let live: Bool
-
-  var body: some View {
-    TimelineView(.animation(minimumInterval: nil, paused: !live)) { _ in
-      Canvas { context, size in
-        let inset = KMePlanetMetrics.bubbleInset
-        let top = inset
-        let box = CGRect(x: inset, y: top, width: size.width - inset * 2, height: KMePlanetMetrics.bubbleHeight)
-        let half = KMePlanetMetrics.tailWidth / 2
-        let x = min(max(probe.wrenX, box.minX + 24 + half), box.maxX - 24 - half)
-        var shape = Path(roundedRect: box, cornerRadius: 20, style: .continuous)
-        var tail = Path()
-        tail.move(to: CGPoint(x: x - half, y: top + 0.5))
-        tail.addLine(to: CGPoint(x: x, y: top - KMePlanetMetrics.tailRise))
-        tail.addLine(to: CGPoint(x: x + half, y: top + 0.5))
-        tail.closeSubpath()
-        shape.addPath(tail)
-        var shadowed = context
-        shadowed.addFilter(.shadow(color: Color(hex: "#1E1B35").opacity(0.18), radius: 9, x: 0, y: 6))
-        shadowed.fill(shape, with: .color(.white))
-      }
-    }
-    .accessibilityHidden(true)
+    KPlanetBubble(
+      palette: card.planet.palette,
+      name: card.name,
+      time: card.time,
+      line: card.line,
+      aside: card.aside,
+      cta: card.cta,
+      probe: probe,
+      live: card.planet.live,
+      onCta: { actions.onOpen() }
+    )
   }
 }
 

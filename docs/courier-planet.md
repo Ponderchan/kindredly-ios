@@ -188,7 +188,37 @@ text and the prototype disagree, the prototype wins unless this text says "chang
     by hand there: ImageRenderer draws nothing inside a ScrollView.
   - Try it on a dev client: `kindredly:///dev/step5-me` → PLANET (turns the switch on for the
     session), then WHERE / SKIN / LOOK / WEEK / LETTERS / KIN / FC / DAY OFF.
-- Next: phase 5, the planet page.
+- 2026-11-11 — **phase 5 done**: the planet page, route `/planet` (`src/app/planet.tsx`), behind
+  the same switch (`meplanet`) and the same crash care as her card.
+  - Swift: `Portable/Planet/KPlanetPage.swift` (`KPlanetScreen`: the scene under the status bar
+    with the back chevron, the chip, the hint at its foot and the two zoom keys → her words,
+    `KPlanetBubble`, shared with her card and without a button here → `KPlanetFigures` → TRACK:
+    a pager of `KPlanetSlipCard`s, one on show, its neighbours peeking → the My letters row).
+    Swiping to a slip selects its letter on the planet (it turns to the stamp); a tapped stamp
+    and a turn by hand bring the slip. The page follows the slip TS names (`open`) until the
+    reader picks one. `KPlanetProbe.zoom(by:)` is how the two keys reach the planet.
+  - Adapter: `Adapters/KPlanetPageView.swift` (registered; syntax-checked only, like the rest).
+    Her page's Track: `KCourierContent.trackPlanet` + `onTrack` (`onCrTrack`) — with the planet
+    on, Track opens `/planet`; otherwise her tracking slip opens there as before.
+  - TS: `planet-model.ts` gains the page (`buildPlanetPage`, `planetSlips`, `letterRows`,
+    `planetFigures`; the test file now has 80 checks). The figures: **ON THE WAY** follows her
+    state (your unanswered letters while she flies with them; the doors she waits at while she
+    waits; else 0), **CARRIED** every letter of yours, **ON DESKS** the readers summed; a dash
+    until read. A slip: when it left · on n strangers' desks (no row at 0) · WAITING FOR AN
+    ANSWER / ANSWERED / {WHO} REPLIED — existing strings throughout. The run she is on takes
+    its letter's slip (her page's three rows, and Go to the Door once she is back); a reply
+    that answered someone else's letter has no stamp, so it gets a slip of its own, first.
+    `src/screens/planet/usePlanetPage.ts` (the reads: the same as her card's, plus your letters),
+    `PlanetNative.tsx`, `modules/kindredly-ui/src/PlanetPage.tsx`.
+  - Entries: the round button on her card (`act.track` → `/planet`) and Track on her page.
+    Open still goes to her page; the two are kept apart.
+  - Check: `render.sh page-sheet.swift out.png` — on the way (day), back with a reply (night,
+    opened on the answered letter, Go to the Door), waiting (evening, zoomed in: the days show),
+    nothing sent (morning). The harness runs the planet's world on before drawing (a seeded
+    `KPlanetProbe`), so the planet has turned to the letter on show.
+  - Try it on a dev client: `kindredly:///dev/planet-page` (WHERE / DAY OFF / HOUR / LETTERS /
+    RUN / SKIN / LOOK), or the round button on the dev Me page.
+- Next: phase 6, words and care.
 
 ## For the device pass (phase 7), noted along the way
 
@@ -199,6 +229,9 @@ text and the prototype disagree, the prototype wins unless this text says "chang
   measure on a ProMotion phone; cap the card at 60 if it costs.
 - Dynamic Type: the bubble is a fixed 106 high (two lines of her words, one of her aside).
 - Touch feel of the glide, the sweep, the tap on her.
+- The planet page: the pager (does it open on the right slip, snap one slip at a time, and stay
+  in step with the planet both ways), pinch against the page's vertical scroll, the back swipe
+  from the left edge over the planet's drag, the status bar's colour on each sky.
 
 ## Not decided yet
 

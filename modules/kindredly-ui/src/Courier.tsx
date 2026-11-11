@@ -135,6 +135,10 @@ export type KCourierViewProps = CommonViewModifierProps &
     onPlayEnd?: () => void;
     /** Free Flight in Swift: a run ended — save it (lib/free-flight saveRun) */
     onFlightRun?: (gates: number, pace: number) => void;
+    /** the courier's planet is on ("meplanet"): Track opens the planet page (onTrack) instead of
+        the tracking slip here. A binary from before it ignores this and opens its slip */
+    trackPlanet?: boolean;
+    onTrack?: () => void;
   };
 
 type Ev<T> = (e: { nativeEvent: T }) => void;
@@ -142,7 +146,7 @@ type None = Ev<Record<string, never>>;
 
 type NativeKCourierViewProps = Omit<
   KCourierViewProps,
-  "letterFont" | "insets" | "rev" | "onBack" | "onPlay" | "onSlipGo" | "onKeepsake" | "onAllKeepsakes" | "onLook" | "onDress" | "onFirstClass" | "onRack" | "onUnderSky" | "flight" | "flightOpen" | "onPlayEnd" | "onFlightRun"
+  "letterFont" | "insets" | "rev" | "onBack" | "onPlay" | "onSlipGo" | "onKeepsake" | "onAllKeepsakes" | "onLook" | "onDress" | "onFirstClass" | "onRack" | "onUnderSky" | "flight" | "flightOpen" | "onPlayEnd" | "onFlightRun" | "trackPlanet" | "onTrack"
 > &
   Required<Pick<KCourierViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
@@ -159,6 +163,8 @@ type NativeKCourierViewProps = Omit<
     flight: NativeFreeFlight;
     onCrPlayEnd?: None;
     onCrFlightRun?: Ev<{ gates: number; pace: number }>;
+    trackPlanet: boolean;
+    onCrTrack?: None;
   };
 
 const NO_INSETS: KInsets = { top: 0, bottom: 0, tabBarRoom: 0 };
@@ -167,7 +173,7 @@ const NativeKCourierView = requireNativeView<NativeKCourierViewProps>("Kindredly
 
 /** The bare SwiftUI page. Only inside an @expo/ui <Host>. Pass the records memoised with a rev. */
 export const KCourierView = forwardRef<KScreenHandle, KCourierViewProps>(function KCourierView(
-  { modifiers, letterFont, insets, rev, onBack, onPlay, onSlipGo, onKeepsake, onAllKeepsakes, onLook, onDress, onFirstClass, onRack, onUnderSky, flight, flightOpen, onPlayEnd, onFlightRun, ...rest },
+  { modifiers, letterFont, insets, rev, onBack, onPlay, onSlipGo, onKeepsake, onAllKeepsakes, onLook, onDress, onFirstClass, onRack, onUnderSky, flight, flightOpen, onPlayEnd, onFlightRun, trackPlanet, onTrack, ...rest },
   ref,
 ) {
   return (
@@ -192,6 +198,8 @@ export const KCourierView = forwardRef<KScreenHandle, KCourierViewProps>(functio
       flight={nativeFreeFlight(flight, !!flightOpen)}
       onCrPlayEnd={onPlayEnd ? () => onPlayEnd() : undefined}
       onCrFlightRun={onFlightRun ? (e) => onFlightRun(Number(e.nativeEvent.gates) || 0, Number(e.nativeEvent.pace) || 0) : undefined}
+      trackPlanet={!!trackPlanet}
+      onCrTrack={onTrack ? () => onTrack() : undefined}
     />
   );
 });

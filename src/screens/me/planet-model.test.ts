@@ -9,18 +9,25 @@
    process exits non-zero if any fail. */
 
 import {
+  FIGURE_UNKNOWN,
   PLANET_LETTERS,
   SHELF_FC_DRESS,
   SHELF_FC_SKINS,
+  TRANSIT_SLIP,
   buildMePlanet,
+  buildPlanetPage,
   buildShelf,
   buildStampsTile,
+  letterRows,
+  planetFigures,
   planetLetters,
+  planetSlips,
   planetNapping,
   planetWrenState,
   shelfSlots,
   shelfTap,
   shelfWeek,
+  type PageLetterSource,
   type PlanetLetterSource,
   type ShelfFacts,
 } from "./planet-model.ts";
@@ -140,6 +147,62 @@ eq("a look the shelf doesn't hold this week: nothing", shelfTap("skin:ink", base
 {
   const monday = Date.UTC(2026, 10, 9); // Monday 9 November 2026
   eq("a week runs Monday to Sunday (UTC)", [shelfWeek(monday) - shelfWeek(monday - 1), shelfWeek(monday + 6 * 86_400_000 + 86_399_000) - shelfWeek(monday)], [1, 0]);
+}
+
+/* ── the planet page ── */
+{
+  const pf = { ...fmt, day: (iso: string) => `D${iso.slice(8, 10)}`, stampName: (id: string) => (id === "crush" ? "Crush" : "") };
+  const page = (id: string, date: string, o: Partial<PageLetterSource> = {}): PageLetterSource => ({ kind: "letter", id, date, stamp: "crush", reads: 0, answers: [], body: ` opening of ${id}. `, status: { kind: "quiet" }, ...o });
+  const cards = [
+    page("c", "2026-11-03", { reads: 4, answers: [{}], status: { kind: "replied", who: "Noa", more: 2 } }),
+    page("b", "2026-11-02", { reads: 1, answers: [{}], status: { kind: "answered", n: 1 } }),
+    page("a", "2026-11-01", { stamp: null }),
+    { ...page("d", "2026-11-04"), kind: "draft" as const },
+  ];
+  const letters = planetLetters(cards, null, lf);
+
+  eq("a quiet letter nobody has read: when it left, and that it waits", letterRows(cards[2], pf), { rows: ["wren.slip.left(D01)", "wren.slip.waiting"], lamp: -1 });
+  eq("one reader: the singular line, a lamp before it; answered", letterRows(cards[1], pf), { rows: ["wren.slip.left(D02)", "LA.OUT.READS1", "ml.answered"], lamp: 1 });
+  eq("several readers, a named reply and more", letterRows(cards[0], pf), { rows: ["wren.slip.left(D03)", "LA.OUT.READSN(4)", "ML.REPLIEDMORE(NOA,2)"], lamp: 1 });
+  eq("a named reply alone", letterRows({ ...cards[0], status: { kind: "replied", who: "Noa", more: 0 } }, pf).rows[2], "ML.REPLIED(NOA)");
+
+  const plain = planetSlips(cards, letters, null, pf);
+  eq("one slip a letter, newest first, drafts left out", plain.slips.map((x) => x.id), ["c", "b", "a"]);
+  eq("the page opens on the newest letter", plain.open, "c");
+  eq("a slip's head is the day and the stamp's name; none without a stamp", plain.slips.map((x) => x.head), ["D03 · CRUSH", "D02 · CRUSH", "D01"]);
+  eq("its body is how the letter opens, trimmed", plain.slips[0].body, "opening of c.");
+  eq("no run: no button", plain.slips.map((x) => x.cta), ["", "", ""]);
+
+  const back = planetSlips(cards, letters, { rows: ["R1", "R2", "R3"], thread: "th9", letter: "b", back: true }, pf);
+  eq("back with a reply to your letter: its slip takes her page's rows and the door", [back.slips[1].rows, back.slips[1].cta, back.slips[1].thread, back.slips[1].lamp], [["R1", "R2", "R3"], "wren.slip.go", "th9", -1]);
+  eq("and the page opens on it, not on the newest", back.open, "b");
+  eq("the other slips are untouched", [back.slips[0].cta, back.slips[2].rows.length], ["", 2]);
+
+  const wait = planetSlips(cards, letters, { rows: ["R1", "R2", "R3"], thread: "th9", letter: "b", back: false }, pf);
+  eq("waiting at their door: the rows, no button yet", [wait.slips[1].rows.length, wait.slips[1].cta, wait.open], [3, "", "b"]);
+
+  const other = planetSlips(cards, letters, { rows: ["R1", "R2", "R3"], thread: "th7", letter: "", back: true }, pf);
+  eq("a reply to someone else's letter: a slip of its own, first, with no stamp", [other.slips[0].id, other.slips[0].letter, other.slips[0].stamp, other.slips[0].cta, other.slips.length], [TRANSIT_SLIP, "", "", "wren.slip.go", 4]);
+  eq("and the page opens on it", other.open, TRANSIT_SLIP);
+  eq("nothing sent, nothing carried: no slip", planetSlips([], [], null, pf), { slips: [], open: "" });
+
+  const figs = (where: Parameters<typeof planetFigures>[0]["where"], o: Partial<Parameters<typeof planetFigures>[0]> = {}) => planetFigures({ where, quiet: 3, atDoors: 2, carried: 12, desks: 48, ...o }, pf).map((x) => x.value);
+  eq("on the way: your unanswered letters", figs("exploring"), ["3", "12", "48"]);
+  eq("waiting: the doors she waits at", figs("delivery"), ["2", "12", "48"]);
+  eq("waiting is never zero doors", figs("delivery", { atDoors: 0 })[0], "1");
+  eq("home, back, an empty bag: nothing on the way", [figs("home")[0], figs("bringing")[0], figs("unsent")[0]], ["0", "0", "0"]);
+  eq("not read yet: a dash, never a made-up 0", figs("exploring", { quiet: null, carried: null, desks: null }), [FIGURE_UNKNOWN, FIGURE_UNKNOWN, FIGURE_UNKNOWN]);
+  eq("ON DESKS carries the lamp", planetFigures({ where: "home", quiet: 0, atDoors: 0, carried: 1, desks: 1 }, pf).map((x) => x.lamp), [false, false, true]);
+
+  const courier = { chip: "YOUR COURIER", dayOffTag: "DAY OFF", playing: false, name: "Pip", time: "2H AGO", line: "line", aside: "aside", cta: "Open" };
+  const look = { skin: "moss" as const, dress: "scarf" as const, stage: "wren" as const, wilt: false };
+  const v = buildPlanetPage({ courier, where: "bringing", dayOff: false, a11y: "sentence", cards, letters, total: null, transit: { rows: ["R1", "R2", "R3"], thread: "th9", letter: "b", back: true }, atDoors: 0, look }, pf);
+  eq("the page: she is back, it opens on the answered letter", [v.state, v.open], ["back", "b"]);
+  eq("its figures count the read letters", v.figures.map((x) => x.value), ["0", "3", "5"]);
+  eq("the hint names both gestures; My letters carries the count", [v.hint, v.myLetters, v.myLettersCount, v.track], ["CP.HINT.SPIN · CP.HINT.ZOOM", "ml.title", "3", "WREN.TRACKSHORT"]);
+  const cold = buildPlanetPage({ courier, where: "exploring", dayOff: false, a11y: "", cards: null, letters: [], total: null, transit: null, atDoors: 0, look }, pf);
+  eq("before the letters are read: dashes, no count, the two waiting rows", [cold.figures.map((x) => x.value), cold.myLettersCount, cold.slips.length, cold.emptyRows], [[FIGURE_UNKNOWN, FIGURE_UNKNOWN, FIGURE_UNKNOWN], "", 0, ["wren.slip.nothing", "wren.slip.write"]]);
+  eq("the total wins when the list is only its newest", buildPlanetPage({ courier, where: "home", dayOff: false, a11y: "", cards, letters, total: 250, transit: null, atDoors: 0, look }, pf).figures[1].value, "250");
 }
 
 console.log(failed ? `\n${failed} FAILED` : "\nall ok");

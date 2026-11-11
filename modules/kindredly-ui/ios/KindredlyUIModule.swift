@@ -497,6 +497,10 @@ public class KindredlyUIModule: Module {
     // that it can (Adapters/KMePlanetView.swift; Portable/Planet, Portable/Me/KMePlanetCard.swift,
     // Portable/Kit/KWrenBird.swift). New files: a pod install before the build.
     ExpoUIView(KMePlanetView.self)
+    // the planet page (the same switch; Adapters/KPlanetPageView.swift, Portable/Planet/
+    // KPlanetPage.swift): the route src/app/planet.tsx, opened by her card's round button and by
+    // Track on her page. No commands: it draws and reports taps.
+    ExpoUIView(KPlanetPageView.self)
 
     // batch 3: slice 3 (2026-11-09), each behind its own switch (off by default) with its React
     // Native piece as the fallback: the empty Kindreds tab ("kindredsempty": Adapters/

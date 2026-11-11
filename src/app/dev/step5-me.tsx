@@ -1,7 +1,7 @@
 import { FC_NONE } from "../../lib/fc-rollout";
 import { useCallback, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
-import { Redirect } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isKindredlyUIViewAvailable } from "../../../modules/kindredly-ui";
 import { setDevThemeOverride, useDevThemeOverride, useTheme } from "../../lib/theme";
@@ -73,7 +73,8 @@ import "../../data/strings-planet";
      BRINGING = back with a reply; DAY OFF above is her day off), SKIN is the colour she wears,
      LOOK what she has on, WEEK steps the shelf's week (the four turn over), LETTERS how many
      stamps (their lamps and postmarks are the fixtures'), KIN whether Moss is hers, FC whether
-     the paid looks are. A shelf look dresses the page's own Wren, never the real one.
+     the paid looks are. A shelf look dresses the page's own Wren, never the real one. The
+     card's round button opens the planet page on demo data (kindredly:///dev/planet-page).
    Everything that would leave the page says where it would go instead.
    The panel's words are English: a dev page. */
 
@@ -201,6 +202,7 @@ function MeLab() {
   const [skin, setSkin] = useState<PlanetSkin>("sticker");
   const [week, setWeek] = useState(() => shelfWeek(NOW));
 
+  const router = useRouter();
   const away = useCallback((where: string) => Alert.alert("Dev page", `In the app this opens ${where}.`), []);
   // the diary names a pen pal as the tab does (lib/who): the number, or the courier name with the switch on
   const book = useWhoBook({ threads: DEMO_THREADS });
@@ -269,7 +271,7 @@ function MeLab() {
         else if (tap.do === "skin") setSkin(tap.value);
         else away(tap.do === "firstClass" ? "/paywall?src=me_looks" : "/courier (the wardrobe)");
       },
-      track: () => away("the planet page"),
+      track: () => router.push("/dev/planet-page"),
     };
     const doorState = demoDoor(door);
     const kinThreads = kinN === 0 ? [] : threads;
@@ -301,7 +303,7 @@ function MeLab() {
     };
     // lang: the words follow the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auraMode, stamps, keep, fc, dayOff, noName, hungry, segment, serial, away, lang, book, lettersN, kinN, look, door, trial, whereMode, skin, week]);
+  }, [auraMode, stamps, keep, fc, dayOff, noName, hungry, segment, serial, away, lang, book, lettersN, kinN, look, door, trial, whereMode, skin, week, router]);
 
   const themeLabel = forced ? THEMES[forced].name.toUpperCase() : "OFF";
   const useSwift = swift && swiftAvailable;

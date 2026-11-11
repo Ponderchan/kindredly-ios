@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWindowDimensions } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { useIsFocused } from "expo-router";
+import { useIsFocused, useRouter } from "expo-router";
 import { useKCommands, useRev, type KScreenHandle } from "../../../modules/kindredly-ui";
 import { KCourierView, type KCourierFace, type KCourierFirstClass, type KCourierKeepsake, type KCourierTile } from "../../../modules/kindredly-ui/src/Courier";
 import { SurfaceHost } from "../../components/NativeSurface";
@@ -18,6 +18,9 @@ import { saveRun, useFlightBest } from "../../lib/free-flight";
 import { replanLocal } from "../../lib/local-push";
 import { t } from "../../lib/i18n";
 import { FLIGHT_MOODS, flightStage, flightStrings, freeFlightData } from "./free-flight-model";
+import { useNativeSurface } from "../../lib/surfaces";
+import { isKindredlyUIViewAvailable } from "../../../modules/kindredly-ui/src/available";
+import { PLANET_PAGE_VIEW } from "../../../modules/kindredly-ui/src/PlanetPage";
 
 /* WREN'S JOURNEY IN SWIFTUI (owner, 2026-10-26; ships in binary 1.2.6,
    App Store 1.0.7): one Host holding KCourierView, behind the "courier"
@@ -43,7 +46,12 @@ import { FLIGHT_MOODS, flightStage, flightStrings, freeFlightData } from "./free
    a finished run is saved here (lib/free-flight saveRun, then her day-off
    push re-planned, as the React Native game does) and the × says `onPlayEnd`.
    Without it Play is the React Native game: `onPlay` hands the page to the
-   React Native one, which opens Free Flight on its cover (app/courier). */
+   React Native one, which opens Free Flight on its cover (app/courier).
+
+   Track: with the courier's planet on ("meplanet", docs/courier-planet.md) and
+   a binary that has the planet page, Track opens that page (app/planet), where
+   the slips now live, one a letter; otherwise it opens her tracking slip
+   here, as it always has. */
 
 function useSameContent<T>(value: T): T {
   const kept = useRef<{ json: string; value: T } | null>(null);
@@ -185,7 +193,11 @@ export function CourierNative({
       .then(() => replanLocal({ force: true }))
       .catch((e) => console.warn("[free-flight] saving a Swift run:", e));
   }, []);
-  const rev = useRev(strings, cover, hero, band, slip, log, facts, journey, keepsakes, cells, looks, dress, firstClass, flight, flightOpen);
+  /* Track: the planet page when it is on and the binary has it; else her slip here */
+  const router = useRouter();
+  const trackPlanet = useNativeSurface("meplanet") && isKindredlyUIViewAvailable(PLANET_PAGE_VIEW);
+  const onTrack = useCallback(() => router.push("/planet"), [router]);
+  const rev = useRev(strings, cover, hero, band, slip, log, facts, journey, keepsakes, cells, looks, dress, firstClass, flight, flightOpen, trackPlanet);
 
   /* the status bar on her sky, while the cover is under it and this page is in front */
   const focused = useIsFocused();
@@ -234,6 +246,8 @@ export function CourierNative({
           flightOpen={flightOpen}
           onPlayEnd={onPlayEnd}
           onFlightRun={onFlightRun}
+          trackPlanet={trackPlanet}
+          onTrack={onTrack}
         />
       </SurfaceHost>
     </>

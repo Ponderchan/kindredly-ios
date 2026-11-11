@@ -262,6 +262,9 @@ final class KCourierViewProps: KScreenProps {
   @Field var firstClass: KMeFirstClassRecord = KMeFirstClassRecord()
   // batch 3: Free Flight in Swift
   @Field var flight: KFreeFlightRecord = KFreeFlightRecord()
+  /// the courier's planet is on ("meplanet"): Track sends onCrTrack (the planet page) instead of
+  /// opening the tracking slip here
+  @Field var trackPlanet: Bool = false
 
   var onCrBack = EventDispatcher()
   var onCrPlay = EventDispatcher()
@@ -275,6 +278,7 @@ final class KCourierViewProps: KScreenProps {
   var onCrUnderSky = EventDispatcher()
   var onCrPlayEnd = EventDispatcher()
   var onCrFlightRun = EventDispatcher()
+  var onCrTrack = EventDispatcher()
 
   private(set) lazy var actions: KCourierActions = {
     let a = KCourierActions()
@@ -290,12 +294,14 @@ final class KCourierViewProps: KScreenProps {
     a.onUnderSky = { [weak self] under in self?.onCrUnderSky(["under": under]) }
     a.onPlayEnd = { [weak self] in self?.onCrPlayEnd() }
     a.onFlightRun = { [weak self] gates, pace in self?.onCrFlightRun(["gates": gates, "pace": pace]) }
+    a.onTrack = { [weak self] in self?.onCrTrack() }
     return a
   }()
 
   var content: KCourierContent {
     cached("content") {
       var c = KCourierContent()
+      c.trackPlanet = trackPlanet
       c.strings = strings.strings
       c.cover = cover.cover
       c.hero = hero.hero

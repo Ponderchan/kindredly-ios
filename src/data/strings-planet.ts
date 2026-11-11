@@ -8,7 +8,12 @@ import { strings } from "../lib/i18n";
    These are only what is new:
 
      cp.hint.spin        on the scene until the planet is first turned (mono caps, drawn upper-cased)
-     cp.a11y.*           VoiceOver's hints for a look and for the two tiles under the card
+     cp.hint.zoom        beside it on the planet page ("DRAG TO SPIN · PINCH TO ZOOM")
+     cp.page.*           the planet page's three figures (mono caps under a number, so short:
+                         what she is out with now · every letter she has carried · the strangers
+                         who have had one on their desk)
+     cp.a11y.*           VoiceOver's hints for a look and for the two tiles under the card, and
+                         its names for the page's two zoom keys
 
    ENGLISH ONLY FOR NOW: the other eight languages are written natively in the phase that
    ships this (docs/courier-planet.md, phase 6), with the plain "on the way" lines the owner
@@ -18,6 +23,12 @@ import { strings } from "../lib/i18n";
 
 const EN = {
   "cp.hint.spin": "Drag to spin",
+  "cp.hint.zoom": "Pinch to zoom",
+  "cp.page.way": "On the way",
+  "cp.page.carried": "Carried",
+  "cp.page.desks": "On desks",
+  "cp.a11y.zoomIn": "Zoom in",
+  "cp.a11y.zoomOut": "Zoom out",
   "cp.a11y.wear": "Puts it on her",
   "cp.a11y.takeOff": "Takes it off",
   "cp.a11y.opensAlbum": "Opens your stamp album",

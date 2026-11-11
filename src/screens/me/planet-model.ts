@@ -17,7 +17,16 @@
      what she is wearing keeps its place whatever the week; tapping the one she wears takes it
      off. A season's free looks take the free slot while the season lasts.
    - what a tap on a look does: wear it, take it off, open First Class (a paid look, not a
-     member), or open her wardrobe (Moss before the first kindred: the wardrobe says why). */
+     member), or open her wardrobe (Moss before the first kindred: the wardrobe says why).
+   - THE PLANET PAGE (app/planet; buildPlanetPage): the three figures — ON THE WAY (what she is
+     out with now: your unanswered letters while she flies with them, the doors she waits at
+     while she waits, else none), CARRIED (every letter of yours) and ON DESKS (the strangers
+     who have had one on their desk, summed) — a dash until read, never a made-up 0; and one
+     slip per letter, worded as her page's slip and My letters word them: when it left, how
+     many desks, where it stands. The run she is on now takes its letter's slip (her page's
+     three rows, and Go to the Door once she is back); a run that answers someone else's
+     letter has no stamp, so it gets a slip of its own, first. The page opens on that run's
+     slip, else on the newest letter. */
 
 export type TFn = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -346,5 +355,214 @@ export function buildMePlanet(f: MePlanetFacts, fmt: ShelfFormat): MePlanetVM {
     allLooksHint: t("m4.a11y.opensWardrobe", { wren: fmt.wren }),
     stamps: buildStampsTile(f.stamps, fmt),
     auraHint: t("cp.a11y.opensAura"),
+  };
+}
+
+/* ── the planet page ───────────────────────────────────────────────────── */
+
+/** Where a letter stands (screens/letters letterStatus): quiet, answered by n, or replied to by someone named. */
+export type PageLetterStatus = { kind: "quiet" } | { kind: "answered"; n: number } | { kind: "replied"; who: string; more: number };
+
+/** A letter as the page needs it (screens/letters buildLetterCards has all of it). */
+export type PageLetterSource = PlanetLetterSource & { body: string; status: PageLetterStatus };
+
+/** The run she is on now (her page's tracking slip: courier-model slipRows, drivingThread). */
+export type PageTransit = {
+  /** the three rows, as her page files them */
+  rows: string[];
+  /** the correspondence Go to the Door opens */
+  thread: string;
+  /** the letter of yours it answers; "" when it answers someone else's (no stamp for it) */
+  letter: string;
+  /** she is back with the reply: Go to the Door shows */
+  back: boolean;
+};
+
+export type PlanetSlipVM = {
+  id: string;
+  /** the planet's letter this slip belongs to; "" for a run with no stamp */
+  letter: string;
+  stamp: string;
+  hex: string;
+  /** NOV 3 · CRUSH */
+  head: string;
+  /** how the letter opens */
+  body: string;
+  rows: string[];
+  /** the row a reader's lamp stands before; -1 for none */
+  lamp: number;
+  /** Go to the Door; "" for none */
+  cta: string;
+  /** the correspondence the button opens; "" for none */
+  thread: string;
+  a11y: string;
+};
+
+/** the id of a run's own slip (a reply that answered someone else's letter) */
+export const TRANSIT_SLIP = "transit";
+
+export type PageFormat = ShelfFormat & {
+  /** "NOV 3": a day, short, upper-cased, in the reader's language */
+  day: (iso: string) => string;
+  /** a stamp's name in the reader's language; "" when unknown */
+  stampName: (id: string) => string;
+};
+
+const noStop = (s: string): string => s.replace(/[.。]+$/, "");
+
+/** One letter's three rows: when it left, the desks it has been on (none: no row), where it stands. */
+export function letterRows(l: PageLetterSource, fmt: PageFormat): { rows: string[]; lamp: number } {
+  const { t, upper } = fmt;
+  const rows = [t("wren.slip.left", { day: l.date ? fmt.day(l.date) : "" })];
+  let lamp = -1;
+  const reads = Math.max(0, Math.round(l.reads || 0));
+  if (reads > 0) {
+    lamp = rows.length;
+    rows.push(upper(noStop(reads === 1 ? t("la.out.reads1") : t("la.out.readsN", { n: reads }))));
+  }
+  const st = l.status;
+  rows.push(st.kind === "replied" ? upper(st.more > 0 ? t("ml.repliedMore", { who: st.who, n: st.more }) : t("ml.replied", { who: st.who })) : st.kind === "answered" ? t("ml.answered") : t("wren.slip.waiting"));
+  return { rows, lamp };
+}
+
+/** The slips, in the pager's order, and the one the page opens on ("" for none). */
+export function planetSlips(cards: readonly PageLetterSource[] | null, letters: readonly PlanetLetterVM[], transit: PageTransit | null, fmt: PageFormat): { slips: PlanetSlipVM[]; open: string } {
+  const { t } = fmt;
+  const byId = new Map((cards ?? []).filter((c) => c.kind === "letter").map((c) => [c.id, c]));
+  const go = transit?.back ? t("wren.slip.go") : "";
+  const slips: PlanetSlipVM[] = [];
+  let open = "";
+  for (const l of letters) {
+    const card = byId.get(l.id);
+    if (!card) continue;
+    const name = l.stamp ? fmt.stampName(l.stamp) : "";
+    const head = [l.day, name ? fmt.upper(name) : ""].filter(Boolean).join(" · ");
+    const mine = !!transit && transit.letter === l.id;
+    const { rows, lamp } = mine ? { rows: transit.rows, lamp: -1 } : letterRows(card, fmt);
+    if (mine) open = l.id;
+    slips.push({ id: l.id, letter: l.id, stamp: l.stamp, hex: l.hex, head, body: card.body.trim(), rows, lamp, cta: mine ? go : "", thread: mine ? transit.thread : "", a11y: noStops([head, card.body.trim(), ...rows]) });
+  }
+  // a run that isn't about one of these letters (a reply to someone else's, or a letter past the list)
+  if (transit && !open) {
+    slips.unshift({ id: TRANSIT_SLIP, letter: "", stamp: "", hex: "", head: "", body: "", rows: transit.rows, lamp: -1, cta: go, thread: transit.thread, a11y: noStops(transit.rows) });
+    open = TRANSIT_SLIP;
+  }
+  return { slips, open: open || (slips[0]?.id ?? "") };
+}
+
+const noStops = (parts: readonly string[]): string =>
+  parts
+    .map((p) => noStop(p.trim()))
+    .filter(Boolean)
+    .join(". ");
+
+export type PlanetFigureVM = { id: "way" | "carried" | "desks"; value: string; label: string; lamp: boolean; a11y: string };
+
+/** a figure not read yet: a dash, never a made-up 0 (as Me's profile figures) */
+export const FIGURE_UNKNOWN = "–";
+
+export type FigureFacts = {
+  where: PlanetWhere;
+  /** your letters nobody has answered; null until your letters are read */
+  quiet: number | null;
+  /** the doors she waits at: correspondences where the last word is yours */
+  atDoors: number;
+  /** every letter of yours she has carried; null until known */
+  carried: number | null;
+  /** the strangers who have had a letter of yours on their desk, summed; null until read */
+  desks: number | null;
+};
+
+/** ON THE WAY · CARRIED · ON DESKS. */
+export function planetFigures(f: FigureFacts, fmt: Pick<PageFormat, "t" | "upper">): PlanetFigureVM[] {
+  const { t, upper } = fmt;
+  // what she is out with now, as her state says it: flying with your unanswered letters, or
+  // waiting at doors; at home, back, or with an empty bag, nothing is on the way
+  const way = f.where === "exploring" ? f.quiet : f.where === "delivery" ? Math.max(1, f.atDoors) : 0;
+  const fig = (id: PlanetFigureVM["id"], n: number | null, key: string, lamp = false): PlanetFigureVM => {
+    const value = n == null ? FIGURE_UNKNOWN : String(n);
+    return { id, value, label: upper(t(key)), lamp, a11y: n == null ? t(key) : `${value}, ${t(key)}` };
+  };
+  return [fig("way", way, "cp.page.way"), fig("carried", f.carried, "cp.page.carried"), fig("desks", f.desks, "cp.page.desks", true)];
+}
+
+export type PlanetPageFacts = {
+  courier: PlanetCourierWords;
+  where: PlanetWhere;
+  dayOff: boolean;
+  a11y: string;
+  /** your letters as cards (null until read), and the same letters as the planet places them */
+  cards: readonly PageLetterSource[] | null;
+  letters: PlanetLetterVM[];
+  /** how many letters you have ever sent, when known */
+  total: number | null;
+  transit: PageTransit | null;
+  atDoors: number;
+  look: { skin: PlanetSkin; dress: PlanetDress; stage: PlanetStage; wilt: boolean };
+};
+
+export type PlanetPageVM = {
+  state: PlanetWrenState;
+  napping: boolean;
+  look: { skin: PlanetSkin; dress: PlanetDress; stage: PlanetStage; wilt: boolean };
+  letters: PlanetLetterVM[];
+  chip: string;
+  hint: string;
+  name: string;
+  time: string;
+  line: string;
+  aside: string;
+  figures: PlanetFigureVM[];
+  /** TRACK */
+  track: string;
+  slips: PlanetSlipVM[];
+  emptyRows: string[];
+  open: string;
+  myLetters: string;
+  myLettersCount: string;
+  back: string;
+  zoomIn: string;
+  zoomOut: string;
+  a11y: string;
+};
+
+/** Everything the planet page shows. */
+export function buildPlanetPage(f: PlanetPageFacts, fmt: PageFormat): PlanetPageVM {
+  const { t, upper } = fmt;
+  const c = f.courier;
+  const read = f.cards ? f.cards.filter((x) => x.kind === "letter") : null;
+  const { slips, open } = planetSlips(f.cards, f.letters, f.transit, fmt);
+  const carried = read ? Math.max(read.length, f.total ?? 0) : f.total;
+  return {
+    state: planetWrenState(f.where, f.dayOff),
+    napping: planetNapping(f.where),
+    look: { ...f.look, wilt: f.look.wilt && !f.dayOff },
+    letters: f.letters,
+    chip: c.playing ? c.dayOffTag : c.chip,
+    hint: `${upper(t("cp.hint.spin"))} · ${upper(t("cp.hint.zoom"))}`,
+    name: c.name,
+    time: c.playing ? "" : c.time,
+    line: c.line,
+    aside: c.aside,
+    figures: planetFigures(
+      {
+        where: f.where,
+        quiet: read ? read.filter((x) => x.answers.length === 0).length : null,
+        atDoors: f.atDoors,
+        carried,
+        desks: read ? read.reduce((n, x) => n + Math.max(0, Math.round(x.reads || 0)), 0) : null,
+      },
+      fmt,
+    ),
+    track: upper(t("wren.trackShort")),
+    slips,
+    emptyRows: [t("wren.slip.nothing"), t("wren.slip.write")],
+    open,
+    myLetters: t("ml.title"),
+    myLettersCount: carried == null ? "" : String(carried),
+    back: t("a11y.back"),
+    zoomIn: t("cp.a11y.zoomIn"),
+    zoomOut: t("cp.a11y.zoomOut"),
+    a11y: f.a11y,
   };
 }

@@ -18,8 +18,28 @@ public final class KPlanetProbe {
   /// her x in the planet view, in points, eased so a tail does not jitter
   public internal(set) var wrenX: CGFloat = 0
   var seeded = false
+  /// the planet this probe is given to, once it has drawn a frame
+  weak var engine: KPlanetEngine?
+  /// a check's world, already run on: the view it is given to adopts it instead of starting its own
+  var seed: KPlanetEngine?
 
   public init() {}
+
+  /// For checks: a probe whose planet starts from `seed` (design/courier-planet/checks).
+  init(seed: KPlanetEngine) {
+    self.seed = seed
+  }
+
+  /// The page's + and − : nearer or further by a factor, within the planet's range. The planet
+  /// eases to it.
+  public func zoom(by factor: CGFloat) {
+    guard let engine, factor > 0 else { return }
+    let range = KPlanetEngine.zoomRange
+    engine.zoom = min(max(engine.zoom * factor, range.lowerBound), range.upperBound)
+  }
+
+  /// The zoom asked for (1 = as the page opens).
+  public var zoom: CGFloat { engine?.zoom ?? 1 }
 }
 
 public struct KPlanetView: View {
@@ -56,6 +76,7 @@ public struct KPlanetView: View {
     self.onTap = onTap
     self.onPick = onPick
     self.onTurned = onTurned
+    if let seed = probe?.seed { _engine = State(initialValue: seed) }
   }
 
   public var body: some View {
@@ -120,6 +141,7 @@ public struct KPlanetView: View {
   static func report(_ engine: KPlanetEngine, to probe: KPlanetProbe, kind: KPlanetKind, size: CGSize) {
     let layout = KPlanetLayout.make(kind, size: size, zoom: engine.zoomShown)
     let x = engine.wren.x(layout)
+    if probe.engine !== engine { probe.engine = engine }
     if probe.seeded {
       probe.wrenX += (x - probe.wrenX) * (engine.reduceMotion ? 1 : 0.2)
     } else {
