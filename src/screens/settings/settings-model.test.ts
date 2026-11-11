@@ -128,7 +128,7 @@ const facts = (over: Partial<SettingsFacts> = {}): SettingsFacts => ({
   ok("it has an SF Symbol and a fallback glyph", r.symbol === "square.and.arrow.up" && r.glyph === "doc");
 
   const none = rowOf({ journalPages: 0 }).r;
-  ok("an empty journal: the row says there is nothing yet and does nothing", none.kind === "display" && !none.chevron && none.sub === "set.export.none" && none.label === "set.export");
+  ok("an empty journal: the row says there is nothing yet, with no chevron, and still takes the tap", none.kind === "link" && !none.chevron && none.sub === "set.export.none" && none.label === "set.export");
 
   const unknown = rowOf({ journalPages: null }).r;
   ok("not counted yet (or unreadable): the live row, never 'nothing to export'", unknown.kind === "link" && unknown.sub === "set.export.sub");
@@ -145,7 +145,7 @@ const facts = (over: Partial<SettingsFacts> = {}): SettingsFacts => ({
   ok("the book exists: its sub-line says a book or just the words", book.sub === "bk.set.sub");
   ok("the book exists: never busy (nothing is written from Settings)", !rowOf({ journalPages: 12, journalBook: true, exporting: true }).r.busy && rowOf({ journalPages: 12, journalBook: true, exporting: true }).r.value === "");
   ok("the book exists, not counted yet: the live row with the book's line", rowOf({ journalPages: null, journalBook: true }).r.sub === "bk.set.sub" && rowOf({ journalBook: true }).r.kind === "link");
-  ok("the book exists, an empty journal: still the row that says so and does nothing", rowOf({ journalPages: 0, journalBook: true }).r.kind === "display" && rowOf({ journalPages: 0, journalBook: true }).r.sub === "set.export.none");
+  ok("the book exists, an empty journal: still the row that says so, taking the tap", rowOf({ journalPages: 0, journalBook: true }).r.kind === "link" && !rowOf({ journalPages: 0, journalBook: true }).r.chevron && rowOf({ journalPages: 0, journalBook: true }).r.sub === "set.export.none");
   ok("no book on this binary: exactly the row as it was", JSON.stringify(rowOf({ journalPages: 12, journalBook: false }).r) === JSON.stringify(r));
   ok("the hook opens the page: the model still gives the row no route", ROW_ROUTES.exportJournal === undefined);
   /* the evening question's own switch (owner, 2026-11-10): only for a reader whose line is, or was this visit, on */

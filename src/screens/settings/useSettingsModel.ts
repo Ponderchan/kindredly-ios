@@ -165,6 +165,8 @@ export function useSettingsModel(): SettingsModel {
   /* Export my journal: how many pages it would hold (null until counted, or when the journal
      couldn't be read: the row stays live and the tap says what happened), and the file being written */
   const [journalPages, setJournalPages] = useState<number | null>(null);
+  const journalPagesRef = useRef<number | null>(null);
+  journalPagesRef.current = journalPages;
   const [exporting, setExporting] = useState(false);
   const exportingRef = useRef(false);
   /* the journal book: this binary makes it and has its page (asked once; a binary can't gain either while it runs) */
@@ -395,6 +397,11 @@ export function useSettingsModel(): SettingsModel {
           void onRestore();
           return;
         case "exportJournal":
+          // no page of their own on this phone yet: say so, rather than a row that does nothing
+          if (journalPagesRef.current === 0) {
+            Alert.alert(t("set.export"), t("set.export.none"));
+            return;
+          }
           // the journal book's page where this binary has it; otherwise the text file, as before
           if (bookThere) router.push(JOURNAL_BOOK_ROUTE as never);
           else void onExport();

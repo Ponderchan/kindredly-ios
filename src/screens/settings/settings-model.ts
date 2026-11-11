@@ -353,14 +353,15 @@ export function quietNotice(perm: SettingsFacts["perm"], t: TFn): SettingsNotice
   return { text: t("set.push.off"), action: perm === "ask" ? t("set.push.offAsk") : t("set.push.offOpen") };
 }
 
-/** Export my journal, under Unsent letters. No page yet: a display row that says so (and does
-    nothing). Otherwise a link whose sub-line says the journal lives only on this phone and that
+/** Export my journal, under Unsent letters. No page yet: the row says so, with no chevron — and
+    it still answers a tap (the hook says the same sentence in an alert: a row that did nothing
+    read as broken, owner on build 42, 2026-11-12: "export my journal 咋点不动"). Otherwise a link whose sub-line says the journal lives only on this phone and that
     the file is the words only; … and no chevron while the file is being written. Where the
     journal book exists (journalBook) the row opens its page: a plain link whose sub-line says it
     can be a book or just the words. */
 export function exportRow(f: Pick<SettingsFacts, "journalPages" | "exporting" | "journalBook">, t: TFn): SettingsRowVM {
   const base = { key: "exportJournal" as const, symbol: "square.and.arrow.up", glyph: "doc" as const, label: t("set.export") };
-  if (f.journalPages === 0) return row({ ...base, sub: t("set.export.none"), chevron: false, kind: "display" });
+  if (f.journalPages === 0) return row({ ...base, sub: t("set.export.none"), chevron: false });
   if (f.journalBook) return row({ ...base, sub: t("bk.set.sub") });
   const busy = !!f.exporting;
   return row({ ...base, sub: t("set.export.sub"), value: busy ? "…" : "", chevron: !busy, busy });

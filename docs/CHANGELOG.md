@@ -38,6 +38,9 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 ## Unreleased
 
+Settings, Export my journal with no notes yet (owner on build 42, 2026-11-12) [JS: can go over the air]
+- With no notes of your own on this phone, the row used to do nothing when tapped, which read as broken. It now answers with the same sentence it shows: your journal lives only on this phone, and there is nothing to export yet.
+
 Making your own face: one straight line (owner, 2026-11-11) [binary for the quiet painting page; the rest is JS and can go over the air]
 - The flow is four steps with one thing to do at each: show Wren you (a photo, or a few words) → she paints (about twenty seconds) → pick the one you like of the three → "This is me". That is the last tap: there is no "done" page after it any more.
 - From onboarding: while she paints there is nothing to decide — no "Don't wait on me" card and no question about notifications (onboarding asks that once, at its own screen). After "This is me" you go straight on to the next onboarding screen wearing the face; you are no longer sent back to the grid of faces to press "This is me" a second time.
