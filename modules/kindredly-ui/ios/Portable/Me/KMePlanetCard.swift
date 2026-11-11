@@ -14,8 +14,13 @@ import SwiftUI
       ring and a tick. First Class: gold dashes and a lock. "All looks →".
 
    Under the card on the Me tab: the Aura and Stamps tiles and the report row,
-   each in one of the app's own mood colours (KMood: happy sand, low blue, calm
-   green) — the owner is tired of lavender everywhere.
+   each in a colour of its own — the owner is tired of lavender everywhere.
+   Stamps is the low mood's blue and the report the calm mood's green (KMood);
+   Aura is the morning sky's peach (courier-card-model PALETTE.morning): it was
+   the happy mood's sand until the owner saw it on a phone (2026-11-11: "黄色背景
+   不好看 有点奇怪"). Each tile is named the way her card is (owner, same day:
+   "咋没做一个和信使那里一样的效果"): a chip, white mono capitals on the tile's own
+   deep tone (KMeTileChip), not a line of small grey capitals.
 
    All of it SwiftUI: the birds in the shelf are KWrenBird, not snapshots. */
 
@@ -76,6 +81,8 @@ public struct KMePlanet: Equatable, Sendable {
   public var stamps = KMeStampsTileContent()
   /// VoiceOver's hint for the Aura tile ("Opens your writing aura")
   public var auraHint = ""
+  /// the Aura tile's chip: AURA (short, so it sits in a chip as YOUR COURIER does)
+  public var auraChip = ""
 
   public init() {}
 }
@@ -109,6 +116,37 @@ public final class KMePlanetActions {
   public var onTap: (KPlanetTap) -> Void = { _ in }
 
   public init() {}
+}
+
+/// The tiles' colours under her card (see the top).
+enum KMeTileColour {
+  /// Aura: the morning sky's peach, and the evening sky's plum for its chip
+  static let aura = Color(hex: "#FBE3D6")
+  static let auraChip = Color(hex: "#4A2F3F")
+  /// Stamps: the low mood's blue, and a deep blue for its chip
+  static let stamps = KMood.low.fill
+  static let stampsChip = Color(hex: "#2B557F")
+  /// the report row: the calm mood's green
+  static let report = KMood.calm.fill
+}
+
+/// A tile's name, drawn as her card's own chip is (YOUR COURIER): white mono capitals on a deep
+/// fill, corners 7. One line; a long name in another language shrinks to fit the tile.
+struct KMeTileChip: View {
+  let text: String
+  let fill: Color
+
+  var body: some View {
+    Text(text)
+      .kText(.mono(11, .bold, tracking: 0.16))
+      .foregroundStyle(Color.white)
+      .lineLimit(1)
+      .minimumScaleFactor(0.7)
+      .padding(.horizontal, 10)
+      .padding(.vertical, 6)
+      .background(RoundedRectangle(cornerRadius: 7, style: .circular).fill(fill))
+      .accessibilityHidden(true)
+  }
 }
 
 enum KMePlanetMetrics {
@@ -318,6 +356,8 @@ struct KMeShelfChip: View {
 /// The Aura tile: its picture, its title, how many letters it reads from. A tap opens the Aura card.
 struct KMeAuraTile<Art: View>: View {
   let aura: KMeAura?
+  /// AURA, on the chip; "" falls back to the card's own label
+  let chip: String
   let hint: String
   let onTap: () -> Void
   @ViewBuilder let art: Art
@@ -325,10 +365,7 @@ struct KMeAuraTile<Art: View>: View {
   var body: some View {
     SwiftUI.Button(action: onTap) {
       VStack(alignment: .leading, spacing: 0) {
-        Text(aura?.label ?? "")
-          .kText(.mono(9.5, .semibold, tracking: 0.16))
-          .foregroundStyle(KBrand.subOnCream)
-          .lineLimit(1)
+        KMeTileChip(text: chip.isEmpty ? (aura?.label ?? "") : chip, fill: KMeTileColour.auraChip)
         art
           .frame(height: 52)
           .frame(maxWidth: .infinity)
@@ -351,7 +388,7 @@ struct KMeAuraTile<Art: View>: View {
       }
       .padding(14)
       .frame(maxWidth: .infinity, minHeight: 152, maxHeight: .infinity, alignment: .topLeading)
-      .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(KMood.happy.fill))
+      .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(KMeTileColour.aura))
       .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
     .buttonStyle(KFadePressStyle())
@@ -373,10 +410,7 @@ struct KMeStampsTile: View {
     let fanWidth: CGFloat = fan.isEmpty ? 0 : 36 + CGFloat(fan.count - 1) * 28
     SwiftUI.Button(action: onTap) {
       VStack(alignment: .leading, spacing: 0) {
-        Text(tile.label)
-          .kText(.mono(9.5, .semibold, tracking: 0.16))
-          .foregroundStyle(KBrand.subOnCream)
-          .lineLimit(1)
+        KMeTileChip(text: tile.label, fill: KMeTileColour.stampsChip)
         HStack(alignment: .center, spacing: 0) {
           ZStack(alignment: .leading) {
             ForEach(Array(fan.enumerated()), id: \.element.id) { i, cell in
@@ -409,7 +443,7 @@ struct KMeStampsTile: View {
       }
       .padding(14)
       .frame(maxWidth: .infinity, minHeight: 152, maxHeight: .infinity, alignment: .topLeading)
-      .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(KMood.low.fill))
+      .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(KMeTileColour.stamps))
       .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
     .buttonStyle(KFadePressStyle())
@@ -466,7 +500,7 @@ struct KMeReportRow: View {
       .padding(.horizontal, 16)
       .padding(.vertical, 14)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .background(shape.fill(KMood.calm.fill))
+      .background(shape.fill(KMeTileColour.report))
       .contentShape(shape)
     }
     .buttonStyle(KFadePressStyle())

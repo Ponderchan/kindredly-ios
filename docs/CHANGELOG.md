@@ -46,7 +46,10 @@ The courier's planet (owner sign-off 2026-11-11; branch `courier-planet`, **not 
 - Four of her looks sit under her words: one free piece, Moss (your first kindred), one First Class colour and one First Class piece. They change every Monday; what she is wearing stays; tapping the one she wears takes it off. All looks → opens her wardrobe.
 - A new page, the planet page, from the round button on her card and from Track on her page: the planet larger (pinch, double tap or + − to zoom; closer in, each stamp shows its day), three figures (On the way, Carried, On desks) and one slip a letter — when it left, how many desks it has been on, where it stands. Swiping to a slip turns the planet to its stamp; tapping a stamp or turning the planet brings its slip. A letter with a reply opens on its own slip with Go to the Door.
 - Her page (Open) is unchanged, except that Track now opens the planet page.
-- The Aura and Stamps tiles and the report row each have a colour of their own (sand, blue, green) instead of the page's grey.
+- The Aura and Stamps tiles and the report row each have a colour of their own (peach, blue, green) instead of the page's grey, and the two tiles are named on a chip like her card's YOUR COURIER. With no stamps of your own yet, the Stamps tile shows three of ours.
+
+Fixed with it (needs the binary)
+- The long letter (Unfold): the ✕ beside Fold It Back is the app's close icon, the size every other closing page uses (it was a smaller typed ✕).
 
 Changed with it (ships with or without the switch) [OTA]
 - Wren says plainly when a letter is out: "your letter's out. no one has written back yet" / "i'll bring it the second someone does" (it used to be "still hunting for the right window"), in all nine languages, by day and by night.

@@ -886,7 +886,7 @@ struct KMePlanetPage<AuraArt: View>: View {
           }
         }
       HStack(alignment: .top, spacing: Self.gap) {
-        KMeAuraTile(aura: content.aura, hint: planet.auraHint, onTap: { actions.onAuraOpen() }) {
+        KMeAuraTile(aura: content.aura, chip: planet.auraChip, hint: planet.auraHint, onTap: { actions.onAuraOpen() }) {
           auraArt
         }
         KMeStampsTile(tile: planet.stamps) { actions.onStamps("album", "") }

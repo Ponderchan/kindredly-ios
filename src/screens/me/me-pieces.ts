@@ -278,6 +278,7 @@ export function mePlanetData(vm: MePlanetVM, palette: CourierCardModel["palette"
     allLooksHint: vm.allLooksHint,
     stamps: vm.stamps,
     auraHint: vm.auraHint,
+    auraChip: vm.auraChip,
   };
 }
 

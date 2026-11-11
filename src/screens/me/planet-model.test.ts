@@ -11,6 +11,7 @@
 import {
   FIGURE_UNKNOWN,
   PLANET_LETTERS,
+  SAMPLE_STAMPS,
   SHELF_FC_DRESS,
   SHELF_FC_SKINS,
   TRANSIT_SLIP,
@@ -127,7 +128,9 @@ eq("a look the shelf doesn't hold this week: nothing", shelfTap("skin:ink", base
   eq("what you made first (only the ones that passed), then what you used, three at most", tile.fan.map((x) => x.id), ["c:1", "crush", "lost"]);
   eq("its words", [tile.label, tile.title, tile.caption, tile.make], ["ME.SEG.STAMPS", "Snap a moment.", "7 USED", true]);
   const closed = buildStampsTile({ ...src, madeShow: false, cells: [] }, fmt);
-  eq("the press not open, nothing used: no blank stamp, the plain line, no count", [closed.make, closed.title, closed.caption, closed.fan.length], [false, "none yet", "2 OF 3 FREE", 0]);
+  eq("the press not open, nothing used: no blank stamp, the plain line, no count", [closed.make, closed.title, closed.caption], [false, "none yet", "2 OF 3 FREE"]);
+  eq("none of your own: three of the app's stamps as samples, never a blank tile", closed.fan.map((x) => x.id), [...SAMPLE_STAMPS]);
+  eq("one of your own is enough: no samples beside it", buildStampsTile({ ...src, made: [], cells: [src.cells[0]] }, fmt).fan.map((x) => x.id), ["crush"]);
 }
 
 /* ── her card ── */
@@ -139,6 +142,7 @@ eq("a look the shelf doesn't hold this week: nothing", shelfTap("skin:ink", base
   eq("on the way, hungry: she flies, greyed", [v.state, v.look.wilt, v.look.stage], ["out", true, "fledge"]);
   eq("the card's words are the courier card's", [v.chip, v.name, v.time, v.line, v.aside, v.cta], ["YOUR COURIER", "Pip", "2H AGO", "line", "aside", "Open"]);
   eq("the hint is drawn in capitals; Track is the courier page's word", [v.hint, v.track], ["PLANET.HINT.SPIN", "wren.trackShort"]);
+  eq("the Aura tile's chip is the segment's name in capitals", v.auraChip, "ME.SEG.AURA");
   const off = buildMePlanet({ ...facts, dayOff: true, courier: { ...courier, playing: true, time: "DAY OFF", cta: "Play" } }, fmt);
   eq("her day off: the chip says so once, she isn't greyed, the button plays", [off.state, off.chip, off.time, off.look.wilt, off.cta], ["dayOff", "DAY OFF", "", false, "Play"]);
 }

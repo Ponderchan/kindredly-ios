@@ -76,6 +76,7 @@ func planet(_ c: Case) -> KMePlanet {
   p.track = "Track"
   p.shelf = shelf(worn: c.worn, member: c.member, kindred: c.kindred, skin: c.look.skin, dress: c.look.accessory)
   p.allLooks = "All looks →"
+  p.auraChip = "AURA"
   p.stamps.label = "STAMPS"
   p.stamps.title = "Snap a moment."
   p.stamps.caption = "7 USED"
@@ -134,7 +135,7 @@ func art() -> some View {
 @MainActor func tiles(_ c: Case) -> some View {
   VStack(spacing: 12) {
     HStack(alignment: .top, spacing: 12) {
-      KMeAuraTile(aura: aura(), hint: "", onTap: {}) { art() }
+      KMeAuraTile(aura: aura(), chip: "AURA", hint: "", onTap: {}) { art() }
       KMeStampsTile(tile: planet(c).stamps) {}
     }
     KMeReportRow(report: report()) {}
@@ -209,7 +210,7 @@ struct Sheet: View {
         cardCell(CASES[4])
         VStack(alignment: .leading, spacing: 4) {
           tiles(CASES[0])
-          Text("under the card: happy sand · low blue · calm green").font(.system(size: 10.5, weight: .semibold, design: .monospaced)).foregroundColor(Color(hex: "#55506E"))
+          Text("under the card: morning peach · low blue · calm green, each named on a chip").font(.system(size: 10.5, weight: .semibold, design: .monospaced)).foregroundColor(Color(hex: "#55506E"))
         }
       }
       HStack(alignment: .top, spacing: 22) {

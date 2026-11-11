@@ -121,6 +121,8 @@ export type KMePlanetData = {
   allLooksHint: string;
   stamps: KMeStampsTileData;
   auraHint: string;
+  /** the Aura tile's chip (AURA): short, drawn as her card's YOUR COURIER chip is */
+  auraChip: string;
 };
 
 type NativeForm = KWrenForm;
@@ -164,6 +166,7 @@ export const ME_PLANET_OFF: NativeMePlanet = Object.freeze({
   allLooksHint: "",
   stamps: { label: "", title: "", caption: "", fan: [], make: false, a11y: "", hint: "" },
   auraHint: "",
+  auraChip: "",
 }) as NativeMePlanet;
 
 /** Her card as the Swift record takes it. */

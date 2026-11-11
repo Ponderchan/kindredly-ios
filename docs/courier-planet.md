@@ -57,8 +57,12 @@ text and the prototype disagree, the prototype wins unless this text says "chang
    White chips, a name under each; worn = the card's green ring and a tick; First Class = gold
    dashes and a lock. Replaces `me-model` buildLooks' fixed four.
 10. **Colour**: the default theme is Classic (white page). The three things under her card each
-    take one of the app's own mood colours: Aura `#F6E7C6`, Stamps `#CFE3F5`, report `#DDEFD6`
-    (`src/theme/themes.json` mood). The owner is tired of lavender everywhere — new surfaces
+    take a colour of their own: Aura `#FBE3D6` (the morning sky's peach; **changed 2026-11-11** —
+    it was the happy mood's sand `#F6E7C6` until the owner saw it on the simulator: "黄色背景不好看
+    有点奇怪"), Stamps `#CFE3F5`, report `#DDEFD6` (`src/theme/themes.json` mood). The two tiles
+    are named on a chip, as her card is (owner, same day): white mono capitals on the tile's deep
+    tone (AURA on plum `#4A2F3F`, STAMPS on blue `#2B557F`). With no stamps of the reader's own,
+    the Stamps tile shows three of the app's (tiny-win, cant-sleep, crush). The owner is tired of lavender everywhere — new surfaces
     take brand / mood colours, not `soft` / `lav`.
 11. **Copy, shipping with this** (nine languages, written natively, not translated):
     "on the way" says it plainly — `your letter's out. no one has written back yet` /
@@ -252,6 +256,21 @@ text and the prototype disagree, the prototype wins unless this text says "chang
 - 2026-11-11 — **nothing on the planet's Me is a picture of her.** The First Class card's stamp
   takes her look (`KMeFirstClass.wren`) and is drawn by KWrenBird; with the planet on, MeNative
   captures no bird snapshot at all (the old looks tiles and the stamp were the last five).
+- 2026-11-11 — **phase 7 begun: the first simulator run** (owner: "打开个模拟器我看看"). Local
+  Debug build (pod install for the new files, then an incremental xcodebuild, about two minutes),
+  installed on the iPhone 17 simulator; `kindredly:///dev/step5-me` → PLANET. The records decode,
+  the page draws, the header sticks and collapses, the page scrolls from the bubble, the taps
+  arrive. What the owner changed on seeing it, all done and rebuilt:
+  - her words were in the fixed serif (`.letter`): now `KTextStyle.content`, the reader's own
+    font, as her old card sets them (e008457);
+  - the tiles' names are chips; the Aura tile is peach, not sand; sample stamps on the Stamps
+    tile (decision 10);
+  - on the dev page the planet's exits now really open their pages (a note looked like nothing
+    happened);
+  - (not the planet) the long letter's ✕ is the app's close icon — its own commit, so the 1.0.9
+    line can take it.
+  Still to do on the simulator: the drag's feel, the five states in motion, the planet page's
+  pager, then a phone.
 - 2026-11-11 — **the adapters type-check.** `checks/typecheck-module.sh` compiles the whole
   module (Portable, Adapters, the module file) against the real Expo interfaces without a build:
   no errors. What is left for the device is behaviour, not compilation.

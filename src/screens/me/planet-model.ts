@@ -282,12 +282,18 @@ export type StampsTileVM = {
   hint: string;
 };
 
+/** The app's own stamps the tile shows while the reader has none of theirs (owner, 2026-11-11:
+    "stamp 前面放两个或者三个假的我们的邮票"): three official ones, so the tile is never a blank. */
+export const SAMPLE_STAMPS: readonly string[] = ["tiny-win", "cant-sleep", "crush"];
+
 /** The Stamps tile: what you made lately first (the ones that passed), then what you used, three
-    at most; the blank stamp when the press is open to you. */
+    at most; with none of either, three of the app's own as samples; the blank stamp when the
+    press is open to you. */
 export function buildStampsTile(s: PlanetStampsSource, fmt: { t: TFn; upper: (s: string) => string }): StampsTileVM {
   const { t, upper } = fmt;
   const made = s.madeShow ? s.made.filter((m) => !m.note).map((m) => ({ id: m.id, hex: "" })) : [];
-  const fan = [...made, ...s.cells.map((c) => ({ id: c.id, hex: c.hex }))].slice(0, 3);
+  const yours = [...made, ...s.cells.map((c) => ({ id: c.id, hex: c.hex }))].slice(0, 3);
+  const fan = yours.length ? yours : SAMPLE_STAMPS.map((id) => ({ id, hex: "" }));
   const label = upper(t("me.seg.stamps"));
   const title = s.madeShow ? s.emptyTitle : s.emptyText;
   const caption = s.cells.length > 0 ? s.count : s.madeQuota;
@@ -328,6 +334,8 @@ export type MePlanetVM = {
   allLooksHint: string;
   stamps: StampsTileVM;
   auraHint: string;
+  /** AURA: the Aura tile's chip */
+  auraChip: string;
 };
 
 /** Everything her card and the tiles under it show. */
@@ -355,6 +363,7 @@ export function buildMePlanet(f: MePlanetFacts, fmt: ShelfFormat): MePlanetVM {
     allLooksHint: t("m4.a11y.opensWardrobe", { wren: fmt.wren }),
     stamps: buildStampsTile(f.stamps, fmt),
     auraHint: t("planet.a11y.opensAura"),
+    auraChip: fmt.upper(t("me.seg.aura")),
   };
 }
 

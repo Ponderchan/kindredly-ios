@@ -74,7 +74,9 @@ import "../../data/strings-planet";
      LOOK what she has on, WEEK steps the shelf's week (the four turn over), LETTERS how many
      stamps (their lamps and postmarks are the fixtures'), KIN whether Moss is hers, FC whether
      the paid looks are. A shelf look dresses the page's own Wren, never the real one. The
-     card's round button opens the planet page on demo data (kindredly:///dev/planet-page).
+     card's round button opens the planet page on demo data (kindredly:///dev/planet-page); with
+     the planet on, Open, the Aura tile and All looks → really open their pages (the Stamps tile
+     always did), on whatever account this simulator has.
    Everything that would leave the page says where it would go instead.
    The panel's words are English: a dev page. */
 
@@ -243,10 +245,11 @@ function MeLab() {
       edit: () => away("/me/edit-profile"),
       stat: (k) => away(k === "letters" ? "/my-letters" : "/my-kindreds"),
       segment: (i) => setSegment(segmentIndex(i)),
-      courier: () => away(dayOff ? "/courier?play=1" : "/courier"),
+      // with the planet on the exits really go (owner, 2026-11-11: a note looked like no reaction)
+      courier: () => (planetOn ? router.push(dayOff ? "/courier?play=1" : "/courier") : away(dayOff ? "/courier?play=1" : "/courier")),
       keepsakes: () => away("/keepsakes"),
       keepsake: (id) => away(`/keepsake/${id}`),
-      auraOpen: () => away("/aura"),
+      auraOpen: () => (planetOn ? router.push("/aura") : away("/aura")),
       auraCta: () => away(view.aura?.ctaTo === "compose" ? "/compose" : "/aura"),
       auraShare: () => away("/aura-card"),
       stampsEmpty: () => away("/compose"),
@@ -258,7 +261,7 @@ function MeLab() {
       openKindreds: () => away("/my-kindreds"),
       write: () => away("/compose"),
       look: (id) => (id === "fc" ? away("/courier (the wardrobe)") : setLook(id)),
-      allLooks: () => away("/courier (the wardrobe)"),
+      allLooks: () => (planetOn ? router.push("/courier") : away("/courier (the wardrobe)")),
       report: () => {
         const d = demoDoor(door);
         const href = d ? reportDoorVM(d, { t, monthName }, wren).href : null;
@@ -303,7 +306,7 @@ function MeLab() {
     };
     // lang: the words follow the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auraMode, stamps, keep, fc, dayOff, noName, hungry, segment, serial, away, lang, book, lettersN, kinN, look, door, trial, whereMode, skin, week, router]);
+  }, [auraMode, stamps, keep, fc, dayOff, noName, hungry, segment, serial, away, lang, book, lettersN, kinN, look, door, trial, whereMode, skin, week, router, planetOn]);
 
   const themeLabel = forced ? THEMES[forced].name.toUpperCase() : "OFF";
   const useSwift = swift && swiftAvailable;

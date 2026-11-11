@@ -22,7 +22,7 @@ import ExpoUI
  - shelf: [{ id ("dress:beanie", "skin:moss"), name, look, worn, firstClass, dim, a11y, hint }]
  - allLooks, allLooksHint
  - stamps: { label, title, caption, fan: [{ id, hex }], make, a11y, hint }
- - auraHint
+ - auraHint, auraChip (the Aura tile's chip: AURA)
 
  KWrenLookRecord: { skin, stage, mood, accessory, wilt, hasForm, form: { bodyStretch, crestLift,
  eyeScale, eyeSpread, cheek, beakScale, tail }, mark ("" for none) }: how KWrenBird draws her. An
@@ -171,6 +171,7 @@ struct KMePlanetRecord: Record {
   @Field var allLooksHint: String = ""
   @Field var stamps: KMeStampsTileRecord = KMeStampsTileRecord()
   @Field var auraHint: String = ""
+  @Field var auraChip: String = ""
 
   /// nil while the planet is off: Me is then the page of segments
   var planet: KMePlanet? {
@@ -206,6 +207,7 @@ struct KMePlanetRecord: Record {
     p.allLooksHint = allLooksHint
     p.stamps = stamps.tile
     p.auraHint = auraHint
+    p.auraChip = auraChip
     return p
   }
 }
