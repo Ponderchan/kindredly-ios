@@ -34,13 +34,14 @@ func letters(_ n: Int) -> [KPlanetLetter] {
   content.palette = palette(pal)
   content.letters = letters(n)
   content.selected = selected
+  content.wren = nil
   let engine = KPlanetEngine()
   engine.zoom = zoom
   // let the world run a few seconds: a page settles on its letter, the zoom arrives
   var t: TimeInterval = 1000
-  engine.advance(to: t, kind: kind, content: content)
+  engine.advance(to: t, kind: kind, content: content, size: size)
   prep(engine, content)
-  for _ in 0..<240 { t += 1.0 / 60; engine.advance(to: t, kind: kind, content: content) }
+  for _ in 0..<240 { t += 1.0 / 60; engine.advance(to: t, kind: kind, content: content, size: size) }
   let now = t
   return VStack(alignment: .leading, spacing: 4) {
     Canvas { context, sz in

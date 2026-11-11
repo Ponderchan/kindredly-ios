@@ -139,7 +139,16 @@ text and the prototype disagree, the prototype wins unless this text says "chang
   so stamps never move when a new letter arrives; the planet shows the newest 47.
   Check: `design/courier-planet/checks/render.sh planet-sheet.swift out.png` (render kept beside it).
   Touch, glide feel and gesture conflicts with the Me scroll view are not checked yet (phase 7).
-- Next: phase 3, her motion.
+- 2026-11-11 — **phase 3 done**: `Portable/Planet/KPlanetWren.swift` — KPlanetWren (who is on the
+  planet: her look, her state, napping), KWrenMotion (the five states, the sweep, the idle
+  motions, the tap; one 60 Hz step at a time, fed the planet's swirl), and the painter's half
+  (her on the rim or on her loop via KWrenBird.draw, the letter set down beside her, the
+  day-off gates and trail). An egg sits on top and nothing flies. The flying pose is the same
+  symbol at every stage, as in WrenBird.tsx. `KWrenMotion.x(layout)` is what a speech bubble's
+  tail follows.
+  Check: `render.sh wren-sheet.swift out.png` — 24 moments (asleep, a slow turn, a flick, a tap,
+  the loop, swept, waiting, flying in, landed, day off, skins and stages).
+- Next: phase 4, the Me tab.
 
 ## Not decided yet
 

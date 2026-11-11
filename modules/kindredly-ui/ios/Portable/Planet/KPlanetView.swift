@@ -58,20 +58,34 @@ public struct KPlanetView: View {
 
   /// One frame: advance, then paint. Static so a check can render a frame without a view.
   static func render(_ ctx: inout GraphicsContext, engine: KPlanetEngine, kind: KPlanetKind, content: KPlanetContent, size: CGSize, now: TimeInterval) {
-    engine.advance(to: now, kind: kind, content: content)
+    engine.advance(to: now, kind: kind, content: content, size: size)
     let layout = KPlanetLayout.make(kind, size: size, zoom: engine.zoomShown)
-    let frame = KPlanetPaint.Frame(kind: kind, layout: layout, palette: content.palette, turn: engine.turn, time: now, reduceMotion: engine.reduceMotion, zoom: engine.zoomShown)
+    let time = engine.worldTime
+    let frame = KPlanetPaint.Frame(kind: kind, layout: layout, palette: content.palette, turn: engine.turn, time: time, reduceMotion: engine.reduceMotion, zoom: engine.zoomShown)
     let letters = engine.shown(content)
+    let who = content.wren
+    let her = engine.wren.now
+    let note: (CGPoint, CGFloat, KPlanetHit) -> Void = { at, reach, what in
+      engine.noteHit(at, reach: reach, what)
+    }
 
     engine.resetHits()
     KPlanetPaint.sky(&ctx, frame)
+    // what is behind the planet
     KPlanetPaint.scenery(&ctx, frame, near: false)
-    KPlanetPaint.globe(&ctx, frame, letters: letters, selected: engine.selectedNow) { at, reach, what in
-      engine.noteHit(at, reach: reach, what)
-    }
+    if her.gates { KPlanetPaint.trail(&ctx, frame, engine.wren.trail, behind: true) }
+    if let who, !her.onRim, her.behind { KPlanetPaint.wren(&ctx, frame, who, her, note: note) }
+    // the planet
+    KPlanetPaint.globe(&ctx, frame, letters: letters, selected: engine.selectedNow, note: note)
+    // what is in front
     KPlanetPaint.scenery(&ctx, frame, near: true)
+    if her.gates {
+      KPlanetPaint.gates(&ctx, frame, loop: layout.loop, lift: layout.lift, side: her.side)
+      KPlanetPaint.trail(&ctx, frame, engine.wren.trail, behind: false)
+    }
+    if let who, her.onRim || !her.behind { KPlanetPaint.wren(&ctx, frame, who, her, note: note) }
     if let ping = engine.pingNow {
-      let alive = KPlanetPaint.ring(&ctx, frame, ordinal: ping.ordinal, since: now - ping.at)
+      let alive = KPlanetPaint.ring(&ctx, frame, ordinal: ping.ordinal, since: time - ping.at)
       if !alive { engine.clearPing() }
     }
   }
@@ -98,6 +112,7 @@ public struct KPlanetView: View {
         if moved <= 6, held < 0.5 {
           engine.cancelTouch()
           if let what = engine.hit(at: value.location) {
+            if what == .wren { engine.wrenTapped() }
             onTap(KPlanetTap(what))
           }
         } else {

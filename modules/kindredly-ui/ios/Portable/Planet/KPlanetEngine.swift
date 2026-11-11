@@ -56,6 +56,8 @@ public struct KPlanetContent: Equatable, Sendable {
   public var letters: [KPlanetLetter] = []
   /// the planet page: the letter whose slip is on show
   public var selected: String?
+  /// who is on it and what she is doing; nil draws the planet alone
+  public var wren: KPlanetWren? = KPlanetWren()
   /// TS says the surface is on show; false stops the clock
   public var live = true
 
@@ -68,6 +70,9 @@ struct KPlanetLayout: Equatable {
   var size: CGSize
   var radius: CGFloat
   var centre: CGPoint
+  /// her loop: how wide it is (degrees from its axis) and how far above the ground she flies
+  var loop: CGFloat = 80
+  var lift: CGFloat = 22
 
   /// The prototype's numbers: a 66-point planet in a 200-point scene, centred two thirds down;
   /// on the page a 100-point planet (times the zoom) in a 380-point scene.
@@ -78,7 +83,7 @@ struct KPlanetLayout: Equatable {
       return KPlanetLayout(size: size, radius: r, centre: CGPoint(x: size.width / 2, y: size.height * 0.64))
     case .page:
       let base = min(100, size.height * 0.27)
-      return KPlanetLayout(size: size, radius: base * zoom, centre: CGPoint(x: size.width / 2, y: size.height * 0.595))
+      return KPlanetLayout(size: size, radius: base * zoom, centre: CGPoint(x: size.width / 2, y: size.height * 0.595), loop: 78, lift: 26)
     }
   }
 
@@ -123,6 +128,9 @@ final class KPlanetEngine {
   private var owed: TimeInterval = 0
   private var steps = 0
   private var selected: String?
+  /// the world's own time: a sixtieth of a second a step
+  private(set) var worldTime: TimeInterval = 0
+  private(set) var wren = KWrenMotion()
   private(set) var hits: [(at: CGPoint, reach: CGFloat, what: KPlanetHit)] = []
 
   init() {}
@@ -189,36 +197,37 @@ final class KPlanetEngine {
   }
 
   /// The planet page picked a letter (its slip was swiped to, or its stamp tapped): turn to it.
-  func show(_ letter: KPlanetLetter?, now: TimeInterval) {
+  func show(_ letter: KPlanetLetter?) {
     guard let letter else { return }
     glide = nil
     pickOwed = false
     settling = true
-    ping = (letter.ordinal, now)
+    ping = (letter.ordinal, worldTime)
   }
 
   // ── the clock ──
 
   /// Brings the world up to `now` in fixed steps. A slow frame is caught up (to 1.2 s), not stretched.
-  func advance(to now: TimeInterval, kind: KPlanetKind, content: KPlanetContent) {
+  func advance(to now: TimeInterval, kind: KPlanetKind, content: KPlanetContent, size: CGSize) {
     if selected != content.selected {
       let first = selected == nil && clock == nil
       selected = content.selected
       // the page opens on its letter; a letter picked later turns the planet to it
       if kind == .page, let id = selected, let letter = content.letters.first(where: { $0.id == id }) {
-        if first { settling = true } else { show(letter, now: now) }
+        if first { settling = true } else { show(letter) }
       }
     }
     guard let last = clock else {
       clock = now
-      step(kind: kind, content: content)
+      worldTime = now
+      step(kind: kind, content: content, size: size)
       return
     }
     owed += min(1.2, max(0, now - last))
     clock = now
     var done = 0
     while owed >= 1.0 / 60, done < 80 {
-      step(kind: kind, content: content)
+      step(kind: kind, content: content, size: size)
       owed -= 1.0 / 60
       done += 1
     }
@@ -226,7 +235,8 @@ final class KPlanetEngine {
     zoomShown += (target - zoomShown) * (reduceMotion ? 1 : 0.2)
   }
 
-  private func step(kind: KPlanetKind, content: KPlanetContent) {
+  private func step(kind: KPlanetKind, content: KPlanetContent, size: CGSize) {
+    worldTime += 1.0 / 60
     var did = fromFinger
     fromFinger = KSwirl()
 
@@ -252,6 +262,15 @@ final class KPlanetEngine {
     steps += 1
     if steps % 240 == 0 { turn = turn.tidied }
     swirl = did
+    if let who = content.wren {
+      let layout = KPlanetLayout.make(kind, size: size, zoom: zoomShown)
+      wren.step(who, swirl: did, layout: layout, loop: layout.loop, lift: layout.lift, time: worldTime, reduceMotion: reduceMotion)
+    }
+  }
+
+  /// A tap landed on her: a hop and a face.
+  func wrenTapped() {
+    wren.tapped(worldTime)
   }
 
   /// You turned it yourself: the stamp now facing you is the letter on show.
@@ -268,7 +287,7 @@ final class KPlanetEngine {
     }
     guard let pick = best, pick.id != selected else { return }
     selected = pick.id
-    ping = (pick.ordinal, clock ?? 0)
+    ping = (pick.ordinal, worldTime)
     let report = onPick
     let id = pick.id
     DispatchQueue.main.async { report?(id) }
@@ -300,7 +319,6 @@ final class KPlanetEngine {
 
   var pingNow: (ordinal: Int, at: TimeInterval)? { ping }
   var selectedNow: String? { selected }
-  var time: TimeInterval { clock ?? 0 }
 
   func clearPing() {
     ping = nil
