@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useWindowDimensions } from "react-native";
 import { useIsFocused } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { daylight } from "../../components/courier-card-model";
 import { KIsland, useKCommands, useRev, type KScreenHandle } from "../../../modules/kindredly-ui";
 import {
   KMeView,
@@ -315,6 +317,8 @@ export function MeNative({ model }: { model: MeModel }) {
 
   return (
     <SurfaceHost>
+      {/* the planet is the page's cover: the clock sits on its sky, white at night */}
+      {planet && focused ? <StatusBar style={daylight() === "night" ? "light" : "dark"} /> : null}
       <KMeView
         ref={commands.ref}
         theme={theme}
@@ -357,6 +361,7 @@ export function MeNative({ model }: { model: MeModel }) {
         myFace={myFace}
         planet={planet}
         onTrack={act.track}
+        onNotes={act.notes}
       >
         <KIsland name="avatar" style={{ width: AVATAR, height: AVATAR }}>
           {/* stamped (C2), the island is drawn square: Swift scales it to the stamp's inner side

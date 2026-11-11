@@ -195,8 +195,10 @@ public struct KPlanetScreen: View {
             onPick: { letter in show(letter: letter) },
             onTurned: { turned = true }
           )
-          KPlanetBubble(palette: palette, name: content.name, time: content.time, line: content.line, aside: content.aside, probe: probe, live: content.planet.live)
+          // her words are not on this page (owner, 2026-11-11: "星球那里 track log 不要"): the
+          // figures follow the scene
           KPlanetFigures(figures: content.figures, palette: palette)
+            .padding(.top, 12)
           track(width: geo.size.width)
         }
         .padding(.bottom, bottomInset + 20)

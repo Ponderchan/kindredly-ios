@@ -18,6 +18,12 @@ import ExpoUI
  - letters: [{ id, ordinal (1 = the first letter ever: where its stamp sits, for good), stamp, hex
    ("" for none), reads, answered, day }], newest first
  - state (home | out | waiting | back | dayOff), napping, look: KWrenLookRecord
+ - stampsEntry, lettersEntry: { count, a11y, hint } (the cover's two ways in)
+ - me: { mark (he | she | ""), sign (its emoji), signName, signA11y, stats: [{ key (kindreds |
+   notes), count, unit, a11y, hint }], edit } (you, under the cover)
+ - her: { name, day (DAY 12), tag (GROWN, or ""), journeyTitle, stops: [{ id (egg | hatch |
+   fledge | wren), name, state (done | now | later) }], next, a11y } (her badge and her journey)
+ - reportTile: { state (none | progress | ready | done | locked), have, need, tag }, reportChip
  - chip, hint, cta, track, a11y
  - log: { title (PIP · FLIGHT LOG), rows (the run she is on, as her page's slip files it), done
    (how many rows have happened: the lamp is on the last of them), note (a line of hers the rows
@@ -151,6 +157,92 @@ struct KMeStampsTileRecord: Record {
   }
 }
 
+struct KMeCoverEntryRecord: Record {
+  @Field var count: String = ""
+  @Field var a11y: String = ""
+  @Field var hint: String = ""
+
+  var entry: KMeCoverEntry {
+    var e = KMeCoverEntry()
+    e.count = count
+    e.a11y = a11y
+    e.hint = hint
+    return e
+  }
+}
+
+struct KMeJourneyStopRecord: Record {
+  @Field var id: String = ""
+  @Field var name: String = ""
+  @Field var state: String = "later"
+}
+
+struct KMeHerRecord: Record {
+  @Field var name: String = ""
+  @Field var day: String = ""
+  @Field var tag: String = ""
+  @Field var journeyTitle: String = ""
+  @Field var stops: [KMeJourneyStopRecord] = []
+  @Field var next: String = ""
+  @Field var a11y: String = ""
+
+  var her: KMeHerBadge {
+    var h = KMeHerBadge()
+    h.name = name
+    h.day = day
+    h.tag = tag
+    h.journeyTitle = journeyTitle
+    var seen = Set<String>()
+    h.stops = stops.compactMap { s in
+      guard !s.id.isEmpty, seen.insert(s.id).inserted else { return nil }
+      return KMeJourneyStop(id: s.id, name: s.name, state: s.state)
+    }
+    h.next = next
+    h.a11y = a11y
+    return h
+  }
+}
+
+struct KMeSelfRecord: Record {
+  @Field var mark: String = ""
+  @Field var sign: String = ""
+  @Field var signName: String = ""
+  @Field var signA11y: String = ""
+  @Field var stats: [KMeStatRecord] = []
+  @Field var edit: String = ""
+
+  var me: KMeSelf {
+    var m = KMeSelf()
+    m.mark = mark
+    m.sign = sign
+    m.signName = signName
+    m.signA11y = signA11y
+    var seen = Set<String>()
+    m.stats = stats.compactMap { s in
+      guard !s.key.isEmpty, seen.insert(s.key).inserted else { return nil }
+      return s.stat
+    }
+    m.edit = edit
+    return m
+  }
+}
+
+struct KMeReportTileRecord: Record {
+  @Field var state: String = "none"
+  @Field var have: Int = 0
+  @Field var need: Int = 0
+  @Field var tag: String = ""
+
+  var tile: KMeReportTile {
+    var t = KMeReportTile()
+    t.state = state
+    t.have = max(0, have)
+    t.need = max(0, need)
+    t.tag = tag
+    return t
+  }
+}
+
 struct KMeFlightLogRecord: Record {
   @Field var title: String = ""
   @Field var rows: [String] = []
@@ -190,6 +282,12 @@ struct KMePlanetRecord: Record {
   @Field var stamps: KMeStampsTileRecord = KMeStampsTileRecord()
   @Field var auraHint: String = ""
   @Field var auraChip: String = ""
+  @Field var stampsEntry: KMeCoverEntryRecord = KMeCoverEntryRecord()
+  @Field var lettersEntry: KMeCoverEntryRecord = KMeCoverEntryRecord()
+  @Field var me: KMeSelfRecord = KMeSelfRecord()
+  @Field var her: KMeHerRecord = KMeHerRecord()
+  @Field var reportTile: KMeReportTileRecord = KMeReportTileRecord()
+  @Field var reportChip: String = ""
 
   /// nil while the planet is off: Me is then the page of segments
   var planet: KMePlanet? {
@@ -223,6 +321,12 @@ struct KMePlanetRecord: Record {
     p.stamps = stamps.tile
     p.auraHint = auraHint
     p.auraChip = auraChip
+    p.stampsEntry = stampsEntry.entry
+    p.lettersEntry = lettersEntry.entry
+    p.me = me.me
+    p.her = her.her
+    p.reportTile = reportTile.tile
+    p.reportChip = reportChip
     return p
   }
 }

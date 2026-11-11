@@ -241,14 +241,22 @@ export function mePlanetOf(model: MeModel, stamps: PlanetStampsSource, hour?: nu
       dayOff: courier.dayOff,
       a11y: model.view.courierA11y,
       log: model.planet.log,
+      cover: model.planet.cover,
       letters: model.planet.letters,
       shelf: model.planet.shelf,
       stamps,
       stage: courier.stage,
       wilt: !!courier.hunger?.wilt,
     },
-    { t, upper: (s) => s.toLocaleUpperCase(), wren: courier.wren, ago: (at) => agoLabel(at) },
+    { t, upper: (s) => s.toLocaleUpperCase(), wren: courier.wren, ago: (at) => agoLabel(at), notesUnit: notesUnit() },
   );
+}
+
+/** "notes" for under a number: the Notes tab's own name, in small letters where the language
+    writes a common noun so (German keeps its capital). */
+function notesUnit(): string {
+  const name = t("jt.notes");
+  return name === "Notizen" ? name : name.toLocaleLowerCase();
 }
 
 /** The Swift record for a planet view model, the hour's sky and the hatchling's own shape. */
@@ -267,6 +275,12 @@ export function mePlanetData(vm: MePlanetVM, palette: CourierCardModel["palette"
     chip: vm.chip,
     hint: vm.hint,
     log: vm.log,
+    her: vm.her,
+    stampsEntry: vm.stampsEntry,
+    lettersEntry: vm.lettersEntry,
+    me: vm.me,
+    reportTile: vm.reportTile,
+    reportChip: vm.reportChip,
     cta: vm.cta,
     track: vm.track,
     a11y: vm.a11y,
@@ -292,12 +306,11 @@ export function mePlanetData(vm: MePlanetVM, palette: CourierCardModel["palette"
 export function useAuraArtData(art: AuraCardVM["art"] | null, showing: boolean, o: { tile?: boolean } = {}): KAuraArtData | null {
   const on = useSwiftPiece("auraart", showing && !!art);
   const { t: tk, dark } = useTheme();
-  // Me's Aura tile under the courier's planet (o.tile) stands on the theme's surface, as the
-  // tile itself does: the plan follows the theme, and the desk's ground is the surface
+  // Me's Aura tile (o.tile) shows the picture in a panel on the theme's quiet ground, the card's
+  // own slot colour: the same plan and palette as the card
   const plan = on && art ? auraArtPlan(art, AURA_ART_HAS, dark) : null;
   const image = useAssetImageRef(auraPictureModule(plan));
-  const tokens: SlotTokens = o.tile ? { soft2: tk.sf, ink: tk.ink, sub: tk.sub, ind: tk.ind, sf: tk.sf } : tk;
-  return useSameContent(plan && art ? auraArtData(art, plan, image, tokens, dark) : null);
+  return useSameContent(plan && art ? auraArtData(art, plan, image, tk, dark) : null);
 }
 
 /** The bundled file of a plan's picture (null for the desk). */

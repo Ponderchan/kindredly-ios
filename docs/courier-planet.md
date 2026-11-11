@@ -312,6 +312,48 @@ text and the prototype disagree, the prototype wins unless this text says "chang
   `palette.moon`; the planet page too). And he **agreed the three calls above**: one line of
   hers when the rows cannot say it; the First Class card at the foot from day one; no pull-tab
   on this page, and the report row and the foot card stepping aside for a large form.
+- 2026-11-11, late — **THE COVER. Me is laid out as the owner's older product is** ("me tab 的
+  结构就改成和我老产品一模一样的"; settled over five rounds on a prototype he could pull and scroll,
+  `design/courier-planet/cover-prototype`, https://claude.ai/artifact/6sPbM2Xhq8F43Bx6o6bqZM,
+  then "好 可以做了"). Built, behind the same switch:
+  - **the planet is the page's cover** (`Portable/Me/KMeCover.swift`, `KPlanetKind.cover`): the
+    hour's sky and a 50pt planet over the top of the page, the status bar on it. It turns under
+    a finger (only the planet itself takes the finger there); it follows the hour. Two small
+    ways in on its lower left, a picture and a number each: two of your stamps (the album), a
+    red postbox (My letters). Your face on its lower right, half over its edge, with no ring.
+  - **pulled down, the cover stretches and the planet grows; let go past 96pt and the planet
+    page opens** (`KMeScreen.coverBody`: onScrollGeometryChange / onScrollPhaseChange, a light
+    tap of haptics at the line; `app/planet` fades in over it). The planet page no longer
+    carries her words ("星球那里 track log 不要"): scene, figures, slips.
+  - **scrolled up, the cover goes and a bar in the sky's colours takes the top**: your name, the
+    pen, the gear (`KMeCoverBar`).
+  - **under the cover** (`KMeIdentity`): your name; a pill with your mark in the older product's
+    blue (pink for her) and your sign as its emoji; two numbers, kindreds and notes (not pen
+    pals), each centred over its word; Edit (the edit-profile page) and the gear (Settings), as
+    they are today. The letters and kindreds peeks are not on this page.
+  - **her card is her badge** (`KMePlanetCard`): a lanyard slot, her on a mound, her name, YOUR
+    COURIER, DAY 12; **her journey while she grows** (`KMeJourneyStrip`: egg, hatch, fledge,
+    grown, where she is ringed, what the next takes), folded away with a GROWN tag once she is;
+    then the flight log and the shelf as before. It does not change with the hour.
+  - **WRITING AURA and WRITING REPORT** (`KMeWritingTile`): the same build — name, a 16:9
+    picture, a title, a line of state — with a first state each. The Aura's picture is its own
+    ladder, then the named scene; the report is a card to punch until the first one, then a
+    sheet (ready with a lamp, read with a tick, locked in gold). The chips read WRITING AURA
+    and WRITING REPORT, without YOUR (owner: "把 your 去了吧"): the Aura's is the page's own title
+    (`ap.title`), the report's is one new key, `planet.tile.report`, in all nine languages. The
+    Stamps tile is gone (the cover's way in is its door).
+  - the model: `planet-model buildCover / buildHerBadge` (tested), gathered in `useMeModel`
+    (your notes counted, your mark and sign from the account, her day from the growth stats,
+    the report door). One new key (`planet.tile.report`); everything else is copy the app had.
+  Checked on the simulator (iPhone 17 Pro, the real Me tab with the switch forced on through
+  `kindredly:///ui-lab?set=meplanet:swift`, and the dev page): the cover at night, the bar once
+  scrolled, a growing courier's journey strip and a grown one's tag, both tiles' first states,
+  the First Class foot card; Edit opens the edit-profile page and the gear Settings; the stamps
+  picture opens the album and the postbox My letters; a pull past the line opens the planet
+  page, which has no bubble. A screenshot taken right after a tap is one frame behind: look
+  twice before calling a tap dead.
+  Still to check: a day sky and a dark theme in the app, a small screen, the First Class forms
+  on this page, the pull against the planet's own drag by hand; then a phone.
 - Next: the rest of phase 7 on the simulator (the drag's feel, the five states in motion, the
   planet page's pager), then a phone.
 

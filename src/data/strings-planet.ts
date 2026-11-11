@@ -11,6 +11,8 @@ import { strings } from "../lib/i18n";
      planet.hint.spin     on the scene until the planet is first turned (mono, drawn in capitals)
      planet.hint.zoom     beside it on the planet page ("DRAG TO SPIN · PINCH TO ZOOM"): the two
                           are parallel in form and fit one line together
+     planet.tile.report   the report tile's chip on Me, in capitals beside the Aura tile's WRITING AURA
+                          (ap.title): each language's own "writing report" without the "your"
      planet.page.*        the planet page's three figures, a label in capitals under a number in a
                           tile a third of the page wide: what she is out with now · every letter
                           she has carried · the strangers who have had one on their desk
@@ -53,6 +55,7 @@ strings(
     "planet.page.way": "On the way",
     "planet.page.carried": "Carried",
     "planet.page.desks": "On desks",
+    "planet.tile.report": "Writing report",
     // VoiceOver: a look on her shelf, the two tiles under her card, the page's two zoom keys
     "planet.a11y.wear": "Puts it on her",
     "planet.a11y.takeOff": "Takes it off",
@@ -68,6 +71,7 @@ strings(
     "planet.page.way": "En camino",
     "planet.page.carried": "Llevadas",
     "planet.page.desks": "Escritorios",
+    "planet.tile.report": "Informe de escritura",
     "planet.a11y.wear": "Se pone este look",
     "planet.a11y.takeOff": "Se quita este look",
     "planet.a11y.opensAlbum": "Abre tu álbum de sellos",
@@ -82,6 +86,7 @@ strings(
     "planet.page.way": "A caminho",
     "planet.page.carried": "Levadas",
     "planet.page.desks": "Nas mesas",
+    "planet.tile.report": "Relatório de escrita",
     "planet.a11y.wear": "Veste este look nela",
     "planet.a11y.takeOff": "Tira este look dela",
     "planet.a11y.opensAlbum": "Abre seu álbum de selos",
@@ -96,6 +101,7 @@ strings(
     "planet.page.way": "Di jalan",
     "planet.page.carried": "Dibawa",
     "planet.page.desks": "Meja orang",
+    "planet.tile.report": "Laporan menulis",
     "planet.a11y.wear": "Memakaikan ini padanya",
     "planet.a11y.takeOff": "Melepas ini darinya",
     "planet.a11y.opensAlbum": "Membuka album perangkomu",
@@ -110,6 +116,7 @@ strings(
     "planet.page.way": "En route",
     "planet.page.carried": "Portées",
     "planet.page.desks": "Bureaux",
+    "planet.tile.report": "Rapport d'écriture",
     "planet.a11y.wear": "Met cette tenue à ta messagère",
     "planet.a11y.takeOff": "Enlève cette tenue à ta messagère",
     "planet.a11y.opensAlbum": "Ouvre ton album de timbres",
@@ -124,6 +131,7 @@ strings(
     "planet.page.way": "Unterwegs",
     "planet.page.carried": "Getragen",
     "planet.page.desks": "Auf Tischen",
+    "planet.tile.report": "Schreibbericht",
     "planet.a11y.wear": "Zieht es ihr an",
     "planet.a11y.takeOff": "Zieht es ihr wieder aus",
     "planet.a11y.opensAlbum": "Öffnet dein Markenalbum",
@@ -138,6 +146,7 @@ strings(
     "planet.page.way": "In viaggio",
     "planet.page.carried": "Portate",
     "planet.page.desks": "Scrivanie",
+    "planet.tile.report": "Rapporto di scrittura",
     "planet.a11y.wear": "Le fa indossare questo look",
     "planet.a11y.takeOff": "Le toglie questo look",
     "planet.a11y.opensAlbum": "Apre il tuo album di francobolli",
@@ -152,6 +161,7 @@ strings(
     "planet.page.way": "旅の途中",
     "planet.page.carried": "運んだ手紙",
     "planet.page.desks": "届いた机",
+    "planet.tile.report": "文章レポート",
     "planet.a11y.wear": "これを着せます",
     "planet.a11y.takeOff": "これを外します",
     "planet.a11y.opensAlbum": "切手アルバムを開きます",
@@ -166,6 +176,7 @@ strings(
     "planet.page.way": "배달 중",
     "planet.page.carried": "배달한 편지",
     "planet.page.desks": "닿은 책상",
+    "planet.tile.report": "글쓰기 리포트",
     "planet.a11y.wear": "이 스타일을 입혀요",
     "planet.a11y.takeOff": "이 스타일을 벗겨요",
     "planet.a11y.opensAlbum": "내 우표 앨범을 열어요",

@@ -80,7 +80,8 @@ import ExpoUI
  - onMeStamps { action, id }   the Stamps card: make | fullCta | seeAll | album | stamp (id) | ready (id)
  - onMeFirstClass {}           the First Class card
  - onMeFcOpen { form }          a First Class rollout form (invite | seat | report | tab)
- - onMeTrack {}                her card's round button (the planet page), with `planet` on
+ - onMeTrack {}                the cover pulled down and let go (the planet page), with `planet` on
+ - onMeNotes {}                the notes number under the cover
  - onMePlanetTap { what, id }  a tap on her card's planet: wren | letter | stamp (its letter's id)
    With `planet` on, onMeLook's id is a shelf look's ("dress:beanie", "skin:moss"), onMeCourier is
    the bubble's Open / Play, onMeAuraOpen the Aura tile, onMeStamps { action: "album" } the Stamps
@@ -523,6 +524,7 @@ final class KMeViewProps: KScreenProps {
   var onMeFirstClass = EventDispatcher()
   var onMeFcOpen = EventDispatcher()
   var onMeTrack = EventDispatcher()
+  var onMeNotes = EventDispatcher()
   var onMePlanetTap = EventDispatcher()
 
   /// The scroll and segment requests: as long-lived as the view, like `commands`.
@@ -552,6 +554,7 @@ final class KMeViewProps: KScreenProps {
     a.onFirstClass = { [weak self] in self?.onMeFirstClass() }
     a.onFcOpen = { [weak self] form in self?.onMeFcOpen(["form": form]) }
     a.onTrack = { [weak self] in self?.onMeTrack() }
+    a.onNotes = { [weak self] in self?.onMeNotes() }
     a.onPlanetTap = { [weak self] what, id in self?.onMePlanetTap(["what": what, "id": id]) }
     return a
   }()
@@ -627,10 +630,16 @@ struct KMeView: ExpoSwiftUI.View {
       }
     } auraArt: {
       if props.planet.on {
-        // the Aura tile's strip: the picture covering it, on the tile's own ground (the theme's
-        // surface); never the island, which is the card's size
+        // the Aura tile's 16:9 panel: the named scene fills it; the ladder's desk sits in it
+        // whole, at its own shape, on the panel's ground. Never the island (the card's size)
         if props.auraArt.on {
-          KAuraArt(theme: props.kTheme, art: props.auraArt.model, cover: true, ground: props.kTheme.sf)
+          if props.auraArt.model.picture {
+            KAuraArt(theme: props.kTheme, art: props.auraArt.model, cover: true, ground: props.kTheme.soft2)
+          } else {
+            KAuraArt(theme: props.kTheme, art: props.auraArt.model, cover: false, ground: props.kTheme.soft2)
+              .aspectRatio(357.0 / 114.0, contentMode: .fit)
+              .padding(.horizontal, 4)
+          }
         }
       } else if props.auraArt.on {
         KAuraArt(theme: props.kTheme, art: props.auraArt.model)

@@ -364,11 +364,129 @@ export function buildFlightLog(f: FlightLogFacts, where: PlanetWhere, c: PlanetC
   return { title: `${upper(c.name)} · ${t("wren.log")}`, rows, done, note, a11y: noStops([`${c.name}, ${t("wren.log")}`, note, ...rows]) };
 }
 
+/* ── the cover: its two ways in, you under it, her badge, the report's tile ── */
+
+/** One of Me's own numbers, as the page already words it (me-model Stat4aVM). */
+export type CoverStat = { count: string; unit: string; a11y: string; hint: string };
+
+/** Where the writing report stands (lib/report-door ReportDoor); null for no door. */
+export type CoverDoor =
+  | { state: "progress"; have: number; need: number }
+  | { state: "ready"; kind: "first" | "monthly" }
+  | { state: "locked" }
+  | { state: "done" };
+
+export type CoverFacts = {
+  /** your letters and your kindreds, as Me's header words them */
+  letters: CoverStat;
+  kindreds: CoverStat;
+  /** your notes; null until they are read */
+  notes: number | null;
+  /** your mark as the account has it (she | he); null for none */
+  mark: "she" | "he" | null;
+  /** your sign (lib/zodiac), from your birthday; null for none */
+  sign: string | null;
+  /** the days she has carried letters; null until the stats are in */
+  day: number | null;
+  door: CoverDoor | null;
+  /** this month, short, in capitals: NOV */
+  month: string;
+};
+
+/** The twelve signs as their emoji (the owner, 2026-11-11: "星座用 emoji 里的星座"). */
+export const SIGN_EMOJI: Readonly<Record<string, string>> = {
+  aries: "♈️", taurus: "♉️", gemini: "♊️", cancer: "♋️", leo: "♌️", virgo: "♍️",
+  libra: "♎️", scorpio: "♏️", sagittarius: "♐️", capricorn: "♑️", aquarius: "♒️", pisces: "♓️",
+};
+
+/** Her journey's stops, in order; the last is grown. */
+export const JOURNEY_STOPS: readonly PlanetStage[] = ["egg", "hatch", "fledge", "wren"];
+const stageName = (st: PlanetStage, t: TFn): string => t(`wren.name.${st === "wren" ? "grown" : st}`);
+
+export type HerBadgeVM = {
+  name: string;
+  /** DAY 12; "" until known */
+  day: string;
+  /** GROWN once she is; "" while she grows */
+  tag: string;
+  /** PIP'S JOURNEY; "" once she is grown (the journey folds away) */
+  journeyTitle: string;
+  stops: { id: PlanetStage; name: string; state: "done" | "now" | "later" }[];
+  /** the next stop and what it takes; "" for none */
+  next: string;
+  a11y: string;
+};
+
+/** Her badge, and her journey while she is still growing. */
+export function buildHerBadge(name: string, chip: string, stage: PlanetStage, day: number | null, fmt: ShelfFormat): HerBadgeVM {
+  const { t, upper } = fmt;
+  const at = JOURNEY_STOPS.indexOf(stage);
+  const grown = stage === "wren";
+  const dayChip = day == null ? "" : t("me.dayN", { n: day });
+  const stops = JOURNEY_STOPS.map((st, i) => ({ id: st, name: upper(stageName(st, t)), state: (i < at ? "done" : i === at ? "now" : "later") as "done" | "now" | "later" }));
+  const nextStage = grown ? null : JOURNEY_STOPS[at + 1];
+  const next = nextStage ? `${upper(stageName(nextStage, t))} — ${upper(t(`wren.milestone.${nextStage}`))}` : "";
+  return {
+    name,
+    day: dayChip,
+    tag: grown ? upper(stageName("wren", t)) : "",
+    journeyTitle: grown ? "" : t("wren.journey", { wren: upper(name) }),
+    stops: grown ? [] : stops,
+    next,
+    a11y: noStops([name, chip, dayChip, stageName(stage, t), next]),
+  };
+}
+
+export type CoverVM = {
+  stampsEntry: { count: string; a11y: string; hint: string };
+  lettersEntry: { count: string; a11y: string; hint: string };
+  me: { mark: string; sign: string; signName: string; signA11y: string; stats: (CoverStat & { key: string })[]; edit: string };
+  reportTile: { state: "none" | "progress" | "ready" | "done" | "locked"; have: number; need: number; tag: string };
+  reportChip: string;
+};
+
+export type CoverFormat = MePlanetFormat & {
+  /** "notes", as the Notes tab is called, for under a number */
+  notesUnit: string;
+};
+
+/** The cover's two ways in, you under it, and where the report stands. */
+export function buildCover(f: CoverFacts, stamps: StampsTileVM, fmt: CoverFormat): CoverVM {
+  const { t, upper } = fmt;
+  const used = (stamps.caption.match(/\d+/) ?? [""])[0];
+  const signName = f.sign ? t(`zd.${f.sign}`) : "";
+  const markWord = f.mark === "she" ? t("pr.she") : f.mark === "he" ? t("pr.he") : "";
+  const door = f.door;
+  return {
+    stampsEntry: { count: used, a11y: [t("me.seg.stamps"), used].filter(Boolean).join(", "), hint: stamps.hint },
+    lettersEntry: { count: f.letters.count, a11y: f.letters.a11y, hint: f.letters.hint },
+    me: {
+      mark: f.mark ?? "",
+      sign: f.sign ? (SIGN_EMOJI[f.sign] ?? "") : "",
+      signName,
+      signA11y: [markWord, signName].filter(Boolean).join(", "),
+      stats: [
+        { key: "kindreds", ...f.kindreds },
+        { key: "notes", count: f.notes == null ? FIGURE_UNKNOWN : String(f.notes), unit: fmt.notesUnit, a11y: f.notes == null ? fmt.notesUnit : t("jt.notesN", { n: f.notes }), hint: "" },
+      ],
+      edit: t("jd.edit"),
+    },
+    reportTile:
+      !door ? { state: "none", have: 0, need: 0, tag: "" }
+      : door.state === "progress" ? { state: "progress", have: Math.max(0, door.have), need: Math.max(1, door.need), tag: "" }
+      : door.state === "ready" ? { state: "ready", have: 0, need: 0, tag: door.kind === "first" ? "NO. 1" : f.month }
+      : { state: door.state, have: 0, need: 0, tag: f.month },
+    // WRITING REPORT, beside the Aura tile's WRITING AURA (the owner, 2026-11-11: no YOUR on them)
+    reportChip: upper(t("planet.tile.report")),
+  };
+}
+
 export type MePlanetFacts = {
   courier: PlanetCourierWords;
   where: PlanetWhere;
   dayOff: boolean;
   log: FlightLogFacts;
+  cover: CoverFacts;
   /** VoiceOver's sentence for the card (me-model courierA11y) */
   a11y: string;
   letters: PlanetLetterVM[];
@@ -388,6 +506,7 @@ export type MePlanetVM = {
   chip: string;
   hint: string;
   log: FlightLogVM;
+  her: HerBadgeVM;
   cta: string;
   track: string;
   a11y: string;
@@ -396,21 +515,25 @@ export type MePlanetVM = {
   allLooksHint: string;
   stamps: StampsTileVM;
   auraHint: string;
-  /** AURA: the Aura tile's chip */
+  /** the Aura tile's chip: WRITING AURA */
   auraChip: string;
-};
+} & CoverVM;
 
 /** Everything her card and the tiles under it show. */
-export function buildMePlanet(f: MePlanetFacts, fmt: MePlanetFormat): MePlanetVM {
+export function buildMePlanet(f: MePlanetFacts, fmt: CoverFormat): MePlanetVM {
   const { t } = fmt;
   const c = f.courier;
+  const stamps = buildStampsTile(f.stamps, fmt);
+  const chip = c.playing ? c.dayOffTag : c.chip;
   return {
+    ...buildCover(f.cover, stamps, fmt),
+    her: buildHerBadge(c.name, chip, f.stage, f.cover.day, fmt),
     state: planetWrenState(f.where, f.dayOff),
     napping: planetNapping(f.where),
     // on her day off she is drawn without hunger's grey, as the game's cover draws her
     look: { skin: f.shelf.skin, dress: f.shelf.dress, stage: f.stage, wilt: f.wilt && !f.dayOff },
     letters: f.letters,
-    chip: c.playing ? c.dayOffTag : c.chip,
+    chip,
     hint: fmt.upper(t("planet.hint.spin")),
     log: buildFlightLog(f.log, f.where, c, fmt),
     cta: c.cta,
@@ -419,9 +542,9 @@ export function buildMePlanet(f: MePlanetFacts, fmt: MePlanetFormat): MePlanetVM
     shelf: buildShelf(f.shelf, fmt),
     allLooks: t("m4.looks.all"),
     allLooksHint: t("m4.a11y.opensWardrobe", { wren: fmt.wren }),
-    stamps: buildStampsTile(f.stamps, fmt),
+    stamps,
     auraHint: t("planet.a11y.opensAura"),
-    auraChip: fmt.upper(t("me.seg.aura")),
+    auraChip: t("ap.title"),
   };
 }
 

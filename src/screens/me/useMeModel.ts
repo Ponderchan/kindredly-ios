@@ -39,7 +39,8 @@ import "../../data/strings-step5-me";
 import "../../data/strings-me4a";
 import "../../data/strings-planet";
 import { meFormat } from "./me-format";
-import { planetLetters, shelfTap, shelfWeek, type FlightLogFacts, type PlanetLetterVM, type ShelfFacts } from "./planet-model";
+import { planetLetters, shelfTap, shelfWeek, type CoverFacts, type FlightLogFacts, type PlanetLetterVM, type ShelfFacts } from "./planet-model";
+import { zodiacFromDob } from "../../lib/zodiac";
 import { flightLogFacts } from "./planet-log";
 import { useSeason } from "../../lib/season";
 import {
@@ -137,6 +138,8 @@ export type MeActions = {
   peekKindred: (id: string) => void;
   seeAll: () => void;
   openKindreds: () => void;
+  /** the cover's notes number: the Notes tab */
+  notes: () => void;
   /** the empty letters peek's "Write a letter →" */
   write: () => void;
   /** a free look: she wears it (useWrenSkinControl().dress); "fc" for a member: her wardrobe.
@@ -174,7 +177,7 @@ export type MeModel = {
   fc: ReturnType<typeof useFcRollout>;
   /** what the courier's planet is drawn from (screens/me/planet-model): the letters behind the
       stamps, newest first, what the shelf's four are chosen from, and her flight log's facts */
-  planet: { letters: PlanetLetterVM[]; shelf: ShelfFacts; log: FlightLogFacts };
+  planet: { letters: PlanetLetterVM[]; shelf: ShelfFacts; log: FlightLogFacts; cover: CoverFacts };
 };
 
 /* where the planet's taps go: the round button on her card opens the planet page (app/planet) */
@@ -226,6 +229,7 @@ export function useMeModel(): MeModel {
   /* Me 4a: your letters (the peek and its count; null until read) and the report's door */
   const [writing, setWriting] = useState<WritingRow[] | null>(null);
   const [door, setDoor] = useState<ReportDoor | null>(null);
+  const [notesN, setNotesN] = useState<number | null>(null);
   const [doorSerial, setDoorSerial] = useState(0);
   const doorOpened = useRef(false);
   const [seenTodayN, setSeenTodayN] = useState(0);
@@ -264,6 +268,10 @@ export function useMeModel(): MeModel {
       getAvatarPhoto()
         .then((p) => alive && setPhoto(p))
         .catch((e) => console.warn("[me] the avatar photo wasn't read:", e));
+      // how many notes you have, for the number under the cover
+      loadJournal()
+        .then((j) => alive && setNotesN(j.length))
+        .catch((e) => console.warn("[me] your notes weren't counted:", e));
       loadShelf()
         .then(async (s) => {
           const f = await unseen(s);
@@ -531,6 +539,7 @@ export function useMeModel(): MeModel {
       peekKindred: (id) => router.push(ME4A_ROUTES.room(id)),
       seeAll: () => router.push(ME_ROUTES.letters),
       openKindreds: () => router.push(ME_ROUTES.kindreds),
+      notes: () => router.push("/(tabs)/journal"),
       write: () => router.push(ME_ROUTES.compose),
       look: (id) => {
         if (id === "fc") router.push(ME4A_ROUTES.courier);
@@ -575,13 +584,31 @@ export function useMeModel(): MeModel {
      nobody has answered, and whether her own line still has to be said — the Post's letter,
      hunger, her day off: what the log's rows cannot say */
   const postLine = !!fc.view.courierLine;
+  const myMark = profile?.pronoun === "she" || profile?.pronoun === "he" ? (profile.pronoun as "she" | "he") : null;
+  const mySign = zodiacFromDob(typeof profile?.dob === "string" ? (profile.dob as string) : null);
+  const statsDay = statsIn ? stats.day : null;
   const planetAll = useMemo(() => {
     const cards = writing ? buildLetterCards(writing, threads, []) : null;
     const log = flightLogFacts({ threads, where, wren, nameOf: (th) => book.threadName(th), cards, say: postLine || !!hunger || dayOff });
-    return { ...planet, log };
+    // the cover: its two ways in, you under it, where the report stands (planet-model buildCover)
+    const stat = (key: "letters" | "kindreds") => {
+      const s = me4a.profile.stats.find((x) => x.key === key);
+      return { count: s?.count ?? "", unit: s?.unit ?? "", a11y: s?.a11y ?? "", hint: s?.hint ?? "" };
+    };
+    const cover: CoverFacts = {
+      letters: stat("letters"),
+      kindreds: stat("kindreds"),
+      notes: notesN,
+      mark: myMark,
+      sign: mySign,
+      day: statsDay,
+      door: door ? (door.state === "done" ? { state: "done" } : door) : null,
+      month: new Date().toLocaleDateString(localeTag(), { month: "short" }).toLocaleUpperCase(),
+    };
+    return { ...planet, log, cover };
     // lang: the rows are written in the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planet, writing, threads, where, wren, book, postLine, hunger, dayOff, lang]);
+  }, [planet, writing, threads, where, wren, book, postLine, hunger, dayOff, lang, me4a, notesN, myMark, mySign, statsDay, door]);
 
   const avatarId = (profile?.avatarId as string) || null;
   const seed = user?.id || "you";

@@ -17,7 +17,9 @@ import {
   TRANSIT_SLIP,
   buildMePlanet,
   buildPlanetPage,
+  buildCover,
   buildFlightLog,
+  buildHerBadge,
   buildShelf,
   buildStampsTile,
   letterRows,
@@ -138,13 +140,43 @@ eq("a look the shelf doesn't hold this week: nothing", shelfTap("skin:ink", base
 {
   const courier = { chip: "YOUR COURIER", dayOffTag: "DAY OFF", playing: false, name: "Pip", time: "2H AGO", line: "line", aside: "aside", cta: "Open" };
   const stamps = { count: "", cells: [], madeShow: false, madeQuota: "", emptyTitle: "", emptyText: "", made: [] };
-  const mf = { ...fmt, ago: (at: number) => `ago(${at})` };
+  const mf = { ...fmt, ago: (at: number) => `ago(${at})`, notesUnit: "notes" };
   const noLog = { transit: null, out: null, say: false };
-  const facts = { courier, where: "exploring" as const, dayOff: false, a11y: "sentence", log: noLog, letters: [], shelf: base, stamps, stage: "fledge" as const, wilt: true };
+  const stat = (count: string, unit: string) => ({ count, unit, a11y: `${count} ${unit}`, hint: `opens ${unit}` });
+  const cover = { letters: stat("14", "letters"), kindreds: stat("2", "kindreds"), notes: 9, mark: "he" as const, sign: "scorpio", day: 12, door: { state: "progress" as const, have: 4, need: 10 }, month: "NOV" };
+  const facts = { courier, where: "exploring" as const, dayOff: false, a11y: "sentence", log: noLog, cover, letters: [], shelf: base, stamps, stage: "fledge" as const, wilt: true };
   const v = buildMePlanet(facts, mf);
   eq("on the way, hungry: she flies, greyed", [v.state, v.look.wilt, v.look.stage], ["out", true, "fledge"]);
   eq("the card's chip and button are the courier card's", [v.chip, v.cta], ["YOUR COURIER", "Open"]);
   eq("the log is named after her, in capitals", v.log.title, "PIP · wren.log");
+  eq("the tiles' chips: WRITING AURA, WRITING REPORT", [v.auraChip, v.reportChip], ["ap.title", "PLANET.TILE.REPORT"]);
+
+  /* her badge and her journey */
+  eq("growing: her day, no tag, the journey named after her", [v.her.name, v.her.day, v.her.tag, v.her.journeyTitle], ["Pip", "me.dayN(12)", "", "wren.journey(PIP)"]);
+  eq("the four stops: behind her done, hers now, ahead later", v.her.stops.map((x) => `${x.id}:${x.state}`), ["egg:done", "hatch:done", "fledge:now", "wren:later"]);
+  eq("the stops are named in capitals; the last is grown", v.her.stops.map((x) => x.name), ["WREN.NAME.EGG", "WREN.NAME.HATCH", "WREN.NAME.FLEDGE", "WREN.NAME.GROWN"]);
+  eq("the next stop and what it takes", v.her.next, "WREN.NAME.GROWN — WREN.MILESTONE.WREN");
+  const grown = buildHerBadge("Pip", "YOUR COURIER", "wren", 40, fmt);
+  eq("grown: the tag says so and the journey folds away", [grown.tag, grown.journeyTitle, grown.stops.length, grown.next], ["WREN.NAME.GROWN", "", 0, ""]);
+  eq("before the stats are in there is no day", buildHerBadge("Pip", "YOUR COURIER", "hatch", null, fmt).day, "");
+  eq("an egg has everything ahead of it", buildHerBadge("Pip", "c", "egg", 1, fmt).stops.map((x) => x.state), ["now", "later", "later", "later"]);
+  eq("VoiceOver: her name, the chip, the day, her stage, what is next", v.her.a11y, "Pip. YOUR COURIER. me.dayN(12). wren.name.fledge. WREN.NAME.GROWN — WREN.MILESTONE.WREN");
+
+  /* the cover: its two ways in, you under it, the report's tile */
+  eq("the letters way in is the header's own number", v.lettersEntry, { count: "14", a11y: "14 letters", hint: "opens letters" });
+  eq("no stamps counted yet: the stamps way in has no number", v.stampsEntry.count, "");
+  const tile = { label: "STAMPS", title: "", caption: "7 USED", fan: [], make: false, a11y: "", hint: "opens the album" };
+  const c7 = buildCover(cover, tile, mf);
+  eq("the stamps way in takes its number from the tile's count", [c7.stampsEntry.count, c7.stampsEntry.a11y, c7.stampsEntry.hint], ["7", "me.seg.stamps, 7", "opens the album"]);
+  eq("you: his mark, the sign as its emoji and its name", [v.me.mark, v.me.sign, v.me.signName, v.me.signA11y], ["he", "♏️", "zd.scorpio", "pr.he, zd.scorpio"]);
+  eq("two numbers: kindreds as the header words them, then notes", v.me.stats.map((x) => `${x.key}:${x.count}:${x.unit}`), ["kindreds:2:kindreds", "notes:9:notes"]);
+  eq("notes not counted yet: a dash, never a zero", buildCover({ ...cover, notes: null }, tile, mf).me.stats[1].count, "–");
+  eq("no mark and no birthday: nothing to show", [buildCover({ ...cover, mark: null, sign: null }, tile, mf).me.mark, buildCover({ ...cover, mark: null, sign: null }, tile, mf).me.sign], ["", ""]);
+  eq("the report on its way: how many pieces of how many", v.reportTile, { state: "progress", have: 4, need: 10, tag: "" });
+  eq("the first report: NO. 1", buildCover({ ...cover, door: { state: "ready", kind: "first" } }, tile, mf).reportTile, { state: "ready", have: 0, need: 0, tag: "NO. 1" });
+  eq("a month's report: the month", buildCover({ ...cover, door: { state: "ready", kind: "monthly" } }, tile, mf).reportTile.tag, "NOV");
+  eq("read, or locked: the month, dimmed by its state", [buildCover({ ...cover, door: { state: "done" } }, tile, mf).reportTile.state, buildCover({ ...cover, door: { state: "locked" } }, tile, mf).reportTile.state], ["done", "locked"]);
+  eq("no door: no tile to draw", buildCover({ ...cover, door: null }, tile, mf).reportTile.state, "none");
 
   /* her flight log */
   const slip = ["left", "door", "waiting"];
@@ -163,7 +195,6 @@ eq("a look the shelf doesn't hold this week: nothing", shelfTap("skin:ink", base
   eq("her own line only when it has to be said", [log("home", {}).note, log("home", { say: true }).note], ["", "line"]);
   eq("VoiceOver: her name, the log, her line, the rows", log("exploring", { out: { at: 7, reads: 3 }, say: true }).a11y, "Pip, wren.log. line. wren.slip.left(AGO(7)). LA.OUT.READSN(3). wren.slip.waiting");
   eq("the hint is drawn in capitals; Track is the courier page's word", [v.hint, v.track], ["PLANET.HINT.SPIN", "wren.trackShort"]);
-  eq("the Aura tile's chip is the segment's name in capitals", v.auraChip, "ME.SEG.AURA");
   const off = buildMePlanet({ ...facts, dayOff: true, courier: { ...courier, playing: true, time: "DAY OFF", cta: "Play" } }, mf);
   eq("her day off: the chip says so, she isn't greyed, the button plays", [off.state, off.chip, off.look.wilt, off.cta], ["dayOff", "DAY OFF", false, "Play"]);
 }

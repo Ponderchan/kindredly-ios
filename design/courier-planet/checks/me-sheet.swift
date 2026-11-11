@@ -4,8 +4,9 @@ import UIKit
 @testable import KPortable
 #endif
 
-/* Her card on Me (the planet, her flight log, her looks), the tiles under it, and the whole Me
-   page with the planet.
+/* Me with the planet as its cover: her card (her badge, her journey, her flight log, her looks),
+   the two tiles about your writing in their states, and the whole page — at rest, pulled, at
+   night.
    design/courier-planet/checks/render-fast.sh me-sheet.swift out.png   (or render.sh) */
 
 func palette(_ name: String) -> KCourierPalette {
@@ -60,6 +61,11 @@ struct Case {
   var done = 0
   var note = ""
   var cta = "Open"
+  /// she is grown (the journey folds away); else she is a fledgling
+  var grown = false
+  /// the Aura tile: lines | pencil | sketch | named;  the report: none | progress | ready | done | locked
+  var auraAt = "named"
+  var report = "ready"
   var n = 12
 }
 
@@ -78,10 +84,42 @@ func planet(_ c: Case) -> KMePlanet {
   p.log.done = c.done
   p.log.note = c.note
   p.cta = c.cta
+  p.her.name = "Pip"
+  p.her.day = "DAY 12"
+  if c.grown {
+    p.her.tag = "GROWN"
+  } else {
+    p.her.journeyTitle = "PIP'S JOURNEY"
+    p.her.stops = [
+      KMeJourneyStop(id: "egg", name: "EGG", state: "done"),
+      KMeJourneyStop(id: "hatch", name: "HATCH", state: "done"),
+      KMeJourneyStop(id: "fledge", name: "FLEDGE", state: "now"),
+      KMeJourneyStop(id: "wren", name: "GROWN", state: "later"),
+    ]
+    p.her.next = "GROWN — FIRST KINDRED"
+    var young = who
+    young.look.stage = .fledge
+    p.planet.wren = young
+  }
+  p.stampsEntry.count = "7"
+  p.lettersEntry.count = "14"
+  p.me.mark = c.pal == "evening" ? "she" : "he"
+  p.me.sign = "♏️"
+  p.me.signName = "Scorpio"
+  p.me.stats = [
+    KMeStat(key: "kindreds", count: "2", unit: "kindreds", a11yLabel: "", hint: ""),
+    KMeStat(key: "notes", count: "9", unit: "notes", a11yLabel: "", hint: ""),
+  ]
+  p.me.edit = "Edit"
+  p.reportTile.state = c.report
+  p.reportTile.have = 4
+  p.reportTile.need = 10
+  p.reportTile.tag = c.report == "ready" ? "NO. 1" : "NOV"
+  p.reportChip = "WRITING REPORT"
   p.track = "Track"
   p.shelf = shelf(worn: c.worn, member: c.member, kindred: c.kindred, skin: c.look.skin, dress: c.look.accessory)
   p.allLooks = "All looks →"
-  p.auraChip = "AURA"
+  p.auraChip = "WRITING AURA"
   p.stamps.label = "STAMPS"
   p.stamps.title = "Snap a moment."
   p.stamps.caption = "7 USED"
@@ -98,78 +136,125 @@ let OUT_ROWS = ["YOUR LETTER LEFT — 2H AGO", "ON 3 STRANGERS' DESKS", "WAITING
 let DOOR_ROWS = ["YOUR LETTER LEFT — 5H AGO", "AT PAPER LANTERN'S DOOR", "WAITING FOR AN ANSWER"]
 let BACK_ROWS = ["PAPER LANTERN WROTE BACK — 5M AGO", "PIP CARRIED IT HOME", "IT'S WAITING FOR YOU"]
 
-let CASES: [Case] = [
-  Case(label: "home · asleep · nothing worn · free reader, no kindred"),
-  Case(label: "on the way · beanie worn", state: .out, look: KWrenLook(skin: .sticker, accessory: .beanie), worn: "dress:beanie", rows: OUT_ROWS, done: 2),
-  Case(label: "waiting at their door · evening · moss", pal: "evening", state: .waiting, look: KWrenLook(skin: .moss), worn: "skin:moss", kindred: true, rows: DOOR_ROWS, done: 2),
-  Case(label: "back with a reply · night · member · peach", pal: "night", state: .back, look: KWrenLook(skin: .peach), worn: "skin:peach", member: true, kindred: true, rows: BACK_ROWS, done: 3),
-  Case(label: "day off · morning · a line of hers", pal: "morning", state: .dayOff, chip: "DAY OFF", note: "Day off. I'm doing laps between the pillars.", cta: "Play"),
-]
 
-func aura() -> KMeAura {
+func aura(_ at: String) -> KMeAura {
   var a = KMeAura()
-  a.label = "YOUR WRITING AURA"
-  a.title = "The Quiet Observer"
-  a.from = "FROM YOUR 14 LETTERS"
+  a.label = "WRITING AURA"
+  switch at {
+  case "lines":
+    a.title = "What your writing says about you"
+    a.caption = "0 of 3 letters"
+    a.meter.total = 3
+    a.meter.filled = 0
+  case "pencil":
+    a.title = "What your writing says about you"
+    a.caption = "4 of 5 letters"
+    a.meter.total = 5
+    a.meter.filled = 4
+  case "sketch":
+    a.title = "What your writing says about you"
+    a.caption = "2 of 3 labels held"
+    a.meter.total = 3
+    a.meter.filled = 2
+  default:
+    a.title = "The Quiet Observer"
+    a.from = "FROM 14 LETTERS"
+    a.share = true
+  }
   return a
 }
 
-func report() -> KMeReport {
+func report(_ state: String) -> KMeReport {
   var r = KMeReport()
-  r.show = true
-  r.title = "Your first writing report"
-  r.sub = "Ready to read"
-  r.enabled = true
+  r.show = state != "none"
+  r.enabled = state != "progress"
+  switch state {
+  case "progress":
+    r.title = "Your writing report"
+    r.sub = "The first one comes at 10 pieces · 4 so far"
+  case "done":
+    r.title = "This month's report is read"
+    r.sub = "The next one comes in December"
+  case "locked":
+    r.title = "A monthly writing report"
+    r.sub = "One every month with First Class"
+    r.locked = true
+  default:
+    r.title = "Your first writing report"
+    r.sub = "Ready to read"
+  }
   return r
 }
 
-func art() -> some View {
+let SCENE_FILE = "/Users/redbeardlord/Desktop/claude-projects/kindredly-ios/assets/aura-scenes/01-quiet-observer.png"
+
+/// the Aura tile's picture as the adapter lays it in the panel: the named scene filling it, or
+/// the ladder's desk whole, at its own shape
+@MainActor func art(_ at: String) -> some View {
   var model = KAuraArtModel()
-  model.desk.fidelity = .sketch
-  model.desk.ground = .white
-  model.desk.stroke = Color(hex: "#1E1B35")
-  model.desk.sun = true
-  model.desk.sunStroke = Color(hex: "#1E1B35")
-  return KAuraArt(theme: .classic, art: model, cover: true, ground: .white)
+  model.desk.ground = KTheme.classic.soft2
+  switch at {
+  case "lines":
+    model.desk.fidelity = .lines
+  case "pencil":
+    model.desk.fidelity = .pencil
+    model.desk.stroke = Color(hex: "#8A86A3")
+  default:
+    model.desk.fidelity = .sketch
+    model.desk.stroke = Color(hex: "#1E1B35")
+    model.desk.window = .white
+    model.desk.head = .white
+    model.desk.body = .white
+    model.desk.page = .white
+    model.desk.sun = true
+    model.desk.sunStroke = Color(hex: "#1E1B35")
+  }
+  return ZStack {
+    if at == "named", let scene = UIImage(contentsOfFile: SCENE_FILE) {
+      Image(uiImage: scene).resizable().aspectRatio(contentMode: .fill)
+    } else {
+      KAuraArt(theme: .classic, art: model, cover: false, ground: KTheme.classic.soft2)
+        .aspectRatio(357.0 / 114.0, contentMode: .fit)
+        .padding(.horizontal, 4)
+    }
+  }
 }
 
 @MainActor func cardCell(_ c: Case) -> some View {
-  VStack(alignment: .leading, spacing: 4) {
+  VStack(alignment: .leading, spacing: 8) {
     KMePlanetCard(card: planet(c), actions: KMePlanetActions())
-      .frame(width: 358)
+      .frame(width: 370)
     Text(c.label).font(.system(size: 10.5, weight: .semibold, design: .monospaced)).foregroundColor(Color(hex: "#55506E"))
   }
 }
 
-@MainActor func tiles(_ c: Case) -> some View {
-  VStack(spacing: 12) {
-    HStack(alignment: .top, spacing: 12) {
-      KMeAuraTile(aura: aura(), chip: "AURA", hint: "", onTap: {}) { art() }
-      KMeStampsTile(tile: planet(c).stamps) {}
+@MainActor func tiles(_ auraAt: String, _ reportAt: String) -> some View {
+  var c = Case(label: "")
+  c.report = reportAt
+  return VStack(alignment: .leading, spacing: 8) {
+    HStack(alignment: .top, spacing: 14) {
+      KMeAuraTile(aura: aura(auraAt), chip: "WRITING AURA", hint: "", onTap: {}) { art(auraAt) }
+      KMeReportTileView(report: report(reportAt), tile: planet(c).reportTile, chip: "WRITING REPORT") {}
     }
-    KMeReportRow(report: report()) {}
+    .fixedSize(horizontal: false, vertical: true)
+    .frame(width: 370)
+    Text("aura \(auraAt) · report \(reportAt)").font(.system(size: 10.5, weight: .semibold, design: .monospaced)).foregroundColor(Color(hex: "#55506E"))
   }
-  .frame(width: 358)
 }
 
 func meContent(_ c: Case) -> KMeContent {
   var m = KMeContent()
   m.settingsLabel = "Settings"
-  m.segments = ["Courier", "Aura", "Stamps"]
   m.profile.name = "Sunday Kite"
-  m.profile.joined = "joined Jul 27"
-  m.profile.stats = [
-    KMeStat(key: "letters", count: "14", unit: "letters", a11yLabel: "14 letters", hint: ""),
-    KMeStat(key: "kindreds", count: "2", unit: "kindreds", a11yLabel: "2 kindreds", hint: ""),
-  ]
-  m.aura = aura()
-  m.report = report()
+  m.profile.editLabel = "Edit profile"
+  m.aura = aura(c.auraAt)
+  m.report = report(c.report)
   m.firstClass.eyebrow = "FIRST CLASS"
-  m.firstClass.headline = "Give your letters a first-class seat."
-  m.firstClass.rows = ["Every look and colour for Pip", "Your writing report, every month", "Unlimited photo stamps"]
+  m.firstClass.headline = "More room for your people."
+  m.firstClass.rows = ["Rooms that never close", "Pip's full wardrobe", "Voice letters"]
   m.firstClass.cta = "See First Class →"
   m.firstClass.stampLabel = "1ST"
-  // with the planet her stamp is drawn by Swift: curious, grown, in what she wears
+  m.firstClass.member = c.member
   var onStamp = KWrenLook(skin: c.look.skin, stage: .wren, mood: .curious, accessory: c.look.accessory)
   onStamp.letter = false
   m.firstClass.wren = onStamp
@@ -177,31 +262,24 @@ func meContent(_ c: Case) -> KMeContent {
   return m
 }
 
-/// The Me page as KMeScreen lays it out: the status strip, the sticky header, the page under it.
-/// Composed by hand because ImageRenderer draws nothing inside a ScrollView; `scrolled` is how far
-/// the page has been pushed up (the header collapses over the first 40).
-@MainActor func page(_ c: Case, scrolled: CGFloat = 0, fc: String = "none") -> some View {
+/// The page as KMeScreen lays its cover out: the cover (taller by `pull`), you under it, the
+/// page. Composed by hand because ImageRenderer draws nothing inside a ScrollView.
+@MainActor func page(_ c: Case, pull: CGFloat = 0, fc: String = "none") -> some View {
   var content = meContent(c)
   content.fc.form = fc
   content.fc.post = "THE POST"
-  let chrome = KScrollModel(offsetCap: 48, quantum: 0.5)
-  chrome.update(offset: scrolled, distanceToBottom: 400, endOffset: 600)
+  let p = content.planet!
+  let top: CGFloat = 54
   return VStack(spacing: 0) {
-    Color.clear.frame(height: 54)
-    KMeHeader(theme: .classic, content: content, chrome: chrome, selection: .constant(0), actions: KMeActions(), onMetrics: { _ in }) {
-      Circle().fill(Color(hex: "#CFE3F5"))
-    }
-    .zIndex(1)
-    Color.clear
-      .overlay(alignment: .top) {
-        KMePlanetPage(content: content, planet: content.planet!, actions: KMeActions()) { art() }
-          .padding(.horizontal, 16)
-          .padding(.top, 12)
-          .offset(y: -scrolled)
-      }
-      .clipped()
+    KMeCover(planet: p, topInset: top, pull: pull, actions: KMePlanetActions())
+      .frame(height: top + KMeCoverMetrics.body + pull)
+    KMeIdentity(theme: .classic, profile: content.profile, me: p.me, settingsLabel: content.settingsLabel, actions: KMeActions(), avatar: Circle().fill(Color(hex: "#CFE3F5")))
+    KMePlanetPage(content: content, planet: p, theme: .classic, actions: KMeActions()) { art(c.auraAt) }
+      .padding(.horizontal, 16)
+      .fixedSize(horizontal: false, vertical: true)
+    Spacer(minLength: 0)
   }
-  .frame(width: 402, height: 874)
+  .frame(width: 402, height: 874, alignment: .top)
   .background(Color.white)
   .clipShape(RoundedRectangle(cornerRadius: 36))
   .overlay(RoundedRectangle(cornerRadius: 36).stroke(Color(hex: "#E6E4EC"), lineWidth: 1))
@@ -209,27 +287,28 @@ func meContent(_ c: Case) -> KMeContent {
 
 struct Sheet: View {
   var body: some View {
-    VStack(alignment: .leading, spacing: 26) {
-      Text("HER CARD ON ME · the tiles · the page (Classic)").font(.system(size: 13, weight: .bold, design: .monospaced)).foregroundColor(Color(hex: "#1E1B35"))
+    VStack(alignment: .leading, spacing: 30) {
       HStack(alignment: .top, spacing: 22) {
-        ForEach(0..<3, id: \.self) { i in cardCell(CASES[i]) }
+        cardCell(Case(label: "growing · on the way", state: .out, rows: OUT_ROWS, done: 2))
+        cardCell(Case(label: "grown · back with a reply · peach worn", pal: "night", state: .back, look: KWrenLook(skin: .peach), worn: "skin:peach", member: true, kindred: true, rows: BACK_ROWS, done: 3, grown: true))
+        cardCell(Case(label: "day off · a line of hers", pal: "morning", state: .dayOff, chip: "DAY OFF", note: "Day off. I'm doing laps between the pillars.", cta: "Play", grown: true))
       }
       HStack(alignment: .top, spacing: 22) {
-        cardCell(CASES[3])
-        cardCell(CASES[4])
-        VStack(alignment: .leading, spacing: 4) {
-          tiles(CASES[0])
-          Text("under the card: morning peach · low blue · calm green, each named on a chip").font(.system(size: 10.5, weight: .semibold, design: .monospaced)).foregroundColor(Color(hex: "#55506E"))
-        }
+        tiles("lines", "progress")
+        tiles("sketch", "ready")
+        tiles("named", "done")
       }
       HStack(alignment: .top, spacing: 22) {
-        page(CASES[1])
-        page(CASES[1], scrolled: 260)
-        page(CASES[3], fc: "invite")
+        tiles("pencil", "locked")
+        tiles("named", "none")
       }
-      Text("the page at rest · pushed up 260 (the header stuck and collapsed) · night, with the Post's letter on the card").font(.system(size: 10.5, weight: .semibold, design: .monospaced)).foregroundColor(Color(hex: "#55506E"))
+      HStack(alignment: .top, spacing: 22) {
+        page(Case(label: "", state: .out, rows: OUT_ROWS, done: 2, auraAt: "pencil", report: "progress"))
+        page(Case(label: "", state: .out, rows: OUT_ROWS, done: 2), pull: 96)
+        page(Case(label: "", pal: "night", state: .back, look: KWrenLook(skin: .peach), worn: "skin:peach", rows: BACK_ROWS, done: 3, grown: true), fc: "invite")
+      }
     }
-    .padding(28)
+    .padding(30)
     .background(Color(hex: "#F6F5F9"))
   }
 }

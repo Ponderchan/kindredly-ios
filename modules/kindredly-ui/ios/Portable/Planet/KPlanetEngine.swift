@@ -47,6 +47,9 @@ public struct KPlanetLetter: Identifiable, Equatable, Sendable {
 public enum KPlanetKind: Sendable {
   case card
   case page
+  /// Me's cover (the owner's cover idea, 2026-11-11): the card's planet, but its size is the
+  /// scene's height all the way up to the page's, so a pull on the cover grows it
+  case cover
 }
 
 public struct KPlanetContent: Equatable, Sendable {
@@ -80,6 +83,9 @@ struct KPlanetLayout: Equatable {
     switch kind {
     case .card:
       let r = min(66, size.height * 0.33)
+      return KPlanetLayout(size: size, radius: r, centre: CGPoint(x: size.width / 2, y: size.height * 0.64))
+    case .cover:
+      let r = min(100, size.height * 0.33)
       return KPlanetLayout(size: size, radius: r, centre: CGPoint(x: size.width / 2, y: size.height * 0.64))
     case .page:
       let base = min(100, size.height * 0.27)

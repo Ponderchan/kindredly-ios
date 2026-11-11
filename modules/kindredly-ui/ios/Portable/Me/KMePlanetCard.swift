@@ -1,31 +1,30 @@
 import SwiftUI
 
-/* HER CARD ON ME — the planet, her flight log, her looks (docs/courier-planet.md).
+/* HER CARD ON ME, AND THE TWO TILES ABOUT YOUR WRITING (docs/courier-planet.md).
    ─────────────────────────────────────────────────────────────────────────────
-   One white card that stands a little off the page (a hairline and a soft shadow), top to bottom:
+   Since the cover (the owner's idea, 2026-11-11: Me laid out as his older product is — the
+   planet is the page's cover, KMeCover.swift) her card no longer carries the planet. It is
+   her own page in small, and it does not change with the hour:
 
-   1  the scene (200): the hour's sky and a small whole planet (KPlanetView).
-      On it, the chip (YOUR COURIER, or DAY OFF), a hint until the planet is
-      first turned, and a small round button that opens the planet page. The
-      white body under it has a small tail that points up at her, wherever she is;
-   2  her flight log: its own mark (KLineGlyph.flightLog), PIP · FLIGHT LOG and
-      the one button (Open, or Play on her day off); then the run she is on as
-      her page's slip files it, a row to a line, on a thin spine: an ink dot for
-      what has happened, a ring for what hasn't, and a lamp that breathes on the
-      row she is at. Her two sentences are gone (owner, 2026-11-11: "有 flight log
-      那些 … 这些就不用了吧"); one line of hers stays only when the log cannot say
+   1  her badge: a slot a lanyard would go through, her standing on a small mound, her name,
+      YOUR COURIER, DAY 12 (and GROWN once she is);
+   2  her journey, while she is still growing: egg, hatch, fledge, grown — the stop she is at
+      ringed in her green, the ones ahead faint — and what the next one takes;
+   3  her flight log: its own mark (KLineGlyph.flightLog), PIP · FLIGHT LOG and the one button
+      (Open: her page; Play on her day off); the run she is on, a row to a line on a thin spine,
+      with a lamp that breathes on the row she is at. One line of hers when the rows cannot say
       it (the Post's letter, hunger, her day off): `log.note`;
-   3  the shelf, under a hairline: four looks on the theme's quiet tiles, a name
-      under each. Worn: the card's own green ring and a tick. First Class: gold
-      dashes and a lock. "All looks →".
+   4  the shelf, under a hairline: four looks on the theme's quiet tiles. "All looks →".
 
-   Under the card on the Me tab: the Aura and Stamps tiles and the report row,
-   white like the card and lifted the same way, their names on ink chips. No
-   colour of their own (the owner tried each tile in a colour, then the hour's
-   tint, then neutral grey, and chose "纯白底 立体一点 不要配色", the soft shadow):
-   only the sky, the stamps and First Class's gold are coloured on this page.
+   Under it, WRITING AURA and WRITING REPORT, built alike (KMeWritingTile): the name on an ink
+   chip, a picture in a 16:9 panel, a title, a line of state. The Aura's picture is its own
+   ladder (waiting lines, pencil, ink, then the named scene); the report is a card to punch
+   until the first one, then a sheet (ready, read, locked).
 
-   All of it SwiftUI: the birds in the shelf are KWrenBird, not snapshots. */
+   Every block is the theme's surface, lifted off the page by the same soft shadow (KSoftLift);
+   only the cover's sky, the stamps, her and First Class's gold are coloured.
+
+   All of it SwiftUI: every bird is KWrenBird, not a snapshot. */
 
 // MARK: - What it shows
 
@@ -75,8 +74,87 @@ public struct KMeFlightLog: Equatable, Sendable {
   public init() {}
 }
 
+/// One of the cover's two ways in: a small picture and a number.
+public struct KMeCoverEntry: Equatable, Sendable {
+  /// "7"; "" while unknown
+  public var count = ""
+  public var a11y = ""
+  public var hint = ""
+
+  public init() {}
+}
+
+/// A stop on her journey.
+public struct KMeJourneyStop: Identifiable, Equatable, Sendable {
+  /// egg | hatch | fledge | wren
+  public var id: String
+  /// EGG, HATCH, …
+  public var name: String
+  /// done | now | later
+  public var state: String
+
+  public init(id: String, name: String, state: String) {
+    self.id = id
+    self.name = name
+    self.state = state
+  }
+}
+
+/// Her badge and her journey.
+public struct KMeHerBadge: Equatable, Sendable {
+  public var name = ""
+  /// DAY 12; "" until the count is in
+  public var day = ""
+  /// GROWN, once she is; "" while she grows
+  public var tag = ""
+  /// PIP'S JOURNEY; "" (or no stops) folds the journey away
+  public var journeyTitle = ""
+  public var stops: [KMeJourneyStop] = []
+  /// the next stop and what it takes: "GROWN — FIRST KINDRED"; "" for none
+  public var next = ""
+  public var a11y = ""
+
+  public init() {}
+}
+
+/// You, under the cover.
+public struct KMeSelf: Equatable, Sendable {
+  /// he | she | "" (no mark)
+  public var mark = ""
+  /// the sign as its emoji; "" for none
+  public var sign = ""
+  /// Scorpio
+  public var signName = ""
+  public var signA11y = ""
+  /// kindreds, notes
+  public var stats: [KMeStat] = []
+  /// Edit
+  public var edit = ""
+
+  public init() {}
+}
+
+/// Where the writing report stands, for its tile's picture.
+public struct KMeReportTile: Equatable, Sendable {
+  /// none | progress | ready | done | locked
+  public var state = "none"
+  public var have = 0
+  public var need = 0
+  /// what the sheet's corner says: NO. 1, or NOV
+  public var tag = ""
+
+  public init() {}
+}
+
 public struct KMePlanet: Equatable, Sendable {
   public var planet = KPlanetContent()
+  public var stampsEntry = KMeCoverEntry()
+  public var lettersEntry = KMeCoverEntry()
+  public var me = KMeSelf()
+  public var her = KMeHerBadge()
+  public var reportTile = KMeReportTile()
+  /// the report tile's chip: YOUR WRITING REPORT
+  public var reportChip = ""
   /// YOUR COURIER, or DAY OFF
   public var chip = ""
   /// DRAG TO SPIN
@@ -129,6 +207,9 @@ public final class KMePlanetActions {
   public var onAllLooks: () -> Void = {}
   /// a tap on the planet landed on something
   public var onTap: (KPlanetTap) -> Void = { _ in }
+  /// the cover's two ways in
+  public var onStamps: () -> Void = {}
+  public var onLetters: () -> Void = {}
 
   public init() {}
 }
@@ -205,11 +286,10 @@ struct KMeTileChip: View {
 }
 
 enum KMePlanetMetrics {
-  static let scene: CGFloat = 200
   static let shelf: CGFloat = 76
   static let corner: CGFloat = 26
-  /// the body's tail under the scene
-  static let tail = CGSize(width: 18, height: 8)
+  /// her own green: the chip's words, the ring round where she is on her journey
+  static let green = Color(hex: "#1F5C33")
   static let lampGold = KPlanetBubble.lampGold
   static let tick = Color(hex: "#2E7D4F")
   static let chipPaper = Color(hex: "#FFFDF6")
@@ -222,9 +302,6 @@ public struct KMePlanetCard: View {
   private let actions: KMePlanetActions
   private let theme: KTheme
 
-  @State private var probe = KPlanetProbe()
-  @State private var turned = false
-
   public init(card: KMePlanet, actions: KMePlanetActions, theme: KTheme = .classic) {
     self.card = card
     self.actions = actions
@@ -232,106 +309,132 @@ public struct KMePlanetCard: View {
   }
 
   public var body: some View {
-    VStack(spacing: 0) {
-      scene
-        .overlay(alignment: .bottom) {
-          KMeCardTail(probe: probe, live: card.planet.live, fill: theme.sf)
-        }
-      VStack(alignment: .leading, spacing: 0) {
-        KMeFlightLogBlock(log: card.log, cta: card.cta, palette: card.planet.palette, theme: theme, live: card.planet.live) {
-          actions.onOpen()
-        }
-        Rectangle().fill(theme.line).frame(height: 1)
+    VStack(alignment: .leading, spacing: 0) {
+      Capsule().fill(theme.soft2).frame(width: 42, height: 8)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 11)
+        .accessibilityHidden(true)
+      badge
+        .padding(.top, 4)
+      if !card.her.journeyTitle.isEmpty, !card.her.stops.isEmpty {
+        KMeJourneyStrip(her: card.her, skin: look.skin, theme: theme)
           .padding(.top, 12)
-          .padding(.bottom, 12)
-        KMeShelf(card: card, actions: actions, theme: theme)
-          .frame(minHeight: KMePlanetMetrics.shelf, alignment: .top)
       }
-      .padding(.horizontal, 16)
-      .padding(.top, 8)
-      .padding(.bottom, 12)
+      KMeFlightLogBlock(log: card.log, cta: card.cta, palette: card.planet.palette, theme: theme, live: card.planet.live) {
+        actions.onOpen()
+      }
+      .padding(.top, 6)
+      Rectangle().fill(theme.line).frame(height: 1)
+        .padding(.top, 12)
+        .padding(.bottom, 12)
+      KMeShelf(card: card, actions: actions, theme: theme)
+        .frame(minHeight: KMePlanetMetrics.shelf, alignment: .top)
     }
+    .padding(.horizontal, 16)
+    .padding(.bottom, 12)
     .background(theme.sf)
     .clipShape(RoundedRectangle(cornerRadius: KMePlanetMetrics.corner, style: .continuous))
     .kSoftLift(theme, radius: KMePlanetMetrics.corner)
     .dynamicTypeSize(...DynamicTypeSize.xxLarge)
   }
 
-  // ── 1: the scene ──
+  private var look: KWrenLook { card.planet.wren?.look ?? KWrenLook() }
 
-  private var scene: some View {
-    let palette = card.planet.palette
-    return ZStack(alignment: .topLeading) {
-      KPlanetView(kind: .card, content: card.planet, probe: probe, onTap: { what in actions.onTap(what) }, onTurned: { turned = true })
-      // the scene is a picture to VoiceOver: one sentence (who, when, what she says, what Open does)
-      Color.clear
-        .allowsHitTesting(false)
-        .accessibilityElement()
-        .accessibilityLabel(card.a11y)
-        .accessibilityAddTraits(.isImage)
-      Text(card.chip)
-        .kText(.mono(11, .bold, tracking: 0.16))
-        .foregroundStyle(palette.chipText)
-        .lineLimit(1)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(RoundedRectangle(cornerRadius: 7, style: .circular).fill(palette.chip))
-        .offset(x: 12, y: 12)
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-      if !card.hint.isEmpty {
-        Text(card.hint)
-          .kText(.mono(9.5, .semibold, tracking: 0.14))
-          .foregroundStyle(palette.ink)
-          .opacity(turned ? 0 : 0.6)
-          .animation(.easeOut(duration: 0.4), value: turned)
-          .offset(x: 14, y: 44)
-          .allowsHitTesting(false)
-          .accessibilityHidden(true)
-      }
-      SwiftUI.Button(action: { actions.onTrack() }) {
-        ZStack {
-          Circle().fill(Color.white.opacity(0.72))
-          KLineIcon(.globe, size: 18, lineWidth: 1.9, color: KBrand.inkOnBrand)
+  // ── 1: her badge ── (a tap is Open: her page)
+  private var badge: some View {
+    SwiftUI.Button(action: { actions.onOpen() }) {
+      HStack(alignment: .center, spacing: 12) {
+        ZStack(alignment: .bottom) {
+          Ellipse().fill(theme.soft2).frame(width: 100, height: 26)
+          KWrenBird(look, size: 92).offset(y: -9)
         }
-        .frame(width: 34, height: 34)
-        .padding(5)
-        .contentShape(Rectangle())
+        .frame(width: 108, height: 98)
+        VStack(alignment: .leading, spacing: 0) {
+          Text(card.her.name)
+            .kText(.system(28, .bold))
+            .foregroundStyle(theme.ink)
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+          Text(card.chip)
+            .kText(.mono(10, .bold, tracking: 0.16))
+            .foregroundStyle(theme.isDark ? theme.sub : KMePlanetMetrics.green)
+            .lineLimit(1)
+            .padding(.top, 4)
+          HStack(spacing: 6) {
+            if !card.her.day.isEmpty { tag(card.her.day) }
+            if !card.her.tag.isEmpty { tag(card.her.tag) }
+          }
+          .padding(.top, 9)
+        }
+        Spacer(minLength: 0)
       }
-      .buttonStyle(KFadePressStyle())
-      .accessibilityLabel(card.track)
-      .frame(maxWidth: .infinity, alignment: .topTrailing)
-      .padding(.trailing, 7)
-      .padding(.top, 5)
+      .contentShape(Rectangle())
     }
-    .frame(height: KMePlanetMetrics.scene)
-    .accessibilityElement(children: .contain)
+    .buttonStyle(KFadePressStyle())
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(card.a11y)
+    .accessibilityAddTraits(.isButton)
+  }
+
+  private func tag(_ text: String) -> some View {
+    Text(text)
+      .kText(.mono(9.5, .semibold, tracking: 0.14))
+      .foregroundStyle(theme.ink)
+      .lineLimit(1)
+      .padding(.horizontal, 8)
+      .padding(.vertical, 5)
+      .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(theme.soft2))
   }
 }
 
-/// The body's tail: a small triangle of the body's own colour on the scene's lower edge, under
-/// her, wherever she is. Redrawn each frame from the probe the planet reports her place to.
-private struct KMeCardTail: View {
-  let probe: KPlanetProbe
-  let live: Bool
-  let fill: Color
+/// Her journey: the four stops, each drawn as she was (or will be) there.
+struct KMeJourneyStrip: View {
+  let her: KMeHerBadge
+  let skin: KWrenSkin
+  let theme: KTheme
 
   var body: some View {
-    TimelineView(.animation(minimumInterval: nil, paused: !live)) { _ in
-      Canvas { context, size in
-        let half = KMePlanetMetrics.tail.width / 2
-        let x = min(max(probe.wrenX, 40), size.width - 40)
-        var tail = Path()
-        tail.move(to: CGPoint(x: x - half, y: size.height + 0.5))
-        tail.addLine(to: CGPoint(x: x, y: 0))
-        tail.addLine(to: CGPoint(x: x + half, y: size.height + 0.5))
-        tail.closeSubpath()
-        context.fill(tail, with: .color(fill))
+    VStack(alignment: .leading, spacing: 7) {
+      Text(her.journeyTitle)
+        .kText(.mono(8.5, .semibold, tracking: 0.18))
+        .foregroundStyle(theme.sub)
+        .lineLimit(1)
+      HStack(alignment: .top, spacing: 0) {
+        ForEach(her.stops) { stop in
+          let now = stop.state == "now"
+          VStack(spacing: 4) {
+            ZStack {
+              Circle().fill(now ? theme.sf : theme.soft2)
+              if now {
+                Circle().strokeBorder(theme.isDark ? theme.ind : KMePlanetMetrics.green, lineWidth: 2.2)
+              }
+              KWrenBird(KWrenLook(skin: skin, stage: KWrenStage(rawValue: stop.id) ?? .wren), size: 28)
+                .opacity(stop.state == "later" ? 0.3 : 1)
+            }
+            .frame(width: 42, height: 42)
+            Text(stop.name)
+              .kText(.mono(8.5, now ? .bold : .semibold, tracking: 0.12))
+              .foregroundStyle(now ? theme.ink : theme.sub)
+              .lineLimit(1)
+              .minimumScaleFactor(0.7)
+          }
+          .frame(maxWidth: .infinity)
+        }
+      }
+      .background(alignment: .top) {
+        Rectangle().fill(theme.line).frame(height: 1.5).padding(.horizontal, 44).offset(y: 20)
+      }
+      if !her.next.isEmpty {
+        Text(her.next)
+          .kText(.mono(9.5, .semibold, tracking: 0.12))
+          .foregroundStyle(theme.sub)
+          .lineLimit(2)
+          .multilineTextAlignment(.leading)
+          .fixedSize(horizontal: false, vertical: true)
       }
     }
-    .frame(height: KMePlanetMetrics.tail.height)
-    .allowsHitTesting(false)
-    .accessibilityHidden(true)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(her.a11y)
   }
 }
 
@@ -574,12 +677,81 @@ struct KMeShelfChip: View {
   }
 }
 
-// MARK: - Under the card: two tiles and a row, white and lifted like the card
+// MARK: - Under the card: the two tiles about your writing
 
-/// The Aura tile: its picture, its title, how many letters it reads from. A tap opens the Aura card.
+/// A tile: its name on an ink chip, a picture in a 16:9 panel, a title, a line of state.
+struct KMeWritingTile<Art: View, Foot: View>: View {
+  let chip: String
+  let title: String
+  let a11y: String
+  let hint: String
+  let enabled: Bool
+  var theme: KTheme = .classic
+  let onTap: () -> Void
+  @ViewBuilder let art: Art
+  @ViewBuilder let foot: Foot
+
+  var body: some View {
+    let tone = KMeTileTone(theme)
+    SwiftUI.Button(action: onTap) {
+      VStack(alignment: .leading, spacing: 0) {
+        KMeTileChip(text: chip, fill: tone.chip, ink: tone.chipText)
+        // the panel is 16:9 whatever is in it (the named scenes are 16:9; the rest sit in its middle)
+        RoundedRectangle(cornerRadius: 14, style: .continuous).fill(theme.soft2)
+          .aspectRatio(16.0 / 9.0, contentMode: .fit)
+          .overlay { art }
+          .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+          .padding(.top, 10)
+          .accessibilityHidden(true)
+        Text(title)
+          .kText(.system(15, .semibold, lineHeight: 19.0 / 15.0))
+          .foregroundStyle(tone.ink)
+          .lineLimit(2)
+          .multilineTextAlignment(.leading)
+          .fixedSize(horizontal: false, vertical: true)
+          .frame(maxWidth: .infinity, minHeight: 38, alignment: .topLeading)
+          .padding(.top, 10)
+        foot
+          .frame(maxWidth: .infinity, minHeight: 28, alignment: .topLeading)
+          .padding(.top, 6)
+        Spacer(minLength: 0)
+      }
+      .padding(14)
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+      .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(tone.fill))
+      .kSoftLift(theme, radius: 24)
+      .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+    .buttonStyle(KFadePressStyle())
+    .disabled(!enabled)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(a11y)
+    .accessibilityHint(enabled ? hint : "")
+    .accessibilityAddTraits(enabled ? .isButton : .isStaticText)
+    .accessibilityRemoveTraits(enabled ? [] : .isButton)
+  }
+}
+
+/// A tile's line of state: small capitals, two lines at most.
+struct KMeTileLine: View {
+  let text: String
+  let ink: Color
+
+  var body: some View {
+    Text(text)
+      .kText(.mono(9.5, .semibold, tracking: 0.1))
+      .foregroundStyle(ink)
+      .lineLimit(3)
+      .multilineTextAlignment(.leading)
+      .fixedSize(horizontal: false, vertical: true)
+  }
+}
+
+/// The Aura tile: its picture (TS's `auraArt`: the ladder's drawing, or the named scene), what
+/// it is called, and how far along it is — the meter and its caption until it has a name, then
+/// how many letters it is read from.
 struct KMeAuraTile<Art: View>: View {
   let aura: KMeAura?
-  /// AURA, on the chip; "" falls back to the card's own label
   let chip: String
   let hint: String
   var theme: KTheme = .classic
@@ -587,160 +759,129 @@ struct KMeAuraTile<Art: View>: View {
   @ViewBuilder let art: Art
 
   var body: some View {
-    let tone = KMeTileTone(theme)
-    SwiftUI.Button(action: onTap) {
-      VStack(alignment: .leading, spacing: 0) {
-        KMeTileChip(text: chip.isEmpty ? (aura?.label ?? "") : chip, fill: tone.chip, ink: tone.chipText)
-        art
-          .frame(height: 52)
-          .frame(maxWidth: .infinity)
-          .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-          .blendMode(tone.multiply ? .multiply : .normal)
-          .padding(.top, 9)
-          .accessibilityHidden(true)
-        Text(aura?.title ?? "")
-          .kText(.system(15, .semibold, lineHeight: 19.0 / 15.0))
-          .foregroundStyle(tone.ink)
-          .lineLimit(2)
-          .multilineTextAlignment(.leading)
-          .padding(.top, 8)
-        Text(aura?.from ?? "")
-          .kText(.mono(9.5, .medium, tracking: 0.14))
-          .foregroundStyle(tone.sub)
-          .lineLimit(1)
-          .padding(.top, 5)
-        Spacer(minLength: 0)
-      }
-      .padding(14)
-      .frame(maxWidth: .infinity, minHeight: 152, maxHeight: .infinity, alignment: .topLeading)
-      .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(tone.fill))
-      .kSoftLift(theme, radius: 24)
-      .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-    }
-    .buttonStyle(KFadePressStyle())
-    .accessibilityElement(children: .ignore)
-    .accessibilityLabel([aura?.label ?? "", aura?.title ?? "", aura?.from ?? ""].filter { !$0.isEmpty }.joined(separator: ", "))
-    .accessibilityHint(hint)
-    .accessibilityAddTraits(.isButton)
-  }
-}
-
-/// The Stamps tile: the stamps made (or used) lately fanned out, the blank one to make, a line and
-/// a count. A tap opens the album.
-struct KMeStampsTile: View {
-  let tile: KMeStampsTileContent
-  var theme: KTheme = .classic
-  let onTap: () -> Void
-
-  var body: some View {
-    let tone = KMeTileTone(theme)
-    let fan = Array(tile.fan.prefix(3))
-    let fanWidth: CGFloat = fan.isEmpty ? 0 : 36 + CGFloat(fan.count - 1) * 28
-    SwiftUI.Button(action: onTap) {
-      VStack(alignment: .leading, spacing: 0) {
-        KMeTileChip(text: tile.label, fill: tone.chip, ink: tone.chipText)
-        HStack(alignment: .center, spacing: 0) {
-          ZStack(alignment: .leading) {
-            ForEach(Array(fan.enumerated()), id: \.element.id) { i, cell in
-              KStamp(id: cell.id, width: 36, dark: false, fallbackHex: cell.hex.isEmpty ? nil : cell.hex)
-                .rotationEffect(.degrees(KMeStampsTile.tilt[i % 3]))
-                .offset(x: CGFloat(i) * 28, y: KMeStampsTile.drop[i % 3])
+    let label = [aura?.label ?? "", aura?.title ?? "", aura?.caption ?? "", aura?.from ?? ""].filter { !$0.isEmpty }.joined(separator: ", ")
+    KMeWritingTile(chip: chip.isEmpty ? (aura?.label ?? "") : chip, title: aura?.title ?? "", a11y: label, hint: hint, enabled: true, theme: theme, onTap: onTap) {
+      art
+    } foot: {
+      if let aura, !aura.caption.isEmpty, !aura.share {
+        VStack(alignment: .leading, spacing: 6) {
+          HStack(spacing: 4) {
+            ForEach(0..<max(0, aura.meter.total), id: \.self) { i in
+              Capsule().fill(i < aura.meter.filled ? theme.ink : theme.line).frame(width: 18, height: 4)
             }
           }
-          .frame(width: fanWidth, height: 50, alignment: .leading)
-          Spacer(minLength: 6)
-          if tile.make {
-            KStampSlot(width: 34, stroke: tone.ink.opacity(0.55))
-          }
+          KMeTileLine(text: aura.caption.uppercased(), ink: theme.sub)
         }
-        .frame(height: 54)
-        .padding(.top, 8)
-        .accessibilityHidden(true)
-        Text(tile.title)
-          .kText(.system(15, .semibold, lineHeight: 19.0 / 15.0))
-          .foregroundStyle(tone.ink)
-          .lineLimit(2)
-          .multilineTextAlignment(.leading)
-          .padding(.top, 8)
-        Text(tile.caption)
-          .kText(.mono(9.5, .medium, tracking: 0.14))
-          .foregroundStyle(tone.sub)
-          .lineLimit(1)
-          .padding(.top, 5)
-        Spacer(minLength: 0)
+      } else {
+        KMeTileLine(text: aura?.from ?? "", ink: theme.sub)
       }
-      .padding(14)
-      .frame(maxWidth: .infinity, minHeight: 152, maxHeight: .infinity, alignment: .topLeading)
-      .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(tone.fill))
-      .kSoftLift(theme, radius: 24)
-      .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
-    .buttonStyle(KFadePressStyle())
-    .accessibilityElement(children: .ignore)
-    .accessibilityLabel(tile.a11y.isEmpty ? [tile.label, tile.title, tile.caption].filter { !$0.isEmpty }.joined(separator: ", ") : tile.a11y)
-    .accessibilityHint(tile.hint)
-    .accessibilityAddTraits(.isButton)
   }
-
-  static let tilt: [Double] = [-8, 3, 10]
-  static let drop: [CGFloat] = [2, -1, 3]
 }
 
-/// The report row.
-struct KMeReportRow: View {
+/// The report tile. Until the first report it is a card to punch, a hole a piece; then a sheet:
+/// ready (a lamp by its line), read (a tick), or behind First Class (a gold lock).
+struct KMeReportTileView: View {
   let report: KMeReport
+  let tile: KMeReportTile
+  let chip: String
   var theme: KTheme = .classic
   let onTap: () -> Void
 
   var body: some View {
-    let tone = KMeTileTone(theme)
-    let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
-    SwiftUI.Button(action: onTap) {
-      HStack(alignment: .center, spacing: 14) {
-        ZStack {
-          RoundedRectangle(cornerRadius: 11, style: .continuous)
-            .fill(report.locked ? KBrand.cream : tone.chip.opacity(0.07))
-          if report.locked {
+    let label = [chip, report.title, report.sub].filter { !$0.isEmpty }.joined(separator: ", ")
+    KMeWritingTile(chip: chip, title: report.title, a11y: label, hint: report.hint, enabled: report.enabled, theme: theme, onTap: onTap) {
+      picture
+    } foot: {
+      if tile.state == "ready" {
+        HStack(alignment: .top, spacing: 6) {
+          KMeLogLamp(breathe: false).padding(.top, 0.5)
+          KMeTileLine(text: report.sub.uppercased(), ink: theme.ink)
+        }
+      } else {
+        KMeTileLine(text: report.sub.uppercased(), ink: theme.sub)
+      }
+    }
+  }
+
+  @ViewBuilder private var picture: some View {
+    if tile.state == "progress" || tile.state == "none" {
+      punchCard
+    } else {
+      sheet
+    }
+  }
+
+  /// two rows of holes: the pieces written so far, punched
+  private var punchCard: some View {
+    let need = max(1, min(tile.need, 20))
+    let perRow = (need + 1) / 2
+    return VStack(spacing: 7) {
+      ForEach(0..<2, id: \.self) { row in
+        HStack(spacing: 7) {
+          ForEach(0..<perRow, id: \.self) { column in
+            let i = row * perRow + column
             ZStack {
-              Circle().fill(KBrand.waxGold)
-              KLineIcon(.lock, size: 12, lineWidth: 2.4, color: KBrand.inkOnBrand)
+              if i >= need {
+                Color.clear
+              } else if i < tile.have {
+                Circle().fill(theme.ink)
+                KLineIcon(.check, size: 9, lineWidth: 3.2, color: theme.bg)
+              } else {
+                Circle().strokeBorder(theme.faint, style: StrokeStyle(lineWidth: 1.6, dash: [3, 3]))
+              }
             }
-            .frame(width: 22, height: 22)
-          } else {
-            KLineIcon(.ruledCard, size: 20, lineWidth: 1.9, color: tone.chip)
+            .frame(width: 18, height: 18)
           }
-        }
-        .frame(width: 38, height: 38)
-        VStack(alignment: .leading, spacing: 2) {
-          Text(report.title)
-            .kText(.system(15, .semibold))
-            .foregroundStyle(tone.ink)
-            .fixedSize(horizontal: false, vertical: true)
-          if !report.sub.isEmpty {
-            Text(report.sub)
-              .kText(.system(13))
-              .foregroundStyle(tone.sub)
-              .fixedSize(horizontal: false, vertical: true)
-          }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        if report.enabled {
-          KLineIcon(.chevronRight, size: 14, lineWidth: 2.4, color: tone.sub)
         }
       }
-      .padding(.horizontal, 16)
-      .padding(.vertical, 14)
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .background(shape.fill(tone.fill))
-      .kSoftLift(theme, radius: 20)
-      .contentShape(shape)
     }
-    .buttonStyle(KFadePressStyle())
-    .disabled(!report.enabled)
-    .accessibilityElement(children: .ignore)
-    .accessibilityLabel([report.title, report.sub].filter { !$0.isEmpty }.joined(separator: ", "))
-    .accessibilityHint(report.enabled ? report.hint : "")
-    .accessibilityAddTraits(report.enabled ? .isButton : .isStaticText)
-    .accessibilityRemoveTraits(report.enabled ? [] : .isButton)
+  }
+
+  /// the report as a sheet on another: its corner says which one, a bar for its headline
+  private var sheet: some View {
+    let quiet = tile.state != "ready"
+    let paper = theme.isDark ? theme.soft2 : Color.white
+    let shade = Color(hex: "#1E1B35")
+    return ZStack {
+      RoundedRectangle(cornerRadius: 7, style: .continuous).fill(paper)
+        .frame(width: 58, height: 66)
+        .shadow(color: shade.opacity(0.10), radius: 3, x: 0, y: 2)
+        .rotationEffect(.degrees(6))
+        .offset(x: 9, y: 2)
+      VStack(alignment: .leading, spacing: 5) {
+        Text(tile.tag)
+          .kText(.mono(8.5, .bold, tracking: 0.12))
+          .foregroundStyle(quiet ? theme.sub : theme.ink)
+          .lineLimit(1)
+          .minimumScaleFactor(0.6)
+        Capsule().fill(quiet ? theme.line : theme.ink).frame(width: 38, height: 4)
+        Capsule().fill(theme.line).frame(width: 26, height: 4)
+        Capsule().fill(theme.line).frame(width: 32, height: 4)
+        Capsule().fill(theme.line).frame(width: 20, height: 4)
+      }
+      .padding(9)
+      .frame(width: 58, height: 66, alignment: .topLeading)
+      .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(paper))
+      .shadow(color: shade.opacity(0.14), radius: 4, x: 0, y: 3)
+      .rotationEffect(.degrees(-4))
+      .overlay(alignment: .bottomTrailing) {
+        if tile.state == "done" {
+          ZStack {
+            Circle().fill(KMePlanetMetrics.tick)
+            KLineIcon(.check, size: 10, lineWidth: 3.2, color: .white)
+          }
+          .frame(width: 20, height: 20)
+          .offset(x: 8, y: 6)
+        } else if tile.state == "locked" {
+          ZStack {
+            Circle().fill(KBrand.waxGold)
+            KLineIcon(.lock, size: 10, lineWidth: 2.6, color: KBrand.inkOnBrand)
+          }
+          .frame(width: 22, height: 22)
+          .offset(x: 9, y: 7)
+        }
+      }
+    }
   }
 }

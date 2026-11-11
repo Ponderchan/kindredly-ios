@@ -120,6 +120,11 @@ function demoLetters(n: number): PeekLetterSource[] {
 function demoPlanetLetters(n: number): PlanetLetterSource[] {
   return demoLetters(n).map((l, i) => ({ kind: "letter" as const, id: l.id, date: l.date, stamp: l.stamp, reads: (i * 5 + 2) % 9, answers: i % 3 === 2 ? [] : [{}] }));
 }
+const coverStat = (me4a: { profile: { stats: { key: string; count: string; unit: string; a11y: string; hint: string }[] } }, key: string) => {
+  const st = me4a.profile.stats.find((x) => x.key === key);
+  return { count: st?.count ?? "", unit: st?.unit ?? "", a11y: st?.a11y ?? "", hint: st?.hint ?? "" };
+};
+const coverDoor = (d: ReportDoor | null) => (!d ? null : d.state === "done" ? { state: "done" as const } : d);
 const demoDoor = (m: DoorMode): ReportDoor | null =>
   m === "progress" ? { state: "progress", have: 4, need: 10 } : m === "ready" ? { state: "ready", kind: "first" } : m === "locked" ? { state: "locked" } : m === "done" ? { state: "done", nextMonth: firstOfNextMonth() } : null;
 
@@ -258,8 +263,8 @@ function MeLab() {
       }),
     };
     const act: MeActions = {
-      settings: () => away("/me/settings"),
-      edit: () => away("/me/edit-profile"),
+      settings: () => (planetOn ? router.push("/me/settings") : away("/me/settings")),
+      edit: () => (planetOn ? router.push("/me/edit-profile") : away("/me/edit-profile")),
       stat: (k) => away(k === "letters" ? "/my-letters" : "/my-kindreds"),
       segment: (i) => setSegment(segmentIndex(i)),
       // with the planet on the exits really go (owner, 2026-11-11: a note looked like no reaction)
@@ -274,8 +279,9 @@ function MeLab() {
       peek: () => {},
       peekLetter: () => away("/my-letters"),
       peekKindred: (id) => away(`/room/${id}`),
-      seeAll: () => away("/my-letters"),
-      openKindreds: () => away("/my-kindreds"),
+      seeAll: () => (planetOn ? router.push("/my-letters") : away("/my-letters")),
+      openKindreds: () => (planetOn ? router.push("/my-kindreds") : away("/my-kindreds")),
+      notes: () => (planetOn ? router.push("/(tabs)/journal") : away("the Notes tab")),
       write: () => away("/compose"),
       look: (id) => (id === "fc" ? away("/courier (the wardrobe)") : setLook(id)),
       allLooks: () => (planetOn ? router.push("/courier") : away("/courier (the wardrobe)")),
@@ -319,7 +325,20 @@ function MeLab() {
       kindreds: 0,
       scroll: { serial },
       act,
-      planet,
+      // the cover: the header's own numbers, nine notes, a Scorpio, her twelfth day, the report door on show
+      planet: {
+        ...planet,
+        cover: {
+          letters: coverStat(me4a, "letters"),
+          kindreds: coverStat(me4a, "kindreds"),
+          notes: 9,
+          mark: "he" as const,
+          sign: "scorpio",
+          day: 12,
+          door: coverDoor(demoDoor(door)),
+          month: new Date().toLocaleDateString("en", { month: "short" }).toUpperCase(),
+        },
+      },
     };
     // lang: the words follow the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps

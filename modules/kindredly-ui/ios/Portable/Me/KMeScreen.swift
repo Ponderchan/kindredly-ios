@@ -41,8 +41,10 @@ import SwiftUI
  segment, which shows a card as a chip would and reports it the same way (onSegment).
 
  THE COURIER'S PLANET (2026-11-11, docs/courier-planet.md; `content.planet`, nil unless TS's
- "meplanet" switch is on). With it the segments are gone and Me is one page under the same
- sticky, collapsing header (no chips in it):
+ "meplanet" switch is on). With it the segments and the header are gone and Me is one scroll
+ with the planet as its cover (KMeCover.swift has the picture: the cover, you under it, then
+ this page's her card, the two tiles about your writing and First Class). What follows is the
+ first layout, kept for the record; the cover replaced its header and its scene:
 
    (72 avatar ✎) pen name                    (gear)     the header, as above, without row 3
    ┌ her card ───────────────────────────────┐          KMePlanetCard, white under the sky: the
@@ -497,6 +499,8 @@ public final class KMeActions {
   public var onSeeAll: () -> Void = {}
   /// Open kindreds →
   public var onOpenKindreds: () -> Void = {}
+  /// the cover's notes number: your notes
+  public var onNotes: () -> Void = {}
   /// the empty letters peek's Write a letter →
   public var onWrite: () -> Void = {}
   /// the segment now showing, after a chip or a segment command
@@ -607,6 +611,11 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
   /// the segment's natural height, its margins included
   @State private var contentHeight: CGFloat = 0
   @State private var header = KMeHeaderMetrics()
+  // the cover (KMeCover.swift): how far the page is pulled down at its top, how far the cover has
+  // folded into its bar (0…1), and whether letting go now opens the planet page
+  @State private var pull: CGFloat = 0
+  @State private var folded: CGFloat = 0
+  @State private var armed = false
 
   /// - Parameters:
   ///   - initialSegment: the segment to open on (the one used last this session)
@@ -666,46 +675,11 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
   }
 
   public var body: some View {
-    let floor = self.floor
-    VStack(spacing: 0) {
-      // the status bar's strip: the page colour, nothing under the clock
-      Color.clear.frame(height: topInset)
-      VStack(spacing: 0) {
-        KMeHeader(
-          theme: theme,
-          content: content,
-          chrome: chrome,
-          selection: Binding(get: { chipSelection }, set: { pick($0) }),
-          actions: actions,
-          onMetrics: { m in
-            if abs(m.expanded - header.expanded) > 0.5 || abs(m.delta - header.delta) > 0.5 { header = m }
-          }
-        ) {
-          avatar
-        }
-        .zIndex(1)
-        ScrollView(.vertical) {
-          page
-            .padding(.horizontal, Self.gutter)
-            .padding(.top, Self.topMargin)
-            .padding(.bottom, bottomInset)
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
-              if abs(h - contentHeight) > 0.5 { contentHeight = h }
-            }
-            .frame(minHeight: floor ?? 0, alignment: .top)
-            // the swap is never animated (see THE SEGMENTS), even if a caller's transaction is
-            .transaction(value: segment) { t in
-              t.animation = nil
-              t.disablesAnimations = true
-            }
-        }
-        .scrollIndicators(.hidden)
-        .scrollDisabled(floor == nil)
-        .scrollPosition($position)
-        .kScrollChrome(chrome)
-      }
-      .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
-        if abs(h - areaHeight) > 0.5 { areaHeight = h }
+    Group {
+      if let planet = content.planet {
+        coverBody(planet)
+      } else {
+        segmentsBody
       }
     }
     .accessibilityElement(children: .contain)
@@ -747,6 +721,117 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
       // card's frame empty
       show(Self.clampSegment(request.index), report: true)
     }
+  }
+
+  /// The page of segments: the status strip, the sticky header, the segment showing.
+  private var segmentsBody: some View {
+    let floor = self.floor
+    return VStack(spacing: 0) {
+      // the status bar's strip: the page colour, nothing under the clock
+      Color.clear.frame(height: topInset)
+      VStack(spacing: 0) {
+        KMeHeader(
+          theme: theme,
+          content: content,
+          chrome: chrome,
+          selection: Binding(get: { chipSelection }, set: { pick($0) }),
+          actions: actions,
+          onMetrics: { m in
+            if abs(m.expanded - header.expanded) > 0.5 || abs(m.delta - header.delta) > 0.5 { header = m }
+          }
+        ) {
+          avatar
+        }
+        .zIndex(1)
+        ScrollView(.vertical) {
+          page
+            .padding(.horizontal, Self.gutter)
+            .padding(.top, Self.topMargin)
+            .padding(.bottom, bottomInset)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+              if abs(h - contentHeight) > 0.5 { contentHeight = h }
+            }
+            .frame(minHeight: floor ?? 0, alignment: .top)
+            // the swap is never animated (see THE SEGMENTS), even if a caller's transaction is
+            .transaction(value: segment) { t in
+              t.animation = nil
+              t.disablesAnimations = true
+            }
+        }
+        .scrollIndicators(.hidden)
+        .scrollDisabled(floor == nil)
+        .scrollPosition($position)
+        .kScrollChrome(chrome)
+      }
+      .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+        if abs(h - areaHeight) > 0.5 { areaHeight = h }
+      }
+    }
+  }
+
+  /// The courier's planet as the page's cover (KMeCover.swift): one scroll, the cover first; a
+  /// pull at the top stretches it, and letting go past the line opens the planet page.
+  private func coverBody(_ planet: KMePlanet) -> some View {
+    let base = topInset + KMeCoverMetrics.body
+    // the scroll at which the bar has taken over: the cover gone but for the bar's own height
+    let gone = KMeCoverMetrics.body - KMeCoverMetrics.bar
+    return ScrollView(.vertical) {
+      VStack(spacing: 0) {
+        // drawn taller while pulled, laid out at its own height: the extra reaches up into the gap
+        KMeCover(planet: planet, topInset: topInset, pull: pull, actions: coverActions())
+          .frame(height: base + pull)
+          .frame(height: base, alignment: .bottom)
+        KMeIdentity(theme: theme, profile: content.profile, me: planet.me, settingsLabel: content.settingsLabel, actions: actions, avatar: avatar)
+        KMePlanetPage(content: content, planet: planet, theme: theme, actions: actions) {
+          auraArt
+        }
+        .padding(.horizontal, Self.gutter)
+        .padding(.bottom, bottomInset)
+      }
+    }
+    .scrollIndicators(.hidden)
+    .scrollPosition($position)
+    .onScrollGeometryChange(for: CGFloat.self) { g in
+      g.contentOffset.y + g.contentInsets.top
+    } action: { _, y in
+      // kept coarse, so an ordinary scroll between the two ends redraws nothing
+      let p = (max(0, -y) * 2).rounded() / 2
+      if p != pull { pull = p }
+      let f = (min(max((y - (gone - 46)) / 46, 0), 1) * 25).rounded() / 25
+      if f != folded { folded = f }
+      let a = p >= KMeCoverMetrics.open
+      if a != armed { armed = a }
+    }
+    .onScrollPhaseChange { old, new in
+      if old == .interacting, new != .interacting, armed { actions.onTrack() }
+    }
+    .sensoryFeedback(.impact(weight: .light), trigger: armed) { _, now in now }
+    .overlay(alignment: .top) {
+      KMeCoverBar(
+        palette: planet.planet.palette,
+        name: content.profile.name,
+        editLabel: content.profile.editLabel,
+        settingsLabel: content.settingsLabel,
+        topInset: topInset,
+        shown: folded,
+        actions: actions
+      )
+    }
+  }
+
+  private func coverActions() -> KMePlanetActions {
+    let a = KMePlanetActions()
+    let to = actions
+    a.onTap = { what in
+      switch what {
+      case .wren: to.onPlanetTap("wren", "")
+      case .letter: to.onPlanetTap("letter", "")
+      case let .stamp(id): to.onPlanetTap("stamp", id)
+      }
+    }
+    a.onStamps = { to.onStamps("album", "") }
+    a.onLetters = { to.onSeeAll() }
+    return a
   }
 
   /// A chip, tapped (inside KSegmentChips' withAnimation(KMotion.chip)): the highlight moves on
@@ -879,7 +964,7 @@ struct KMePlanetPage<AuraArt: View>: View {
 
   var body: some View {
     // one large First Class thing to a page: while the boarding pass or the sealed report is up,
-    // the report row (the same report) and the card at the foot step aside
+    // the report tile (the same report) and the card at the foot step aside
     let large = content.fc.form == "seat" || content.fc.form == "report"
     VStack(alignment: .leading, spacing: Self.gap) {
       if content.fc.form == "seat" {
@@ -890,23 +975,23 @@ struct KMePlanetPage<AuraArt: View>: View {
       KMePlanetCard(card: planet, actions: cardActions(), theme: theme)
         .overlay(alignment: .topTrailing) {
           if content.fc.form == "invite" {
-            // left of the card's round button
+            // on her card's corner, clear of the gear above it
             KFcEnvelope(fc: content.fc) { actions.onFcOpen("invite") }
-              .padding(.trailing, 58)
-              .offset(y: -12)
+              .padding(.trailing, 18)
+              .offset(y: -6)
           }
         }
       HStack(alignment: .top, spacing: Self.gap) {
         KMeAuraTile(aura: content.aura, chip: planet.auraChip, hint: planet.auraHint, theme: theme, onTap: { actions.onAuraOpen() }) {
           auraArt
         }
-        KMeStampsTile(tile: planet.stamps, theme: theme) { actions.onStamps("album", "") }
+        // the sealed report above her card is this month's: no second door to it here
+        if content.report.show, content.fc.form != "report" {
+          KMeReportTileView(report: content.report, tile: planet.reportTile, chip: planet.reportChip, theme: theme) { actions.onReport() }
+        }
       }
       // the two tiles are as tall as the taller one's words need, never the room on offer
       .fixedSize(horizontal: false, vertical: true)
-      if content.report.show, content.fc.form != "report" {
-        KMeReportRow(report: content.report, theme: theme) { actions.onReport() }
-      }
       if !content.firstClass.member, !large {
         KMeFirstClassCard(card: content.firstClass) { actions.onFirstClass() }
       }

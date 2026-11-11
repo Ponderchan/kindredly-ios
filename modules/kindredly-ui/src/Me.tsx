@@ -275,8 +275,10 @@ export type KMeViewProps = CommonViewModifierProps &
     myFace?: KMyFaceData | null;
     /** the courier's planet ("meplanet", Planet.ts): with `on`, Me is one page. null keeps the segments */
     planet?: KMePlanetData | null;
-    /** her card's round button: the planet page */
+    /** the cover pulled down and let go: the planet page */
     onTrack?: () => void;
+    /** the notes number under the cover */
+    onNotes?: () => void;
     /** a tap on her card's planet landed on her, on the reply beside her, or on a letter's stamp (its id) */
     onPlanetTap?: (what: "wren" | "letter" | "stamp", id: string) => void;
   };
@@ -308,6 +310,7 @@ type EventProps =
   | "onFirstClass"
   | "onFcOpen"
   | "onTrack"
+  | "onNotes"
   | "onPlanetTap";
 
 type NativeKMeViewProps = Omit<KMeViewProps, "letterFont" | "insets" | "rev" | "peekKindreds" | "looks" | "firstClass" | "courierCard" | "auraArt" | "myFace" | "planet" | EventProps> &
@@ -337,6 +340,7 @@ type NativeKMeViewProps = Omit<KMeViewProps, "letterFont" | "insets" | "rev" | "
     onMeFirstClass?: None;
     onMeFcOpen?: Ev<{ form: KMeFcRollout["form"] }>;
     onMeTrack?: None;
+    onMeNotes?: None;
     onMePlanetTap?: Ev<{ what: "wren" | "letter" | "stamp"; id: string }>;
     courierCard: NativeCourierCard;
     auraArt: NativeAuraArt;
@@ -391,6 +395,7 @@ export const KMeView = forwardRef<KScreenHandle, KMeViewProps>(function KMeView(
     myFace,
     planet,
     onTrack,
+    onNotes,
     onPlanetTap,
     ...rest
   },
@@ -428,6 +433,7 @@ export const KMeView = forwardRef<KScreenHandle, KMeViewProps>(function KMeView(
       myFace={sentMyFace}
       planet={sentPlanet}
       onMeTrack={onTrack ? () => onTrack() : undefined}
+      onMeNotes={onNotes ? () => onNotes() : undefined}
       onMePlanetTap={onPlanetTap ? (e) => onPlanetTap(e.nativeEvent.what, e.nativeEvent.id) : undefined}
       onMeSettings={onSettings ? () => onSettings() : undefined}
       onMeEdit={onEdit ? () => onEdit() : undefined}

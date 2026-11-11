@@ -119,8 +119,19 @@ export type KMePlanetData = {
   allLooksHint: string;
   stamps: KMeStampsTileData;
   auraHint: string;
-  /** the Aura tile's chip (AURA): short, drawn as her card's YOUR COURIER chip is */
+  /** the Aura tile's chip: WRITING AURA */
   auraChip: string;
+  /** the cover's two ways in: a small picture and a number each */
+  stampsEntry: { count: string; a11y: string; hint: string };
+  lettersEntry: { count: string; a11y: string; hint: string };
+  /** you, under the cover: your mark (he | she | ""), your sign as its emoji and its name, two
+      numbers (kindreds, notes), Edit */
+  me: { mark: string; sign: string; signName: string; signA11y: string; stats: { key: string; count: string; unit: string; a11y: string; hint: string }[]; edit: string };
+  /** her badge, and her journey while she grows */
+  her: { name: string; day: string; tag: string; journeyTitle: string; stops: { id: string; name: string; state: "done" | "now" | "later" }[]; next: string; a11y: string };
+  /** where the writing report stands, for its tile's picture, and the tile's chip */
+  reportTile: { state: "none" | "progress" | "ready" | "done" | "locked"; have: number; need: number; tag: string };
+  reportChip: string;
 };
 
 type NativeForm = KWrenForm;
@@ -162,6 +173,12 @@ export const ME_PLANET_OFF: NativeMePlanet = Object.freeze({
   stamps: { label: "", title: "", caption: "", fan: [], make: false, a11y: "", hint: "" },
   auraHint: "",
   auraChip: "",
+  stampsEntry: { count: "", a11y: "", hint: "" },
+  lettersEntry: { count: "", a11y: "", hint: "" },
+  me: { mark: "", sign: "", signName: "", signA11y: "", stats: [], edit: "" },
+  her: { name: "", day: "", tag: "", journeyTitle: "", stops: [], next: "", a11y: "" },
+  reportTile: { state: "none", have: 0, need: 0, tag: "" },
+  reportChip: "",
 }) as NativeMePlanet;
 
 /** Her card as the Swift record takes it. */

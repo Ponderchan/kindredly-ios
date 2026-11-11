@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { View } from "react-native";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { isKindredlyUIViewAvailable } from "../../modules/kindredly-ui/src/available";
 import { PLANET_PAGE_VIEW } from "../../modules/kindredly-ui/src/PlanetPage";
 import { useNativeSurface } from "../lib/surfaces";
@@ -13,7 +13,7 @@ import { PALETTE, daylight } from "../components/courier-card-model";
    planet your courier lives on, a stamp for every letter she has carried, a lamp for every
    stranger who has had one on their desk, three figures, and one slip at a time.
 
-     /planet     from the round button on her card (Me) and from Track on her page (/courier)
+     /planet     from a pull on Me's cover (the planet) and from Track on her page (/courier)
 
    Her page (/courier, Open) stays about her; the two are kept apart (owner).
 
@@ -44,6 +44,8 @@ function PlanetPage() {
   const model = usePlanetPage();
   return (
     <View style={{ flex: 1, backgroundColor: model.palette.scrim }}>
+      {/* opened by pulling Me's cover down: it fades in over the stretched cover, where the planet already is */}
+      <Stack.Screen options={{ animation: "fade" }} />
       <PlanetNative model={model} />
     </View>
   );

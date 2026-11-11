@@ -211,9 +211,11 @@ struct KPlanetTouchShape: Shape {
   let kind: KPlanetKind
 
   func path(in rect: CGRect) -> Path {
-    guard kind == .card else { return Path(rect) }
-    let layout = KPlanetLayout.make(.card, size: rect.size, zoom: 1)
-    let reach = layout.radius + layout.lift + 22
+    guard kind != .page else { return Path(rect) }
+    let layout = KPlanetLayout.make(kind, size: rect.size, zoom: 1)
+    // on the cover only the planet itself takes the finger: the sky round it is where the page
+    // is pulled down from
+    let reach = kind == .cover ? layout.radius + 8 : layout.radius + layout.lift + 22
     let round = CGRect(x: layout.centre.x - reach, y: layout.centre.y - reach, width: reach * 2, height: reach * 2)
     return Path(ellipseIn: round).intersection(Path(rect))
   }
