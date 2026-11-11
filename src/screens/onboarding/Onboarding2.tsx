@@ -9,7 +9,7 @@ import { starterStamp } from "../../lib/hatch-engine";
 import { getLang, t, useLang } from "../../lib/i18n";
 import { isPronounId } from "../../lib/pronouns";
 import { useMadeFace, useMadeFaceAvatarId } from "../../lib/make-face";
-import { setOnboardingTakesFace, subscribeLeftPainting } from "../make-face/useMakeFaceModel";
+import { setOnboardingTakesFace, subscribeFaceChosen, subscribeLeftPainting } from "../make-face/useMakeFaceModel";
 import { demoContext, demoOn, devConfig, seedDraftFor, takeDevStart, type DevStart } from "./dev";
 import * as block from "./device-block";
 import * as drafts from "./draft-store";
@@ -391,6 +391,14 @@ export function useObRun(): ObRun | null {
     setOnboardingTakesFace(() => !posted.current && !leaving.current);
     return () => setOnboardingTakesFace(null);
   }, []);
+  // "This is me" in the flow: on to 6 wearing it (not back to 5 to say so again)
+  useEffect(
+    () =>
+      subscribeFaceChosen((avatarId) => {
+        if (runRef.current?.draft.screen === "face") advance({ avatarId, faceLater: false });
+      }),
+    [advance],
+  );
   const made = useMadeFace();
   const madeId = useMadeFaceAvatarId();
   const madeWorn = made.state === "yours" && !!madeId;

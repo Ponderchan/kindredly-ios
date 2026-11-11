@@ -227,6 +227,9 @@ public enum KMakeFaceKnock: String, Equatable, Sendable {
   case on
   /// iOS won't ask again: Leave, and the face waits in Edit profile
   case off
+  /// nothing to decide while she paints (onboarding: there is nowhere to go and wait, and it
+  /// asks about notifications once, at its own screen): no card, no button, about twenty seconds
+  case none
 }
 
 /// The bell on the knock card: rings now and then (a still bell under Reduce Motion).
@@ -667,6 +670,8 @@ public struct KMakeFacePage<Wren: View>: View {
       }
       .frame(maxWidth: .infinity)
       .transition(.opacity)
+    case .none:
+      EmptyView()
     case .on, .off:
       VStack(spacing: 12) {
         Text(content.knock == .on ? content.strings.knockOn : content.strings.knockOff)

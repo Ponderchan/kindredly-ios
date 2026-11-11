@@ -3,7 +3,10 @@ import { Alert, AppState } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as Notifications from "expo-notifications";
+import * as Application from "expo-application";
+import Constants from "expo-constants";
 import { File, Paths } from "expo-file-system";
+import { newerVersion } from "../../lib/update-prompt-core";
 import { prepareFacePhoto, type KMakeFaceScreen, type KMakeFaceStrings, type KMakeFaceChipGroup } from "../../../modules/kindredly-ui/src/MakeFace";
 import { useAuth } from "../../lib/auth";
 import { useEntitlement } from "../../lib/entitlement";
@@ -96,6 +99,28 @@ export function subscribeLeftPainting(fn: () => void): () => void {
   };
 }
 
+/* ONBOARDING'S STRAIGHT LINE (owner, 2026-11-11: "传图/照相 → 画 → 出结果 → 三个里选一个最满意的
+   → This is me"). From onboarding the flow has no side roads:
+   - while she paints there is nothing to decide: no "Don't wait on me" card and no question
+     about notifications (a drawing takes 15–25 s, there is no letter to go and read yet, and
+     onboarding asks about notifications once, at its own screen). The page needs a binary
+     that knows the "none" foot (1.2.8); an older one keeps the card, and its "Knock when
+     done" goes on to the next screen (LEFT WHILE SHE PAINTS);
+   - "This is me" is the last tap: the page closes and onboarding goes on to its next screen
+     wearing the face — no done page, and no trip back to the grid of faces to press "This is
+     me" a second time. (From Me it closes on Edit profile, the new face on.) */
+const QUIET_FROM = "1.2.8";
+const BINARY: string | null = Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? null;
+const PAINTS_QUIETLY = !!BINARY && /^\d+(\.\d+)*$/.test(BINARY) && !newerVersion(QUIET_FROM, BINARY);
+const chosenListeners = new Set<(avatarId: string) => void>();
+/** A face was chosen and confirmed ("This is me") in the flow opened from onboarding. */
+export function subscribeFaceChosen(fn: (avatarId: string) => void): () => void {
+  chosenListeners.add(fn);
+  return () => {
+    chosenListeners.delete(fn);
+  };
+}
+
 /* WHO SAVES A FACE MADE FROM ONBOARDING. While an onboarding run is up and has not posted its
    profile yet, it does (the face goes in its draft and is saved with the rest). After that —
    the drawing landed once they were through, or the knock was opened the next day — nobody
@@ -181,10 +206,16 @@ function startJob(input: DrawInput, from: MakeFaceFrom): Job {
 /** DEV ONLY (src/app/dev/face-painting.tsx): a drawing under way that draws nothing and spends
     nothing — the page opens on "painting" with the knock card, and after `ms` the job ends as
     "unavailable" (no face, no banner). For trying what leaving mid-drawing does. */
-export function devStartPainting(from: MakeFaceFrom, ms: number): void {
+export function devStartPainting(from: MakeFaceFrom, ms: number, made = false): void {
   if (!__DEV__) return;
   const j: Job = { from, mode: "words", startedAt: Date.now(), answer: null, promise: Promise.resolve({ kind: "unavailable" }) };
-  j.promise = new Promise<FaceAnswer>((resolve) => setTimeout(() => resolve({ kind: "unavailable" }), ms)).then((answer) => {
+  j.promise = new Promise<FaceAnswer>((resolve) =>
+    setTimeout(() => {
+      // `made`: end on the newest face this phone already holds, as if it had just been drawn
+      const rec = made ? madeFacesNow().faces[0] : null;
+      resolve(rec ? { kind: "made", face: { id: rec.id, avatarId: rec.avatarId, url: null, path: rec.path, createdAt: rec.createdAt } } : { kind: "unavailable" });
+    }, ms),
+  ).then((answer) => {
     j.answer = answer;
     return answer;
   });
@@ -235,8 +266,9 @@ export type MakeFaceActions = {
 
 /** While Wren paints (owner's design, 2026-10-31): ask = the card offering a knock; watch = they
     chose to wait (with a way back to the ask); on = notifications allowed, Leave is the button;
-    off = iOS won't let us ask again, Leave is still there and the face waits in Edit profile. */
-export type KnockState = "ask" | "watch" | "on" | "off";
+    off = iOS won't let us ask again, Leave is still there and the face waits in Edit profile;
+    none = nothing to decide (onboarding, see ONBOARDING'S STRAIGHT LINE). */
+export type KnockState = "ask" | "watch" | "on" | "off" | "none";
 
 export type MakeFaceModel = {
   /** null until the phone's store is read (the page waits: no first screen flickers) */
@@ -286,9 +318,11 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
   // three to choose from (owner, 2026-10-31): the face is the first until another is picked
   const [choices, setChoices] = useState<FaceChoice[]>([]);
   const [choice, setChoice] = useState(0);
-  const [knockState, setKnockState] = useState<KnockState>("on");
+  const quiet = from === "onboarding" && PAINTS_QUIETLY;
+  const [knockState, setKnockState] = useState<KnockState>(quiet ? "none" : "on");
   // what iOS says now: allowed → on; never asked → the ask; refused for good → off
   useEffect(() => {
+    if (quiet) return;
     void Notifications.getPermissionsAsync()
       .then((p) => alive.current && setKnockState(p.status === "granted" ? "on" : p.canAskAgain ? "ask" : "off"))
       .catch((e) => console.log("[make-face] notification permission unreadable:", e));
@@ -525,13 +559,23 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
           }
           setChoices([]);
           await setMadeFaceWorn(result.avatarId);
-          if (!savedByOnboarding(from) && !guest) {
+          /* saved here unless an onboarding run will save it — a guest's too (owner's flow,
+             2026-11-11): the profile is kept on the phone with or without an account
+             (auth.saveProfile), and Edit profile shows the profile's face, so a guest who
+             pressed "This is me" used to come back to Edit profile with the old face on. */
+          if (!savedByOnboarding(from)) {
             const r = await auth.saveProfile({ avatarId: result.avatarId });
             if ("error" in r) console.warn("[make-face] the account didn't take the face (it stays on this phone):", r.error);
             // a worn photo gives way to the face, as choosing a portrait makes it
             void clearAvatarPhoto();
           }
-          if (alive.current) setScreen("done");
+          if (!alive.current) return;
+          /* "This is me" is the last tap (owner, 2026-11-11): the page closes on the place it
+             was opened from, which shows what happened — Edit profile with the new face on, or
+             onboarding's next screen (the run is told, and goes on wearing it). The done page
+             that used to follow asked for one more tap to say what the result page had said. */
+          close();
+          if (from === "onboarding") chosenListeners.forEach((fn) => fn(result.avatarId));
         })();
       },
       another: () => {
@@ -543,6 +587,7 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
         void setMadeFaceWorn(null);
         close();
       },
+      // the done page is no longer reached (see accept); its button still only closes
       done: close,
       retry: () => {
         if (last.current) run(last.current);
@@ -569,9 +614,10 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
           .then((ok) => {
             if (!alive.current) return;
             setKnockState(ok ? "on" : "off");
-            // onboarding: they asked for the knock, so they go straight on to the next screen
-            // (allowed or not: the banner still finds them in the app); from Me, Leave stays theirs
-            if (from === "onboarding") leave();
+            // they asked for the knock, so they go: no second tap on Leave (allowed or not, the
+            // banner still finds them in the app). From onboarding (an older binary: a newer one
+            // shows no card there) the run goes on to its next screen; from Me, back to Edit profile.
+            leave();
           })
           .catch((e) => {
             console.warn("[make-face] notifications:", e);

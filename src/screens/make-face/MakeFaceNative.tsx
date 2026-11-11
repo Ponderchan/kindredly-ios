@@ -162,7 +162,7 @@ type SurfaceProps = {
   quotaFace: KImageRefProps | null;
   choices: KImageRefProps[];
   choice: number;
-  knock: "ask" | "watch" | "on" | "off";
+  knock: "ask" | "watch" | "on" | "off" | "none";
   act: MakeFaceActions;
   /** Wren drawn by Swift ("facewren"); null: the island */
   wren: KWrenPictureData | null;

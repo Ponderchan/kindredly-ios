@@ -38,8 +38,12 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 ## Unreleased
 
-Onboarding, making your own face (owner's report, 2026-11-11) [JS: can go over the air]
-- On "Pick a face", after "Make yours": choosing "Knock when done" (or leaving while Wren paints) no longer drops you back on the grid of faces with nothing picked, which looked as if it had failed. Onboarding goes straight on to the next screen. When the face is done, Wren knocks — a banner over whatever onboarding screen you are on, or a notification if you have left the app — and the face you accept there becomes your face. If you had already finished onboarding by then, it is saved to your account directly.
+Making your own face: one straight line (owner, 2026-11-11) [binary for the quiet painting page; the rest is JS and can go over the air]
+- The flow is four steps with one thing to do at each: show Wren you (a photo, or a few words) → she paints (about twenty seconds) → pick the one you like of the three → "This is me". That is the last tap: there is no "done" page after it any more.
+- From onboarding: while she paints there is nothing to decide — no "Don't wait on me" card and no question about notifications (onboarding asks that once, at its own screen). After "This is me" you go straight on to the next onboarding screen wearing the face; you are no longer sent back to the grid of faces to press "This is me" a second time.
+- From Edit profile: after "This is me" the page closes on Edit profile with the new face on (a guest's too: it used to stay the old face until they signed in). The knock card stays here, where there is somewhere to go and wait, and "Knock when done" now leaves at once instead of asking for a second tap on Leave.
+- If you leave while she paints (from onboarding: on to the next screen), Wren knocks when the face is done — a banner while you are in the app, now during onboarding as well, or a notification if you have left it — and the face you accept there becomes your face. If onboarding was already over by then, it is saved to your account directly.
+- On an older binary (before 1.2.8) onboarding still shows the knock card; its "Knock when done" goes on to the next screen.
 
 The courier's planet (owner sign-off 2026-11-11; branch `courier-planet`, **not in 1.0.9**: it needs the binary after it; built and OFF) [switch: meplanet]
 - Me is laid out anew, with no Courier / Aura / Stamps switch: the planet is the page's cover, over the top of the page. Under it, your name, a pill with your gender mark (blue, or pink) and your star sign, two numbers (kindreds, notes), Edit and the gear. Then her card, your writing aura and your writing report side by side, and First Class.

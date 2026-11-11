@@ -133,7 +133,7 @@ export type KMakeFaceViewProps = CommonViewModifierProps &
     choices?: KImageRefProps[];
     choice?: number;
     /** while Wren paints: the knock offer (ask), waiting (watch), allowed (on), or not possible (off) */
-    knock?: "ask" | "watch" | "on" | "off";
+    knock?: "ask" | "watch" | "on" | "off" | "none";
     /** the chip groups (memoised, with a rev) */
     chips: KMakeFaceChipGroup[];
     genLines: string[];

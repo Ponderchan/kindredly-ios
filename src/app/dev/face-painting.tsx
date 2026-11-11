@@ -8,6 +8,9 @@ import { devStartPainting } from "../../screens/make-face/useMakeFaceModel";
 /* dev only — WREN PAINTING, WITHOUT A DRAWING (owner's report, 2026-11-11).
    kindredly:///dev/face-painting                 (from onboarding, painting for 60 s)
    kindredly:///dev/face-painting?from=me&s=20    (from Me, 20 s)
+   kindredly:///dev/face-painting?s=8&made=1      (ends on the newest face this phone already
+                                                   holds, as if just drawn: result, This is me,
+                                                   Continue — if the phone holds none, as above)
 
    Opens Make your own face on its "painting" screen, with the knock card, over whatever page is
    under this one: nothing is drawn and nothing is spent (useMakeFaceModel devStartPainting; the
@@ -17,12 +20,12 @@ import { devStartPainting } from "../../screens/make-face/useMakeFaceModel";
    switch (force it in /ui-lab). */
 export default function DevFacePainting() {
   const router = useRouter();
-  const { from, s } = useLocalSearchParams<{ from?: string; s?: string }>();
+  const { from, s, made } = useLocalSearchParams<{ from?: string; s?: string; made?: string }>();
   useEffect(() => {
     if (!__DEV__) return;
     const who = from === "me" ? "me" : asFrom("onboarding");
     const seconds = Math.max(5, Math.min(600, Number(s) || 60));
-    devStartPainting(who, seconds * 1000);
+    devStartPainting(who, seconds * 1000, made === "1");
     router.replace(makeFaceHref(who) as never);
     // once, on arrival
     // eslint-disable-next-line react-hooks/exhaustive-deps
