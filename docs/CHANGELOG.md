@@ -38,6 +38,9 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 ## Unreleased
 
+Onboarding, making your own face (owner's report, 2026-11-11) [JS: can go over the air]
+- On "Pick a face", after "Make yours": choosing "Knock when done" (or leaving while Wren paints) no longer drops you back on the grid of faces with nothing picked, which looked as if it had failed. Onboarding goes straight on to the next screen. When the face is done, Wren knocks — a banner over whatever onboarding screen you are on, or a notification if you have left the app — and the face you accept there becomes your face. If you had already finished onboarding by then, it is saved to your account directly.
+
 The courier's planet (owner sign-off 2026-11-11; branch `courier-planet`, **not in 1.0.9**: it needs the binary after it; built and OFF) [switch: meplanet]
 - Me is laid out anew, with no Courier / Aura / Stamps switch: the planet is the page's cover, over the top of the page. Under it, your name, a pill with your gender mark (blue, or pink) and your star sign, two numbers (kindreds, notes), Edit and the gear. Then her card, your writing aura and your writing report side by side, and First Class.
 - The cover is a small planet you can turn with a finger; it never turns by itself, and its sky follows the hour. Every letter she has carried is a stamp on it, every stranger who has had one on their desk is a lamp near it (lit after dark), and a letter someone answered is postmarked. Wren lives on it and you can see what she is doing: asleep on top at home, flying round it with your letter while nobody has answered, waiting on its shoulder at someone's door, back on top with the reply set down beside her, or racing through two gates on her day off.

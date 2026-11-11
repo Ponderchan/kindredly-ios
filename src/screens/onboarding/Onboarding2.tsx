@@ -8,6 +8,8 @@ import { useAuth } from "../../lib/auth";
 import { starterStamp } from "../../lib/hatch-engine";
 import { getLang, t, useLang } from "../../lib/i18n";
 import { isPronounId } from "../../lib/pronouns";
+import { useMadeFace, useMadeFaceAvatarId } from "../../lib/make-face";
+import { setOnboardingTakesFace, subscribeLeftPainting } from "../make-face/useMakeFaceModel";
 import { demoContext, demoOn, devConfig, seedDraftFor, takeDevStart, type DevStart } from "./dev";
 import * as block from "./device-block";
 import * as drafts from "./draft-store";
@@ -190,6 +192,8 @@ export function useObRun(): ObRun | null {
   const ctxRef = useRef<ObCtx | null>(ctx);
   ctxRef.current = ctx;
   const finishP = useRef<Promise<void>>(Promise.resolve());
+  /** the profile has been posted: a face accepted from now on is saved by the flow that made it */
+  const posted = useRef(false);
   const booted = useRef(false);
   const leaving = useRef(false);
 
@@ -217,6 +221,7 @@ export function useObRun(): ObRun | null {
               const c = ctxRef.current;
               if (!c) break;
               const payload = finishPayload(d, c, { lang: getLang(), suggestedStamp: starterStamp(null, d.letter) });
+              posted.current = true;
               finishP.current = services.finish(payload).catch((err) => console.warn("[onboarding] finish failed:", err));
               break;
             }
@@ -367,6 +372,35 @@ export function useObRun(): ObRun | null {
     const m = flowBack(r.draft, c, Date.now());
     if (m) apply(m);
   }, [apply]);
+
+  /* ── 5, A FACE BEING MADE (owner, 2026-11-11) ──
+     "Knock when done" (or leaving while Wren paints) used to land back on the grid of faces with
+     nothing picked, which read as a failure. The run goes on to the next screen instead, the
+     face to come (Later's move: no face yet). When the drawing lands the knock brings them to
+     it — the banner is mounted over the run (app/onboarding) — and the face they accept there
+     is this run's face, whatever screen they are on, as long as the profile is not posted yet;
+     after that the flow saves it to the account itself (useMakeFaceModel accept). */
+  useEffect(
+    () =>
+      subscribeLeftPainting(() => {
+        if (runRef.current?.draft.screen === "face") skip();
+      }),
+    [skip],
+  );
+  useEffect(() => {
+    setOnboardingTakesFace(() => !posted.current && !leaving.current);
+    return () => setOnboardingTakesFace(null);
+  }, []);
+  const made = useMadeFace();
+  const madeId = useMadeFaceAvatarId();
+  const madeWorn = made.state === "yours" && !!madeId;
+  const wasWorn = useRef(madeWorn);
+  useEffect(() => {
+    const r = runRef.current;
+    // on 5 itself the screen takes it (S05Face, OnboardingNative); here, any screen after it
+    if (madeWorn && !wasWorn.current && madeId && r && r.draft.screen !== "face" && !posted.current && r.draft.avatarId !== madeId) set({ avatarId: madeId, faceLater: false });
+    wasWorn.current = madeWorn;
+  }, [madeWorn, madeId, set]);
   const openSide = useCallback((side: SideId) => {
     const r = runRef.current;
     if (!r) return;

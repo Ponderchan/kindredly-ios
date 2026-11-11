@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { View } from "react-native";
+import { FaceReadyBanner } from "../components/FaceReadyBanner";
 import { LaunchFrame } from "../components/LaunchAnimation";
 import { NativeSurface } from "../components/NativeSurface";
 import { identityOn } from "../lib/identity";
@@ -51,13 +53,18 @@ export default function OnboardingRoute() {
   if (!which) return <LaunchFrame />;
   if (which === "old") return <LegacyOnboarding />;
   return (
-    <NativeSurface
-      surface="onboarding"
-      view="KOnboardingView"
-      mode="mount"
-      native={(host) => <OnboardingNative host={host} />}
-      fallback={() => <Onboarding2 />}
-      pending={() => <LaunchFrame />}
-    />
+    <View style={{ flex: 1 }}>
+      <NativeSurface
+        surface="onboarding"
+        view="KOnboardingView"
+        mode="mount"
+        native={(host) => <OnboardingNative host={host} />}
+        fallback={() => <Onboarding2 />}
+        pending={() => <LaunchFrame />}
+      />
+      {/* a face Wren finished after they went on from screen 5 ("Knock when done"): the same
+          knock the tabs give, over whatever screen of the run they are on */}
+      <FaceReadyBanner />
+    </View>
   );
 }

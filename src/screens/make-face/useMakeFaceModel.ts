@@ -83,6 +83,29 @@ export function devFaceReady(r: FaceReady): void {
   if (__DEV__) readyListeners.forEach((fn) => fn(r));
 }
 
+/* LEFT WHILE SHE PAINTS, FROM ONBOARDING (owner, 2026-11-11). Leaving the page mid-drawing used
+   to drop the reader back on onboarding's grid of faces with nothing picked, which reads as "it
+   didn't work". Now onboarding is told, and goes on to its next screen with the face to come
+   (screens/onboarding/Onboarding2 useObRun); the knock — the banner while they are still in the
+   app, the notification when they are not — brings them back to the result. */
+const leftListeners = new Set<() => void>();
+export function subscribeLeftPainting(fn: () => void): () => void {
+  leftListeners.add(fn);
+  return () => {
+    leftListeners.delete(fn);
+  };
+}
+
+/* WHO SAVES A FACE MADE FROM ONBOARDING. While an onboarding run is up and has not posted its
+   profile yet, it does (the face goes in its draft and is saved with the rest). After that —
+   the drawing landed once they were through, or the knock was opened the next day — nobody
+   would, so the flow saves it to the account itself, as it does from Me. The run says which. */
+let onboardingTakesFace: (() => boolean) | null = null;
+export function setOnboardingTakesFace(fn: (() => boolean) | null): void {
+  onboardingTakesFace = fn;
+}
+const savedByOnboarding = (from: MakeFaceFrom): boolean => from === "onboarding" && !!onboardingTakesFace && onboardingTakesFace();
+
 async function cancelKnock(): Promise<void> {
   try {
     await Notifications.cancelScheduledNotificationAsync(KNOCK_ID);
@@ -153,6 +176,19 @@ function startJob(input: DrawInput, from: MakeFaceFrom): Job {
   });
   job = j;
   return j;
+}
+
+/** DEV ONLY (src/app/dev/face-painting.tsx): a drawing under way that draws nothing and spends
+    nothing — the page opens on "painting" with the knock card, and after `ms` the job ends as
+    "unavailable" (no face, no banner). For trying what leaving mid-drawing does. */
+export function devStartPainting(from: MakeFaceFrom, ms: number): void {
+  if (!__DEV__) return;
+  const j: Job = { from, mode: "words", startedAt: Date.now(), answer: null, promise: Promise.resolve({ kind: "unavailable" }) };
+  j.promise = new Promise<FaceAnswer>((resolve) => setTimeout(() => resolve({ kind: "unavailable" }), ms)).then((answer) => {
+    j.answer = answer;
+    return answer;
+  });
+  job = j;
 }
 
 /* ── the photo files ───────────────────────────────────────────────────────────────────────── */
@@ -405,6 +441,13 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
     else router.replace("/(tabs)/me" as never);
   }, [router]);
 
+  // gone while she paints: from onboarding, on to its next screen (see LEFT WHILE SHE PAINTS)
+  const leave = useCallback(() => {
+    const painting = !!job && job.from === from && !job.answer;
+    close();
+    if (from === "onboarding" && painting) leftListeners.forEach((fn) => fn());
+  }, [close, from]);
+
   const result = useMemo(() => {
     const rec = resultId ? store.faces.find((f) => f.id === resultId) ?? null : null;
     return rec;
@@ -465,7 +508,7 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
         const words = cleanWords(text);
         if (words) run({ mode: "words", words });
       },
-      leave: close,
+      leave,
       accept: () => {
         if (!result) return;
         void (async () => {
@@ -482,7 +525,7 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
           }
           setChoices([]);
           await setMadeFaceWorn(result.avatarId);
-          if (from === "me" && !guest) {
+          if (!savedByOnboarding(from) && !guest) {
             const r = await auth.saveProfile({ avatarId: result.avatarId });
             if ("error" in r) console.warn("[make-face] the account didn't take the face (it stays on this phone):", r.error);
             // a worn photo gives way to the face, as choosing a portrait makes it
@@ -523,7 +566,13 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
       // comes with the reply knocks the rest of the app sends
       knockAllow: () => {
         void setNotifyOn(true)
-          .then((ok) => alive.current && setKnockState(ok ? "on" : "off"))
+          .then((ok) => {
+            if (!alive.current) return;
+            setKnockState(ok ? "on" : "off");
+            // onboarding: they asked for the knock, so they go straight on to the next screen
+            // (allowed or not: the banner still finds them in the app); from Me, Leave stays theirs
+            if (from === "onboarding") leave();
+          })
           .catch((e) => {
             console.warn("[make-face] notifications:", e);
             if (alive.current) setKnockState("off");
@@ -532,7 +581,7 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
       knockWatch: () => setKnockState("watch"),
       knockAsk: () => setKnockState("ask"),
     }),
-    [close, minor, pick, run, result, from, guest, auth, firstClass, reason, mode, router, signIn, choices, choice],
+    [close, leave, minor, pick, run, result, from, guest, auth, firstClass, reason, mode, router, signIn, choices, choice],
   );
 
   const quota: QuotaLine = firstClass ? "member" : madeFaceState(store, avatar) === "free" ? "free" : "used";
