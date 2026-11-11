@@ -48,6 +48,11 @@ import ExpoUI
  - myFace (batch 3, "myavatar"; Adapters/KLastIslandsView.swift): { on, kind, uri, key, overscan },
    your face as faces.ts resolves it; with `on`, Swift draws it (KMyFace, 72, square inside your
    stamp) where the "avatar" island was, and TS leaves the island empty.
+ - planet (2026-11-11, "meplanet"; Adapters/KMePlanetView.swift): the courier's planet. With `on`,
+   Me is one page under the same sticky header, with no segments — her card (the planet, her
+   words, four looks), the Aura and Stamps tiles, the report row, the First Class card — and the
+   "courier" island is not placed. The Aura tile's picture is `auraArt` (covering its strip, on
+   white); with `auraArt` off the tile has no picture.
 
  Commands (KCommandBus): scrollTo { key: "top", animated } (Me pressed again while showing), and
  segment { index }, which shows a card as its chip would and sends onMeSegment as a chip does, so
@@ -74,6 +79,11 @@ import ExpoUI
  - onMeStamps { action, id }   the Stamps card: make | fullCta | seeAll | album | stamp (id) | ready (id)
  - onMeFirstClass {}           the First Class card
  - onMeFcOpen { form }          a First Class rollout form (invite | seat | report | tab)
+ - onMeTrack {}                her card's round button (the planet page), with `planet` on
+ - onMePlanetTap { what, id }  a tap on her card's planet: wren | letter | stamp (its letter's id)
+   With `planet` on, onMeLook's id is a shelf look's ("dress:beanie", "skin:moss"), onMeCourier is
+   the bubble's Open / Play, onMeAuraOpen the Aura tile, onMeStamps { action: "album" } the Stamps
+   tile; onMeSegment is never sent.
 
  Unknown enum strings fall back rather than fail (a meter kind draws the ticks, a peek state the
  skeleton, a tone the quiet colour), as KTabBarView does. This file imports ExpoUI, whose public
@@ -482,6 +492,8 @@ final class KMeViewProps: KScreenProps {
   @Field var auraArt: KAuraArtRecord = KAuraArtRecord()
   /// batch 3 ("myavatar"): your face, drawn instead of the "avatar" island while `on`
   @Field var myFace: KMyFaceRecord = KMyFaceRecord()
+  /// the courier's planet ("meplanet", Adapters/KMePlanetView.swift): with `on`, Me is one page
+  @Field var planet: KMePlanetRecord = KMePlanetRecord()
 
   var onMeSettings = EventDispatcher()
   var onMeEdit = EventDispatcher()
@@ -503,6 +515,8 @@ final class KMeViewProps: KScreenProps {
   var onMeStamps = EventDispatcher()
   var onMeFirstClass = EventDispatcher()
   var onMeFcOpen = EventDispatcher()
+  var onMeTrack = EventDispatcher()
+  var onMePlanetTap = EventDispatcher()
 
   /// The scroll and segment requests: as long-lived as the view, like `commands`.
   let driver = KMeDriver()
@@ -530,6 +544,8 @@ final class KMeViewProps: KScreenProps {
     a.onStamps = { [weak self] action, id in self?.onMeStamps(["action": action, "id": id]) }
     a.onFirstClass = { [weak self] in self?.onMeFirstClass() }
     a.onFcOpen = { [weak self] form in self?.onMeFcOpen(["form": form]) }
+    a.onTrack = { [weak self] in self?.onMeTrack() }
+    a.onPlanetTap = { [weak self] what, id in self?.onMePlanetTap(["what": what, "id": id]) }
     return a
   }()
 
@@ -550,6 +566,7 @@ final class KMeViewProps: KScreenProps {
       c.stamps = stamps.stamps
       c.firstClass = firstClass.firstClass
       c.fc = fc.fc
+      c.planet = planet.planet
       return c
     }
   }
@@ -593,13 +610,22 @@ struct KMeView: ExpoSwiftUI.View {
         props.children?.kSlot("avatar")
       }
     } courier: {
-      if props.courierCard.on {
+      if props.planet.on {
+        // her card is KMePlanetCard: no frame, no island
+        SwiftUI.EmptyView()
+      } else if props.courierCard.on {
         KCourierCard(card: props.courierCard.model)
       } else {
         props.children?.kSlot("courier")
       }
     } auraArt: {
-      if props.auraArt.on {
+      if props.planet.on {
+        // the Aura tile's strip: the picture covering it, on white (the tile multiplies it onto
+        // its own colour); never the island, which is the card's size
+        if props.auraArt.on {
+          KAuraArt(theme: props.kTheme, art: props.auraArt.model, cover: true, ground: Color.white)
+        }
+      } else if props.auraArt.on {
         KAuraArt(theme: props.kTheme, art: props.auraArt.model)
       } else {
         props.children?.kSlot("auraArt")

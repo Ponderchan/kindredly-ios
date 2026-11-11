@@ -492,6 +492,12 @@ public class KindredlyUIModule: Module {
     // (Adapters/KObPiecesView.swift). New files: a pod install before the build.
     ExpoUIView(KObPiecesView.self)
 
+    // the courier's planet on Me (2026-11-11, docs/courier-planet.md), behind "meplanet" (off by
+    // default): KMeView draws it from its `planet` record; this view is only the binary's marker
+    // that it can (Adapters/KMePlanetView.swift; Portable/Planet, Portable/Me/KMePlanetCard.swift,
+    // Portable/Kit/KWrenBird.swift). New files: a pod install before the build.
+    ExpoUIView(KMePlanetView.self)
+
     // batch 3: slice 3 (2026-11-09), each behind its own switch (off by default) with its React
     // Native piece as the fallback: the empty Kindreds tab ("kindredsempty": Adapters/
     // KKindredsEmptyView.swift, Portable/Kindreds/KKindredsEmpty.swift), the wardrobe slip's sheet

@@ -232,6 +232,8 @@ export const KSCREEN_VIEWS = [
   // ("couriercard") and the Aura card's picture ("auraart"), drawn inside KMeView and KAuraRoomView
   "KCourierCardView",
   "KAuraArtView",
+  // the courier's planet on Me (2026-11-11): the binary's marker that KMeView draws its `planet` record
+  "KMePlanetView",
 ] as const;
 
 export type KScreenViewName = (typeof KSCREEN_VIEWS)[number];

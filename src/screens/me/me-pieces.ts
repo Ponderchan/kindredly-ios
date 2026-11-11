@@ -2,6 +2,7 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 import { AppState } from "react-native";
 import { isKindredlyUIViewAvailable } from "../../../modules/kindredly-ui/src/available";
 import type { KAuraArtData, KCourierCardData } from "../../../modules/kindredly-ui/src/MePieces";
+import { ME_PLANET_VIEW, type KMePlanetData, type KWrenLookData } from "../../../modules/kindredly-ui/src/Planet";
 import { armNative, clearNative, disarmNative, useNativeSurface } from "../../lib/surfaces";
 import { useBirdImageRefs } from "../../lib/bird-images";
 import { useAssetImageRef, type ImageRefRecord } from "../../lib/images";
@@ -14,7 +15,10 @@ import { AURA_ART_HAS } from "../../components/AuraCard";
 import { courierCardModel, daylight, type CourierCardModel } from "../../components/courier-card-model";
 import { auraArtPlan, nativeDeskPaint, scenePalette, type AuraArtPlan } from "../../components/aura-art-model";
 import { auraSlotPalette, type AuraCardVM, type SlotTokens } from "./me-model";
-import type { MeCourier } from "./useMeModel";
+import { buildMePlanet, type MePlanetVM, type PlanetStampsSource } from "./planet-model";
+import { useWrenStage } from "../../lib/wren-stage";
+import type { HatchlingForm } from "../../lib/hatchling-form";
+import type { MeCourier, MeModel } from "./useMeModel";
 
 /* TWO PIECES OF ME IN SWIFTUI (2026-10-27): the courier's card and the Aura card's picture, which
    are React Native islands inside the Swift Me tab (MeNative) and the Swift aura room (AuraNative).
@@ -40,13 +44,15 @@ import type { MeCourier } from "./useMeModel";
 /* batch 3 (2026-11-09): the same gate for two pieces drawn inside other Swift pages — the revealed
    chat header (KConversationView, "chatheader") and the crossing in the reader (KLetterReaderView,
    "inflight") — each with its marker view (modules/kindredly-ui/src/FourPieces.tsx) */
-export type MePieceKey = "couriercard" | "auraart" | "chatheader" | "inflight" | "freeflight"; // Free Flight (app/courier) uses this gate too
+export type MePieceKey = "couriercard" | "auraart" | "chatheader" | "inflight" | "freeflight" | "meplanet"; // Free Flight (app/courier) uses this gate too
 const PIECE_VIEW: Record<MePieceKey, string> = {
   couriercard: "KCourierCardView",
   auraart: "KAuraArtView",
   chatheader: "KChatHeaderView",
   inflight: "KLetterInFlightView",
   freeflight: "KFreeFlightView",
+  // the courier's planet on Me (2026-11-11, docs/courier-planet.md): KMeView's `planet` record
+  meplanet: ME_PLANET_VIEW,
 };
 
 /* ── the gate ──────────────────────────────────────────────────────────── */
@@ -205,6 +211,76 @@ export function courierCardData(model: CourierCardModel, bird: ImageRefRecord | 
   };
 }
 
+/* ── the courier's planet (2026-11-11, docs/courier-planet.md) ─────────── */
+
+/**
+ * Her card and the tiles under it for KMeView's `planet`, or null to keep the page of segments
+ * ("meplanet", off by default; the same gate as the pieces above). The words and the rules are
+ * planet-model's (pure, tested); the card's own words are the courier card's (courierModelOf),
+ * so the two never say different things about where she is. She is drawn by Swift from the
+ * family's data: what goes over is how she looks (her colour, her stage, what she wears, the
+ * hatchling's proportions and birthmark), never a picture of her.
+ * @param stamps the Stamps card's record (useStampCollection().card): the tile reads it
+ * @param live the planet's clock may run (the tab is focused)
+ */
+export function useMePlanetData(model: MeModel, stamps: PlanetStampsSource, { live }: { live: boolean }): KMePlanetData | null {
+  const on = useSwiftPiece("meplanet", true);
+  useLang(); // the words are the reader's language's: re-written when it changes
+  const stage = useWrenStage();
+  const data = on ? mePlanetData(mePlanetOf(model, stamps), courierModelOf(model.courier).palette, { form: stage.form, mark: stage.mark }, live) : null;
+  return useSameContent(data);
+}
+
+/** The planet's view model for Me's model, in the reader's language. */
+export function mePlanetOf(model: MeModel, stamps: PlanetStampsSource, hour?: number): MePlanetVM {
+  const { courier } = model;
+  return buildMePlanet(
+    {
+      courier: courierModelOf(courier, hour),
+      where: courier.where.state,
+      dayOff: courier.dayOff,
+      a11y: model.view.courierA11y,
+      letters: model.planet.letters,
+      shelf: model.planet.shelf,
+      stamps,
+      stage: courier.stage,
+      wilt: !!courier.hunger?.wilt,
+    },
+    { t, upper: (s) => s.toLocaleUpperCase(), wren: courier.wren },
+  );
+}
+
+/** The Swift record for a planet view model, the hour's sky and the hatchling's own shape. */
+export function mePlanetData(vm: MePlanetVM, palette: CourierCardModel["palette"], own: { form: HatchlingForm | null; mark: string | null }, live: boolean): KMePlanetData {
+  // the hatchling's proportions and her birthmark are hers at the hatch stage only (WrenBird)
+  const hatch = vm.look.stage === "hatch";
+  const look: KWrenLookData = { skin: vm.look.skin, stage: vm.look.stage, accessory: vm.look.dress, wilt: vm.look.wilt, form: hatch ? own.form : null, mark: hatch ? own.mark : null };
+  return {
+    on: true,
+    live,
+    palette,
+    letters: vm.letters,
+    state: vm.state,
+    napping: vm.napping,
+    look,
+    chip: vm.chip,
+    hint: vm.hint,
+    name: vm.name,
+    time: vm.time,
+    line: vm.line,
+    aside: vm.aside,
+    cta: vm.cta,
+    track: vm.track,
+    a11y: vm.a11y,
+    // the shelf shows her grown, each look pinned, as WREN'S LOOKS always has
+    shelf: vm.shelf.map((s) => ({ id: s.id, name: s.name, look: { skin: s.skin, stage: "wren", accessory: s.dress }, worn: s.worn, firstClass: s.firstClass, dim: s.dim, a11y: s.a11y, hint: s.hint })),
+    allLooks: vm.allLooks,
+    allLooksHint: vm.allLooksHint,
+    stamps: vm.stamps,
+    auraHint: vm.auraHint,
+  };
+}
+
 /* ── the Aura card's picture ───────────────────────────────────────────── */
 
 /**
@@ -214,13 +290,18 @@ export function courierCardData(model: CourierCardModel, bird: ImageRefRecord | 
  * @param art the card's art (me-model buildAuraCard), null while there is no card
  * @param showing the card is on show
  */
-export function useAuraArtData(art: AuraCardVM["art"] | null, showing: boolean): KAuraArtData | null {
+export function useAuraArtData(art: AuraCardVM["art"] | null, showing: boolean, o: { tile?: boolean } = {}): KAuraArtData | null {
   const on = useSwiftPiece("auraart", showing && !!art);
   const { t: tk, dark } = useTheme();
-  const plan = on && art ? auraArtPlan(art, AURA_ART_HAS, dark) : null;
+  // Me's Aura tile under the courier's planet (o.tile) is the same colour in every theme, and
+  // the picture is multiplied onto it: the light plan, and the desk's strokes on white
+  const plan = on && art ? auraArtPlan(art, AURA_ART_HAS, o.tile ? false : dark) : null;
   const image = useAssetImageRef(auraPictureModule(plan));
-  return useSameContent(plan && art ? auraArtData(art, plan, image, tk, dark) : null);
+  return useSameContent(plan && art ? auraArtData(art, plan, image, o.tile ? TILE_TOKENS : tk, o.tile ? false : dark) : null);
 }
+
+/* the Aura tile's slot: white ground, the fixed dark ink the tile's words use */
+const TILE_TOKENS: SlotTokens = { soft2: "#FFFFFF", ink: "#1E1B35", sub: "#55506E", ind: "#3A34D6", sf: "#FFFFFF" };
 
 /** The bundled file of a plan's picture (null for the desk). */
 export function auraPictureModule(plan: AuraArtPlan | null): number | null {

@@ -15,6 +15,9 @@ import SwiftUI
      each half opening its peek tray.
    the peek tray, 10 lower, when one is open (KMePeekTray).
    the segmented control (Courier, Aura, Stamps), 20 lower and 2 above the page (KMeSegmented).
+   (2026-11-11) With the courier's planet (content.planet) there is no segmented control: the
+     page is one page, and the header ends 6 under row 1 (2 collapsed). It stays sticky and
+     collapses exactly as before.
 
  COLLAPSING, k = clamp(scroll / 40, 0, 1), every value linear in k as 4a's build() has it: row 1
  76→52, the avatar 72→36, the name 22→17, the gap under it 8→0, the joined line's height 22→0
@@ -94,6 +97,9 @@ struct KMeHeaderBody<Avatar: View>: View {
   // the segmented control has no shadow to make room for; with the page's 12 this puts it 14 over the card,
   // nearer the card it switches than the stat buttons (20 above) — owner, 10-20
   static var chipsBottom: CGFloat { 2 }
+  /// the room under row 1 when the page has no segments (the courier's planet): with the page's
+  /// 12 her card sits 18 under the profile, 14 under the collapsed header
+  static var planetFoot: (open: CGFloat, shut: CGFloat) { (6, 2) }
   static var peekMargin: CGFloat { 10 }
   /// the scroll past which an open peek closes by itself
   static var peekCloseAt: CGFloat { 24 }
@@ -111,8 +117,12 @@ struct KMeHeaderBody<Avatar: View>: View {
     let peekRoom = peek != nil && peekHeight > 0 ? Self.peekMargin + peekHeight : 0
     // (owner, 2026-10-20) no row 2: the counts are a line under the name, so the tabs are the one
     // control row under the profile
-    let expanded = Self.topPad + row1Open + peekRoom + Self.chipsTop.open + chipsHeight + Self.chipsBottom
-    let shut = Self.topPad + row1Shut + peekRoom + Self.chipsTop.shut + chipsHeight + Self.chipsBottom
+    // (2026-11-11) with the courier's planet the page has no segments: the header ends under row 1
+    let foot: (open: CGFloat, shut: CGFloat) = content.planet == nil
+      ? (Self.chipsTop.open + chipsHeight + Self.chipsBottom, Self.chipsTop.shut + chipsHeight + Self.chipsBottom)
+      : (Self.planetFoot.open, Self.planetFoot.shut)
+    let expanded = Self.topPad + row1Open + peekRoom + foot.open
+    let shut = Self.topPad + row1Shut + peekRoom + foot.shut
     return KMeHeaderMetrics(expanded: expanded, delta: max(0, expanded - shut))
   }
 
@@ -129,9 +139,13 @@ struct KMeHeaderBody<Avatar: View>: View {
           }
           .transition(reduceMotion ? .identity : .opacity.combined(with: .move(edge: .top)))
       }
-      chips
-        .padding(.top, Self.lerp(Self.chipsTop.open, Self.chipsTop.shut, k))
-        .padding(.bottom, Self.chipsBottom)
+      if content.planet == nil {
+        chips
+          .padding(.top, Self.lerp(Self.chipsTop.open, Self.chipsTop.shut, k))
+          .padding(.bottom, Self.chipsBottom)
+      } else {
+        Color.clear.frame(height: Self.lerp(Self.planetFoot.open, Self.planetFoot.shut, k))
+      }
     }
     .padding(.top, Self.topPad)
     .padding(.horizontal, Self.side)

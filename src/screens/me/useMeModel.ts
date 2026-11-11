@@ -9,7 +9,7 @@ import { useEntitlement } from "../../lib/entitlement";
 import { useWrenName } from "../../lib/wren-name";
 import { useWrenSkinControl } from "../../lib/wren-skin";
 import { getAvatarPhoto } from "../../lib/avatar-photo";
-import { bumpStageFloor, getStageFloor, loadHatchSkin, skinUnlocked, stageIndex, wrenStage } from "../../lib/wren-style";
+import { bumpStageFloor, getStageFloor, loadHatchSkin, skinUnlocked, stageIndex, useHatchSkin, wrenStage } from "../../lib/wren-style";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { fetchMyWriting, myAura, readAuraCache, readUsedStamps, recordAuraSnapshot, type Aura, type UsedStamp, type WritingRow } from "../../lib/aura";
 import { observeAuraLocks, replanLocal } from "../../lib/local-push";
@@ -37,7 +37,9 @@ import { trialLabel } from "../paywall/paywall-model";
 import { buildLetterCards } from "../letters/letters-model";
 import "../../data/strings-step5-me";
 import "../../data/strings-me4a";
+import "../../data/strings-planet";
 import { meFormat } from "./me-format";
+import { planetLetters, shelfTap, shelfWeek, type PlanetLetterVM, type ShelfFacts } from "./planet-model";
 import { useSeason } from "../../lib/season";
 import {
   ME4A_ROUTES,
@@ -143,6 +145,12 @@ export type MeActions = {
   allLooks: () => void;
   /** the report door: the report, or First Class when locked */
   report: () => void;
+  /* the courier's planet (the Swift Me with "meplanet" on; screens/me/planet-model) */
+  /** a look on her card's shelf ("dress:beanie", "skin:moss"): she wears it, or it comes off;
+      First Class for a paid look the reader hasn't got; her wardrobe for Moss before a kindred */
+  shelfLook: (id: string) => void;
+  /** her card's round button: the planet page */
+  track: () => void;
 };
 
 export type MeModel = {
@@ -163,7 +171,17 @@ export type MeModel = {
   act: MeActions;
   /** First Class by the day: the form, its words, and its tap */
   fc: ReturnType<typeof useFcRollout>;
+  /** what the courier's planet is drawn from (screens/me/planet-model): the letters behind the
+      stamps, newest first, and what the shelf's four are chosen from */
+  planet: { letters: PlanetLetterVM[]; shelf: ShelfFacts };
 };
+
+/* where the planet's taps go. `track` is the planet page (docs/courier-planet.md, phase 5); until
+   it exists the round button opens her page, where Track is today */
+const ME_PLANET_ROUTES = {
+  track: "/courier",
+  looksPaywall: "/paywall?src=me_looks",
+} as const;
 
 /* the segment lasts while the app is open; a fresh launch opens Courier */
 const session = { segment: 0 };
@@ -465,6 +483,23 @@ export function useMeModel(): MeModel {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handle, user?.created_at, cofounderNo, writing, aura, statsIn, stats.kindreds, threads, threadsIn, book, accessory, premium, wren, seasonLooks, trial, report, lang, hexOf]);
 
+  /* THE COURIER'S PLANET (docs/courier-planet.md): the letters behind its stamps and what the
+     shelf's four looks are chosen from. Cheap and pure, so it is kept whether or not the
+     planet is on (MeNative asks the switch). The week is read when the page's facts change:
+     a shelf that turned over at midnight shows on the next visit, not mid-scroll. */
+  const hatchSkin = useHatchSkin();
+  const planet = useMemo(() => {
+    const fmt = meFormat();
+    const cards = writing ? buildLetterCards(writing, threads, []) : null;
+    const letters = planetLetters(cards, aura ? aura.sources.letters : null, { day: (iso) => fmt.upper(fmt.dateShort(iso)), hexOf });
+    const shelf: ShelfFacts = { skin, dress: accessory, premium, kindreds: statsIn ? stats.kindreds : null, hatchSkin, season: seasonLooks, week: shelfWeek(Date.now()) };
+    return { letters, shelf };
+    // lang: the days are written in the reader's language
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [writing, threads, aura, hexOf, skin, accessory, premium, statsIn, stats.kindreds, hatchSkin, seasonLooks, lang]);
+  const shelfRef = useRef(planet.shelf);
+  shelfRef.current = planet.shelf;
+
   const ctaTo = view.aura?.ctaTo ?? "compose";
   const dayOffRef = useRef(dayOff);
   dayOffRef.current = dayOff;
@@ -508,8 +543,17 @@ export function useMeModel(): MeModel {
         doorOpened.current = true;
         router.push(href);
       },
+      shelfLook: (id) => {
+        const tap = shelfTap(id, shelfRef.current);
+        if (!tap) return;
+        if (tap.do === "dress") dress(tap.value);
+        else if (tap.do === "skin") pick(tap.value);
+        else if (tap.do === "firstClass") router.push(ME_PLANET_ROUTES.looksPaywall);
+        else router.push(ME4A_ROUTES.courier);
+      },
+      track: () => router.push(ME_PLANET_ROUTES.track),
     }),
-    [router, dress],
+    [router, dress, pick],
   );
 
   /* First Class by the day (the owner's rollout, 2026-10-20; lib/fc-rollout): which form the page
@@ -532,5 +576,5 @@ export function useMeModel(): MeModel {
   const avatar = useMemo(() => ({ id: avatarId, photo, seed }), [avatarId, photo, seed]);
   const scroll = useMemo(() => ({ serial: scrollSerial }), [scrollSerial]);
 
-  return { view, me4a, segment, courier, aura, avatar, kindreds: stats.kindreds, scroll, act, fc };
+  return { view, me4a, segment, courier, aura, avatar, kindreds: stats.kindreds, scroll, act, fc, planet };
 }

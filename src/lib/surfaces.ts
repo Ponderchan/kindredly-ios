@@ -315,7 +315,18 @@ import {
 
      threadmute   Mute / Unmute above Report and Block in a conversation's
                   and a kindred page's ⋯, and the bell.slash beside a muted
-                  name in the conversation header (lib/thread-mute) */
+                  name in the conversation header (lib/thread-mute)
+
+   The courier's planet (owner sign-off 2026-11-11, docs/courier-planet.md): a
+   redesign of the Me tab, not a port, kept here the way the pieces of Me
+   are (screens/me/me-pieces: the switch, the binary's marker view, the crash
+   strikes). OFF until it has been checked on a phone; off, Me is the page
+   of segments exactly as it was:
+
+     meplanet     Me as one page: her card (a small whole planet she lives
+                  on, her words, four looks), the Aura and Stamps tiles,
+                  the report row — KMeView's `planet` record; Wren and the
+                  planet are drawn by Swift (KWrenBird, Portable/Planet) */
 export const NATIVE_DEFAULTS: Record<string, boolean> = {
   tabbar: true,
   room: true,
@@ -419,10 +430,12 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   reportwrapped: false,
   // mute a correspondence (owner's audit, 2026-11-10): OFF until thread_mutes exists and the push sender reads it
   threadmute: false,
+  // the courier's planet on Me (owner sign-off 2026-11-11): OFF until its device pass
+  meplanet: false,
 };
 
 /** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages, a kindred's page, Wren's room, the five small pages and three Notes pages (the `surface` prop of NativeSurface) */
-export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "kindredpage" | "wrenroom" | "report" | "voice" | "drafts" | "stampbook" | "lore" | "noteentry" | "noteday" | "photoroll" | "introritual" | "lightbox" | "songshelf" | "signsheet" | "leavesheet" | "reportsheet" | "signupsheet" | "toast" | "letterreader" | "wardrobeslip" | "parcel" | "growthmoment" | "identitynote" | "firstflight" | "recorder" | "audiocard" | "lettertravel" | "couriercard" | "auraart" | "reportwrapped" | "launch" | "authcallback" | "hatch" | "obchick" | "obroutebird" | "obflight" | "kindredsempty" | "wardrobesheet" | "plush" | "composewren" | "notewren" | "facewren" | "myavatar" | "faceready" | "ratingsheet" | "fcreceipt" | "chatheader" | "inflight" | "notevoice" | "notefilm" | "frameviewer" | "postmedia" | "reels" | "freeflight";
+export type NativeSurfaceKey = "room" | "chat" | "kindreds" | "today" | "compose" | "me" | "settings" | "editprofile" | "notes" | "paywall" | "myletters" | "reader" | "journalentry" | "ceremony" | "aura" | "auracard" | "courier" | "onboarding" | "keepsakes" | "keepsake" | "mykindreds" | "editfield" | "blocked" | "help" | "writetous" | "kindredpage" | "wrenroom" | "report" | "voice" | "drafts" | "stampbook" | "lore" | "noteentry" | "noteday" | "photoroll" | "introritual" | "lightbox" | "songshelf" | "signsheet" | "leavesheet" | "reportsheet" | "signupsheet" | "toast" | "letterreader" | "wardrobeslip" | "parcel" | "growthmoment" | "identitynote" | "firstflight" | "recorder" | "audiocard" | "lettertravel" | "couriercard" | "auraart" | "reportwrapped" | "launch" | "authcallback" | "hatch" | "obchick" | "obroutebird" | "obflight" | "kindredsempty" | "wardrobesheet" | "plush" | "composewren" | "notewren" | "facewren" | "myavatar" | "faceready" | "ratingsheet" | "fcreceipt" | "chatheader" | "inflight" | "notevoice" | "notefilm" | "frameviewer" | "postmedia" | "reels" | "freeflight" | "meplanet";
 
 /* the Expo module that draws the Swift screens (modules/kindredly-ui).
    Absent on every binary built before it existed. */

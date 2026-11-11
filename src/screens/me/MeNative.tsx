@@ -31,7 +31,7 @@ import { stampSpoken, useMemberStamps, useMyStamp } from "../../lib/member-marks
 import { FIRST_CLASS_SEGMENT, type AuraCardVM, type LookPose, type LookTileId, type Me4aView, type MeView } from "./me-model";
 import type { MeModel } from "./useMeModel";
 import { useStampCollection } from "./useStampCollection";
-import { useAuraArtData, useCourierCardData } from "./me-pieces";
+import { useAuraArtData, useCourierCardData, useMePlanetData } from "./me-pieces";
 import { useMyFace } from "../../lib/my-face";
 
 /* THE ME TAB IN SWIFTUI (4a, 2026-10-19): one Host for the whole screen
@@ -66,7 +66,15 @@ import { useMyFace } from "../../lib/my-face";
      "couriercard" and "auraart", off by default): then the record goes to KMeView and the island
      stays in its place, empty;
    - so can your face (batch 3, "myavatar", off by default; lib/my-face): KMeView's `myFace`,
-     drawn by Swift at the island's 72 (square inside your stamp), the island left empty. */
+     drawn by Swift at the island's 72 (square inside your stamp), the island left empty;
+   - THE COURIER'S PLANET (2026-11-11, docs/courier-planet.md; "meplanet", off by default;
+     me-pieces useMePlanetData): KMeView's `planet`. With it Me is one page with no segments:
+     her card (the planet she lives on, her words, four looks), the Aura and Stamps tiles, the
+     report row. The courier island and card are then never filled (nothing of the old card
+     runs), the Aura tile's picture is Swift's (`auraArt`, on white), a look reports its shelf
+     id (act.shelfLook: wear it, take it off, First Class, or her wardrobe), "All looks →"
+     opens her wardrobe for everyone, and the round button is act.track. Off, nothing here
+     changes. */
 
 /** The same value back while its content is the same (JSON), so a rebuilt but unchanged record
     keeps its identity and isn't re-sent to Swift. */
@@ -263,17 +271,26 @@ export function MeNative({ model }: { model: MeModel }) {
   void _cs;
   const fcSent = useSameContent<KMeFcRollout>(fcRecord);
   const fcOpen = fc.open;
-  const rev = useRev(strings, profile, peekLetters, peekKindreds, looks, auraRec, report, stamps, firstClass, fcSent);
+  // the courier's planet, when "meplanet" is on (null: the page of segments, as before); its
+  // clock runs only while the tab is focused. Kept by content like the records above, and in
+  // the rev with them: Swift converts it with the page's content
+  const focused = useIsFocused();
+  const planet = useMePlanetData(model, collection.card, { live: focused });
+  const onPlanet = !!planet;
+  const rev = useRev(strings, profile, peekLetters, peekKindreds, looks, auraRec, report, stamps, firstClass, fcSent, planet);
 
   // a free reader's First Class look and "All looks →": the First Class segment, shown as its
-  // chip would (Swift reports it back through onSegment); a member's: her wardrobe
+  // chip would (Swift reports it back through onSegment); a member's: her wardrobe.
+  // With the planet there are no segments: a shelf look reports its own id (act.shelfLook
+  // decides), and "All looks →" is her wardrobe for everyone (it explains its own locks)
   const member = me4a.looks.member;
   const toFirstClass = () => commands.send("segment", { index: FIRST_CLASS_SEGMENT });
-  const onLook = (id: LookTileId) => {
-    if (id === "fc" && !member) toFirstClass();
-    else act.look(id);
+  const onLook = (id: string) => {
+    if (onPlanet) act.shelfLook(id);
+    else if (id === "fc" && !member) toFirstClass();
+    else act.look(id as LookTileId);
   };
-  const onAllLooks = () => (member ? act.allLooks() : toFirstClass());
+  const onAllLooks = () => (onPlanet || member ? act.allLooks() : toFirstClass());
 
   // the segment the view opens on: the session's, read once (Swift owns it after)
   const initialSegment = useRef(segment).current;
@@ -281,11 +298,11 @@ export function MeNative({ model }: { model: MeModel }) {
   const artW = auraArtWidth(width - GUTTER * 2);
 
   // the courier's card and the Aura card's picture in Swift, when their switches are on (null:
-  // the island, as before); the card's loops run only while the tab is focused
-  const focused = useIsFocused();
-  const showsAura = segment === 1 && !!view.aura && !!aura;
-  const courierCard = useCourierCardData(courier, { showing: segment === 0, live: focused });
-  const auraArt = useAuraArtData(showsAura && view.aura ? view.aura.art : null, showsAura);
+  // the island, as before); the card's loops run only while the tab is focused. With the planet
+  // the old card never shows, and the Aura picture is the tile's (always on show, on white)
+  const showsAura = onPlanet ? !!view.aura && !!aura : segment === 1 && !!view.aura && !!aura;
+  const courierCard = useCourierCardData(courier, { showing: !onPlanet && segment === 0, live: focused });
+  const auraArt = useAuraArtData(showsAura && view.aura ? view.aura.art : null, showsAura, { tile: onPlanet });
   // your face in Swift, when "myavatar" is on (null: the island, as before); armed once Me is seen
   const myFace = useMyFace(avatar, focused);
 
@@ -331,6 +348,8 @@ export function MeNative({ model }: { model: MeModel }) {
         courierCard={courierCard}
         auraArt={auraArt}
         myFace={myFace}
+        planet={planet}
+        onTrack={act.track}
       >
         <KIsland name="avatar" style={{ width: AVATAR, height: AVATAR }}>
           {/* stamped (C2), the island is drawn square: Swift scales it to the stamp's inner side
@@ -338,7 +357,7 @@ export function MeNative({ model }: { model: MeModel }) {
           {myFace ? null : <AvatarImage id={avatar.id} photoUri={avatar.photo} seed={avatar.seed} size={AVATAR} radius={myStamp ? 3.3 : undefined} />}
         </KIsland>
         <KIsland name="courier" style={{ width: courierW, height: COURIER_H }}>
-          {segment === 0 && !courierCard ? (
+          {segment === 0 && !courierCard && !onPlanet ? (
             <CourierCard
               framed
               width={courierW}
@@ -358,7 +377,7 @@ export function MeNative({ model }: { model: MeModel }) {
           ) : null}
         </KIsland>
         <KIsland name="auraArt" style={{ width: artW, height: AURA_ART_H }}>
-          {showsAura && view.aura && !auraArt ? <AuraArtSlot art={view.aura.art} width={artW} /> : null}
+          {showsAura && view.aura && !auraArt && !onPlanet ? <AuraArtSlot art={view.aura.art} width={artW} /> : null}
         </KIsland>
       </KMeView>
     </SurfaceHost>

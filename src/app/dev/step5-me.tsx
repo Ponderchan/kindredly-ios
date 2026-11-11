@@ -9,7 +9,9 @@ import { t, useLang } from "../../lib/i18n";
 import { PFM } from "../../theme/post";
 import { THEME_KEYS, THEMES, type ThemeKey } from "../../theme/themes";
 import { storeAura } from "../../lib/dev-store";
-import { whereabouts } from "../../lib/whereabouts";
+import { whereabouts, type Whereabouts } from "../../lib/whereabouts";
+import { devSurfaceOverride, setDevSurfaceOverride, useNativeSurface } from "../../lib/surfaces";
+import { planetLetters, shelfTap, shelfWeek, type PlanetLetterSource, type PlanetSkin, type ShelfFacts } from "../../screens/me/planet-model";
 import { flightLog } from "../../lib/flight-log";
 import { useWhoBook } from "../../lib/who";
 import type { Aura } from "../../lib/aura";
@@ -27,6 +29,7 @@ import { MeNative } from "../../screens/me/MeNative";
 import { MeRN } from "../../screens/me/MeRN";
 import "../../data/strings-step5-me";
 import "../../data/strings-me4a";
+import "../../data/strings-planet";
 
 /* dev only — THE ME TAB ON DEMO DATA (10a step 5, slice me).
    kindredly:///dev/step5-me
@@ -63,6 +66,14 @@ import "../../data/strings-me4a";
      DAYS FREE" on the First Class card). The looks here are the page's own
      state: a tile never dresses the real Wren (so the courier island keeps
      her real look).
+   - THE COURIER'S PLANET (docs/courier-planet.md; the Swift Me only, a dev client built with
+     KMePlanetView): PLANET turns the "meplanet" switch on for this session (lib/surfaces dev
+     override; off again with a second tap). Then WHERE puts her somewhere (AUTO = what the demo
+     threads say; UNSENT, HOME, EXPLORING = on the way, DELIVERY = waiting at their door,
+     BRINGING = back with a reply; DAY OFF above is her day off), SKIN is the colour she wears,
+     LOOK what she has on, WEEK steps the shelf's week (the four turn over), LETTERS how many
+     stamps (their lamps and postmarks are the fixtures'), KIN whether Moss is hers, FC whether
+     the paid looks are. A shelf look dresses the page's own Wren, never the real one.
    Everything that would leave the page says where it would go instead.
    The panel's words are English: a dev page. */
 
@@ -73,7 +84,9 @@ type DoorMode = "none" | "progress" | "ready" | "locked" | "done";
 const DOOR_MODES: readonly DoorMode[] = ["none", "progress", "ready", "locked", "done"];
 const LETTER_COUNTS = [null, 0, 2, 10] as const;
 const KIN_MODES = [null, 0, 3] as const;
-const LOOKS = ["none", "beanie", "scarf", "phones", "witch", "ghost"] as const;
+const LOOKS = ["none", "beanie", "scarf", "phones", "flower", "party", "shades", "witch", "ghost"] as const;
+const SKINS: readonly PlanetSkin[] = ["sticker", "moss", "peach", "ink", "plush"];
+const WHERES = ["auto", "unsent", "home", "exploring", "delivery", "bringing"] as const;
 
 /* the letters peek's fixtures: ten letters, newest first, quiet / answered / replied */
 const LETTER_BODIES = [
@@ -98,6 +111,10 @@ function demoLetters(n: number): PeekLetterSource[] {
     body,
     status: i % 3 === 0 ? { kind: "replied" as const, who: "Luna", more: i === 0 ? 1 : 0, face: null } : i % 3 === 1 ? { kind: "answered" as const, n: 2 } : { kind: "quiet" as const },
   }));
+}
+/* the planet's letters: the same ten, with the strangers who read each (lamps) and who answered (postmarks) */
+function demoPlanetLetters(n: number): PlanetLetterSource[] {
+  return demoLetters(n).map((l, i) => ({ kind: "letter" as const, id: l.id, date: l.date, stamp: l.stamp, reads: (i * 5 + 2) % 9, answers: i % 3 === 2 ? [] : [{}] }));
 }
 const demoDoor = (m: DoorMode): ReportDoor | null =>
   m === "progress" ? { state: "progress", have: 4, need: 10 } : m === "ready" ? { state: "ready", kind: "first" } : m === "locked" ? { state: "locked" } : m === "done" ? { state: "done", nextMonth: firstOfNextMonth() } : null;
@@ -178,6 +195,11 @@ function MeLab() {
   const [look, setLook] = useState<(typeof LOOKS)[number]>("none");
   const [door, setDoor] = useState<DoorMode>("ready");
   const [trial, setTrial] = useState(false);
+  // the courier's planet: the switch (this session only), where she is, her colour, the shelf's week
+  const planetOn = useNativeSurface("meplanet");
+  const [whereMode, setWhereMode] = useState<(typeof WHERES)[number]>("auto");
+  const [skin, setSkin] = useState<PlanetSkin>("sticker");
+  const [week, setWeek] = useState(() => shelfWeek(NOW));
 
   const away = useCallback((where: string) => Alert.alert("Dev page", `In the app this opens ${where}.`), []);
   // the diary names a pen pal as the tab does (lib/who): the number, or the courier name with the switch on
@@ -186,7 +208,8 @@ function MeLab() {
   const model = useMemo<MeModel>(() => {
     const threads = DEMO_THREADS;
     const aura = demoAura(auraMode);
-    const where = whereabouts(threads, 12);
+    const read = whereabouts(threads, 12);
+    const where = whereMode === "auto" ? read : { ...read, state: whereMode as Whereabouts };
     const lastWrittenAt = aura?.lastWrittenAt ?? null;
     const entry = flightLog({ where, threads, lastWrittenAt, seenToday: 3, daylight: daylight(), book });
     const hunger = hungry
@@ -207,6 +230,12 @@ function MeLab() {
       },
       meFormat(),
     );
+    const fmt = meFormat();
+    const shelfFacts: ShelfFacts = { skin, dress: look, premium, kindreds: kinN, hatchSkin: null, week };
+    const planet = {
+      letters: planetLetters(lettersN == null ? null : demoPlanetLetters(lettersN), null, { day: (d) => fmt.upper(fmt.dateShort(d)), hexOf: stampHex }),
+      shelf: shelfFacts,
+    };
     const act: MeActions = {
       settings: () => away("/me/settings"),
       edit: () => away("/me/edit-profile"),
@@ -233,6 +262,14 @@ function MeLab() {
         const href = d ? reportDoorVM(d, { t, monthName }, wren).href : null;
         if (href) away(href);
       },
+      shelfLook: (id) => {
+        const tap = shelfTap(id, shelfFacts);
+        if (!tap) return;
+        if (tap.do === "dress") setLook(tap.value);
+        else if (tap.do === "skin") setSkin(tap.value);
+        else away(tap.do === "firstClass" ? "/paywall?src=me_looks" : "/courier (the wardrobe)");
+      },
+      track: () => away("the planet page"),
     };
     const doorState = demoDoor(door);
     const kinThreads = kinN === 0 ? [] : threads;
@@ -260,10 +297,11 @@ function MeLab() {
       kindreds: 0,
       scroll: { serial },
       act,
+      planet,
     };
     // lang: the words follow the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auraMode, stamps, keep, fc, dayOff, noName, hungry, segment, serial, away, lang, book, lettersN, kinN, look, door, trial]);
+  }, [auraMode, stamps, keep, fc, dayOff, noName, hungry, segment, serial, away, lang, book, lettersN, kinN, look, door, trial, whereMode, skin, week]);
 
   const themeLabel = forced ? THEMES[forced].name.toUpperCase() : "OFF";
   const useSwift = swift && swiftAvailable;
@@ -319,6 +357,12 @@ function MeLab() {
             <Chip label={`LOOK ${look.toUpperCase()}`} onPress={() => setLook((l) => LOOKS[(LOOKS.indexOf(l) + 1) % LOOKS.length])} />
             <Chip label={`DOOR ${door.toUpperCase()}`} onPress={() => setDoor((d) => DOOR_MODES[(DOOR_MODES.indexOf(d) + 1) % DOOR_MODES.length])} />
             <Chip label="TRIAL" on={trial} onPress={() => setTrial((v) => !v)} />
+          </Row>
+          <Row>
+            <Chip label="PLANET" on={planetOn} onPress={() => setDevSurfaceOverride("meplanet", devSurfaceOverride("meplanet") === true ? null : true)} />
+            <Chip label={`WHERE ${whereMode.toUpperCase()}`} onPress={() => setWhereMode((w) => WHERES[(WHERES.indexOf(w) + 1) % WHERES.length])} />
+            <Chip label={`SKIN ${skin.toUpperCase()}`} onPress={() => setSkin((k) => SKINS[(SKINS.indexOf(k) + 1) % SKINS.length])} />
+            <Chip label={`WEEK +${week - shelfWeek(NOW)}`} onPress={() => setWeek((w) => (w - shelfWeek(NOW) + 1) % 12 + shelfWeek(NOW))} />
           </Row>
           <Text style={{ ...PFM.monoMed, fontSize: 10, color: tk.sub, paddingHorizontal: 12 }}>
             {`THEME ${themeLabel} (${key}) · ${useSwift ? "SWIFTUI" : "REACT NATIVE"}${swiftAvailable ? "" : " (no KMeView in this build)"} · ${t("me.header")} · SEGMENT ${segment}`}

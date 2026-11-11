@@ -39,6 +39,25 @@ import SwiftUI
 
  SCROLL REQUESTS (TS commands through the driver): top, when Me is pressed again while showing;
  segment, which shows a card as a chip would and reports it the same way (onSegment).
+
+ THE COURIER'S PLANET (2026-11-11, docs/courier-planet.md; `content.planet`, nil unless TS's
+ "meplanet" switch is on). With it the segments are gone and Me is one page under the same
+ sticky, collapsing header (no chips in it):
+
+   (72 avatar ✎) pen name                    (gear)     the header, as above, without row 3
+   ┌ her card ───────────────────────────────┐          KMePlanetCard: the small whole planet,
+   │ sky, planet, Wren        (◎ planet page) │          her words in a bubble whose tail follows
+   │ ( her words                    [Open] )  │          her, four looks
+   │ [look][look][look][look]    All looks →  │
+   └──────────────────────────────────────────┘
+   ┌ Aura (sand) ──┐ ┌ Stamps (blue) ─┐                  each opens its own page
+   ┌ the writing report (green) ───────────── ›┐
+   ┌ First Class card (not for a member) ──────┐
+
+ The First Class forms by the day keep their places: the boarding pass and the sealed report
+ over her card, the Post's letter on its top edge (left of the round button), the pull-tab on
+ the page's right edge. The fit rule and the scroll requests are the same; a segment request
+ does nothing.
  */
 
 // MARK: - What the screen shows
@@ -453,6 +472,9 @@ public struct KMeContent: Equatable, Sendable {
   /// VoiceOver's one sentence for the courier card
   public var courierA11y = ""
   public var a11y = KMeA11yWords()
+  /// the courier's planet (docs/courier-planet.md): with it Me is one page and the segments
+  /// are gone; nil for the page of segments
+  public var planet: KMePlanet?
 
   public init() {}
 }
@@ -487,6 +509,10 @@ public final class KMeActions {
   public var onFirstClass: () -> Void = {}
   /// one of the rollout's forms was tapped: "invite" | "seat" | "report" | "tab"
   public var onFcOpen: (String) -> Void = { _ in }
+  /// her card's round button: the planet page
+  public var onTrack: () -> Void = {}
+  /// a tap on her card's planet landed on something: "wren" | "letter" | "stamp" (and its letter's id)
+  public var onPlanetTap: (_ what: String, _ id: String) -> Void = { _, _ in }
 
   public init() {}
 }
@@ -653,7 +679,7 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
         }
         .zIndex(1)
         ScrollView(.vertical) {
-          segmentCard
+          page
             .padding(.horizontal, Self.gutter)
             .padding(.top, Self.topMargin)
             .padding(.bottom, bottomInset)
@@ -707,6 +733,8 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
     .onReceive(driver.$segmentRequest) { request in
       guard let request, request.serial > box.segmentSerial else { return }
       box.segmentSerial = request.serial
+      // the planet's page has no segments to show
+      guard content.planet == nil else { return }
       // reported like a chip, or TS would keep filling the old card's island and leave the new
       // card's frame empty
       show(Self.clampSegment(request.index), report: true)
@@ -737,6 +765,18 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
       position.scrollTo(edge: .top)
     }
     if report { actions.onSegment(index) }
+  }
+
+  /// The planet's one page, or the segment showing.
+  @ViewBuilder
+  private var page: some View {
+    if let planet = content.planet {
+      KMePlanetPage(content: content, planet: planet, actions: actions) {
+        auraArt
+      }
+    } else {
+      segmentCard
+    }
   }
 
   // ── the one card ──────────────────────────────────────────────────────
@@ -785,6 +825,76 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
           }
         }
         KLooksTray(theme: theme, looks: content.looks, a11y: content.a11y, actions: actions)
+      }
+    }
+  }
+}
+
+// MARK: - The courier's planet: Me as one page
+
+/// Everything under the header when the planet is on (see the top): the First Class forms by the
+/// day, her card, the Aura and Stamps tiles, the report row, the First Class card.
+struct KMePlanetPage<AuraArt: View>: View {
+  let content: KMeContent
+  let planet: KMePlanet
+  let actions: KMeActions
+  let auraArt: AuraArt
+
+  init(content: KMeContent, planet: KMePlanet, actions: KMeActions, @ViewBuilder auraArt: () -> AuraArt) {
+    self.content = content
+    self.planet = planet
+    self.actions = actions
+    self.auraArt = auraArt()
+  }
+
+  static var gap: CGFloat { 12 }
+
+  private func cardActions() -> KMePlanetActions {
+    let a = KMePlanetActions()
+    let to = actions
+    a.onOpen = { to.onCourier() }
+    a.onTrack = { to.onTrack() }
+    a.onLook = { id in to.onLook(id) }
+    a.onAllLooks = { to.onAllLooks() }
+    a.onTap = { what in
+      switch what {
+      case .wren: to.onPlanetTap("wren", "")
+      case .letter: to.onPlanetTap("letter", "")
+      case let .stamp(id): to.onPlanetTap("stamp", id)
+      }
+    }
+    return a
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: Self.gap) {
+      if content.fc.form == "seat" {
+        KFcBoardingPass(fc: content.fc) { actions.onFcOpen("seat") }
+      } else if content.fc.form == "report" {
+        KFcSealedReport(fc: content.fc) { actions.onFcOpen("report") }
+      }
+      KMePlanetCard(card: planet, actions: cardActions())
+        .overlay(alignment: .topTrailing) {
+          if content.fc.form == "invite" {
+            // left of the card's round button
+            KFcEnvelope(fc: content.fc) { actions.onFcOpen("invite") }
+              .padding(.trailing, 58)
+              .offset(y: -12)
+          }
+        }
+      HStack(alignment: .top, spacing: Self.gap) {
+        KMeAuraTile(aura: content.aura, hint: planet.auraHint, onTap: { actions.onAuraOpen() }) {
+          auraArt
+        }
+        KMeStampsTile(tile: planet.stamps) { actions.onStamps("album", "") }
+      }
+      // the two tiles are as tall as the taller one's words need, never the room on offer
+      .fixedSize(horizontal: false, vertical: true)
+      if content.report.show {
+        KMeReportRow(report: content.report) { actions.onReport() }
+      }
+      if !content.firstClass.member {
+        KMeFirstClassCard(card: content.firstClass) { actions.onFirstClass() }
       }
     }
   }

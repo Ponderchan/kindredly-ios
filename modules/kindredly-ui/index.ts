@@ -412,6 +412,21 @@ export {
   type KCourierPalette,
   type KDeskPaint,
 } from "./src/MePieces";
+// the courier's planet on Me (2026-11-11, docs/courier-planet.md), behind "meplanet", off by default:
+// KMeView's `planet` record (src/screens/me/planet-model.ts and me-pieces.ts build it); ME_PLANET_VIEW
+// is the binary's marker for it
+export {
+  ME_PLANET_OFF,
+  ME_PLANET_VIEW,
+  nativeMePlanet,
+  nativeWrenLook,
+  type KMePlanetData,
+  type KMeShelfLookData,
+  type KMeStampsTileData,
+  type KPlanetLetterData,
+  type KWrenForm,
+  type KWrenLookData,
+} from "./src/Planet";
 // batch 3: launch + authcallback (2026-11-09), each behind its own switch, off by default: the launch
 // and its held last frame ("launch"), where the magic link lands ("authcallback")
 export {

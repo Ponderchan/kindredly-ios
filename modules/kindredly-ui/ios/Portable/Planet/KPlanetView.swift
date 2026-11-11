@@ -7,30 +7,55 @@ import SwiftUI
    - one finger turns it (the point under the finger follows the finger); a
      drag that barely moves is a tap, reported with what it landed on;
    - on the page two fingers zoom, and a double tap steps between near and far;
+   - on the card only the planet and the air round it take the finger (KPlanetTouchShape):
+     the card sits in a page that scrolls;
    - the clock stops when the surface is not on show. Under Reduce Motion the
      planet still turns under the finger, but nothing glides, drifts or twinkles. */
+
+/// What a surface round the planet reads from it each frame without becoming part of its state:
+/// where she is (a speech bubble's tail follows her).
+public final class KPlanetProbe {
+  /// her x in the planet view, in points, eased so a tail does not jitter
+  public internal(set) var wrenX: CGFloat = 0
+  var seeded = false
+
+  public init() {}
+}
 
 public struct KPlanetView: View {
   private let kind: KPlanetKind
   private let content: KPlanetContent
+  private let probe: KPlanetProbe?
   private let onTap: (KPlanetTap) -> Void
   private let onPick: (String) -> Void
+  private let onTurned: () -> Void
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var engine = KPlanetEngine()
   @State private var began: (at: CGPoint, time: Date)?
   @State private var zoomAtStart: CGFloat?
+  @State private var turnedTold = false
 
   /// - Parameters:
   ///   - kind: the card's small planet, or the page's
   ///   - content: what it shows
   ///   - onTap: a tap landed on something
   ///   - onPick: the page only — the planet was turned by hand and this letter's stamp now faces the reader
-  public init(kind: KPlanetKind, content: KPlanetContent, onTap: @escaping (KPlanetTap) -> Void = { _ in }, onPick: @escaping (String) -> Void = { _ in }) {
+  ///   - onTurned: a finger turned the planet (once per drag): the hint can go
+  public init(
+    kind: KPlanetKind,
+    content: KPlanetContent,
+    probe: KPlanetProbe? = nil,
+    onTap: @escaping (KPlanetTap) -> Void = { _ in },
+    onPick: @escaping (String) -> Void = { _ in },
+    onTurned: @escaping () -> Void = {}
+  ) {
     self.kind = kind
     self.content = content
+    self.probe = probe
     self.onTap = onTap
     self.onPick = onPick
+    self.onTurned = onTurned
   }
 
   public var body: some View {
@@ -43,9 +68,10 @@ public struct KPlanetView: View {
           engine.reduceMotion = reduceMotion
           engine.onPick = onPick
           KPlanetView.render(&ctx, engine: engine, kind: kind, content: content, size: size, now: now)
+          if let probe { KPlanetView.report(engine, to: probe, kind: kind, size: size) }
         }
       }
-      .contentShape(Rectangle())
+      .contentShape(KPlanetTouchShape(kind: kind))
       .gesture(turning(size))
       .simultaneousGesture(zooming)
       .onTapGesture(count: 2) {
@@ -90,6 +116,18 @@ public struct KPlanetView: View {
     }
   }
 
+  /// Where she is, eased toward: a fifth of the way a frame.
+  static func report(_ engine: KPlanetEngine, to probe: KPlanetProbe, kind: KPlanetKind, size: CGSize) {
+    let layout = KPlanetLayout.make(kind, size: size, zoom: engine.zoomShown)
+    let x = engine.wren.x(layout)
+    if probe.seeded {
+      probe.wrenX += (x - probe.wrenX) * (engine.reduceMotion ? 1 : 0.2)
+    } else {
+      probe.wrenX = x
+      probe.seeded = true
+    }
+  }
+
   private func layout(_ size: CGSize) -> KPlanetLayout {
     KPlanetLayout.make(kind, size: size, zoom: engine.zoomShown)
   }
@@ -103,10 +141,15 @@ public struct KPlanetView: View {
           engine.touchDown(value.startLocation, layout: layout(size))
         }
         engine.touchMove(value.location, layout: layout(size), now: now.timeIntervalSinceReferenceDate)
+        if !turnedTold, hypot(value.translation.width, value.translation.height) > 6 {
+          turnedTold = true
+          onTurned()
+        }
       }
       .onEnded { value in
         let start = began
         began = nil
+        turnedTold = false
         let moved = hypot(value.translation.width, value.translation.height)
         let held = start.map { Date().timeIntervalSince($0.time) } ?? 1
         if moved <= 6, held < 0.5 {
@@ -136,6 +179,21 @@ public struct KPlanetView: View {
       .onEnded { _ in
         zoomAtStart = nil
       }
+  }
+}
+
+/// Where a finger takes hold of the planet. The page: the whole scene. The card sits in a page
+/// that scrolls, so only the planet and the air her loop crosses take the finger there, and the
+/// scene's sides still scroll the page.
+struct KPlanetTouchShape: Shape {
+  let kind: KPlanetKind
+
+  func path(in rect: CGRect) -> Path {
+    guard kind == .card else { return Path(rect) }
+    let layout = KPlanetLayout.make(.card, size: rect.size, zoom: 1)
+    let reach = layout.radius + layout.lift + 22
+    let round = CGRect(x: layout.centre.x - reach, y: layout.centre.y - reach, width: reach * 2, height: reach * 2)
+    return Path(ellipseIn: round).intersection(Path(rect))
   }
 }
 

@@ -6,6 +6,7 @@ import { nativeFrost, type KFrost, type KImageRefProps, type KInsets, type KScre
 import type { KKindredsFace } from "./Kindreds";
 import { nativeAuraArt, nativeCourierCard, type KAuraArtData, type KCourierCardData, type NativeAuraArt, type NativeCourierCard } from "./MePieces";
 import { nativeMyFace, type KMyFaceData } from "./LastIslands";
+import { nativeMePlanet, type KMePlanetData, type NativeMePlanet } from "./Planet";
 
 /* THE ME TAB (4a, 2026-10-19), drawn by SwiftUI (ios/Portable/Me/KMeScreen.swift, adapter
    ios/Adapters/KMeView.swift), for src/screens/me/MeNative.tsx. Every word, figure and destination
@@ -28,7 +29,14 @@ import { nativeMyFace, type KMyFaceData } from "./LastIslands";
    (72 × 72 — the header scales it down to 36 as it collapses, so it is never re-laid out),
    "courier" (the frame's inside × 236: the window less 37) and "auraArt" (the Aura card's inside
    × 110: the window less 69). Fill the courier and aura islands only while their card shows
-   (onSegment says which), so a hidden CourierCard isn't running its loops. */
+   (onSegment says which), so a hidden CourierCard isn't running its loops.
+
+   THE COURIER'S PLANET (2026-11-11, "meplanet", Planet.ts): with `planet` on, the page is one
+   page with no segments — her card, the Aura and Stamps tiles, the report row, the First Class
+   card — under the same sticky header. The "courier" island is then never placed (leave it
+   empty), the Aura tile's picture is `auraArt` (leave that island empty too), onSegment is
+   never sent, onLook reports a shelf look's id ("dress:beanie", "skin:moss"), onCourier is the
+   bubble's Open / Play, onTrack her card's round button. */
 
 export type KMeStat = {
   key: "letters" | "kindreds";
@@ -239,7 +247,8 @@ export type KMeViewProps = CommonViewModifierProps &
     onWrite?: () => void;
     onSegment?: (index: number) => void;
     onCourier?: () => void;
-    onLook?: (id: KMeLookTile["id"]) => void;
+    /** a looks tile (KMeLookTile["id"]), or with `planet` on a shelf look ("dress:beanie", "skin:moss") */
+    onLook?: (id: string) => void;
     onAllLooks?: () => void;
     onAuraOpen?: () => void;
     onAuraCta?: () => void;
@@ -261,6 +270,12 @@ export type KMeViewProps = CommonViewModifierProps &
     /** batch 3 ("myavatar", LastIslands.tsx): your face; Swift draws it (72, square inside your
         stamp) and leaves the "avatar" island out. null keeps the island */
     myFace?: KMyFaceData | null;
+    /** the courier's planet ("meplanet", Planet.ts): with `on`, Me is one page. null keeps the segments */
+    planet?: KMePlanetData | null;
+    /** her card's round button: the planet page */
+    onTrack?: () => void;
+    /** a tap on her card's planet landed on her, on the reply beside her, or on a letter's stamp (its id) */
+    onPlanetTap?: (what: "wren" | "letter" | "stamp", id: string) => void;
   };
 
 type Ev<T> = (e: { nativeEvent: T }) => void;
@@ -288,9 +303,11 @@ type EventProps =
   | "onStampsEmpty"
   | "onStamps"
   | "onFirstClass"
-  | "onFcOpen";
+  | "onFcOpen"
+  | "onTrack"
+  | "onPlanetTap";
 
-type NativeKMeViewProps = Omit<KMeViewProps, "letterFont" | "insets" | "rev" | "peekKindreds" | "looks" | "firstClass" | "courierCard" | "auraArt" | "myFace" | EventProps> &
+type NativeKMeViewProps = Omit<KMeViewProps, "letterFont" | "insets" | "rev" | "peekKindreds" | "looks" | "firstClass" | "courierCard" | "auraArt" | "myFace" | "planet" | EventProps> &
   Required<Pick<KMeViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
     peekKindreds: Omit<KMePeekKindreds, "items"> & { items: (Omit<KMePeekKindred, "face"> & { face: NativeFace })[] };
@@ -306,7 +323,7 @@ type NativeKMeViewProps = Omit<KMeViewProps, "letterFont" | "insets" | "rev" | "
     onMeWrite?: None;
     onMeSegment?: Ev<{ index: number }>;
     onMeCourier?: None;
-    onMeLook?: Ev<{ id: KMeLookTile["id"] }>;
+    onMeLook?: Ev<{ id: string }>;
     onMeAllLooks?: None;
     onMeAuraOpen?: None;
     onMeAuraCta?: None;
@@ -316,9 +333,12 @@ type NativeKMeViewProps = Omit<KMeViewProps, "letterFont" | "insets" | "rev" | "
     onMeStamps?: Ev<{ action: KMeStampsAction; id: string }>;
     onMeFirstClass?: None;
     onMeFcOpen?: Ev<{ form: KMeFcRollout["form"] }>;
+    onMeTrack?: None;
+    onMePlanetTap?: Ev<{ what: "wren" | "letter" | "stamp"; id: string }>;
     courierCard: NativeCourierCard;
     auraArt: NativeAuraArt;
     myFace: ReturnType<typeof nativeMyFace>;
+    planet: NativeMePlanet;
   };
 
 const NO_FC: KMeFcRollout = { form: "none", tab: false, firstClass: "", post: "", envelopeA11y: "", seatTimer: "", seatHead: "", seatPerks: "", open: "", reportEyebrow: "", reportSealed: "", reportHead: "", reportCta: "", tabA11y: "" };
@@ -366,6 +386,9 @@ export const KMeView = forwardRef<KScreenHandle, KMeViewProps>(function KMeView(
     courierCard,
     auraArt,
     myFace,
+    planet,
+    onTrack,
+    onPlanetTap,
     ...rest
   },
   ref,
@@ -378,6 +401,7 @@ export const KMeView = forwardRef<KScreenHandle, KMeViewProps>(function KMeView(
   const sentCourierCard = useMemo(() => nativeCourierCard(courierCard), [courierCard]);
   const sentAuraArt = useMemo(() => nativeAuraArt(auraArt), [auraArt]);
   const sentMyFace = useMemo(() => nativeMyFace(myFace), [myFace]);
+  const sentPlanet = useMemo(() => nativeMePlanet(planet), [planet]);
   return (
     <NativeKMeView
       ref={ref}
@@ -396,6 +420,9 @@ export const KMeView = forwardRef<KScreenHandle, KMeViewProps>(function KMeView(
       courierCard={sentCourierCard}
       auraArt={sentAuraArt}
       myFace={sentMyFace}
+      planet={sentPlanet}
+      onMeTrack={onTrack ? () => onTrack() : undefined}
+      onMePlanetTap={onPlanetTap ? (e) => onPlanetTap(e.nativeEvent.what, e.nativeEvent.id) : undefined}
       onMeSettings={onSettings ? () => onSettings() : undefined}
       onMeEdit={onEdit ? () => onEdit() : undefined}
       onMePeek={onPeek ? (e) => onPeek(e.nativeEvent.key, e.nativeEvent.open) : undefined}

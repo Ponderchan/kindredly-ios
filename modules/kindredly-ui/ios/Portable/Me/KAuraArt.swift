@@ -80,15 +80,27 @@ enum KAuraArtMetrics {
 public struct KAuraArt: View {
   private let theme: KTheme
   private let art: KAuraArtModel
+  private let cover: Bool
+  private let ground: Color?
 
-  public init(theme: KTheme, art: KAuraArtModel) {
+  /// - Parameters:
+  ///   - cover: the picture covers the slot and is cropped, instead of fitted by height (Me's
+  ///     Aura tile under the courier's planet: a 52-high strip)
+  ///   - ground: the slot's ground instead of the theme's soft2 (the tile lays the picture on
+  ///     white and multiplies it onto its own colour)
+  public init(theme: KTheme, art: KAuraArtModel, cover: Bool = false, ground: Color? = nil) {
     self.theme = theme
     self.art = art
+    self.cover = cover
+    self.ground = ground
   }
 
   public var body: some View {
     GeometryReader { g in
-      if art.picture {
+      if art.picture, cover {
+        KImage(art.image, size: g.size, contentMode: .fill, placeholder: .clear)
+          .frame(width: g.size.width, height: g.size.height)
+      } else if art.picture {
         let fit = Self.fit(g.size, inset: art.inset)
         KImage(art.image, size: fit, contentMode: .fit, placeholder: .clear)
           .clipShape(RoundedRectangle(cornerRadius: art.inset > 0 ? 8 : 0, style: .circular))
@@ -98,7 +110,7 @@ public struct KAuraArt: View {
           .equatable()
       }
     }
-    .background(theme.soft2)
+    .background(ground ?? theme.soft2)
     .clipped()
     .accessibilityHidden(true)
   }

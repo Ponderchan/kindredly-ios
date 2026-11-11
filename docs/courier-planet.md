@@ -14,6 +14,10 @@ text and the prototype disagree, the prototype wins unless this text says "chang
 1. **Me tab, top to bottom**: profile header → *her card* → two tiles (Aura, Stamps) → the writing
    report row. The Courier / Aura / Stamps segments go away. (First Class entry, keepsakes and the
    FC rollout forms keep working — placement to settle in phase 4, nothing of theirs is removed.)
+   **The header stays sticky and collapses as it does today** (owner, 2026-11-11: "别忘了我们 me tab
+   也有吸顶的交互 以前定的"): it sits outside the scroll, and over the scroll's first 40 points the
+   avatar goes 72→36, the name 22→17, the counts and "joined" fade out. Only the segmented control
+   leaves it.
 2. **Her card** = a sky scene with a *small whole planet* → her words in a white **speech bubble**
    whose tail follows her → a shelf of four looks.
 3. **The planet never turns by itself.** It turns under the finger, glides to a stop when thrown,
@@ -148,10 +152,58 @@ text and the prototype disagree, the prototype wins unless this text says "chang
   tail follows.
   Check: `render.sh wren-sheet.swift out.png` — 24 moments (asleep, a slow turn, a flick, a tap,
   the loop, swept, waiting, flying in, landed, day off, skins and stages).
-- Next: phase 4, the Me tab.
+- 2026-11-11 — **phase 4 done**: the Me tab, behind the new switch `meplanet` (default off; off,
+  Me is the page of segments exactly as before).
+  - Swift: `Portable/Me/KMePlanetCard.swift` (her card: scene 200 → bubble band 122, its tail
+    following her through `KPlanetProbe` → shelf 84; the Aura / Stamps tiles and the report row
+    on the app's own `KMood` fills), `KMeScreen.swift` (`KMeContent.planet`; `KMePlanetPage`,
+    the one page under the header), `KMeHeader.swift` (no segmented control with the planet;
+    still sticky, still collapsing), `KAuraArt` gains `cover:` and `ground:` for the tile's strip.
+    On the card only the planet and the air her loop crosses take the finger
+    (`KPlanetTouchShape`), so the scene's sides, the bubble and the shelf still scroll the page.
+  - Adapter: `Adapters/KMePlanetView.swift` (the `planet` record's decoders — reused by the
+    planet page in phase 5 — and the marker view `KMePlanetView`), `KMeView.swift` (the record,
+    `onMeTrack`, `onMePlanetTap`). **The adapters are only syntax-checked** (they need Expo's
+    modules to type-check): the dev build in phase 7 is their first real compile.
+  - TS: `src/screens/me/planet-model.ts` (pure; `node src/screens/me/planet-model.test.ts`, 53
+    checks): her state from whereabouts + day off, the letters behind the stamps (ordinals counted
+    down from the total, so an old stamp never moves), the shelf's four and their weekly turnover
+    (Monday, UTC; what she wears keeps its place; the worn one comes off), what a tap on a look
+    does, the Stamps tile. `me-pieces.ts` `useMePlanetData` (the gate: switch + marker view +
+    crash strikes), `useMeModel` (`model.planet`, `act.shelfLook`, `act.track`), `MeNative.tsx`,
+    `modules/kindredly-ui/src/Planet.ts`, `src/data/strings-planet.ts` (English only until phase 6).
+  - What a tap does: Open / Play as today (her page, or the game); a look wears it / takes it off /
+    opens First Class (a paid look, not a member) / opens her wardrobe (Moss before a kindred);
+    "All looks →" opens her wardrobe for everyone; the Aura tile opens `/aura`, the Stamps tile
+    the album, the report row the report. **The round button opens her page until the planet
+    page exists** (phase 5 gives it its own route).
+  - Placement chosen (owner may move them): the **First Class card sits at the foot of the page,
+    for non-members only**; the First Class forms by the day keep their places (boarding pass and
+    sealed report over her card, the Post's letter on its top edge left of the round button, the
+    pull-tab on the right edge); **keepsakes stay where they are today** (her page — the Swift Me
+    has not shown them since 4a).
+  - Check: `render.sh me-sheet.swift out.png` — five cards (home / on the way / waiting / back /
+    day off; morning, day, evening, night; free reader, kindred, member), the tiles, and the whole
+    page at rest, pushed up (header collapsed) and with the Post's letter. The page is composed
+    by hand there: ImageRenderer draws nothing inside a ScrollView.
+  - Try it on a dev client: `kindredly:///dev/step5-me` → PLANET (turns the switch on for the
+    session), then WHERE / SKIN / LOOK / WEEK / LETTERS / KIN / FC / DAY OFF.
+- Next: phase 5, the planet page.
+
+## For the device pass (phase 7), noted along the way
+
+- The adapters' first compile (`KMePlanetView.swift`, `KMeView.swift`).
+- The finger: turning the small planet inside the scrolling Me page (the planet takes the drag,
+  the rest of the card scrolls) — does it feel right, or should a mostly-vertical drag scroll?
+- The planet's Canvas redraws at the display's rate while Me is in front (up to 47 stamps):
+  measure on a ProMotion phone; cap the card at 60 if it costs.
+- Dynamic Type: the bubble is a fixed 106 high (two lines of her words, one of her aside).
+- Touch feel of the glide, the sweep, the tap on her.
 
 ## Not decided yet
 
-- How often the shelf turns over (assumed weekly).
-- Where the First Class card / keepsakes sit on the new Me tab.
-- What the planet shows before the first letter, and for an egg (no bird yet).
+- How often the shelf turns over (built weekly, Monday UTC).
+- Where the First Class card sits on the new Me tab (built: the foot of the page, non-members
+  only) — the owner has not looked at it yet.
+- What the planet shows before the first letter, and for an egg (built: a bare planet with no
+  stamps; an egg sits on top and nothing flies).
