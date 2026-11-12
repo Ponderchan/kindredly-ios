@@ -3,7 +3,13 @@
 import SwiftUI
 
 /*
- F1, THE MAILBOX (the owner's prompt 1; red, his decision of 2026-11-11). The card is the box:
+ F1, THE MAILBOX, NOW ONLY ITS INSIDE (owner, 2026-11-12, at night: "这个红色邮筒的这个感觉晚上太吓人
+ 了 要么把邮筒去掉留下这里面的?"). The red box is gone (its roof, body, base and slot, and the
+ envelope that fell into the slot): the page is what was in its window, on the app's own card
+ (the theme's surface, a hairline, the corners of Today's letter), with no red on it anywhere.
+ Flat: the Closed sign, the note and the cord's ring cast no shadow ("没有厚立体阴影了哦").
+ Writing after the day is the + in the tab bar, as everywhere else. The record's slot words
+ still come from TS and are simply not drawn. What it was (2026-11-11):
 
    ╭──────────────╮   the domed roof, full width, 72
     │   ▬▬▬▬▬▬▬▬   │   the body, 14 in from each side: the slot (150 × 16) and the small line
@@ -22,6 +28,8 @@ import SwiftUI
  shown and the composer opens at once.
  */
 struct KAfterBoxView: View {
+  static let corner: CGFloat = 24
+
   let theme: KTheme
   let palette: KAfterPalette
   let box: KAfterBox
@@ -31,10 +39,6 @@ struct KAfterBoxView: View {
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var shut: Bool
-  /// the envelope: 0 not there, 1 falling to the slot, 2 going in
-  @State private var drop = 0
-  @State private var dropping = false
-  @State private var dropSerial = 0
 
   init(theme: KTheme, palette: KAfterPalette, box: KAfterBox, thing: KAfterThing, look: KWrenLook, actions: KAfterActions) {
     self.theme = theme
@@ -47,108 +51,11 @@ struct KAfterBoxView: View {
   }
 
   var body: some View {
-    let base = UnevenRoundedRectangle(topLeadingRadius: 6, bottomLeadingRadius: 10, bottomTrailingRadius: 10, topTrailingRadius: 6, style: .continuous)
-    VStack(spacing: 0) {
-      KAfterRoof()
-        .fill(palette.roof)
-        .frame(height: 72)
-      VStack(spacing: 12) {
-        slot
-        window
+    window
+      .onChange(of: box.shut) { _, now in
+        if now != shut { shut = now }
       }
-      .padding(.top, 14)
-      .padding(.horizontal, 16)
-      .padding(.bottom, 16)
-      .frame(maxWidth: .infinity, maxHeight: .infinity)
-      .background(palette.body)
-      .padding(.horizontal, 14)
-      base
-        .fill(palette.roof)
-        .frame(height: 16)
-    }
-    .onChange(of: box.shut) { _, now in
-      if now != shut { shut = now }
-    }
-    .sensoryFeedback(.impact(weight: .medium), trigger: shut)
-  }
-
-  // MARK: the slot
-
-  private var slot: some View {
-    Button(action: post) {
-      VStack(spacing: 7) {
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
-          .fill(palette.slot)
-          .frame(width: 150, height: 16)
-        Text(dropping ? box.slotOpening : box.slot)
-          .kText(.mono(9, .medium, tracking: 0.12))
-          .foregroundStyle(palette.slotText)
-          .lineLimit(1)
-          .minimumScaleFactor(0.6)
-      }
-      .padding(.top, 2)
-      .frame(maxWidth: .infinity)
-      .contentShape(Rectangle())
-    }
-    .buttonStyle(.plain)
-    .overlay(alignment: .top) { envelope }
-    .accessibilityLabel(box.slotA11y)
-    // over the window's shutter and cord, so the envelope is never cut by them
-    .zIndex(3)
-  }
-
-  @ViewBuilder
-  private var envelope: some View {
-    if drop > 0 {
-      KAfterEnvelopeMark(line: palette.fold)
-        .frame(width: 40, height: 28)
-        .shadow(color: palette.softShadow.opacity(0.6), radius: 4, y: 3)
-        .scaleEffect(x: 1, y: drop == 2 ? 0.2 : 1, anchor: .bottom)
-        .rotationEffect(.degrees(drop == 1 && !landed ? -10 : 0))
-        .offset(y: dropY)
-        .opacity(drop == 2 ? 0 : 1)
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-  }
-
-  /// the envelope has reached the slot (set a frame after it appears, so the fall animates)
-  @State private var landed = false
-
-  private var dropY: CGFloat {
-    if drop == 2 { return -2 }
-    return landed ? -12 : -54
-  }
-
-  /// A tap on the slot: the envelope falls in, then the composer opens.
-  private func post() {
-    guard !dropping else { return }
-    if reduceMotion {
-      actions.onSlot()
-      return
-    }
-    dropping = true
-    dropSerial &+= 1
-    let serial = dropSerial
-    landed = false
-    drop = 1
-    DispatchQueue.main.async {
-      withAnimation(.easeIn(duration: 0.6)) { landed = true }
-    }
-    after(0.65, serial) { withAnimation(.easeIn(duration: 0.3)) { drop = 2 } }
-    after(1.0, serial) { actions.onSlot() }
-    after(1.5, serial) {
-      drop = 0
-      landed = false
-      dropping = false
-    }
-  }
-
-  private func after(_ seconds: Double, _ serial: Int, _ step: @escaping () -> Void) {
-    DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
-      guard serial == dropSerial else { return }
-      step()
-    }
+      .sensoryFeedback(.impact(weight: .medium), trigger: shut)
   }
 
   // MARK: the window
@@ -157,9 +64,9 @@ struct KAfterBoxView: View {
     GeometryReader { geo in
       let w = geo.size.width
       let h = geo.size.height
-      let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+      let shape = RoundedRectangle(cornerRadius: Self.corner, style: .continuous)
       ZStack(alignment: .topLeading) {
-        LinearGradient(colors: [palette.windowTop, palette.windowBottom], startPoint: .top, endPoint: .bottom)
+        palette.card
         open
           .padding(.leading, 20)
           .padding(.trailing, 60)
@@ -176,6 +83,7 @@ struct KAfterBoxView: View {
       }
       .frame(width: w, height: h)
       .clipShape(shape)
+      .overlay { shape.strokeBorder(palette.cardLine, lineWidth: 1) }
       .animation(reduceMotion ? .easeInOut(duration: 0.2) : .timingCurve(0.5, 0, 0.2, 1, duration: 0.8), value: shut)
     }
   }
@@ -282,7 +190,6 @@ struct KAfterBoxView: View {
     .padding(.horizontal, 10)
     .frame(maxWidth: .infinity)
     .background(palette.sign, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-    .shadow(color: palette.softShadow.opacity(0.7), radius: 10, y: 8)
     .accessibilityElement(children: .combine)
   }
 
@@ -312,7 +219,6 @@ struct KAfterBoxView: View {
         .offset(y: -9)
         .accessibilityHidden(true)
     }
-    .shadow(color: palette.softShadow.opacity(0.7), radius: 10, y: 8)
   }
 
   /// The cord at the window's right edge: a line, a ring, PULL or LIFT under it.
@@ -329,7 +235,6 @@ struct KAfterBoxView: View {
           .fill(palette.ring)
           .frame(width: 30, height: 30)
           .overlay(Circle().stroke(palette.lip, lineWidth: 3).padding(-1.5))
-          .shadow(color: palette.softShadow.opacity(0.6), radius: 5, y: 4)
           .kAfterBob(4, period: 1.6, active: !shut)
         Text(shut ? box.lift : box.pull)
           .kText(.mono(9, .semibold, tracking: 0.14))
@@ -358,49 +263,6 @@ struct KAfterBoxView: View {
   }
 }
 
-/// The mailbox's roof: CSS border-radius 50% 50% 10px 10px / 100% 100% 10px 10px on a 72-high
-/// bar. The two radii down each side would overrun the height, so CSS scales every corner by the
-/// same factor (h / (h + 10)); this draws that.
-struct KAfterRoof: Shape {
-  func path(in r: CGRect) -> Path {
-    let h = r.height
-    let w = r.width
-    let k: CGFloat = h / (h + 10)
-    let ry: CGFloat = h * k
-    let rx: CGFloat = min(w / 2, w * 0.5 * k)
-    let br: CGFloat = 10 * k
-    // a quarter of an ellipse as one cubic
-    let c: CGFloat = 0.5523
-    var p = Path()
-    p.move(to: CGPoint(x: r.minX, y: r.minY + ry))
-    p.addCurve(
-      to: CGPoint(x: r.minX + rx, y: r.minY),
-      control1: CGPoint(x: r.minX, y: r.minY + ry - ry * c),
-      control2: CGPoint(x: r.minX + rx - rx * c, y: r.minY)
-    )
-    p.addLine(to: CGPoint(x: r.maxX - rx, y: r.minY))
-    p.addCurve(
-      to: CGPoint(x: r.maxX, y: r.minY + ry),
-      control1: CGPoint(x: r.maxX - rx + rx * c, y: r.minY),
-      control2: CGPoint(x: r.maxX, y: r.minY + ry - ry * c)
-    )
-    p.addLine(to: CGPoint(x: r.maxX, y: r.maxY - br))
-    p.addCurve(
-      to: CGPoint(x: r.maxX - br, y: r.maxY),
-      control1: CGPoint(x: r.maxX, y: r.maxY - br + br * c),
-      control2: CGPoint(x: r.maxX - br + br * c, y: r.maxY)
-    )
-    p.addLine(to: CGPoint(x: r.minX + br, y: r.maxY))
-    p.addCurve(
-      to: CGPoint(x: r.minX, y: r.maxY - br),
-      control1: CGPoint(x: r.minX + br - br * c, y: r.maxY),
-      control2: CGPoint(x: r.minX, y: r.maxY - br + br * c)
-    )
-    p.closeSubpath()
-    return p
-  }
-}
-
 /// The shutter's slats: 12 of one tone, 2 of the next, down the whole height.
 struct KAfterSlats: View {
   let a: Color
@@ -416,22 +278,5 @@ struct KAfterSlats: View {
       }
     }
     .accessibilityHidden(true)
-  }
-}
-
-/// A small white envelope, front on: the one that falls into the slot.
-struct KAfterEnvelopeMark: View {
-  let line: Color
-
-  var body: some View {
-    Canvas { context, size in
-      let box = CGRect(origin: .zero, size: size)
-      context.fill(Path(roundedRect: box, cornerRadius: 4), with: .color(.white))
-      var flap = Path()
-      flap.move(to: CGPoint(x: 2, y: 3))
-      flap.addLine(to: CGPoint(x: size.width / 2, y: size.height * 0.56))
-      flap.addLine(to: CGPoint(x: size.width - 2, y: 3))
-      context.stroke(flap, with: .color(line), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
-    }
   }
 }

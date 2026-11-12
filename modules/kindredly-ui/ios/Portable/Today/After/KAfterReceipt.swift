@@ -6,11 +6,11 @@ import UIKit
 /*
  F3, THE RECEIPT (the owner's prompt 2; on Sundays, with the week's totals). A white card:
 
-   her, small, and one line                    “that's 15. there's a little extra at the bottom.”
+   her, small, and one line                    “that's 10. there's a little extra at the bottom.”
    the printer (300 × 26, its slot 266 × 4)    the paper comes out from under it
    ┌ KINDREDLY POST ─────────────┐             264 wide, fed out in sixteen steps over 1.8 s
    │ NOV 11 · 3:19 PM · COURIER… │
-   │ LETTERS READ ........... 15 │             every number is TS's, and real
+   │ LETTERS READ ........... 10 │             every number is TS's, and real
    │ WRITTEN BACK ............ 2 │
    │ NEXT DELIVERY ..... 8:00 AM │
    │ POND IS BACK IN ... 16H 40M │
@@ -173,7 +173,8 @@ struct KAfterReceiptView: View {
       // only what the printer has fed so far (the whole sheet once its height is known and it is out)
       .frame(height: fed >= Self.steps ? nil : out, alignment: .top)
       .clipped()
-      .shadow(color: palette.paperShadow, radius: 5, y: 8)
+      // flat: a hairline's worth of edge so white paper reads on a white card, no lift
+      .shadow(color: palette.cardLine, radius: 0.8)
       .rotationEffect(.degrees(tilt), anchor: .top)
       .offset(y: torn ? 18 : 0)
       .animation(reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.55), value: torn)

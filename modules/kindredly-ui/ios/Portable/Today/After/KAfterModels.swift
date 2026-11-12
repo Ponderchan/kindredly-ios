@@ -64,7 +64,7 @@ public struct KAfterStrip: Equatable, Sendable {
 }
 
 public struct KAfterBox: Equatable, Sendable {
-  /// “that's 15. i counted twice.”
+  /// “that's 10. i counted twice.”
   public var line = ""
   /// "You wrote back to 2." ("" when she has nothing to count)
   public var sub = ""
@@ -123,7 +123,7 @@ public enum KAfterReceiptPhase: String, Sendable {
 }
 
 public struct KAfterReceipt: Equatable, Sendable {
-  /// “that's 15. there's a little extra at the bottom.”
+  /// “that's 10. there's a little extra at the bottom.”
   public var line = ""
   /// KINDREDLY POST
   public var shop = ""
@@ -431,6 +431,17 @@ public struct KAfterPalette: Equatable, Sendable {
     default:
       break
     }
+    /* the mailbox without its box (owner, 2026-11-12: "红色邮筒…晚上太吓人"): what was in its window
+       is drawn on the theme's own card, so nothing on it is red in any theme. The cord and the
+       shutter's foot are a quiet ink, the cord's ring is the card with that ink round it (no white
+       ring on a dark card), PULL THE CORD is the colour of everything that can be tapped, the
+       slats are the theme's own greys, and the note's tape is plain paper tape. */
+    p.lip = theme.mute
+    p.ring = theme.sf
+    p.hint = theme.ind
+    p.slatA = theme.soft2
+    p.slatB = theme.line
+    p.tape = Color(hex: "#E9DFC4").opacity(0.9)
     return p
   }
 }
@@ -517,23 +528,20 @@ struct KAfterKeepCapsule: View {
   }
 }
 
-/// The card of the receipt and of bedtime: the surface, a hairline and a block of colour behind
-/// it for a shadow (no ink outline).
+/// The card of the receipt and of bedtime: the surface and a hairline, flat, with the corners of
+/// the mailbox's card and Today's letter. (It had a block of colour 5 behind it for a shadow; the
+/// owner, 2026-11-12: "信卡 或者 拉下来帘子 没有厚立体阴影了哦".)
 struct KAfterCard<Inner: View>: View {
   let palette: KAfterPalette
   @ViewBuilder var inner: () -> Inner
 
   var body: some View {
-    let shape = RoundedRectangle(cornerRadius: 30, style: .continuous)
+    let shape = RoundedRectangle(cornerRadius: KAfterBoxView.corner, style: .continuous)
     inner()
       .padding(18)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .background(palette.card, in: shape)
       .clipShape(shape)
-      .overlay(shape.strokeBorder(palette.cardLine, lineWidth: 1.5))
-      .background(shape.fill(palette.cardShadow).offset(x: 5, y: 5))
-      // the block shadow's room
-      .padding(.trailing, 5)
-      .padding(.bottom, 5)
+      .overlay(shape.strokeBorder(palette.cardLine, lineWidth: 1))
   }
 }

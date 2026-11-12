@@ -70,11 +70,11 @@ const today = (o: Partial<AfterToday> = {}): AfterToday => ({ day, page: "box", 
 const now = new Date(2026, 10, 11, 15, 20); // 16 h 40 min to 8:00
 const days = new Set([day, A.shiftDay(day, -1), A.shiftDay(day, -2), A.shiftDay(day, -4)]);
 const view = (o: Partial<Parameters<typeof V.buildAfterView>[0]> = {}) =>
-  V.buildAfterView({ today: today(), name: "Pond", read: 15, replied: 2, canPlay: true, now, days, totals: A.dayTotals({ read: 15, replied: 2, stay: {} }, day), week: false, title: "Today", undo: "", undoHint: "Bring back the last letter", ...o }, fmt);
+  V.buildAfterView({ today: today(), name: "Pond", read: 10, replied: 2, canPlay: true, now, days, totals: A.dayTotals({ read: 10, replied: 2, stay: {} }, day), week: false, title: "Today", undo: "", undoHint: "Bring back the last letter", ...o }, fmt);
 
 /* ── the mailbox ── */
 const box = view().box;
-eq("fifteen letters", box.line, "“that’s 15. i counted twice.”");
+eq("ten letters", box.line, "“that’s 10. i counted twice.”");
 eq("two replies", box.sub, "You wrote back to 2.");
 eq("one letter has its own words", view({ read: 1 }).box.line, "“that’s one. i counted twice.”");
 eq("one reply", view({ replied: 1 }).box.sub, "You wrote back to one.");
@@ -104,23 +104,23 @@ eq("sleep-talk, Japanese full stops", V.sleepTalk("一つ。二つ。"), "一つ
 
 /* ── the receipt ── */
 const rc = view({ today: today({ page: "receipt" }) }).receipt;
-eq("the day's receipt: her line, the head, the time", [rc.line, rc.shop, rc.stampLine], ["“that’s 15. there’s a little extra at the bottom.”", "KINDREDLY POST", "NOV.11 · 3:19 PM · COURIER POND"]);
-eq("the counts; no 'stayed on' row without the timer", rc.rows.map((r) => [r.id, r.label, r.value]), [["read", "LETTERS READ", "15"], ["replied", "WRITTEN BACK", "2"]]);
+eq("the day's receipt: her line, the head, the time", [rc.line, rc.shop, rc.stampLine], ["“that’s 10. there’s a little extra at the bottom.”", "KINDREDLY POST", "NOV.11 · 3:19 PM · COURIER POND"]);
+eq("the counts; no 'stayed on' row without the timer", rc.rows.map((r) => [r.id, r.label, r.value]), [["read", "LETTERS READ", "10"], ["replied", "WRITTEN BACK", "2"]]);
 eq("when she is back", rc.delivery.map((r) => [r.label, r.value, r.strong]), [["NEXT DELIVERY", "8:00 AM", false], ["POND IS BACK IN", "16H 40M", true]]);
 eq("the keys", [rc.print, rc.printing, rc.tear, rc.share, rc.phase], ["Print today’s receipt", "PRINTING…", "Tear it off", "Share my day", "idle"]);
-const stayed = view({ today: today({ page: "receipt" }), totals: A.dayTotals({ read: 15, replied: 0, stay: { almosts: 40000 } }, day) }).receipt;
+const stayed = view({ today: today({ page: "receipt" }), totals: A.dayTotals({ read: 10, replied: 0, stay: { almosts: 40000 } }, day) }).receipt;
 eq("stayed on a topic: the row, and it may be shared", stayed.rows[2], { id: "stay", label: "YOU STAYED ON", value: "#ALMOSTS", strong: false, unshared: false });
 eq("nothing written back is printed as a count", stayed.rows[1].value, "0");
-const ownWords = view({ today: today({ page: "receipt" }), totals: A.dayTotals({ read: 15, replied: 0, stay: { "c:1": 40000 } }, day) }).receipt;
+const ownWords = view({ today: today({ page: "receipt" }), totals: A.dayTotals({ read: 10, replied: 0, stay: { "c:1": 40000 } }, day) }).receipt;
 eq("a photo stamp's own tag is shown here and left out of the picture", [ownWords.rows[2].value, ownWords.rows[2].unshared], ["#TEA", true]);
-const noName = view({ today: today({ page: "receipt" }), totals: A.dayTotals({ read: 15, replied: 0, stay: { "c:9": 40000 } }, day) }).receipt;
+const noName = view({ today: today({ page: "receipt" }), totals: A.dayTotals({ read: 10, replied: 0, stay: { "c:9": 40000 } }, day) }).receipt;
 eq("a topic with no name to show: no row", noName.rows.length, 2);
-const logs = { [A.shiftDay(day, -2)]: { read: 9, replied: 1, stay: {} }, [day]: { read: 15, replied: 2, stay: {} } };
+const logs = { [A.shiftDay(day, -2)]: { read: 9, replied: 1, stay: {} }, [day]: { read: 10, replied: 2, stay: {} } };
 const wk = view({ today: today({ page: "receipt" }), week: true, totals: A.weekTotals(logs, day) }).receipt;
-eq("the week's receipt: her line, the days it really covers, the sums", [wk.line, wk.stampLine, wk.rows[0].value, wk.rows[1].value, wk.print, wk.share], ["“that’s the week. there’s a little extra at the bottom.”", "NOV.9 – NOV.11 · COURIER POND", "24", "3", "Print this week’s receipt", "Share my week"]);
+eq("the week's receipt: her line, the days it really covers, the sums", [wk.line, wk.stampLine, wk.rows[0].value, wk.rows[1].value, wk.print, wk.share], ["“that’s the week. there’s a little extra at the bottom.”", "NOV.9 – NOV.11 · COURIER POND", "19", "3", "Print this week’s receipt", "Share my week"]);
 const wk1 = view({ today: today({ page: "receipt" }), week: true, totals: A.weekTotals({ [day]: logs[day] }, day) }).receipt;
 eq("a week with one logged day prints that day alone", wk1.stampLine, "NOV.11 · COURIER POND");
-ok("VoiceOver reads the rows and the small thing", rc.a11y.startsWith("Receipt. LETTERS READ, 15. WRITTEN BACK, 2. NEXT DELIVERY, 8:00 AM.") && rc.a11y.includes("POND’S FACT · NO. 12"));
+ok("VoiceOver reads the rows and the small thing", rc.a11y.startsWith("Receipt. LETTERS READ, 10. WRITTEN BACK, 2. NEXT DELIVERY, 8:00 AM.") && rc.a11y.includes("POND’S FACT · NO. 12"));
 
 /* ── the strip ── */
 eq("she can play", view().strip, { canPlay: true, eyebrow: "POND’S OFF THE CLOCK", title: "Fly a lap with Pond", hint: "Opens Free Flight" });
@@ -128,7 +128,7 @@ eq("she can't: when she is back, and no lap", view({ canPlay: false }).strip, { 
 
 /* ── bedtime ── */
 const bed = view({ today: today({ page: "bedtime" }) }).bed;
-eq("her lines", [bed.sayIdle, bed.sayFed, bed.sayFull, bed.sayPat, bed.sayNeedSnack, bed.sayNeedPat], ["“that’s 15. i’m wrecked.”", "“15 letters is hungry work. thanks.”", "“i’m full. honest.”", "“you wrote back to 2. proud of you.”", "“not yet. snack first.”", "“one pat. then lights.”"]);
+eq("her lines", [bed.sayIdle, bed.sayFed, bed.sayFull, bed.sayPat, bed.sayNeedSnack, bed.sayNeedPat], ["“that’s 10. i’m wrecked.”", "“10 letters is hungry work. thanks.”", "“i’m full. honest.”", "“you wrote back to 2. proud of you.”", "“not yet. snack first.”", "“one pat. then lights.”"]);
 eq("a pat with no replies says nothing about replies", view({ today: today({ page: "bedtime" }), replied: 0 }).bed.sayPat, "“mm. right there.”");
 eq("one letter, one reply", [view({ today: today({ page: "bedtime" }), read: 1 }).bed.sayIdle, view({ today: today({ page: "bedtime" }), replied: 1 }).bed.sayPat], ["“that’s one. i’m wrecked anyway.”", "“you wrote back to one. proud of you.”"]);
 eq("three in a row with tonight: two before it, tonight makes three", [bed.streak, bed.streakSub, bed.streakDone, bed.streakSubDone], ["2 days in a row", "tonight makes 3", "3 days in a row", "see you at 8:00 AM"]);

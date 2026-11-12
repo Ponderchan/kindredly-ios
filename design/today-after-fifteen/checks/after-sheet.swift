@@ -46,7 +46,7 @@ func base(_ page: KAfterPage) -> KAfterContent {
   c.thing = fact()
   c.strip.eyebrow = "POND’S OFF THE CLOCK"
   c.strip.title = "Fly a lap with Pond"
-  c.box.line = "“that’s 15. i counted twice.”"
+  c.box.line = "“that’s 10. i counted twice.”"
   c.box.sub = "You wrote back to 2."
   c.box.hint = "PULL THE CORD →"
   c.box.pinned = "I pinned something to the shutter."
@@ -58,11 +58,11 @@ func base(_ page: KAfterPage) -> KAfterContent {
   c.box.countdown = "16H 40M"
   c.box.pull = "PULL"
   c.box.lift = "LIFT"
-  c.receipt.line = "“that’s 15. there’s a little extra at the bottom.”"
+  c.receipt.line = "“that’s 10. there’s a little extra at the bottom.”"
   c.receipt.shop = "KINDREDLY POST"
   c.receipt.stampLine = "NOV 11 · 3:19 PM · COURIER POND"
   c.receipt.rows = [
-    KAfterRow(id: "read", label: "LETTERS READ", value: "15"),
+    KAfterRow(id: "read", label: "LETTERS READ", value: "10"),
     KAfterRow(id: "replied", label: "WRITTEN BACK", value: "2"),
     KAfterRow(id: "stay", label: "YOU STAYED ON", value: "#ALMOSTS"),
   ]
@@ -74,8 +74,8 @@ func base(_ page: KAfterPage) -> KAfterContent {
   c.receipt.printing = "PRINTING…"
   c.receipt.tear = "Tear it off"
   c.receipt.share = "Share my day"
-  c.bed.sayIdle = "“that’s 15. i’m wrecked.”"
-  c.bed.sayFed = "“15 letters is hungry work. thanks.”"
+  c.bed.sayIdle = "“that’s 10. i’m wrecked.”"
+  c.bed.sayFed = "“10 letters is hungry work. thanks.”"
   c.bed.snack = KAfterStep(label: "Snack", sub: "a few seeds", subDone: "fed")
   c.bed.pat = KAfterStep(label: "Pat", sub: "one, gently", subDone: "patted")
   c.bed.lights = KAfterStep(label: "Lights out", sub: "then she sleeps", subDone: "asleep")
@@ -211,7 +211,7 @@ struct Main {
     egg.strip.canPlay = false
     egg.strip.eyebrow = ""
     egg.strip.title = "POND IS BACK IN 16H 40M"
-    egg.box.line = "“that’s 15. i heard every one.”"
+    egg.box.line = "“that’s 10. i heard every one.”"
 
     write(HStack(alignment: .top, spacing: 24) {
       Phone(content: shut, height: 667, label: "SE · F1 shut")

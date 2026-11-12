@@ -14,7 +14,7 @@ import { strings } from "../lib/i18n";
    ones inside quotation marks: short, lower case in English (her voice on her card: fl.*), warm,
    a little dry, never cute about a status. Everything else is plain UI.
 
-   EVERY NUMBER IS REAL. {n} is what went past the desk today (1…15), or the replies, or the
+   EVERY NUMBER IS REAL. {n} is what went past the desk today (1…10: the desk is ten a day), or the replies, or the
    streak's days. A line never claims more than its number says; the forms for one are separate
    keys because nine languages decline them differently.
 

@@ -19,7 +19,7 @@ import SwiftUI
    lifts off the page. The bar's 32-blur shadow is sized for a 62-tall capsule and would swallow a
    52 disc, hence the disc's own (the prototype's numbers). Before, they were flat gray 6 (#F2F1F6
    / #272443).
- - No number on Next: the 15 a day are a ceiling, not a task. Instead a ring of ticks drawn ON
+ - No number on Next: the 10 a day are a ceiling, not a task. Instead a ring of ticks drawn ON
    Next's edge (KDeskRing; the disc keeps its 52): one tick per letter on today's desk, from 12
    o'clock clockwise, a 2.5 round stroke, 4.5 between ticks (3 past eight letters; the round caps
    take 2.5 of each gap), coloured by how far the reader has got: not yet read #DDDAEE, read

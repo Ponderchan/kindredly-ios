@@ -38,7 +38,7 @@ import "../../data/strings-after-facts";
    - PAGE: box (the mailbox), receipt, bedtime;
    - THING: her fact, or a line of the day (a fixture line);
    - FACT: the fact's number, through all of them;
-   - READ / REPLIED: the day's counts (15, 9, 1 · 2, 1, 0);
+   - READ / REPLIED: the day's counts (10, 6, 1 · 2, 1, 0; ten a day, the desk's size since 2026-11-12);
    - WEEK: the receipt with the week's totals (as on a Sunday) or the day's;
    - RUN: the days in a row before tonight (bedtime's dots);
    - PLAY: whether she can play (the strip);
@@ -48,7 +48,7 @@ import "../../data/strings-after-facts";
    Every tap that would leave says where it would go. The panel's words are English: a dev page. */
 
 const PAGES: readonly AfterPage[] = ["box", "receipt", "bedtime"];
-const READS = [15, 9, 1] as const;
+const READS = [10, 6, 1] as const;
 const REPLIES = [2, 1, 0] as const;
 const RUNS = [5, 6, 0, 13] as const;
 const LINE: Thing = { kind: "line", id: "demo", text: "I still set two cups out.", who: "No. 6059", stamp: "missing", at: "2026-11-11T09:00:00Z", why: "replied" };
@@ -78,7 +78,7 @@ export default function AfterFifteenDev() {
   const [page, setPage] = useState<AfterPage>("box");
   const [line, setLine] = useState(false);
   const [factNo, setFactNo] = useState(1);
-  const [read, setRead] = useState<number>(15);
+  const [read, setRead] = useState<number>(10);
   const [replied, setReplied] = useState<number>(2);
   const [week, setWeek] = useState(false);
   const [run, setRun] = useState<number>(5);
@@ -135,7 +135,7 @@ export default function AfterFifteenDev() {
       [day],
     );
     const log: Record<string, DayLog> = { [day]: { read, replied, stay: { almosts: 60000 } } };
-    for (let i = 1; i < 7; i++) log[shiftDay(day, -i)] = { read: 15 - (i % 3), replied: i % 2, stay: i === 2 ? { missing: 40000 } : {} };
+    for (let i = 1; i < 7; i++) log[shiftDay(day, -i)] = { read: 10 - (i % 3), replied: i % 2, stay: i === 2 ? { missing: 40000 } : {} };
     return buildAfterView(
       { today, name: "Pond", read, replied, canPlay, now, days, totals: week ? weekTotals(log, day) : dayTotals(log[day], day), week, title: t("ld.today"), undo: undo ? t("id2.sheet.undo") : "", undoHint: t("ld.bringBack") },
       fmt,

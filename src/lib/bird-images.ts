@@ -529,6 +529,24 @@ function want(v: string): () => void {
   };
 }
 
+/**
+ * Her pictures taken AHEAD of the screens that show them (owner, 2026-11-12: "点写信…抖动且弹两次").
+ * A first capture draws the bird offscreen and screenshots it with afterScreenUpdates, which makes
+ * the screen redraw in the middle of whatever is moving: the letter composer, opened for the first
+ * time after launch, shook on its way up (measured: its top edge went back down eleven times) while
+ * its Wren's faces and her flying picture were taken; every later open was smooth. Wanted here for
+ * `holdMs` (a capture round), then let go: a picture once taken stays (shots) until iOS purges the
+ * file or her look changes, so the screen's own ask finds it ready. A pose already captured costs
+ * nothing.
+ */
+export function warmBirdPoses(poses: readonly BirdPose[], holdMs = 10_000): void {
+  const releases = poses.map((p) => want(birdVariant(p, false)));
+  setTimeout(() => releases.forEach((r) => r()), holdMs);
+}
+
+/** What the + leads to shows: the letter composer's Wren in each mood and her send-off, the diary composer's Wren. */
+export const PLUS_BIRD_POSES: readonly BirdPose[] = [...COMPOSE_WREN_MOODS.map(composeWrenPose), "note30", "travelFly"];
+
 /** Mark a capture whose file iOS has purged, so it is taken again. */
 function checkPurged(v: string): void {
   const s = shots.get(v);

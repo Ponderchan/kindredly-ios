@@ -42,7 +42,7 @@ import type { TodayModel } from "./useTodayDesk";
      (the whole desk in reading order, each letter unread, read or
      replied, and the letter on screen's place), the cards
      (memoised apart from the drafts, with a rev, so typing never re-sends
-     fifteen letters; each header from the card's `who` and `when` once the
+     ten letters; each header from the card's `who` and `when` once the
      identity switch is on — courier names, frosted windows, ♀/♂ and star
      signs — and from its old postmark line while it is off, so off is the
      header exactly as it was), the plate's lock, her first-arrival line, her letter

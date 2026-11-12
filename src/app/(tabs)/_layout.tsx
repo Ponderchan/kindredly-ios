@@ -16,6 +16,7 @@ import { PostFan } from "../../components/PostFan";
 import { IdentityNote } from "../../screens/edit-profile/IdentityNote";
 import { GrowthMoment } from "../../components/GrowthMoment";
 import { primeRoll } from "../../screens/photo-roll/roll-prime";
+import { PLUS_BIRD_POSES, warmBirdPoses } from "../../lib/bird-images";
 
 /* The fan lives HERE rather than inside the tab bar, and as a plain
    overlay rather than a Modal. Both matter for the same reason: a composer
@@ -62,6 +63,9 @@ import { primeRoll } from "../../screens/photo-roll/roll-prime";
    star sign switches inside it) is mounted here once, over every tab; it
    draws nothing unless the table's switch is on and the account has never
    answered. */
+/** how long after the tabs first stand her pictures for the + are taken (the launch has settled) */
+const WARM_BIRDS_AFTER_MS = 2500;
+
 export default function TabsLayout() {
   const [choosing, setChoosing] = useState(false);
   // a screen sent the bar away (Today's reply); setBarAway is stable, so the context never churns
@@ -86,6 +90,16 @@ export default function TabsLayout() {
   useEffect(() => {
     if (choosing) primeRoll(windowWidth);
   }, [choosing, windowWidth]);
+  /* and her pictures on the pages the + opens taken ahead (lib/bird-images warmBirdPoses): a
+     quiet moment after the tabs first stand, and again as the + opens (nothing, when they are
+     already taken), so no capture runs while a composer slides up */
+  useEffect(() => {
+    const id = setTimeout(() => warmBirdPoses(PLUS_BIRD_POSES), WARM_BIRDS_AFTER_MS);
+    return () => clearTimeout(id);
+  }, []);
+  useEffect(() => {
+    if (choosing) warmBirdPoses(PLUS_BIRD_POSES);
+  }, [choosing]);
 
   // prime the signal at launch — it has to be true before Kindreds is opened
   useEffect(() => {

@@ -8,7 +8,7 @@
    and the counters at UTC midnight too. A countdown is only true if the
    thing it counts to happens. */
 
-/** the hour she's back with the next fifteen — the morning knock fires then too */
+/** the hour she's back with the next ten — the morning knock fires then too */
 export const MORNING_HOUR = 8;
 
 /** the desk's day, as a key: turns at MORNING_HOUR local time, not at midnight */

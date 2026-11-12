@@ -2,6 +2,10 @@ import { HStack, Image, Spacer, Text, VStack } from "@expo/ui/swift-ui";
 import { accessibilityHidden, activityBackgroundTint, aspectRatio, font, foregroundStyle, frame, padding, resizable } from "@expo/ui/swift-ui/modifiers";
 import { createLiveActivity, type LiveActivityEnvironment } from "expo-widgets";
 
+/* the desk's size (lib/ration DAY_LETTERS), written here rather than imported: this file runs in
+   the widget, which takes nothing from the app's own code */
+const DAY_LETTERS = 10;
+
 /* THE CLOSED WINDOW, ON THE LOCK SCREEN.
    ────────────────────────────────────────────────────────────────────────
    Pulling the blind starts this; it ends itself at the hour she's back.
@@ -58,10 +62,10 @@ const DayClosed = (props: DayClosedProps, env: LiveActivityEnvironment) => {
     ) : (
       <Text modifiers={[mono(size, "bold"), foregroundStyle(color)]}>{props.backAtLabel}</Text>
     );
-  /* the day as marks: an opened envelope per letter read (fifteen at most
-     — that is the whole ration), then the ones waiting on you in pen */
+  /* the day as marks: an opened envelope per letter read (DAY_LETTERS at most — the whole desk,
+     ten since 2026-11-12), then the ones waiting on you in pen */
   const marks: React.JSX.Element[] = [];
-  const shown = Math.min(15, props.read);
+  const shown = Math.min(DAY_LETTERS, props.read);
   for (let i = 0; i < shown; i++) marks.push(<Image key={"r" + i} systemName="envelope.open.fill" size={9} color={mark} />);
   for (let i = 0; i < Math.min(5, props.waiting); i++) marks.push(<Image key={"w" + i} systemName="envelope.fill" size={9} color={PEN} />);
   /* VoiceOver (a11y pass): the marks are drawn, not told — the line beside them says the day
