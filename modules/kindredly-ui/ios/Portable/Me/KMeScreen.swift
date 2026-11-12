@@ -591,6 +591,9 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
   private let initialSegment: Int
   private let topInset: CGFloat
   private let bottomInset: CGFloat
+  /// this is the page on show in the Me tab (false under Settings, Edit profile and the tab's
+  /// other pages, which stand over it with the tab bar still up: its keys leave the band then)
+  private let active: Bool
   private let driver: KMeDriver
   private let actions: KMeActions
   private let avatar: Avatar
@@ -639,12 +642,14 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
     bottomInset: CGFloat,
     driver: KMeDriver,
     actions: KMeActions,
+    active: Bool = true,
     @ViewBuilder avatar: () -> Avatar,
     @ViewBuilder courier: () -> Courier,
     @ViewBuilder auraArt: () -> AuraArt
   ) {
     self.theme = theme
     self.content = content
+    self.active = active
     self.initialSegment = initialSegment
     self.topInset = topInset
     self.bottomInset = bottomInset
@@ -687,13 +692,13 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
 
   /// everything the band's Edit and gear show: they are published again when it changes
   private var toolsSignature: String {
-    [theme.key, content.planet == nil ? "segments" : "cover", content.profile.editLabel, content.settingsLabel].joined(separator: "|")
+    [theme.key, content.planet == nil ? "segments" : "cover", active ? "on" : "under", content.profile.editLabel, content.settingsLabel].joined(separator: "|")
   }
 
   /// Edit and the gear, for the band: round keys that do what the two in the page do. Only on
   /// the page with her planet's cover (the older page keeps its own header as it is).
   private func publishTools() {
-    guard content.planet != nil else {
+    guard content.planet != nil, active else {
       KRailTools.shared.set(.me, [])
       return
     }

@@ -348,6 +348,7 @@ export function MeNative({ model }: { model: MeModel }) {
         report={report}
         stamps={stamps}
         firstClass={firstClass}
+        active={focused}
         initialSegment={initialSegment}
         onSettings={act.settings}
         onEdit={act.edit}

@@ -242,6 +242,9 @@ export type KMeViewProps = CommonViewModifierProps &
     fc?: KMeFcRollout;
     /** the segment to open on (read when the view first draws) */
     initialSegment: number;
+    /** the Me tab is showing this page (not Settings or another of its pages over it): on a
+        folding phone its Edit and settings keys stand in the band only then. Default true */
+    active?: boolean;
     onSettings?: () => void;
     onEdit?: () => void;
     onPeek?: (key: "letters" | "kindreds", open: boolean) => void;

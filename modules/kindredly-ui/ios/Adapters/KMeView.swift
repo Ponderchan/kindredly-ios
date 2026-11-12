@@ -493,6 +493,8 @@ final class KMeViewProps: KScreenProps {
   @Field var firstClass: KMeFirstClassRecord = KMeFirstClassRecord()
   @Field var fc: KMeFcRolloutRecord = KMeFcRolloutRecord()
   @Field var initialSegment: Int = 0
+  /// the Me tab is showing this page, not one of its pages over it (KMeScreen: the band's keys)
+  @Field var active: Bool = true
   // two pieces in Swift (Adapters/KMePiecesView.swift), each off unless TS turns it on: the
   // courier's card in the frame instead of the "courier" island, the Aura card's picture
   // instead of the "auraArt" island
@@ -611,7 +613,8 @@ struct KMeView: ExpoSwiftUI.View {
       // always drawn over the bottom asks (KBottomFade.contentMargin(): 176 - 6, H:28's 170)
       bottomInset: max(insets.tabBarRoom + 12, KBottomFade.contentMargin()),
       driver: props.driver,
-      actions: props.actions
+      actions: props.actions,
+      active: props.active
     ) {
       if props.myFace.on {
         // the island's 72; square inside your stamp, which the header draws and scales it into
