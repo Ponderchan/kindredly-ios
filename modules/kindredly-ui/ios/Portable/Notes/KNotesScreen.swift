@@ -396,8 +396,11 @@ public struct KNotesScreen: View {
     self.actions = actions
   }
 
-  /// the fade over the bottom: the tab bar's room + 78, never less than the mock's 176
-  private var fadeHeight: CGFloat { max(KBottomFade.defaultHeight, tabBarRoom + 78) }
+  /// the fade over the bottom: the tab bar's room + 78, never less than the mock's 176; with the
+  /// tab bar in the band (iPhone Duo) the short fade, there being no bar to dissolve into
+  private var fadeHeight: CGFloat {
+    fold.frame.rail ? KBottomFade.railHeight : max(KBottomFade.defaultHeight, tabBarRoom + 78)
+  }
 
   /// the search row is the header (never on the empty page, never for a bundle without search)
   private var searching: Bool { content.search.available && content.search.on && !content.empty }

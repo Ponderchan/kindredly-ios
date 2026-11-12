@@ -524,6 +524,9 @@ public struct KFoldFrame: Equatable, Sendable {
   public static let phone = KFoldFrame()
   /// the window is two pages side by side
   public var twoPages: Bool { duo && crease > 0 }
+  /// the tab bar stands in the band, so there is none along the bottom (fold-frame.ts's rule:
+  /// the band has to hold it, RAIL_MIN_BAND = 80)
+  public var rail: Bool { duo && band >= 80 }
 }
 
 public final class KFold: ObservableObject {

@@ -679,6 +679,10 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
     Self.scrollFloor(content: contentHeight, area: areaHeight, header: header)
   }
 
+  /// what the page keeps clear at its foot: the host's number, or the short fade's with the tab
+  /// bar in the band (KBottomFade.foot)
+  private var foot: CGFloat { KBottomFade.foot(bottomInset, in: fold.frame) }
+
   public var body: some View {
     Group {
       if let planet = content.planet {
@@ -761,7 +765,7 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
           page
             .padding(.horizontal, Self.gutter)
             .padding(.top, Self.topMargin)
-            .padding(.bottom, bottomInset)
+            .padding(.bottom, foot)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
               if abs(h - contentHeight) > 0.5 { contentHeight = h }
             }
@@ -802,7 +806,7 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
           auraArt
         }
         .padding(.horizontal, Self.gutter)
-        .padding(.bottom, bottomInset)
+        .padding(.bottom, foot)
         .padding(.leading, fold.frame.left)
         .padding(.trailing, fold.frame.right)
       }
@@ -845,7 +849,7 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
   private func spreadBody(_ planet: KMePlanet) -> some View {
     let f = fold.frame
     return HStack(spacing: 0) {
-      KMeCover(planet: planet, topInset: topInset, pull: 0, actions: coverActions(), page: true, foot: bottomInset)
+      KMeCover(planet: planet, topInset: topInset, pull: 0, actions: coverActions(), page: true, foot: foot)
         .frame(width: f.crease)
       ScrollView(.vertical) {
         VStack(spacing: 0) {
@@ -856,7 +860,7 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
             auraArt
           }
           .padding(.horizontal, Self.gutter)
-          .padding(.bottom, bottomInset)
+          .padding(.bottom, foot)
         }
       }
       .scrollIndicators(.hidden)

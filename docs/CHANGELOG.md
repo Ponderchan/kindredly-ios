@@ -43,12 +43,12 @@ Today is flat: no lavender behind the buttons, no lavender edge on the letter (o
 - The letter no longer has a lavender edge showing to its right and under it. It is a flat sheet with a hairline round it, on Today's card, on Wren's letter when the day is done, on the loading and offline card, and when a long letter is unfolded (which is now centred: it kept 6 points clear on the right for that edge). In every theme; the dark theme had a grey edge there.
 
 iPhone Duo, the folding iPhone (owner, 2026-11-12: "需要做完在模拟器看", then on the inner screen "要把整个屏都利用起来") [switch: duo; needs a binary; nothing changes on a phone that doesn't fold]
-- On both of the Duo's screens the tab bar stands upright at the right edge, under the clock, where the hand holding the phone has its thumb: the same four icons, the red details, the badge and the black +, which stands out towards the page. The + opens it sideways: the bar widens round Write a letter and Daily note. Pages keep out of that edge.
+- On both of the Duo's screens the tab bar stands upright at the foot of the right edge, where the hand holding the phone has its thumb: the four icons in a capsule of their own, with the red details and the badge, and under them the black + on its own in the corner (owner, at the + half-way up the column: "感觉侧边很奇怪"). The + opens a card out of itself, to the left and up, with Write a letter and Daily note, and becomes the red × in the same corner. Pages keep out of that edge.
 - Opening the phone opens the letter: on the inner screen Today's letter lies open across the whole screen, with Next, Wren and Reply floating over its bottom edge on the right. Reply moves the letter to the left page and gives you the right page to write back on, from the letter's top to the keyboard.
 - Notes on the inner screen is the month on the left page and your notes on the right; a day tapped on the left takes the right to that day's note.
 - Kindreds on the inner screen is the orbit on the left page, always open, and the list on the right.
 - Me on the inner screen is her planet as the whole left page (it turns under a finger) and you on the right: your face and name, her card and the tiles.
-- On the outer screen Me's sky runs under the clock to the edge.
+- On the outer screen Me's sky runs under the clock to the edge, with her planet, the moon and the stars in the middle of the page rather than under the clock; and every tab runs down to the bottom of the glass, with only a short fade over the home indicator (there is no tab bar along the bottom to fade into).
 - Pages that are one list (Settings, the paywall, onboarding) sit as one column in the middle of the inner screen, no wider than 560, and a key never grows longer than it is on a phone: "Hatch my courier" stays its phone length there.
 
 What the owner found on build 42 (2026-11-12) [the spacing and the onboarding marks need a binary; the rest is JS]

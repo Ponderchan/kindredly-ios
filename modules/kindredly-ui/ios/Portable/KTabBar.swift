@@ -165,22 +165,44 @@ public enum KTabBarMetrics {
   static let collarGap: CGFloat = 6
   static let collarFillet: CGFloat = 10
 
-  /* THE RAIL (iPhone Duo, 2026-11-12; the canvas's "侧边导航": "就是今天的新底栏，转了 90 度").
+  /* THE RAIL (iPhone Duo, 2026-11-12; the canvas's "侧边导航").
      On a folding phone the system keeps a band down the right edge of both screens, with its
-     clock at the top. The bar stands in that band: the same four icons, lens, badge and ink +,
-     top to bottom, `height` (62) wide and railLength long; the + stands out of its LEFT edge,
-     towards the page, in the same swell. The + opens it sideways: the rail widens by railTray
-     towards the page, its right edge where it was, round the same rows. The holder sizes its
-     Host to the band (and to the whole window while the + is open). */
-  /// the rail's length, top to bottom
-  public static let railLength: CGFloat = 340
-  /// the rail's right edge from the screen's: with the 62 of the rail and the swell's 12 it
-  /// fills the system's 84 band
-  public static let railEdge: CGFloat = 10
-  /// how much wider the rail grows round its tray
+     clock at the top. The bar stands in that band, at its foot, where the thumb of the hand
+     holding the phone is.
+
+     v1 was the phone's bar turned 90 degrees: five columns, the + in the middle standing out of
+     the left edge in the glass's swell, and the + widened the whole rail round its tray. The
+     owner, looking at it in the simulator the same day: "那个发布➕ 能在下面或者悬浮么？感觉侧边
+     很奇怪". A + half-way up a column of icons, poking sideways into the page, is not where a
+     hand looks for it.
+
+     v2: THE + STANDS ON ITS OWN AT THE FOOT OF THE BAND, under the tabs. Two things in the band:
+     · the tabs: the four icons top to bottom in a plain glass capsule (no swell), `height` (62)
+       wide, railSlot to a tab, with the lens and the badge as on the bar;
+     · the +: the ink disc alone, railPlus across, railGap under the capsule, in the corner the
+       thumb rests on. No glass shows round it while it is closed (no rim).
+     The + opens its own tray: the glass grows out of the disc to the left and up, round the
+     same rows, railTray wider, its right and bottom edges where they were, and the disc turns to
+     the red x in the corner it never left. The tabs step out while it is open (the card stands
+     where they do). The holder sizes its Host to the band (and to the whole window while the +
+     is open). */
+  /// a tab's share of the rail's length (the lens is 58 of it)
+  public static let railSlot: CGFloat = 62
+  /// between the tabs' capsule and the +
+  public static let railGap: CGFloat = 12
+  /// the + on the rail: on its own, so a little bigger than in the row
+  public static let railPlus: CGFloat = 54
+  /// the rail's right edge from the screen's: the 62 of the rail in the middle of the system's
+  /// 84 band, under its clock
+  public static let railEdge: CGFloat = 11
+  /// the + from the bottom safe area
+  public static let railFoot: CGFloat = 6
+  /// how much wider the + grows round its tray
   public static let railTray: CGFloat = 276
   /// the lens on the rail: the bar's, upright
   static let railLens = CGSize(width: 50, height: 58)
+  /// the tabs' capsule, top to bottom
+  static func railTabsLength(_ tabs: Int) -> CGFloat { CGFloat(max(1, tabs)) * railSlot }
 
   /// the lens (G Prompt 1)
   static let lensSize = CGSize(width: 62, height: 50)
@@ -311,8 +333,8 @@ public struct KTabBar: View {
   ///     curve; with Reduce Motion it fades instead
   ///   - raised: the + stands proud of the bar in a swell of its glass (KTabBarMetrics, THE
   ///     RAISED +); the bar's frame is plusHeadroom taller at the top. false: the + sits in the row
-  ///   - rail: the bar stands upright (KTabBarMetrics, THE RAIL): the tabs top to bottom, the +
-  ///     out of its left edge, and it grows sideways round its tray
+  ///   - rail: the bar stands upright (KTabBarMetrics, THE RAIL): the tabs top to bottom in their
+  ///     capsule, the + on its own under them, growing to the left and up round its tray
   ///   - tray: what the bar grows around while isPanelOpen (the publish entry's rows); nil keeps
   ///     the bar 62 tall whatever isPanelOpen says
   ///   - onSelect: a tab was chosen (tapped, or a drag let go over it), with its index; selected or not
@@ -349,11 +371,12 @@ public struct KTabBar: View {
 
   /// tabs before the +
   private var leading: Int { items.count / 2 }
-  private var columnCount: Int { items.count + 1 }
+  /// (on the rail the + is not in the row: it stands on its own at the foot)
+  private var columnCount: Int { rail ? items.count : items.count + 1 }
 
   /// the column a tab sits in: the + takes one in the middle
   private func column(of index: Int) -> Int {
-    index < leading ? index : index + 1
+    rail || index < leading ? index : index + 1
   }
 
   private var dragging: Bool { dragX != nil }
@@ -383,7 +406,7 @@ public struct KTabBar: View {
   }
 
   private func onPlusColumn(_ x: CGFloat, slot: CGFloat) -> Bool {
-    Int(floor(x / slot)) == leading
+    !rail && Int(floor(x / slot)) == leading
   }
 
   public var body: some View {
@@ -455,40 +478,19 @@ public struct KTabBar: View {
     .accessibilityHidden(hidden)
   }
 
-  // ── the rail (KTabBarMetrics, THE RAIL): the same bar, upright ──
+  // ── the rail (KTabBarMetrics, THE RAIL): the tabs upright, and the + on its own at the foot ──
   private var railBody: some View {
     let tone = KGlassTone.of(theme)
     let grown = trayOpen
-    // the swell is on the left edge, and flat while the rail is grown round its tray
-    let shape = railOutline(swell: grown ? 0 : 1)
-    let barWidth = KTabBarMetrics.height + (grown ? KTabBarMetrics.railTray : 0)
-    // a tray taller than the rail (a new reader's line over three rows) takes the rail with it
-    let barLength = max(KTabBarMetrics.railLength, grown ? trayHeight : 0)
-    return ZStack(alignment: .trailing) {
-      // the tray, beside the tab column, inside the glass: clipped away while closed
-      if let tray {
-        tray
-          .dynamicTypeSize(...DynamicTypeSize.xLarge)
-          .frame(width: KTabBarMetrics.railTray)
-          .fixedSize(horizontal: false, vertical: true)
-          .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { trayHeight = $0 }
-          // only the opacity is animated, as on the bar (see barBody)
-          .animation(reduceMotion ? KMotion.publishReduced : grown ? KMotion.trayIn : KMotion.trayOut) { $0.opacity(grown ? 1 : 0) }
-          .allowsHitTesting(grown)
-          .accessibilityHidden(!grown)
-          .padding(.trailing, KTabBarMetrics.height - 6)
-      }
-      railColumn(tone: tone, lifted: !grown)
+    return VStack(alignment: .trailing, spacing: KTabBarMetrics.railGap) {
+      railTabs(tone: tone)
+        // the +'s card grows up over where the tabs stand: they step out while it is open
+        .animation(reduceMotion ? KMotion.publishReduced : grown ? KMotion.trayOut : KMotion.trayIn) { $0.opacity(grown ? 0 : 1) }
+        .allowsHitTesting(!grown)
+        .accessibilityHidden(grown)
+      railPod(tone: tone, grown: grown)
     }
-    // right edge fixed: the frame grows to the left and the tab column stays at its right (the
-    // headroom beyond the left edge is the swell's)
-    .frame(width: barWidth + headroom, height: barLength, alignment: .trailing)
-    .background { KGlassFace(tone: tone, shape: shape) }
-    .clipShape(shape)
-    .background { KOuterShadow(shadows: tone.shadow, shape: shape) }
-    // the growth, outside the glass, the clip and the shadow, as on the bar
-    .animation(reduceMotion ? nil : KMotion.barGrow, value: barWidth)
-    .animation(reduceMotion ? nil : KMotion.barGrow, value: barLength)
+    .frame(width: KTabBarMetrics.height)
     .environment(\.colorScheme, theme.isDark ? .dark : .light)
     .onChange(of: selectedIndex) { _, _ in pending = nil }
     // out of the way (Today's reply has the keyboard): off the right edge, or a fade
@@ -502,43 +504,71 @@ public struct KTabBar: View {
     .accessibilityHidden(hidden)
   }
 
-  /// the rail's outline: the bar's, turned so its top edge (and the swell) is the left edge
-  private func railOutline(swell: CGFloat) -> KRailOutline {
-    KRailOutline(bar: outline(swell: swell))
-  }
-
-  /// the column of tabs and the +, with the lens behind them, railLength long whatever the
-  /// rail's own length; `lifted`: a raised + is out (the rail is not grown round its tray)
-  private func railColumn(tone: KGlassTone, lifted: Bool) -> some View {
-    GeometryReader { geo in
-      let length = geo.size.height
-      let slot = length / CGFloat(max(1, columnCount))
-      let shown = shownTab(slot: slot)
-      ZStack(alignment: .topLeading) {
-        lens(tone: tone, width: length, slot: slot, shown: shown)
-        VStack(spacing: 0) {
-          ForEach(0..<columnCount, id: \.self) { c in
-            if c == leading {
-              plus(lifted: lifted)
-            } else {
-              let i = c < leading ? c : c - 1
-              tab(i, items[i], on: i == shown, tone: tone)
-            }
-          }
+  /// the tabs' capsule: the four icons top to bottom, the lens behind them
+  private func railTabs(tone: KGlassTone) -> some View {
+    let shape = RoundedRectangle(cornerRadius: KTabBarMetrics.corner, style: .circular)
+    let length = KTabBarMetrics.railTabsLength(items.count)
+    let slot = KTabBarMetrics.railSlot
+    let shown = shownTab(slot: slot)
+    return ZStack(alignment: .topLeading) {
+      lens(tone: tone, width: length, slot: slot, shown: shown)
+      VStack(spacing: 0) {
+        ForEach(items.indices, id: \.self) { i in
+          tab(i, items[i], on: i == shown, tone: tone)
         }
-        .frame(width: KTabBarMetrics.height, height: length)
       }
       .frame(width: KTabBarMetrics.height, height: length)
-      // the column's touch reaches over the swell, so the part of the + that stands out of the
-      // left edge is pressed like the rest of it
-      .frame(width: KTabBarMetrics.height + headroom, height: length, alignment: .trailing)
-      .contentShape(Rectangle())
-      .gesture(barGesture(slot: slot))
     }
-    .frame(width: KTabBarMetrics.height + headroom, height: KTabBarMetrics.railLength)
+    .frame(width: KTabBarMetrics.height, height: length)
+    .contentShape(Rectangle())
+    .gesture(barGesture(slot: slot))
+    .background { KGlassFace(tone: tone, shape: shape) }
+    .clipShape(shape)
+    .background { KOuterShadow(shadows: tone.shadow, shape: shape) }
     .dynamicTypeSize(...DynamicTypeSize.large)
     .accessibilityElement(children: .contain)
     .accessibilityAddTraits(.isTabBar)
+  }
+
+  /// The + on the rail and what it opens. Its place in the rail is always the 62 square at the
+  /// foot; grown, the glass reaches out of that square to the left and up (a frame bigger than
+  /// its place, held by its bottom right corner), so nothing above it moves.
+  private func railPod(tone: KGlassTone, grown: Bool) -> some View {
+    let side = KTabBarMetrics.height
+    // closed, the glass is tucked under the disc (no rim round the +); grown, it is the card
+    let shape = KPodOutline(corner: KTabBarMetrics.corner, tuck: grown ? 0 : (side - KTabBarMetrics.railPlus) / 2 + 1)
+    let width = side + (grown ? KTabBarMetrics.railTray : 0)
+    let height = max(side, grown ? trayHeight : 0)
+    return ZStack(alignment: .bottomTrailing) {
+      if let tray {
+        tray
+          .dynamicTypeSize(...DynamicTypeSize.xLarge)
+          .frame(width: KTabBarMetrics.railTray)
+          .fixedSize(horizontal: false, vertical: true)
+          .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { trayHeight = $0 }
+          // only the opacity is animated, as on the bar (see barBody)
+          .animation(reduceMotion ? KMotion.publishReduced : grown ? KMotion.trayIn : KMotion.trayOut) { $0.opacity(grown ? 1 : 0) }
+          .allowsHitTesting(grown)
+          .accessibilityHidden(!grown)
+          .padding(.trailing, side - 6)
+      }
+      plus(lifted: false)
+        .frame(width: side, height: side)
+        .onTapGesture { onPlus() }
+    }
+    // bottom right corner fixed: the frame grows to the left and up, the + stays in its corner
+    .frame(width: width, height: height, alignment: .bottomTrailing)
+    .background { KGlassFace(tone: tone, shape: shape) }
+    .clipShape(shape)
+    .background {
+      // the card's shadow; closed, the disc has its own
+      KOuterShadow(shadows: tone.shadow, shape: shape)
+        .animation(reduceMotion ? nil : KMotion.barGrow) { $0.opacity(grown ? 1 : 0) }
+    }
+    // the growth, outside the glass, the clip and the shadow, as on the bar
+    .animation(reduceMotion ? nil : KMotion.barGrow, value: width)
+    .animation(reduceMotion ? nil : KMotion.barGrow, value: height)
+    .frame(width: side, height: side, alignment: .bottomTrailing)
   }
 
   /// room over the bar's top edge for the swell round a raised +
@@ -741,10 +771,10 @@ public struct KTabBar: View {
   // ── the + (G Prompt 3) ──
   private func plus(lifted: Bool) -> some View {
     // the grown bar's + under Reduce Motion doesn't turn: the + and the x cross-fade
-    KGlassPlus(theme: theme, isOpen: isPanelOpen, turn: reduceMotion ? .easeInOut(duration: 0.25) : plusTurn, turns: !(reduceMotion && tray != nil), size: raised ? KTabBarMetrics.plusRaisedSize : KTabBarMetrics.plusSize)
+    KGlassPlus(theme: theme, isOpen: isPanelOpen, turn: reduceMotion ? .easeInOut(duration: 0.25) : plusTurn, turns: !(reduceMotion && tray != nil), size: rail ? KTabBarMetrics.railPlus : raised ? KTabBarMetrics.plusRaisedSize : KTabBarMetrics.plusSize)
       // raised: up out of the row's middle, and back down into it while the bar is grown (it
       // travels with the bar's growth, which wraps the whole bar)
-      .offset(x: rail && raised && lifted ? -KTabBarMetrics.plusRise : 0, y: !rail && raised && lifted ? -KTabBarMetrics.plusRise : 0)
+      .offset(y: !rail && raised && lifted ? -KTabBarMetrics.plusRise : 0)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .contentShape(Rectangle())
       .accessibilityElement(children: .ignore)
@@ -938,24 +968,31 @@ struct KBarOutline: InsettableShape {
   }
 }
 
-/// The rail's outline (KTabBarMetrics, THE RAIL): the bar's outline mirrored across its diagonal,
-/// so what was the top edge, swell and all, is the left edge, and its left end is the top.
-struct KRailOutline: InsettableShape {
-  var bar: KBarOutline
+/// The outline of the +'s own glass on the rail (KTabBarMetrics, THE RAIL): a rounded rectangle
+/// with the bar's corners, drawn `tuck` inside its frame. Closed, the frame is the 62 square and
+/// the tuck puts the glass wholly under the disc, where it is a circle; grown, the tuck is 0 and
+/// it is the card. The tuck animates, so the glass comes out from under the disc as it grows.
+struct KPodOutline: InsettableShape {
+  var corner: CGFloat
+  var tuck: CGFloat
+  var inset: CGFloat = 0
 
   var animatableData: CGFloat {
-    get { bar.swell }
-    set { bar.swell = newValue }
+    get { tuck }
+    set { tuck = newValue }
   }
 
-  func inset(by amount: CGFloat) -> KRailOutline {
-    KRailOutline(bar: bar.inset(by: amount))
+  func inset(by amount: CGFloat) -> KPodOutline {
+    var s = self
+    s.inset += amount
+    return s
   }
 
   func path(in rect: CGRect) -> Path {
-    let turned = CGRect(x: rect.minY, y: rect.minX, width: rect.height, height: rect.width)
-    // x and y change places
-    return bar.path(in: turned).applying(CGAffineTransform(a: 0, b: 1, c: 1, d: 0, tx: 0, ty: 0))
+    let r = rect.insetBy(dx: tuck + inset, dy: tuck + inset)
+    guard r.width > 0, r.height > 0 else { return Path() }
+    let c = min(max(0, corner - inset), min(r.width, r.height) / 2)
+    return Path(roundedRect: r, cornerRadius: c, style: .circular)
   }
 }
 

@@ -1019,9 +1019,7 @@ public struct KTabStage: View {
   ///   - plusRaised: the + stands proud of the bar (KTabBar raised); the Host's strip must be
   ///     KTabBarMetrics.plusHeadroom taller for it
   ///   - rail: the bar stands upright at the stage's right edge (KTabBarMetrics, THE RAIL: a
-  ///     folding phone's band), in the middle of the room between railTop and the bottom safe
-  ///     area. The Host is then the band (the whole window while the + is open), and the stage
-  ///     tells the two apart by its width, not its height. Only the grown bar is drawn for it.
+  ///     folding phone's band), on the bottom safe area: the tabs, and under them the + on its own
   ///   - railTop: where the system's own status area ends at the top of the band
   ///   - onPanelAction: a choice was tapped, with its key: a card's or the header link's
   ///     (cards), or KPublishAction.letter / .note (sheet, pop and grow)
@@ -1148,8 +1146,8 @@ public struct KTabStage: View {
           KPublishPop(theme: theme, model: pop, open: open, barGap: gap, onAction: onPanelAction)
         }
       }
-      // ── the bar (H:117), over the dim; on a folding phone the rail, at the right edge ──
-      .overlay(alignment: rail ? .trailing : .bottom) {
+      // ── the bar (H:117), over the dim; on a folding phone the rail, at the foot of the band ──
+      .overlay(alignment: rail ? .bottomTrailing : .bottom) {
         KTabBar(
           theme: theme,
           items: items,
@@ -1169,8 +1167,9 @@ public struct KTabStage: View {
           onPlus: onPlus
         )
         .padding(.horizontal, rail ? 0 : KTabBarMetrics.sideInset)
-        .padding(.bottom, rail ? safeAreaBottom : gap)
-        // the rail: in from the right edge, and centred in what the system's clock leaves
+        // the rail: in the middle of the band, standing on the bottom safe area (the + lowest,
+        // in the corner the thumb rests on), and never up into the system's clock
+        .padding(.bottom, rail ? max(safeAreaBottom, 16) + KTabBarMetrics.railFoot : gap)
         .padding(.trailing, rail ? KTabBarMetrics.railEdge : 0)
         .padding(.top, rail ? railTop : 0)
       }

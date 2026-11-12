@@ -104,8 +104,19 @@ struct KMeCover: View {
     return ZStack(alignment: .bottom) {
       palette.sky0
       VStack(spacing: 0) {
-        KPlanetView(kind: .cover, content: scene, probe: probe, onTap: { what in actions.onTap(what) }, onTurned: { turned = true })
-          .frame(height: KMeCoverMetrics.scene + pull * KMeCoverMetrics.sceneGain)
+        /* THE SCENE KEEPS OUT OF THE SYSTEM'S BAND (iPhone Duo's outer screen; owner, 2026-11-12:
+           "me 在这个屏幕是这样子的吗"). Laid out across the whole glass, the planet stood in the
+           middle of the window, which is 42 to the right of the page's middle: against your face
+           and under the clock, with the moon touching the camera. So the planet, the moon and
+           the stars are the page's, and behind them the same wash (sky0 to sky1, as
+           KPlanetPaint.sky lays it) runs on under the clock to the edge. The band is 0 on a
+           phone and on the inner screen upright, where nothing changes. */
+        ZStack {
+          LinearGradient(colors: [palette.sky0, palette.sky1], startPoint: .top, endPoint: .bottom)
+          KPlanetView(kind: .cover, content: scene, probe: probe, onTap: { what in actions.onTap(what) }, onTurned: { turned = true })
+            .padding(.trailing, fold.frame.band)
+        }
+        .frame(height: KMeCoverMetrics.scene + pull * KMeCoverMetrics.sceneGain)
         palette.sky1.frame(height: KMeCoverMetrics.foot)
       }
       HStack(spacing: 8) {

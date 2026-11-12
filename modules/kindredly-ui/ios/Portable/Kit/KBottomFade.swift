@@ -22,17 +22,37 @@ public struct KBottomFade: View {
   public static let defaultHeight: CGFloat = 176
   /// where the fade turns solid, as a fraction of its height (H:108)
   public static let solidFrom: CGFloat = 0.42
+  /* WITH THE TAB BAR IN THE BAND (iPhone Duo, both screens) there is no bar along the bottom to
+     dissolve into, and 176 of fade left the foot of the page blank: Me's card was cut off a
+     hundred points above the glass's edge (owner, 2026-11-12, at the outer screen: "me 在这个
+     屏幕是这样子的吗"). There the fade is only what keeps a line of text off the home indicator:
+     72, so 30 of dissolve over 42 of page colour (the indicator's 34 and a little air). */
+  public static let railHeight: CGFloat = 72
+
+  /// the fade's height on this window
+  public static func height(in fold: KFoldFrame) -> CGFloat {
+    fold.rail ? railHeight : defaultHeight
+  }
 
   /// The bottom content margin a scroll view under a fade of this height needs.
   public static func contentMargin(height: CGFloat = defaultHeight) -> CGFloat {
     max(0, height - 6)
   }
 
-  private let theme: KTheme
-  private let height: CGFloat
+  /// What a page keeps clear at its foot, given what its host asked for. A host's number is
+  /// never less than the tall fade's margin (176 - 6); with the bar in the band that no longer
+  /// applies, and the page ends where the short fade does.
+  public static func foot(_ asked: CGFloat, in fold: KFoldFrame) -> CGFloat {
+    fold.rail ? min(asked, contentMargin(height: railHeight)) : asked
+  }
 
-  /// - Parameter height: from the screen's bottom edge up; 176 in the mock
-  public init(theme: KTheme, height: CGFloat = KBottomFade.defaultHeight) {
+  private let theme: KTheme
+  private let height: CGFloat?
+  @ObservedObject private var fold = KFold.shared
+
+  /// - Parameter height: from the screen's bottom edge up; nil for this window's own (176 in
+  ///   the mock, 72 with the tab bar in the band)
+  public init(theme: KTheme, height: CGFloat? = nil) {
     self.theme = theme
     self.height = height
   }
@@ -46,7 +66,7 @@ public struct KBottomFade: View {
       startPoint: .top,
       endPoint: .bottom
     )
-    .frame(height: height)
+    .frame(height: height ?? Self.height(in: fold.frame))
     .frame(maxWidth: .infinity)
     .allowsHitTesting(false)
     .accessibilityHidden(true)

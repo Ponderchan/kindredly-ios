@@ -458,6 +458,9 @@ public struct KKindredsScreen: View {
      Orbit chip and no watermark, since there is nothing left to fold. The right page stops at the
      system's band, where the tab bar stands. */
   @ObservedObject private var fold = KFold.shared
+  /// what the list keeps clear at its foot: the host's number, or the short fade's with the tab
+  /// bar in the band (KBottomFade.foot)
+  private var foot: CGFloat { KBottomFade.foot(bottomInset, in: fold.frame) }
   /// the left page's orbit never scrolls: a still model for its block
   @State private var still = KScrollModel(offsetCap: 81)
   @State private var spreadLegend: CGFloat = 16
@@ -513,7 +516,7 @@ public struct KKindredsScreen: View {
     .scaleEffect(1.3)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .padding(.top, topInset)
-    .padding(.bottom, bottomInset)
+    .padding(.bottom, foot)
   }
 
   private func listPage(spread: Bool) -> some View {
@@ -541,7 +544,7 @@ public struct KKindredsScreen: View {
       .scrollDismissesKeyboard(.immediately)
       // a short list still bounces, so a new reader's pull still opens the orbit
       .scrollBounceBehavior(.always, axes: .vertical)
-      .contentMargins(.bottom, bottomInset, for: .scrollContent)
+      .contentMargins(.bottom, foot, for: .scrollContent)
       .scrollPosition($position)
       .kScrollChrome(chrome)
       .onScrollPhaseChange { _, phase in
