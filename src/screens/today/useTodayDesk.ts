@@ -404,6 +404,8 @@ export function useTodaySource(): TodaySource {
            what this phone has shown, stay off the deal; today's own desk stays whole */
         const skipP = (async (): Promise<Set<string> | undefined> => {
           if (!letterOnceOn()) return undefined; // switched off on the server: the deal as it was
+          // a frozen desk takes nothing new, so it needs no skip list and no reaching back
+          if (C.loadMode(get(), placeholderRef.current) === "frozen") return undefined;
           const [server, shown] = await Promise.all([fetchMyReads(), seenLetterIds()]);
           const skip = new Set(shown);
           if (server) for (const id of server) skip.add(id);

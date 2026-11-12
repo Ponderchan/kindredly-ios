@@ -428,9 +428,13 @@ export async function fetchPool(limit = 40, authors?: string[], skip?: ReadonlyS
    off their desk: the server's own list (0054 my_read_letters: letter_reads, their rows
    only, iPhone and web alike) plus the phone's (lib/seen-letters: everything put on screen,
    even flicked past). With `skip`, the pool reads further back, page by page, until it has
-   a page's worth this reader hasn't seen, or POOL_REACH_DAYS, or POOL_MAX_PAGES. */
+   POOL_WANT letters this reader hasn't seen, or POOL_REACH_DAYS, or POOL_MAX_PAGES. The
+   first page is the newest `limit` as it always was (no age limit), and only a short FIRST
+   page says the pool is whole: a page cut short by the age limit has not seen everything,
+   and keepDesk would drop a desk letter that was simply older than it. */
 const POOL_MAX_PAGES = 5;
 const POOL_REACH_DAYS = 60;
+const POOL_WANT = 20; // twice a desk: room for the day's shuffle and the one-per-writer rule
 
 /** the letters this reader has read (0054). null = no answer (offline, or 0054 not run yet):
     the phone's own list still holds, and nothing is kept out on a guess */
@@ -479,7 +483,7 @@ export async function fetchPoolPage(limit = 40, authors?: string[], skip?: Reado
         .order("created_at", { ascending: false })
         .range(from, from + limit - 1);
       if (authors) q = q.in("author", authors);
-      if (since) q = q.gte("created_at", since);
+      if (since && from > 0) q = q.gte("created_at", since);
       return q;
     };
     // the paper (0041), then the media columns without it (0007), then the oldest list
@@ -505,13 +509,14 @@ export async function fetchPoolPage(limit = 40, authors?: string[], skip?: Reado
     const first = await fetchRows(0);
     if (!first) return null;
     let rows = first;
-    let whole = first.length < limit;
+    const whole = first.length < limit;
     // reach back while too few of them are new to this reader (only with `skip`)
-    for (let n = 1; skip && !whole && n < POOL_MAX_PAGES && rows.filter((r) => !skip.has(r.id)).length < limit; n++) {
+    for (let n = 1, last = first; skip && last.length === limit && n < POOL_MAX_PAGES && rows.filter((r) => !skip.has(r.id)).length < POOL_WANT; n++) {
       const more = await fetchRows(n * limit);
-      if (!more) break; // what came back already is still a pool; `whole` stays false
-      rows = rows.concat(more);
-      whole = more.length < limit;
+      if (!more) break; // what came back already is still a pool
+      const have = new Set(rows.map((r) => r.id)); // a letter written between pages shifts the next page by one
+      rows = rows.concat(more.filter((r) => !have.has(r.id)));
+      last = more;
     }
 
     /* WHOEVER IS ALREADY IN KINDREDS IS NOT A STRANGER.

@@ -282,6 +282,9 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   ok("deal: a fresh desk is just the deal", ids(M.dealDesk([], [], dealt)) === "d1,p2,d2");
   const many = Array.from({ length: 30 }, (_, i) => L({ id: "m" + i }));
   ok("deal: up to the ten", M.dealDesk(cur, [], many).length === 10);
+  const onX = [L({ id: "x1", author: "X" })];
+  ok("deal: the writer on screen isn't dealt again behind it", ids(M.dealDesk(onX, [], [L({ id: "x2", author: "X" }), L({ id: "y1", author: "Y" })])) === "x1,y1");
+  ok("fill: a writer already on the desk isn't added again", ids(M.keepDesk(onX, onX, false, [L({ id: "x2", author: "X" }), L({ id: "y1", author: "Y" })])) === "x1,y1");
   ok("deal: passed in pass order", ids(M.dealDesk(cur, ["p3", "p1"], [])) === "p3,p1,p2");
 }
 

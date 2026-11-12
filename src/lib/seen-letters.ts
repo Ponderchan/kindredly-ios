@@ -1,12 +1,13 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { remoteSurfaces } from "./surfaces";
+import { onStorageUserChange, scopedTo, storageOwner } from "./scoped-store";
 
 /* THE PHONE'S HALF OF "A LETTER COMES ONCE" (lib/db fetchPoolPage's note).
    The server counts a letter read after two seconds on screen (the writer's eye, 0020);
    a letter flicked past sooner is not read, but it was shown, and the owner's rule is that
    a shown letter doesn't come back either. So every letter put on screen is written here,
    with the day it was first shown; kept for KEEP_DAYS and at most MAX_IDS, oldest dropped.
-   This phone only: another phone or the web knows only what the server kept. */
+   This phone only, and per account (scoped-store): someone else signing in on the same phone
+   starts with their own list. Another phone or the web knows only what the server kept. */
 
 const KEY = "kindredly_seen_letters_v1";
 const KEEP_DAYS = 60;
@@ -15,8 +16,13 @@ const DAY_MS = 86400000;
 
 type Seen = Record<string, number>; // letter id → when it was first shown (ms)
 
-let cache: Seen | null = null;
+let cache: { owner: string; seen: Seen } | null = null;
 let writing: Promise<void> = Promise.resolve();
+
+// another account: read their list afresh
+onStorageUserChange(() => {
+  cache = null;
+});
 
 const prune = (s: Seen, now: number): Seen => {
   const keep = Object.entries(s)
@@ -26,22 +32,24 @@ const prune = (s: Seen, now: number): Seen => {
   return Object.fromEntries(keep);
 };
 
-async function load(): Promise<Seen> {
-  if (cache) return cache;
+async function load(): Promise<{ owner: string; seen: Seen }> {
+  const owner = await storageOwner();
+  if (cache && cache.owner === owner) return cache;
+  let seen: Seen = {};
   try {
-    const raw = await AsyncStorage.getItem(KEY);
+    const raw = await scopedTo(owner).getItem(KEY);
     const parsed = raw ? JSON.parse(raw) : null;
-    cache = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? prune(parsed as Seen, Date.now()) : {};
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) seen = prune(parsed as Seen, Date.now());
   } catch (e) {
     console.warn("[seen-letters] the list wasn't read", e);
-    cache = {};
   }
+  cache = { owner, seen };
   return cache;
 }
 
 /** every letter this phone has shown in the last KEEP_DAYS */
 export async function seenLetterIds(): Promise<Set<string>> {
-  return new Set(Object.keys(await load()));
+  return new Set(Object.keys((await load()).seen));
 }
 
 /** a letter is on screen: remember it (first sighting kept) */
@@ -49,11 +57,12 @@ export function noteLetterShown(id: string): void {
   if (!id || id.startsWith("demo")) return;
   writing = writing
     .then(async () => {
-      const s = await load();
-      if (s[id]) return;
+      const { owner, seen } = await load();
+      if (seen[id]) return;
       const now = Date.now();
-      cache = prune({ ...s, [id]: now }, now);
-      await AsyncStorage.setItem(KEY, JSON.stringify(cache));
+      const next = prune({ ...seen, [id]: now }, now);
+      cache = { owner, seen: next };
+      await scopedTo(owner).setItem(KEY, JSON.stringify(next));
     })
     .catch((e) => console.warn("[seen-letters] the letter wasn't kept", e));
 }
