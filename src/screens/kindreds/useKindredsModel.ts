@@ -141,8 +141,15 @@ export function kindredsFormat(who?: WhoBook): KindredsFormat {
   };
 }
 
-export function useKindredsModel(): KindredsModel {
+/** A correspondence to open where the list is (a folding phone's inner screen): its thread, and
+    whether names are traded (a room) or not yet (the letters). */
+export type KindredsOpenInPlace = (th: { id: string; revealed: boolean }) => boolean;
+
+export function useKindredsModel(opts: { openInPlace?: KindredsOpenInPlace } = {}): KindredsModel {
   const router = useRouter();
+  // the latest, so `act` stays one object: true back means the holder opened it itself
+  const inPlace = useRef(opts.openInPlace);
+  inPlace.current = opts.openInPlace;
   const lang = useLang(); // the words follow the reader's language
   const { user } = useAuth();
   const { premium, settled } = useEntitlement();
@@ -295,7 +302,11 @@ export function useKindredsModel(): KindredsModel {
 
   const act = useMemo<KindredsActions>(() => {
     const find = (id: string) => threadById(live.current.source, id);
-    const open = (th: ThreadSummary) => router.push(th.revealed ? `/room/${th.id}` : `/chat/${th.id}`);
+    const open = (th: ThreadSummary) => {
+      // a folding phone's inner screen: the conversation opens on the right page, the list stays
+      if (inPlace.current?.({ id: th.id, revealed: !!th.revealed })) return;
+      router.push(th.revealed ? `/room/${th.id}` : `/chat/${th.id}`);
+    };
 
     const reportRow = async (th: ThreadSummary) => {
       /* their newest words: fetched now (the room's cache can be days behind

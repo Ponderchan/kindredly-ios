@@ -234,12 +234,12 @@ function useChatStrings(): KChatStrings {
 
 /* ── the room ──────────────────────────────────────────────────────────── */
 
-export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: string | undefined; expiredParam?: string; closingParam?: string; topInset?: number }) {
+export function RoomNative({ id, expiredParam, closingParam, topInset, onBack }: { id: string | undefined; expiredParam?: string; closingParam?: string; topInset?: number; /** held on the Kindreds tab's right page (a folding phone): back closes it there */ onBack?: () => void }) {
   useLang();
   const { key: themeKey, letterFont } = useTheme();
   const safe = useSafeAreaInsets();
   const { ref, commands, ui, live } = useChatSurface();
-  const m = useRoomModel(id, { ui, expiredParam, closingParam });
+  const m = useRoomModel(id, { ui, expiredParam, closingParam, onBack });
   const detail = m.detail;
   const lang = getLang();
 
@@ -479,12 +479,12 @@ function SongShelfRN({ open, onClose, songs, songSays, name }: { open: boolean; 
 
 /* ── the pen-pal chat ──────────────────────────────────────────────────── */
 
-export function LettersNative({ id, topInset }: { id: string | undefined; topInset?: number }) {
+export function LettersNative({ id, topInset, onBack }: { id: string | undefined; topInset?: number; /** held on the Kindreds tab's right page (a folding phone): back closes it there */ onBack?: () => void }) {
   useLang();
   const { key: themeKey, letterFont, t: tk } = useTheme();
   const safe = useSafeAreaInsets();
   const { commands, ui, live } = useChatSurface();
-  const m = useLettersModel(id, { ui });
+  const m = useLettersModel(id, { ui, onBack });
   const detail = m.detail;
   const lang = getLang();
   const opening = useOpeningVoice(detail, m.isDemo);

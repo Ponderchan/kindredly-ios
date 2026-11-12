@@ -191,6 +191,8 @@ export type KKindredsViewProps = CommonViewModifierProps &
     statusActive: boolean;
     /** the tab is focused (the orbit drifts only then) */
     active: boolean;
+    /** a conversation is open beside the list (a folding phone's inner screen): the list alone */
+    single?: boolean;
     chips: KKindredsChip[];
     orbit: KKindredsOrbitItem[];
     /** you, in the orbit's middle: your own face (round). null or absent keeps the ink cell */

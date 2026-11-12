@@ -172,6 +172,10 @@ public struct KKindredsContent: Equatable, Sendable {
   public var legendFrost: KFrostSpec?
   /// the tab is focused: the orbit may drift
   public var active = true
+  /// A folding phone's inner screen with a conversation open beside the list (the Kindreds tab
+  /// holds it on the right page): this view is only the left page, so it is the list as on a
+  /// phone, the orbit folded into its band, and never two pages of its own.
+  public var single = false
   public var chips: [KKindredsChip] = []
   public var orbit: [KOrbitItem] = []
   /// you, in the orbit's middle: your own face (nil keeps the ink cell)
@@ -480,7 +484,8 @@ public struct KKindredsScreen: View {
   }
 
   public var body: some View {
-    let spread = fold.frame.twoPages
+    // (single: the conversation has the right page, and this view is the left one alone)
+    let spread = fold.frame.twoPages && !content.single
     HStack(spacing: 0) {
       if spread {
         orbitPage

@@ -56,7 +56,7 @@ import "../../data/strings-identity2";
    ceremony's page sheet) may rise in its place */
 const SHEET_GONE_MS = 350;
 
-export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) {
+export function useLettersModel(id: string | undefined, { ui, onBack }: { ui: ChatUi; /** held inside another screen (the Kindreds tab's right page): going back is the holder's */ onBack?: () => void }) {
   useLang();
   const router = useRouter();
   const wren = useWrenName();
@@ -415,14 +415,14 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
     [ui, auth.handle, isDemo, askPenNameThenSign, book.identity],
   );
 
-  const goBack = useCallback(() => ui.thenModal(() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds"))), [ui, router]);
+  const goBack = useCallback(() => ui.thenModal(() => (onBack ? onBack() : router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds"))), [ui, router, onBack]);
   /* the room opens once you know their voice — not only after names; a stranger still has no page */
   const canOpenPage = !!detail?.revealed || read?.stage === "recognizing";
   const openPage = useCallback(() => {
     if (canOpenPage) ui.thenModal(() => router.push(`/kindred/${id}`));
   }, [canOpenPage, ui, router, id]);
   /* after a block the thread is gone: Kindreds, never back to wherever chat was opened from (critic) */
-  const onBlocked = useCallback(() => router.replace("/(tabs)/kindreds"), [router]);
+  const onBlocked = useCallback(() => (onBack ? onBack() : router.replace("/(tabs)/kindreds")), [router, onBack]);
 
   return {
     id,

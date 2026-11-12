@@ -197,6 +197,9 @@ public struct KIntroduction: View {
     }
     .buttonStyle(KIntroPressStyle())
     .padding(.horizontal, 22)
+    // on a sheet wider than a phone (the iPhone Duo's inner screen: it stood 610 long there)
+    // the key keeps a phone's length; on a phone nothing changes
+    .kPhoneLength()
     .padding(.bottom, max(content.bottomInset, 12) + 8)
   }
 }

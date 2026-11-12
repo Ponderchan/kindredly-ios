@@ -338,9 +338,12 @@ export type RoomModelOptions = {
   /** dev: ?expired=1 / ?closing=1 on a demo room */
   expiredParam?: string;
   closingParam?: string;
+  /** the room is held inside another screen (the Kindreds tab's right page on a folding
+      phone): going back, and leaving after a block, are the holder's */
+  onBack?: () => void;
 };
 
-export function useRoomModel(id: string | undefined, { ui, expiredParam, closingParam }: RoomModelOptions) {
+export function useRoomModel(id: string | undefined, { ui, expiredParam, closingParam, onBack }: RoomModelOptions) {
   useLang(); // repaint on language change
   const router = useRouter();
   const wren = useWrenName();
@@ -1186,10 +1189,10 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
     [setMode, dismissNotice, ui, router, nextIdea, takeIdea],
   );
 
-  const goBack = useCallback(() => ui.thenModal(() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds"))), [ui, router]);
+  const goBack = useCallback(() => ui.thenModal(() => (onBack ? onBack() : router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds"))), [ui, router, onBack]);
   const openPage = useCallback(() => ui.thenModal(() => router.push(`/kindred/${id}`)), [ui, router, id]);
   const openLore = useCallback(() => ui.thenModal(() => router.push("/lore")), [ui, router]);
-  const onBlocked = useCallback(() => router.replace("/(tabs)/kindreds"), [router]);
+  const onBlocked = useCallback(() => (onBack ? onBack() : router.replace("/(tabs)/kindreds")), [router, onBack]);
 
   return {
     id,

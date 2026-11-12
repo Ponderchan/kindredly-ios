@@ -291,6 +291,8 @@ final class KKindredsViewProps: KScreenProps {
   @Field var strings: KKindredsStringsRecord = KKindredsStringsRecord()
   @Field var statusActive: Bool = false
   @Field var active: Bool = true
+  /// a conversation is open beside the list (a folding phone's inner screen): the list alone
+  @Field var single: Bool = false
   @Field var chips: [KKindredsChipRecord] = []
   @Field var orbit: [KKindredsOrbitRecord] = []
   /// you and your kindreds on the orbit (2026-11-12); absent from an older JS: the orbit as it was
@@ -380,6 +382,7 @@ struct KKindredsView: ExpoSwiftUI.View {
     content.searchClear = props.strings.searchClear
     content.legendFrost = props.cached("legendFrost") { props.legendFrost.spec }
     content.active = props.active
+    content.single = props.single
     content.chips = props.cached("chips") { props.chips.map(\.chip) }
     content.orbit = props.cached("orbit") { props.orbit.map(\.item) }
     content.orbitMe = props.cached("orbitMe") { props.orbitMe.show ? props.orbitMe.face.face : nil }

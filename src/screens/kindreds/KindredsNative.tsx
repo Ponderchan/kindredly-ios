@@ -184,7 +184,7 @@ export function useSameContent<T>(value: T): T {
   return kept.current.value;
 }
 
-export function KindredsNative({ model }: { model: KindredsModel }) {
+export function KindredsNative({ model, single = false }: { model: KindredsModel; /** a conversation is open beside it (a folding phone's inner screen) */ single?: boolean }) {
   const { key: theme } = useTheme();
   const letterFont = useLetterFont();
   const insets = useScreenInsets();
@@ -275,6 +275,7 @@ export function KindredsNative({ model }: { model: KindredsModel }) {
         strings={strings}
         statusActive={view.statusActive}
         active={focused}
+        single={single}
         chips={chips}
         orbit={orbit}
         orbitMe={orbitMe}
