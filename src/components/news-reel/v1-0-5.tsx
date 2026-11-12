@@ -625,10 +625,11 @@ function Papers({ s }: { s: number }) {
 /* ── 3 · courier names ──────────────────────────────────────────────── */
 
 /* three strangers as the reader's list shows them: the window and the name their courier gives
-   them (in English the first is "Sunday Kite"), the mark and the sign only where they show them */
+   them (in English the first is "Sunday Kite") and the sign. Never ♀ / ♂: a stranger's mark is not
+   shown, it is a kindred's to see (owner, 2026-11-12) */
 const NAMED: readonly { seed: string; mark: Mark | null; sign: Zodiac }[] = [
-  { seed: "news-105-9288", mark: "she", sign: "gemini" },
-  { seed: "news-105-32", mark: "he", sign: "leo" },
+  { seed: "news-105-9288", mark: null, sign: "gemini" },
+  { seed: "news-105-32", mark: null, sign: "leo" },
   { seed: "news-105-13", mark: null, sign: "pisces" },
 ];
 const NAMED_FROST: readonly (FrostSpec | null)[] = NAMED.map((n) => frostSpec(n.seed));

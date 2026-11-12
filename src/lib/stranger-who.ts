@@ -28,9 +28,10 @@ import { zodiacKey, type Zodiac } from "./zodiac";
           language (lib/stranger-name: salt 0, or 1…15 on an exact repeat
           inside the reader's own list, threads oldest first); the frosted
           window (lib/frost FROST v1, Midnight's tones on a dark theme)
-          that never develops; the ♀/♂ mark and the star sign the identity
-          client answered (lib/identity useMarks / peekMarks); and
-          VoiceOver hears "Sunday Kite, she, Gemini".
+          that never develops; the star sign the identity client answered
+          (lib/identity useMarks / peekMarks) — and, for a KINDRED only, the
+          ♀/♂ mark (owner, 2026-11-12: strangers never see it); VoiceOver
+          hears "Sunday Kite, Gemini".
    A deleted account has no one behind it either way: UNSIGNED (the
    caller's t("ld.unsigned")) and the veil, no mark, no sign.
 
@@ -128,8 +129,12 @@ export type WhoBook = {
   identity: boolean;
   /** a stranger's name alone: off, penPal with these options; on, the courier name (capitals if `upper`); no id, UNSIGNED */
   name: (uid: string | null | undefined, o?: NameOpts) => string;
-  /** the mark and the sign with their VoiceOver words; NO_WHO_MARKS when off, unknown or nothing to show */
+  /** a STRANGER's marks: the star sign only. The she/he mark is never shown for a stranger
+      (owner, 2026-11-12: "信上就别显示性别了，只有成为 kindreds 才能看见性别"). NO_WHO_MARKS when
+      off, unknown or nothing to show */
   marks: (uid: string | null | undefined) => WhoMarks;
+  /** a KINDRED's marks (names traded): the she/he mark and the sign, as they allow */
+  kindredMarks: (uid: string | null | undefined) => WhoMarks;
   /** the frosted window's spec when on (null when off, or for no one) */
   frost: (uid: string | null | undefined) => FrostSpec | null;
   /** the face slot: off, the mosaic at `develop` (default 1, fully in); on, the frost; no id, the veil */
@@ -161,11 +166,20 @@ export function whoBook(i: WhoBookInput): WhoBook {
     return i.namer ? i.namer.name(uid, opts) : strangerName(uid, { ...opts, lang: i.lang });
   };
 
-  const marks = (uid: string | null | undefined): WhoMarks => {
+  const kindredMarks = (uid: string | null | undefined): WhoMarks => {
     if (!on || !uid || !i.marks) return NO_WHO_MARKS;
     const m = i.marks(uid);
     if (!m.mark && !m.sign) return NO_WHO_MARKS;
     return { mark: m.mark, markLabel: m.mark ? i.t(markKey(m.mark)) : "", sign: m.sign, signLabel: m.sign ? i.t(zodiacKey(m.sign)) : "" };
+  };
+
+  /* A stranger is never shown with the she/he mark: it is for kindreds (the rule above). Whatever
+     the identity client answered, a stranger keeps the sign alone, in what is drawn and in what
+     VoiceOver says. */
+  const marks = (uid: string | null | undefined): WhoMarks => {
+    const m = kindredMarks(uid);
+    if (!m.mark) return m;
+    return m.sign ? { mark: null, markLabel: "", sign: m.sign, signLabel: m.signLabel } : NO_WHO_MARKS;
   };
 
   const frost = (uid: string | null | undefined): FrostSpec | null => {
@@ -205,5 +219,5 @@ export function whoBook(i: WhoBookInput): WhoBook {
 
   const threadName = (th: WhoThread): string => (th.revealed && th.otherName ? th.otherName : name(th.gone ? null : th.other));
 
-  return { identity: on, name, marks, frost, face, who, spoken, was, threadName };
+  return { identity: on, name, marks, kindredMarks, frost, face, who, spoken, was, threadName };
 }

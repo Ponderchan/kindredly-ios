@@ -20,7 +20,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { AvatarImage } from "../../../components/AvatarImage";
 import { getFace } from "../../../data/aura-avatar-lib";
 import { Frost } from "../../../components/Frost";
-import { LineIcon, type LineIconName } from "../../../components/10a/LineIcon";
+import type { LineIconName } from "../../../components/10a/LineIcon";
+import { OwnMark } from "../../../components/WhoName";
 import { StampSlot } from "../../../components/Stamp";
 import { frostSpec, type FrostSpec } from "../../../lib/frost";
 import { postmark } from "../../../lib/format";
@@ -52,12 +53,14 @@ import { OB_MAX_FONT } from "../parts/tokens";
        strangers see) frosts in over the face you just picked;
      · your courier name in your language types itself in, label-maker
        style (lib/stranger-name strangerName(uid, lang): "Starlit Prism");
-     · ♀ pops after it (she/he only), then your sign (from screen 3's date);
+     · your sign pops after it (from screen 3's date). NO ♀ / ♂ here: a
+       stranger never sees the mark, it is a kindred's to see (owner,
+       2026-11-12), so the card has none and its switch is gone (Edit
+       profile keeps it, worded for kindreds);
      · the date in mono, and a dashed stamp corner (filled on screen 8).
-   Under it the footnote that keeps the name true across languages, the two
-   switches — "♀ on my letters" (on by default for she/he, hidden for they
-   or a skip) and "♊ on my letters" (the zodiac opt-out, on by default) —
-   which show and hide the glyphs on the card as you flip them, and the
+   Under it the footnote that keeps the name true across languages, the one
+   switch — "♊ on my letters" (the zodiac opt-out, on by default) — which
+   shows and hides the glyph on the card as you flip it, and the
    REVEAL STRIP on a loop: AFTER FIVE LETTERS EACH, the frost wipes clear
    into your face and the square turns round; beside it an empty signature
    line with a small ✕ and a pen hovering over it — nothing is written,
@@ -74,8 +77,8 @@ import { OB_MAX_FONT } from "../parts/tokens";
    on. Reduce Motion: the card is assembled at once, the strip rests on its
    cleared frame, and the key goes straight on.
 
-   Collects showMark / showSign only (props.set); the flow saves both as
-   booleans, and never a mark for they. */
+   Collects showSign only (props.set). showMark is no longer asked here: the
+   flow saves it on for she / he (what kindreds see), and never for they. */
 
 /* the Today header at 1.25× here, not the storyboard's 1.4×: at 1.4 a two-word courier name and its two
    glyphs don't fit beside the face and the stamp corner on a 402pt phone, and wrapping it (WhoName's rule)
@@ -108,8 +111,8 @@ export default function S06Envelope(props: ObScreenProps) {
   const name = useMemo(() => (uid ? strangerName(uid, { lang: props.lang, unsigned: "" }) : ""), [uid, props.lang]);
   const spec = useMemo(() => (uid ? frostSpec(uid) : null), [uid]);
   const sign = signOf(draft.dob);
-  const markable = draft.pronoun === "she" || draft.pronoun === "he";
-  const showMark = markable && (draft.showMark ?? true);
+  // a stranger never sees ♀ / ♂ (owner, 2026-11-12: the mark is a kindred's to see), so this card,
+  // which is you to a stranger, has none and its switch is gone; Edit profile keeps that switch
   const showSign = !!sign && (draft.showSign ?? true);
   const date = useMemo(() => postmark(props.now()), [props]);
 
@@ -209,15 +212,10 @@ export default function S06Envelope(props: ObScreenProps) {
   const nameNode = uid ? (
     <FittedName name={name} typed={typed} size={m.name}>
       {/* the glyphs' room is kept from the start, so the name is sized once and nothing moves when they pop in */}
-      <View style={{ height: m.glyph, width: (showMark || showSign ? 6 * K : 0) + (showMark ? m.glyph : 0) + (showSign ? m.glyph : 0) + (showMark && showSign ? 4 * K : 0), flexDirection: "row", gap: 4 * K, paddingLeft: showMark || showSign ? 6 * K : 0 }}>
-        {showMark && beat >= 1 && (
-          <Animated.View entering={reduce ? undefined : ZoomIn.duration(260).easing(Easing.out(Easing.back(2.4)))}>
-            <LineIcon name={draft.pronoun as "she" | "he"} size={m.glyph} stroke={2} color={OB.inkSoft} />
-          </Animated.View>
-        )}
+      <View style={{ height: m.glyph, width: showSign ? 6 * K + m.glyph : 0, flexDirection: "row", gap: 4 * K, paddingLeft: showSign ? 6 * K : 0 }}>
         {showSign && beat >= 2 && (
           <Animated.View entering={reduce ? undefined : ZoomIn.duration(260).easing(Easing.out(Easing.back(2.4)))}>
-            <LineIcon name={sign as LineIconName} size={m.glyph} stroke={2} color={OB.inkSoft} />
+            <OwnMark name={sign as string} size={m.glyph + 2} color={OB.inkSoft} />
           </Animated.View>
         )}
       </View>
@@ -225,8 +223,6 @@ export default function S06Envelope(props: ObScreenProps) {
   ) : (
     <Text maxFontSizeMultiplier={CARD_FONT} style={{ ...said, fontSize: 16, lineHeight: 21, color: OB.inkSoft }}>{t("ob2.envelope.thinking")}</Text>
   );
-
-  const markLabel = draft.pronoun === "he" ? t("id.ob.mark.he") : t("id.ob.mark.she");
 
   return (
     <View style={{ flex: 1 }}>
@@ -260,7 +256,7 @@ export default function S06Envelope(props: ObScreenProps) {
             </Headline>
 
             {/* your envelope */}
-            <Pressable onPress={finishNow} accessible accessibilityRole="image" accessibilityLabel={uid ? t("id.preview.a11y", { who: [name, showMark ? t(`id.mark.${draft.pronoun}`) : null, showSign && sign ? t(zodiacKey(sign)) : null].filter(Boolean).join(", ") }) : t("ob2.envelope.thinking")}>
+            <Pressable onPress={finishNow} accessible accessibilityRole="image" accessibilityLabel={uid ? t("id.preview.a11y", { who: [name, showSign && sign ? t(zodiacKey(sign)) : null].filter(Boolean).join(", ") }) : t("ob2.envelope.thinking")}>
               <Animated.View ref={card} collapsable={false} style={[{ marginTop: 12, marginHorizontal: 4, marginRight: SHADOW + 4 }, flipStyle]}>
                 <EnvelopeCard
                   face={
@@ -283,26 +279,15 @@ export default function S06Envelope(props: ObScreenProps) {
 
             <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.small, { color: OB.white, textAlign: "center", marginTop: 9, fontSize: 13, lineHeight: 17.5 }]}>{t("ob2.envelope.caption")}</Text>
 
-            {/* the two switches */}
-            {(markable || sign) && (
+            {/* the star sign's switch (the one thing of yours a stranger may see) */}
+            {!!sign && (
               <PaperCard top={10}>
-                {markable && (
-                  <SwitchRow
-                    glyph={draft.pronoun as "she" | "he"}
-                    on={draft.showMark ?? true}
-                    a11y={markLabel}
-                    onToggle={() => props.set({ showMark: !(draft.showMark ?? true) })}
-                  />
-                )}
-                {markable && !!sign && <View style={{ height: 1.5, backgroundColor: "#ECEAF4", marginHorizontal: 14 }} />}
-                {!!sign && (
-                  <SwitchRow
-                    glyph={sign as LineIconName}
-                    on={draft.showSign ?? true}
-                    a11y={t("ob2.envelope.signA11y", { sign: t(zodiacKey(sign)) })}
-                    onToggle={() => props.set({ showSign: !(draft.showSign ?? true) })}
-                  />
-                )}
+                <SwitchRow
+                  glyph={sign as LineIconName}
+                  on={draft.showSign ?? true}
+                  a11y={t("ob2.envelope.signA11y", { sign: t(zodiacKey(sign)) })}
+                  onToggle={() => props.set({ showSign: !(draft.showSign ?? true) })}
+                />
               </PaperCard>
             )}
 
@@ -426,7 +411,7 @@ function SwitchRow({ glyph, on, a11y, onToggle }: { glyph: LineIconName; on: boo
       <View style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
         {!!label[0] && <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ ...FONT.semi, fontSize: 15, color: OB.ink }}>{label[0]}</Text>}
         <View style={{ marginRight: 7, marginLeft: label[0] ? 4 : 0 }}>
-          <LineIcon name={glyph} size={16} stroke={2} color={OB.ink} />
+          <OwnMark name={glyph} size={20} color={OB.ink} />
         </View>
         <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ flexShrink: 1, ...FONT.semi, fontSize: 15, color: OB.ink }}>{(label[1] ?? "").trim()}</Text>
       </View>

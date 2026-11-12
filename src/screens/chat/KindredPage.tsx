@@ -21,6 +21,7 @@ import { Frost, VeilTile } from "../../components/Frost";
 import { StampAvatar, StampMosaic } from "../../components/StampAvatar";
 import { stampSpoken, useMemberStamps } from "../../lib/member-marks";
 import { useIdentityFirstOn, useWhoBook } from "../../lib/who";
+import { WhoGlyphs } from "../../components/WhoName";
 import { penOrNull } from "../../lib/pen-signature";
 import { PenSignature } from "../../components/PenSignature";
 import { useSignatureHold } from "../../components/SignatureHold";
@@ -101,7 +102,10 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
   const lang = getLang();
   const identity = useIdentityOn();
   // the book for the frost, and (Phase 2) the courier name under THE NAME THEY SIGNED
-  const book = useWhoBook();
+  // and a kindred's she/he mark and star sign after their name (asked only once names are traded)
+  const kindredUid = detail && detail.revealed && !detail.gone ? detail.other : null;
+  const book = useWhoBook({ uids: kindredUid ? [kindredUid] : [] });
+  const kindredMarks = kindredUid ? book.kindredMarks(kindredUid) : null;
   const firstOnAt = useIdentityFirstOn(identity);
   const { width: winW } = useWindowDimensions();
   // a held signature: Report this signature / Block, about the other side of this thread
@@ -209,9 +213,16 @@ export function KindredPage({ id, topInset }: { id?: string; topInset?: number }
               <View style={{ flex: 1 }}>
                 {detail.revealed ? (
                   <>
-                    <Text accessibilityRole="header" style={{ fontSize: 26, lineHeight: 32, fontWeight: "600", color: tk.ink }}>
-                      {name}
-                    </Text>
+                    {/* the name, then a kindred's she/he mark and star sign (the mark is a kindred's to see) */}
+                    <View
+                      accessible
+                      accessibilityRole="header"
+                      accessibilityLabel={[name, kindredMarks?.markLabel, kindredMarks?.signLabel].filter(Boolean).join(", ")}
+                      style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}
+                    >
+                      <Text style={{ fontSize: 26, lineHeight: 32, fontWeight: "600", color: tk.ink, flexShrink: 1 }}>{name}</Text>
+                      {kindredMarks && <WhoGlyphs mark={kindredMarks.mark} sign={kindredMarks.sign} size={21} />}
+                    </View>
                     {showsArrivalMosaic(detail, identity) && (
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 7 }}>
                         <MosaicId seed={detail.other} cell={3} gap={1} />

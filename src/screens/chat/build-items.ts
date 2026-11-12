@@ -1391,6 +1391,9 @@ export type RoomHeaderInput = {
   face: KChatFace;
   /** someone is on the other side to report (ReportMenu's own rule) */
   canReport: boolean;
+  /** the kindred's she/he mark and star sign with VoiceOver's words (lib/stranger-who
+      kindredMarks): the mark is theirs to be seen by now (owner, 2026-11-12) */
+  marks?: { mark: "she" | "he" | null; markLabel: string; sign: string | null; signLabel: string } | null;
 };
 
 /** The kindreds chat's header (chat composers B): ‹, the kindred's round face 44 across, the name,
@@ -1406,14 +1409,14 @@ export function roomHeader(i: RoomHeaderInput): KChatHeader {
     sub,
     tone: "mute",
     mask: 0,
-    // a kindred: no window, no mark, no sign (the face and the name say enough)
+    // a kindred: no window; their she/he mark and sign after the name (kindreds are the ones who see the mark)
     frost: null,
-    mark: null,
-    sign: null,
+    mark: i.marks?.mark ?? null,
+    sign: (i.marks?.sign as KChatHeader["sign"]) ?? null,
     veil: false,
     frame: "none",
     band: null,
-    a11yLabel: join(i.name, sub),
+    a11yLabel: join(i.name, i.marks?.markLabel ?? "", i.marks?.signLabel ?? "", sub),
     canOpenPage: true,
     backLabel: t("a11y.back"),
     moreLabel: i.canReport ? t("rp.menu.a11y") : "",
@@ -1433,6 +1436,9 @@ export type RevealedHeaderInput = {
   canOpenPage: boolean;
   /** someone is on the other side to report (ReportMenu's own rule) */
   canReport: boolean;
+  /** their she/he mark and star sign with VoiceOver's words: names are traded, so they are
+      kindreds (lib/stranger-who kindredMarks); null or absent for none */
+  marks?: RoomHeaderInput["marks"];
 };
 
 /** A pen-pal chat seen in place after names are traded: what the React Native ChatHeader's
@@ -1451,12 +1457,12 @@ export function revealedLettersHeader(i: RevealedHeaderInput): KChatHeader {
     tone: i.state?.toneKey ?? "mute",
     mask: 0,
     frost: null,
-    mark: null,
-    sign: null,
+    mark: i.marks?.mark ?? null,
+    sign: (i.marks?.sign as KChatHeader["sign"]) ?? null,
     veil: false,
     frame: "none",
     band: null,
-    a11yLabel: join(i.name, sub),
+    a11yLabel: join(i.name, i.marks?.markLabel ?? "", i.marks?.signLabel ?? "", sub),
     canOpenPage: i.canOpenPage,
     backLabel: t("a11y.back"),
     moreLabel: i.canReport ? t("rp.menu.a11y") : "",

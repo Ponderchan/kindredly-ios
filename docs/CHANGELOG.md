@@ -44,7 +44,19 @@ What the owner found on build 42 (2026-11-12) [the spacing and the onboarding ma
 - The Edit button no longer reads "jd.edit": the page loads the wording files it borrows from other screens.
 - More room between Edit / the gear and her card.
 - Onboarding is drawn by SwiftUI by default: flat keys and soft shadows, no black edges. (The React Native run is kept as the fallback.)
-- In onboarding your own mark is white on a light-blue (he) or pink (she) disc and your star sign is its emoji: on the pronoun chips, the birthday badge and its sentence, the envelope and its two switches. Letters from strangers keep the grey line marks.
+- One look for a person's mark and star sign everywhere (owner, 2026-11-12: "信上也统一"): the she/he mark is white on a small pink or light-blue disc and the star sign is its emoji — in Kindreds, in a conversation's header, on a kindred's page, in the blocked list, on Me's pill and through onboarding (the pronoun chips, the birthday badge and its sentence, the envelope). Until now they were grey line drawings. Sentences that mention the symbols in running text ("Show ♂ to your kindreds") keep the plain symbol. [binary]
+
+Gender is for kindreds only (owner, 2026-11-12: "信上就别显示性别了吧 只有成为kindreds 才能看见性别") [JS, except the kindred's page and the revealed header, which need a binary]
+- A stranger is never shown with ♀ / ♂ any more: a letter on Today, the reader, a pen pal's row and conversation, the blocked list and every sample card show the courier name and the star sign only, and VoiceOver no longer says "she" / "he" for them. One rule in one place (lib/stranger-who `marks`), so no screen can show it by mistake.
+- Kindreds see it: after the pen name on a kindred's row in Kindreds, in the kindreds chat's header, in a pen-pal chat's header once names are traded, and on the kindred's page. A kindred whose account is gone shows none.
+- Onboarding's "This is you, to a stranger" card has no ♀ / ♂ and no switch for it (the star sign's switch stays); the envelope you stamp and send has none either. A new she / he user's mark is saved on, for kindreds.
+- Words, nine languages: Edit profile's group is "WHAT OTHERS SEE" (was "ON YOUR LETTERS"), the switch is "Show ♀ to your kindreds", its note says only kindreds see it, after your pen name; the pronoun step says only people you trade names with see the mark; the one-time note and the YOU group's footer say the same. Three unused onboarding strings that promised the mark to strangers are deleted.
+- NOT DONE, and it matters: the server still answers a stranger's mark to any signed-in app that asks (`marks_for`, web migration 0034). This build simply does not draw it. Making it true on the server needs one SQL change the owner runs (return the mark only where a revealed thread joins the two accounts). The web app still shows the old grey marks to strangers.
+
+Me's cover, smaller things (owner, 2026-11-12) [the numbers are JS; the hints and the planet page need a binary]
+- No words on the cover any more ("Drag to spin", "Pull down for her planet" are gone): pulling down shows one small chevron that grows as you pull, and that is all. The planet is for finding.
+- On her planet's page, pulling up past the end goes back to Me (a small chevron at the foot says so); the "My letters" row is gone, since TRACK already leads there.
+- The two tiles under the cover count real things: stamps = the stamps you made yourself (a "+" when you have made none, which opens the stamp press), the postbox = your letters (a number from 1 up; nothing at all at 0, never a "0").
 
 Settings, Export my journal with no notes yet (owner on build 42, 2026-11-12) [JS: can go over the air]
 - With no notes of your own on this phone, the row used to do nothing when tapped, which read as broken. It now answers with the same sentence it shows: your journal lives only on this phone, and there is nothing to export yet.

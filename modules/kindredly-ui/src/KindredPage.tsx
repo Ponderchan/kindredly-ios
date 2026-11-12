@@ -62,6 +62,12 @@ export type KKindredPagePerson = {
   /** names traded: the name at 26; before, the archetype at 24 with its line */
   revealed: boolean;
   heading: string;
+  /** a kindred's she/he mark and star sign after the name; "" for none, and always "" before names
+      are traded (the mark is a kindred's to see) */
+  mark: "she" | "he" | "";
+  sign: string;
+  /** VoiceOver for the name with its marks ("Mira, she, Gemini"); "" reads the heading alone */
+  headingA11y: string;
   /** under the heading before names; "" */
   sub: string;
   /** THE FACE YOU WATCHED ARRIVE; "" for none */

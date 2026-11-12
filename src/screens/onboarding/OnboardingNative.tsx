@@ -637,7 +637,6 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
   const shownSign = answered ? sign : null;
   const uid = props.uid;
   const courier = useMemo(() => (uid ? strangerName(uid, { lang: props.lang, unsigned: "" }) : ""), [uid, props.lang]);
-  const markable = draft.pronoun === "she" || draft.pronoun === "he";
   const suggested = starterStamp(null, draft.letter);
   const shownStamp = draft.stamp ?? suggested;
   const her = draft.wrenName.trim() || t("ob2.name.ph");
@@ -752,7 +751,7 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
         });
         break;
       case "envelope": {
-        const showMark = markable && (draft.showMark ?? true);
+        // no she/he mark on this card or in its words: a stranger never sees it (owner, 2026-11-12)
         const showSign = !!sign && (draft.showSign ?? true);
         const label = t("ob2.envelope.onLetters", { glyph: "\u0000" }).split("\u0000");
         Object.assign(o, {
@@ -762,9 +761,8 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
           caption: t("ob2.envelope.caption"),
           key: t("ob2.envelope.key"),
           cardA11y: uid
-            ? t("id.preview.a11y", { who: [courier, showMark ? t(`id.mark.${draft.pronoun}`) : null, showSign && sign ? t(zodiacKey(sign)) : null].filter(Boolean).join(", ") })
+            ? t("id.preview.a11y", { who: [courier, showSign && sign ? t(zodiacKey(sign)) : null].filter(Boolean).join(", ") })
             : t("ob2.envelope.thinking"),
-          markA11y: draft.pronoun === "he" ? t("id.ob.mark.he") : t("id.ob.mark.she"),
           signA11y: sign ? t("ob2.envelope.signA11y", { sign: t(zodiacKey(sign)) }) : "",
           "sw.before": (label[0] ?? "").trim(),
           "sw.after": (label[1] ?? "").trim(),
@@ -934,7 +932,9 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
     frost: uid ? frostSpec(uid) : null,
     face: faceRef(draft.avatarId),
     hasFace: !!draft.avatarId && !!(getFace(draft.avatarId) || draft.avatarId === madeId),
-    mark: markable ? (draft.pronoun as "she" | "he") : "",
+    // "" always: these envelopes are you to a stranger, who never sees ♀ / ♂ (owner, 2026-11-12: the
+    // mark is a kindred's to see). Swift draws no mark and no mark switch without one
+    mark: "",
     sign: sign ?? "",
     showMark: draft.showMark ?? true,
     showSign: draft.showSign ?? true,

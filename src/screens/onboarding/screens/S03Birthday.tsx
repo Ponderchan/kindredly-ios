@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, View, useWindowDimensions } from "react-native";
 import Animated, { Easing, FadeIn, ZoomIn, useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LineIcon, type LineIconName } from "../../../components/10a/LineIcon";
+import type { LineIconName } from "../../../components/10a/LineIcon";
+import { OwnMark } from "../../../components/WhoName";
 import { monthsShort } from "../../../lib/format";
 import { t } from "../../../lib/i18n";
 import { ZODIAC_EMOJI, zodiacKey } from "../../../lib/zodiac";
@@ -150,7 +151,7 @@ export default function S03Birthday(props: ObScreenProps) {
               collapsable={false}
               style={{ position: "absolute", right: -14, top: -20, width: 46, height: 46, borderRadius: 23, borderWidth: EDGE, borderColor: OB.ink, backgroundColor: OB.paper, alignItems: "center", justifyContent: "center" }}
             >
-              <LineIcon name={sign as LineIconName} size={24} stroke={2} color={OB.ink} />
+              <OwnMark name={sign} size={28} color={OB.ink} />
             </Animated.View>
           )}
         </View>

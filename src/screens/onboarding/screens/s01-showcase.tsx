@@ -301,7 +301,7 @@ function SlideLetter({
       <Docket
         k={SLIDE1_K}
         face={spec ? <Frost spec={spec} size={m.face} /> : null}
-        name={<NameMarks name={name} mark="she" sign="gemini" size={m.name} numberOfLines={1} />}
+        name={<NameMarks name={name} mark={null} sign="gemini" size={m.name} numberOfLines={1} />}
         date={<DocketDate text={date} k={SLIDE1_K} />}
         stamp={
           <View style={{ width: box.w, height: box.h }}>

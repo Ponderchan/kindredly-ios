@@ -222,7 +222,8 @@ const facts = (over: Partial<EditFacts> = {}): EditFacts => ({
   ok("both switches inside it: the mark's off, the sign's on", n.letters.mark?.on === false && n.letters.sign.on === true);
   ok("the preview says what a stranger sees: the name and the sign (no mark until it is on)", n.previewName === "Sunday Kite" && n.previewA11y === "id.preview.a11y{who:Sunday Kite, zd.gemini}");
   const n2 = identityNote({ pronoun: "she", showMark: true, showSign: false, sign: "gemini", previewName: "Sunday Kite" }, t);
-  ok("the preview follows the switches", n2.previewA11y === "id.preview.a11y{who:Sunday Kite, id.mark.she}");
+  // a stranger never sees ♀ / ♂ (owner, 2026-11-12), so the preview never says it, switch on or off
+  ok("the preview follows the sign's switch and never says the mark", n2.previewA11y === "id.preview.a11y{who:Sunday Kite}" && n2.letters.mark?.on === true);
   const nt = identityNote({ pronoun: "they", showMark: true, showSign: true, sign: null, previewName: "Rainy Thimble" }, t);
   ok("they: the body without the mark, no mark switch, no sign without a birthday", nt.body === "id.note.bodyThey" && nt.letters.mark === null && nt.previewA11y === "id.preview.a11y{who:Rainy Thimble}");
   ok("Done saves both values (so it never comes back)", JSON.stringify(identityNoteSave("she", false, true)) === JSON.stringify({ showMark: false, showSign: true }));

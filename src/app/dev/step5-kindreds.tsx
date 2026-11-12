@@ -104,8 +104,10 @@ function KindredsLab() {
   const desk = DEMO_WREN_POSTS[DEMO_WREN_POSTS.length - 1];
   // who the demo pen pals are, as the tab asks it (lib/who): the NAMES chip previews the switch on
   const names = useIdentityOn();
-  const strangers = useMemo(() => threads.filter((th) => !th.revealed && !th.gone).map((th) => th.other), [threads]);
-  const who = useWhoBook({ threads, uids: strangers });
+  // everyone on the list, as the tab asks (useKindredsModel): a pen pal's star sign, and a kindred's
+  // she/he mark and sign (the mark is a kindred's to see)
+  const people = useMemo(() => threads.filter((th) => !th.gone).map((th) => th.other), [threads]);
+  const who = useWhoBook({ threads, uids: people });
 
   const view = useMemo(
     () =>

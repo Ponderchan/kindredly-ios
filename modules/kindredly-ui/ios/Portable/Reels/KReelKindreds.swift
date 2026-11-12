@@ -4,7 +4,7 @@ import SwiftUI
  HOW A KINDRED FORMS, AS A REEL, in SwiftUI — src/components/guide-reel/kindreds.tsx (the 1.0.5
  identity), scene for scene:
    1. Wren brings a reply; it drops into a pen pal row (their frosted window, the courier name
-      the reader's courier gives them, the ♀ mark and their star sign, the blue badge) and a
+      the reader's courier gives them, their star sign (never ♀ / ♂: 2026-11-12), the blue badge) and a
       finger opens it.
    2. Five letters each way fill turn by turn under their window, and at five each the sign door
       arrives.
@@ -54,7 +54,8 @@ enum KReelKindreds {
     return (0.5 + 0.5 * CGFloat(v), min(1, v * 1.4))
   }
 
-  /// their courier name, then the ♀ mark and their star sign, the glyphs in sub (WhoGlyphs)
+  /// their courier name, then their star sign (WhoGlyphs). No ♀ / ♂: a pen pal is still a stranger,
+  /// and the mark is a kindred's to see (owner, 2026-11-12)
   struct PalName: View {
     let x: KReelCtx
     let size: CGFloat
@@ -65,11 +66,8 @@ enum KReelKindreds {
           .font(KReelFont.sys(size, .semibold))
           .foregroundStyle(KReelInk.ink)
           .kReelFit()
-        HStack(spacing: 4) {
-          KLineIcon(.she, size: g, lineWidth: 2, color: sub)
-          KLineIcon(.gemini, size: g, lineWidth: 2, color: sub)
-        }
-        .fixedSize()
+        KOwnMark(.gemini, size: g + 2, ink: sub)
+          .fixedSize()
         .padding(.leading, size * 0.36)
       }
     }

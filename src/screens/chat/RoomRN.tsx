@@ -301,9 +301,9 @@ export function RoomRN(props: { id?: string; expired?: string; closing?: string;
   const report = useReportFlow({ context: "thread", targetUser: detail?.gone ? undefined : detail?.other || undefined, refId: id, snapshot: m.theirLatest, onBlocked: m.onBlocked });
   const header = useMemo(
     // the face is drawn here (roomFace), not from the Swift record
-    () => roomHeader({ t, locale: m.locale, name: m.name, sub: subtitle, face: NO_FACE, canReport: !report.nobody }),
+    () => roomHeader({ t, locale: m.locale, name: m.name, sub: subtitle, face: NO_FACE, canReport: !report.nobody, marks: m.kindredMarks }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [m.name, subtitle, report.nobody, lang],
+    [m.name, subtitle, report.nobody, lang, m.kindredMarks],
   );
   const headerTop = props.topInset ?? insets.top;
   /* their face as their Kindreds row draws it: their portrait, the glyph when they gave none, the

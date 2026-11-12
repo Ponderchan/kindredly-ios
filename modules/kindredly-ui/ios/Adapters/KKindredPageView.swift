@@ -19,7 +19,7 @@ import ExpoUI
  - state     loading | ready | offline | missing (an unknown one reads as loading)
  - face      { shape round | frost | tile | mosaic | veil, kind image | placeholder, uri, key,
                overscan, mask, frost (KFrostRecord, v 0 = none), stamp ("1ST" | "007" | ""), a11y }
- - person    { revealed, heading, sub, arrival, arrivalMask }
+ - person    { revealed, heading, mark, sign, headingA11y, sub, arrival, arrivalMask }
  - signed    { show, label, name, typedUpright, a11y, hint, holdable, path (SVG, PEN v1 box
                units; "" typed), boxW, boxH, baselineY, met }
  - learned   { show, label, moments, dims [{ key, label, score, line }], sealedLabel, sealed }
@@ -78,6 +78,10 @@ struct KKindredPageFaceRecord: Record {
 struct KKindredPagePersonRecord: Record {
   @Field var revealed: Bool = false
   @Field var heading: String = ""
+  /// "she" | "he" | "", and the star sign's name or "" (a kindred's only)
+  @Field var mark: String = ""
+  @Field var sign: String = ""
+  @Field var headingA11y: String = ""
   @Field var sub: String = ""
   @Field var arrival: String = ""
   @Field var arrivalMask: Int = 0
@@ -251,6 +255,9 @@ final class KKindredPageViewProps: KScreenProps {
     let p = person
     c.revealed = p.revealed
     c.heading = p.heading
+    c.mark = KLineGlyph.mark(p.mark)
+    c.sign = KLineGlyph.sign(p.sign)
+    c.headingA11y = p.headingA11y
     c.sub = p.sub
     c.arrival = p.arrival
     c.arrivalMask = p.arrivalMask

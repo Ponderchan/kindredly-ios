@@ -449,17 +449,30 @@ const rowOf = (v: ReturnType<typeof M.buildKindredsView>, id: string) => {
   const p = rowOf(on, "p")!;
   const name = namer.name("u-p", { unsigned: "ld.unsigned" });
   ok("identity on: a pen pal is the courier name from the reader's list", p.name === name && name === strangerName("u-p", { lang: "en", unsigned: "" }) && !p.name.startsWith("No."));
-  ok("identity on: the mark and the sign on the row", p.mark === "she" && p.markLabel === "id.mark.she" && p.sign === "gemini" && p.signLabel === "zd.gemini");
+  // a pen pal is still a stranger: the sign on the row, never the she/he mark (owner, 2026-11-12)
+  ok("identity on: a pen pal's row has the sign alone, never the mark", p.mark === null && p.markLabel === "" && p.sign === "gemini" && p.signLabel === "zd.gemini");
   ok("identity on: a sign alone, no mark", rowOf(on, "o3")!.mark === null && rowOf(on, "o3")!.sign === "leo");
   ok("identity on: the row's face is their frosted window (FROST v1), never developing", p.face?.role === "penpal" && JSON.stringify(p.face.frost) === JSON.stringify(frostSpec("u-p", false)));
   ok("identity on: a pen pal from before the switch never says was No. (owner, 2026-10-21)", p.was === "");
-  ok("identity on: VoiceOver says Pen pal, the name, mark, sign, was, then the state", p.a11yLabel === `id.vo.penPal, ${name}, id.mark.she, zd.gemini, state.yourTurn, mk.ofFive(n=2), ${p.time}`);
+  ok("identity on: VoiceOver says Pen pal, the name, the sign (never the mark), then the state", p.a11yLabel === `id.vo.penPal, ${name}, zd.gemini, state.yourTurn, mk.ofFive(n=2), ${p.time}`);
   const fresh = M.buildKindredsView(base([th({ id: "n", createdAt: now - DAY })]), { ...fmt, who: onBook });
   ok("identity on: a thread opened after the switch never had a number", rowOf(fresh, "n")!.was === "");
   const later = whoBook({ identity: true, t: fmt.t, lang: "en", penPal, namer, marks, firstOnAt: now - 15 * DAY });
   ok("identity on: after fourteen days the old number is gone", rowOf(M.buildKindredsView(base(mixed), { ...fmt, who: later }), "p")!.was === "");
   const k = rowOf(on, "k")!;
-  ok("identity on: a kindred keeps their name and face, no mark, no sign, no was", k.name === "Mara" && k.mark === null && k.sign === null && k.was === "" && k.face?.role === "kindred" && !k.face.frost);
+  ok("identity on: a kindred who shows neither keeps their name and face, no mark, no sign, no was", k.name === "Mara" && k.mark === null && k.sign === null && k.was === "" && k.face?.role === "kindred" && !k.face.frost);
+  /* the she/he mark is a kindred's to see (owner, 2026-11-12): after their pen name, and spoken */
+  {
+    const km = (u: string) => (u === "u-km" ? { mark: "he" as const, sign: "leo" as const } : { mark: null, sign: null });
+    const kBook = whoBook({ identity: true, t: fmt.t, lang: "en", penPal, namer, marks: km, dark: false, firstOnAt: since });
+    const v = M.buildKindredsView(base([th({ id: "km", revealed: true, otherName: "Juniper", other: "u-km" }), th({ id: "kgm", revealed: true, gone: true, otherName: "Sol", other: "u-km" })]), { ...fmt, who: kBook });
+    const r = rowOf(v, "km")!;
+    ok("a kindred's row has their mark and sign after the pen name", r.name === "Juniper" && r.mark === "he" && r.markLabel === "id.mark.he" && r.sign === "leo" && r.signLabel === "zd.leo" && !r.face?.frost);
+    ok("VoiceOver says the kindred's name, mark and sign", r.a11yLabel.startsWith("Juniper, id.mark.he, zd.leo"));
+    ok("a kindred whose account is gone has no marks", rowOf(v, "kgm")!.mark === null && rowOf(v, "kgm")!.sign === null);
+    const offV = M.buildKindredsView(base([th({ id: "km", revealed: true, otherName: "Juniper", other: "u-km" })]), { ...fmt, who: whoBook({ identity: false, t: fmt.t, lang: "en", penPal, marks: km }) });
+    ok("switch off: a kindred has no marks", rowOf(offV, "km")!.mark === null && rowOf(offV, "km")!.sign === null);
+  }
   /* Phase 2: a new kindred says the courier name they wore, for seven days after names were traded */
   {
     const fresh = th({ id: "kn", revealed: true, otherName: "Juniper", other: "u-kn", revealedAt: now - 2 * DAY });

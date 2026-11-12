@@ -121,7 +121,7 @@ strings(
     "ob2.underage.change": "Wrong year? Change it", // 3x: the one way back to the wheel, once per phone
     // 4 · she, he or they
     "ob2.pronoun.head": "She, he, or they?",
-    "ob2.pronoun.line": "So your bird gets you right. She or he puts a small ♀︎ or ♂︎ by your name. They shows nothing.", // keep ♀︎ ♂︎ as text glyphs
+    "ob2.pronoun.line": "So your bird gets you right. She or he puts a small ♀︎ or ♂︎ by your name, and only people you trade names with see it. They shows nothing.", // keep ♀︎ ♂︎ as text glyphs. Strangers never see the mark (owner, 2026-11-12); "kindreds" is not a word the reader knows yet, so say it plainly
     "ob2.pronoun.she": "she / her", // a chip (the ♀ line glyph is drawn after it)
     "ob2.pronoun.he": "he / him", // a chip (♂ drawn after it)
     "ob2.pronoun.they": "they / them", // a chip (nothing drawn after it)
@@ -270,7 +270,7 @@ strings(
     "ob2.underage.line": "En Kindredly se escriben desconocidos, así que es solo para adultos. Vuelve cuando cumplas 18.",
     "ob2.underage.change": "¿Año equivocado? Cámbialo", // 3x: the one way back to the wheel, once per phone
     "ob2.pronoun.head": "¿Ella, él o neutro?",
-    "ob2.pronoun.line": "Así tu pájaro sabrá cómo hablar de ti. Con ella o él aparece un pequeño ♀︎ o ♂︎ junto a tu nombre. Con neutro, nada.",
+    "ob2.pronoun.line": "Así tu pájaro sabrá cómo hablar de ti. Con ella o él aparece un pequeño ♀︎ o ♂︎ junto a tu nombre, y solo lo ve quien intercambie su nombre contigo. Con neutro, nada.",
     "ob2.pronoun.she": "ella",
     "ob2.pronoun.he": "él",
     "ob2.pronoun.they": "neutro",
@@ -401,7 +401,7 @@ strings(
     "ob2.underage.line": "No Kindredly, desconhecidos escrevem para desconhecidos, então é só para adultos. Volte quando fizer 18.",
     "ob2.underage.change": "Ano errado? Corrija", // 3x: the one way back to the wheel, once per phone
     "ob2.pronoun.head": "Ela, ele ou neutro?",
-    "ob2.pronoun.line": "Assim seu pássaro fala de você do jeito certo. Ela ou ele coloca um pequeno ♀︎ ou ♂︎ ao lado do seu nome. Neutro não mostra nada.",
+    "ob2.pronoun.line": "Assim seu pássaro fala de você do jeito certo. Ela ou ele coloca um pequeno ♀︎ ou ♂︎ ao lado do seu nome, e só vê quem trocar de nome com você. Neutro não mostra nada.",
     "ob2.pronoun.she": "ela",
     "ob2.pronoun.he": "ele",
     "ob2.pronoun.they": "neutro",
@@ -532,7 +532,7 @@ strings(
     "ob2.underage.line": "Di Kindredly, orang asing saling berkirim surat, jadi ini khusus orang dewasa. Kembali lagi kalau sudah 18 tahun.",
     "ob2.underage.change": "Salah tahun? Ubah", // 3x: the one way back to the wheel, once per phone
     "ob2.pronoun.head": "Perempuan, laki-laki, atau netral?",
-    "ob2.pronoun.line": "Supaya burungmu mengenalmu dengan tepat. Pilih perempuan atau laki-laki, dan ♀︎ atau ♂︎ kecil muncul di samping namamu. Netral tidak menampilkan apa-apa.",
+    "ob2.pronoun.line": "Supaya burungmu mengenalmu dengan tepat. Pilih perempuan atau laki-laki, dan ♀︎ atau ♂︎ kecil muncul di samping namamu, hanya untuk orang yang sudah bertukar nama denganmu. Netral tidak menampilkan apa-apa.",
     "ob2.pronoun.she": "perempuan",
     "ob2.pronoun.he": "laki-laki",
     "ob2.pronoun.they": "netral",
@@ -663,7 +663,7 @@ strings(
     "ob2.underage.line": "Sur Kindredly, des inconnus s'écrivent : c'est réservé aux adultes. Reviens à tes 18 ans.",
     "ob2.underage.change": "Mauvaise année ? Corrige-la", // 3x: the one way back to the wheel, once per phone
     "ob2.pronoun.head": "Elle, il ou iel ?",
-    "ob2.pronoun.line": "Pour que ton oiseau parle de toi comme il faut. Elle ou il ajoute un petit ♀︎ ou ♂︎ à côté de ton nom. Iel n'affiche rien.",
+    "ob2.pronoun.line": "Pour que ton oiseau parle de toi comme il faut. Elle ou il ajoute un petit ♀︎ ou ♂︎ à côté de ton nom, que seules voient les personnes avec qui tu échanges ton nom. Iel n'affiche rien.",
     "ob2.pronoun.she": "elle",
     "ob2.pronoun.he": "il",
     "ob2.pronoun.they": "iel",
@@ -794,7 +794,7 @@ strings(
     "ob2.underage.line": "Bei Kindredly schreiben sich Fremde, deshalb ist es nur für Erwachsene. Komm wieder, wenn du 18 bist.",
     "ob2.underage.change": "Falsches Jahr? Ändern", // 3x: the one way back to the wheel, once per phone
     "ob2.pronoun.head": "Wie soll dein Vogel von dir sprechen?",
-    "ob2.pronoun.line": "Mit sie oder er steht ein kleines ♀︎ oder ♂︎ neben deinem Namen. Mit neutral steht dort nichts.",
+    "ob2.pronoun.line": "Mit sie oder er steht ein kleines ♀︎ oder ♂︎ neben deinem Namen. Das sieht nur, wer mit dir Namen getauscht hat. Mit neutral steht dort nichts.",
     "ob2.pronoun.she": "sie",
     "ob2.pronoun.he": "er",
     "ob2.pronoun.they": "neutral",
@@ -925,7 +925,7 @@ strings(
     "ob2.underage.line": "Su Kindredly si scrivono sconosciuti, quindi è solo per adulti. Torna quando avrai 18 anni.",
     "ob2.underage.change": "Anno sbagliato? Correggilo", // 3x: the one way back to the wheel, once per phone
     "ob2.pronoun.head": "Lei, lui o loro?",
-    "ob2.pronoun.line": "Così il tuo uccello parla di te nel modo giusto. Con lei o lui compare un piccolo ♀︎ o ♂︎ accanto al tuo nome. Con loro, niente.",
+    "ob2.pronoun.line": "Così il tuo uccello parla di te nel modo giusto. Con lei o lui compare un piccolo ♀︎ o ♂︎ accanto al tuo nome, e lo vede solo chi scambia il nome con te. Con loro, niente.",
     "ob2.pronoun.she": "lei",
     "ob2.pronoun.he": "lui",
     "ob2.pronoun.they": "loro",
@@ -1056,7 +1056,7 @@ strings(
     "ob2.underage.line": "Kindredlyは見知らぬ人どうしが手紙を書き合う場所なので、大人向けです。18歳になったら、また来てください。",
     "ob2.underage.change": "生まれた年を間違えた？ 選び直す", // 3x: the one way back to the wheel, once per phone
     "ob2.pronoun.head": "彼女？ 彼？ それとも、その人？",
-    "ob2.pronoun.line": "鳥があなたのことを正しく呼べるように。彼女か彼なら、名前の横に小さな♀︎か♂︎がつきます。その人なら、何もつきません。",
+    "ob2.pronoun.line": "鳥があなたのことを正しく呼べるように。彼女か彼なら、名前の横に小さな♀︎か♂︎がつきます。見えるのは、名前を交わした相手だけ。その人なら、何もつきません。",
     "ob2.pronoun.she": "彼女",
     "ob2.pronoun.he": "彼",
     "ob2.pronoun.they": "その人",
@@ -1187,7 +1187,7 @@ strings(
     "ob2.underage.line": "Kindredly는 낯선 사람끼리 편지를 주고받는 곳이라 성인만 쓸 수 있어요. 18살이 되면 다시 와 주세요.",
     "ob2.underage.change": "연도를 잘못 골랐나요? 다시 고르기", // 3x: the one way back to the wheel, once per phone
     "ob2.pronoun.head": "그녀, 그, 아니면 그 사람?",
-    "ob2.pronoun.line": "새가 당신을 제대로 부를 수 있게요. 그녀나 그를 고르면 이름 옆에 작은 ♀︎ 또는 ♂︎ 표시가 붙어요. 그 사람을 고르면 아무것도 붙지 않아요.",
+    "ob2.pronoun.line": "새가 당신을 제대로 부를 수 있게요. 그녀나 그를 고르면 이름 옆에 작은 ♀︎ 또는 ♂︎ 표시가 붙어요. 서로 이름을 나눈 사람에게만 보여요. 그 사람을 고르면 아무것도 붙지 않아요.",
     "ob2.pronoun.she": "그녀",
     "ob2.pronoun.he": "그",
     "ob2.pronoun.they": "그 사람",

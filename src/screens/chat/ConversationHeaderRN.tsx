@@ -104,7 +104,7 @@ export function ConversationHeaderRN({
       <View style={{ flex: 1, gap: 3 }}>
         <WhoName
           name={model.name}
-          marks={{ mark: model.room ? null : model.mark, sign: model.room ? null : model.sign }}
+          marks={{ mark: model.mark, sign: model.sign }}
           style={{ fontSize: 18, fontWeight: "600", color: tk.ink }}
           glyph={14}
           // one line as ever; a courier name with its glyphs may take a second rather than be cut

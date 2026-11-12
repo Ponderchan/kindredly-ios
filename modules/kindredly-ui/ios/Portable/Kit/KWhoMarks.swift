@@ -9,10 +9,11 @@ import SwiftUI
    Sunday Kite ♀ ♊        the mark 6pt after the name, the sign 4pt after the mark (or 6pt after
                           the name, where the mark would be, when there is no mark)
 
- - Both are KLineGlyph line drawings (she, he and the twelve signs, drawn for stroke 2 on the 24
-   grid), never the Unicode symbols, at about 0.8 × the name's size (14 beside a 17pt name).
- - Both are in the theme's sub, the ink of the line under the name, and NEVER tinted: no pink, no
-   blue, no coloured disc. Nothing about them says more than the word the writer chose.
+ - HOW THEY LOOK (owner, 2026-11-12: "信上也统一"): the mark sits white on a small disc — light
+   blue for he, pink for she — and the sign is its emoji, as on Me's pill and in onboarding
+   (KOwnMark below). Until that day they were grey line drawings and never tinted (the decision
+   of 2026-10-18); the owner chose one look for a person's marks wherever they show.
+ - About 0.8 × the name's size, plus two points for the disc (16 beside a 17pt name).
  - They sit on the name's baseline like a capital: the glyph's ink ends at about 0.84 of its frame,
    so that point is given to the first-text-baseline guide, and an HStack aligned on
    .firstTextBaseline lines them up with the name in any font size.
@@ -108,8 +109,8 @@ public struct KWhoMarks: View {
   }
 
   private func glyph(_ g: KLineGlyph) -> some View {
-    // drawn for stroke 2 on the 24 grid (KLineGlyph's identity cases)
-    KLineIcon(g, size: (size * scale).rounded(), lineWidth: 2, color: color)
+    // the mark on its disc, the sign as its emoji; `color` is only for a glyph that is neither
+    KOwnMark(g, size: ((size + 2) * scale).rounded(), ink: color)
   }
 }
 
@@ -119,8 +120,8 @@ public struct KWhoMarks: View {
  Where someone is choosing or being shown THEIR OWN: the she/he mark sits white on a disc — the
  older product's light blue for he, pink for she — and the star sign is its emoji.
 
- KWhoMarks above (the marks after a STRANGER'S name on a letter, in a list) is still the grey line
- drawing of the 2026-10-18 decision; whether those follow is the owner's to say.
+ KWhoMarks above (the marks after a stranger's name on a letter, in a list) draws through this
+ too, from 2026-11-12: one look everywhere.
  */
 
 public enum KMarkTint {
@@ -170,8 +171,12 @@ public struct KOwnMark: View {
       }
       .frame(width: size, height: size)
     } else if let emoji = glyph.signEmoji {
+      // the emoji keeps its own width (its advance is wider than the square it draws: held to
+      // the frame's width the square lost its right edge) and sits centred in the frame
       Text(emoji)
         .font(.system(size: size * 0.86))
+        .lineLimit(1)
+        .fixedSize()
         .frame(width: size, height: size)
     } else {
       KLineIcon(glyph, size: size, lineWidth: 2, color: ink)

@@ -798,7 +798,8 @@ struct KObSlide1: View {
           KFrost(theme: .classic, spec: spec, size: 40 * k)
         }
       } name: {
-        KObNameMarks(name: ctx.content.door.sample, mark: .she, sign: .gemini, size: 17 * k)
+        // a stranger's letter: the sign after the name, never ♀ / ♂ (owner, 2026-11-12: the mark is a kindred's to see)
+        KObNameMarks(name: ctx.content.door.sample, mark: nil, sign: .gemini, size: 17 * k)
       } date: {
         KObDocketDate(text: ctx.content.door.date, k: k)
       } stamp: {

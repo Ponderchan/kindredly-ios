@@ -451,13 +451,14 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   const courier = strangerName("user-4481", { lang: "en", unsigned: "" });
   const hOn = B.lettersHeader({ ...base, name: onWho.name, who: onWho });
   ok("identity on: the header names the courier name", hOn.name === courier && onWho.name === courier);
-  ok("identity on: the frosted window in the face slot, the mark and the sign after the name", JSON.stringify(hOn.frost) === JSON.stringify(frostSpec("user-4481", false)) && hOn.mark === "he" && hOn.sign === "leo");
-  ok("identity on: VoiceOver hears name, mark and sign, the line", hOn.a11yLabel === `${courier}, id.mark.he, zd.leo, STATE.THEIRTURN`);
+  // a pen pal is still a stranger: the sign after the name, never the she/he mark (owner, 2026-11-12)
+  ok("identity on: the frosted window in the face slot, the sign alone after the name", JSON.stringify(hOn.frost) === JSON.stringify(frostSpec("user-4481", false)) && hOn.mark === null && hOn.sign === "leo");
+  ok("identity on: VoiceOver hears name and sign (never the mark), the line", hOn.a11yLabel === `${courier}, zd.leo, STATE.THEIRTURN`);
   ok("identity on: the line, the counts and the frame don't change", hOn.sub === h.sub && hOn.band?.me === h.band?.me && hOn.band?.them === h.band?.them && hOn.band?.line === h.band?.line && hOn.frame === h.frame && hOn.tone === h.tone);
   ok("identity on: the band names the courier name in capitals", hOn.band?.themLabel === courier.toLocaleUpperCase("en-US"));
   const gOn = B.lettersHeader({ ...base, other: null, name: onBook.name(null), who: onBook.who(null), state: st("gone") });
   ok("identity on: a gone pen pal is UNSIGNED behind the veil, no frost, no mark", gOn.veil && gOn.frost === null && gOn.mark === null && gOn.sign === null && gOn.name === "ld.unsigned");
-  ok("identity on: the room's header has no window and no mark", (() => { const r = B.roomHeader({ t, locale: "en-US", name: "Mira", sub: "", face: B.NO_FACE, canReport: true }); return r.frost === null && r.mark === null && r.sign === null; })());
+  ok("identity on: the room's header has no window, and no mark when it is given none", (() => { const r = B.roomHeader({ t, locale: "en-US", name: "Mira", sub: "", face: B.NO_FACE, canReport: true }); return r.frost === null && r.mark === null && r.sign === null; })());
   ok("identity: mosaicMask is still today's face for the off header", h.mask === mosaicMask("user-4481", developFor(2)));
 }
 
@@ -470,6 +471,12 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   ok("room header: VoiceOver hears name and line; the page opens", rh.a11yLabel === "Mira, KINDRED SINCE OCTOBER 8" && rh.canOpenPage);
   ok("room header: the ⋯ only with someone to report; back is named", rh.moreLabel === "rp.menu.a11y" && rh.backLabel === "a11y.back" && B.roomHeader({ t, locale: "en-US", name: "Mira", sub: "", face: B.NO_FACE, canReport: false }).moreLabel === "");
   ok("room header: no line, no line", B.roomHeader({ t, locale: "en-US", name: "Mira", sub: "", face: B.NO_FACE, canReport: true }).a11yLabel === "Mira");
+  // a kindred is the one who sees the she/he mark (owner, 2026-11-12): after the name, and spoken
+  const kMarks = { mark: "she" as const, markLabel: "she", sign: "gemini", signLabel: "Gemini" };
+  const rhM = B.roomHeader({ t, locale: "en-US", name: "Mira", sub: "kindred since October 8", face: portrait, canReport: true, marks: kMarks });
+  ok("room header: a kindred's mark and sign after the name, no window", rhM.mark === "she" && rhM.sign === "gemini" && rhM.frost === null);
+  ok("room header: VoiceOver hears name, mark, sign, then the line", rhM.a11yLabel === "Mira, she, Gemini, KINDRED SINCE OCTOBER 8");
+  ok("room header: marks of null are no marks", B.roomHeader({ t, locale: "en-US", name: "Mira", sub: "", face: B.NO_FACE, canReport: true, marks: null }).a11yLabel === "Mira");
 
   // a pen-pal chat seen in place after names are traded ("chatheader"): ChatHeader's letters variant
   const rv = B.revealedLettersHeader({ t, name: "Mira", face: portrait, state: { label: "Your turn", toneKey: "ind" }, canOpenPage: true, canReport: true });
@@ -478,6 +485,8 @@ const actKeys = (a: { key: string }[]) => a.map((x) => x.key).join(",");
   ok("revealed header: VoiceOver hears name and state; the ⋯ and back are named", rv.a11yLabel === "Mira, Your turn" && rv.moreLabel === "rp.menu.a11y" && rv.backLabel === "a11y.back");
   const rvNone = B.revealedLettersHeader({ t, name: "Mira", face: B.NO_FACE, state: null, canOpenPage: false, canReport: false });
   ok("revealed header: no state, no line, mute; nobody to report, no ⋯; the page as the model says", rvNone.sub === "" && rvNone.tone === "mute" && rvNone.moreLabel === "" && !rvNone.canOpenPage && rvNone.a11yLabel === "Mira");
+  const rvM = B.revealedLettersHeader({ t, name: "Mira", face: portrait, state: { label: "Your turn", toneKey: "ind" }, canOpenPage: true, canReport: true, marks: kMarks });
+  ok("revealed header: names are traded, so the kindred's mark and sign show and are spoken", rvM.mark === "she" && rvM.sign === "gemini" && rvM.a11yLabel === "Mira, she, Gemini, Your turn" && rv.mark === null && rv.sign === null);
   ok("the room's header is not the revealed one", rh.revealed !== true);
 
   const base: import("./build-items").RoomDockInput = { t, locale: "en-US", wren: "Wren", name: "Mira", closing: false, daysLeft: 9, mode: null, replyTo: null, notice: null, gone: false, expired: false, quietDays: 0 };

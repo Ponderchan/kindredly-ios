@@ -126,7 +126,9 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
      their ♀/♂ and star sign once the identity client answers. A deleted correspondent has no
      number to show: every one of them would otherwise collapse onto the same No. (the book
      reads ld.unsigned for them, either way) */
-  const book = useWhoBook({ uids: detail && !detail.revealed ? [detail.other] : [] });
+  const book = useWhoBook({ uids: detail && !detail.gone ? [detail.other] : [] });
+  // once names are traded: their she/he mark and sign, for the room's header (a stranger shows the sign alone)
+  const kindredMarks = useMemo(() => (detail && detail.revealed && !detail.gone ? book.kindredMarks(detail.other) : null), [book, detail]);
   const pal = useMemo(
     () => (detail && !detail.revealed ? book.who(detail.other, { develop: developFor(detail.otherCount) }) : null),
     [book, detail],
@@ -431,6 +433,8 @@ export function useLettersModel(id: string | undefined, { ui }: { ui: ChatUi }) 
     name,
     /** the pen pal as the book gives them (name, mark, sign, face, spoken); null once names are traded or before the thread loads */
     who: pal,
+    /** a kindred's she/he mark and sign (null before names are traded) */
+    kindredMarks,
     /** the identity switch (the reply bar is addressed to the courier name when on) */
     identity: book.identity,
     wren,

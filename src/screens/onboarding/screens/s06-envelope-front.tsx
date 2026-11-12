@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { Text, View, type StyleProp, type ViewStyle } from "react-native";
 import Svg, { G, Path } from "react-native-svg";
 import { LaunchMarkArt, POST_BLUE } from "../../../components/LaunchAnimation";
-import { LineIcon, type LineIconName } from "../../../components/10a/LineIcon";
+import type { LineIconName } from "../../../components/10a/LineIcon";
+import { OwnMark } from "../../../components/WhoName";
 import { STAMP_V3_FRAME_D, STAMP_V3_INK } from "../../../lib/stamp-frame";
 import { PFM } from "../../../theme/post";
 import { OB } from "../parts/tokens";
@@ -170,8 +171,8 @@ export function NameMarks({
             importantForAccessibility="no-hide-descendants"
             style={{ width: 6 * (size / 17) + n * g + (n - 1) * 4 * (size / 17), height: g, flexDirection: "row", justifyContent: "flex-end", gap: 4 * (size / 17) }}
           >
-            {mark && <LineIcon name={mark} size={g} stroke={2} color={glyphColor} />}
-            {sign && <LineIcon name={sign} size={g} stroke={2} color={glyphColor} />}
+            {mark && <OwnMark name={mark} size={g} color={glyphColor} />}
+            {sign && <OwnMark name={sign} size={g} color={glyphColor} />}
           </View>
         ))}
     </Text>

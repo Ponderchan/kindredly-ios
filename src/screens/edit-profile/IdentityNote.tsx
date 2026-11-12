@@ -107,7 +107,9 @@ function IdentityNoteSheetRN({ note, frost, pronoun, sign, when, onMark, onSign,
   const { t: tk } = useTheme();
   const insets = useSafeAreaInsets();
   const { letters } = note;
-  const mark: Mark | null = letters.mark?.on && markOffered(pronoun) ? (pronoun as Mark) : null;
+  // the preview is you TO A STRANGER, who never sees ♀ / ♂ (owner, 2026-11-12: the mark is a
+  // kindred's to see), so it wears the sign alone whatever the mark's switch says
+  const mark: Mark | null = null;
   const shownSign = letters.sign.on ? sign : null;
 
   return (

@@ -64,6 +64,9 @@ export type KindredPageInput = {
   openingDuration: string;
   /** the opening's line limit (five, six in a roomier Letter font) */
   openingLines: number;
+  /** a kindred's she/he mark and star sign with VoiceOver's words (lib/stranger-who kindredMarks);
+      null or absent for none. Read only once names are traded: the mark is a kindred's to see */
+  marks?: { mark: "she" | "he" | null; markLabel: string; sign: string | null; signLabel: string } | null;
   /** a frosted window is known for this pen pal (identity on) */
   hasFrost: boolean;
   /** the ⋯ has someone to report */
@@ -90,7 +93,7 @@ export type KindredPageView = {
   talk: string;
 };
 
-const NO_PERSON: KKindredPagePerson = { revealed: false, heading: "", sub: "", arrival: "", arrivalMask: 0 };
+const NO_PERSON: KKindredPagePerson = { revealed: false, heading: "", mark: "", sign: "", headingA11y: "", sub: "", arrival: "", arrivalMask: 0 };
 const NO_SIGNED: KKindredPageSigned = {
   show: false,
   label: "",
@@ -156,12 +159,19 @@ export function buildKindredPageView(i: KindredPageInput, c: KindredPageCopy): K
     ? {
         revealed: true,
         heading: name,
+        // a kindred's she/he mark and star sign after the name (never once their account is gone)
+        mark: (!d.gone && i.marks?.mark) || "",
+        sign: (!d.gone && i.marks?.sign) || "",
+        headingA11y: d.gone || !i.marks ? "" : [name, i.marks.markLabel, i.marks.signLabel].filter(Boolean).join(", "),
         sub: "",
         arrival: showsArrivalMosaic(d, identity) ? t("kd.faceArrive") : "",
         arrivalMask: showsArrivalMosaic(d, identity) ? mosaicMask(d.other, 1) : 0,
       }
     : {
         revealed: false,
+        mark: "",
+        sign: "",
+        headingA11y: "",
         heading: arche ? c.archName(arche) : t("kd.stillVoice"),
         sub: arche ? c.archDescThird(arche) : t("kd.notEnough"),
         arrival: "",

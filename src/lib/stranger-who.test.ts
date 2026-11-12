@@ -80,8 +80,13 @@ const marks = (uid: string): Marks => {
   ok("on: the same spec object for the same uid (memoised props stay put)", on.frost(A) === on.frost(A));
   const dark = W.whoBook({ identity: true, t, penPal, lang: "en", dark: true });
   ok("on: Midnight's tones on a dark theme", same(dark.frost(A), frostSpec(A, true)));
-  ok("on: the mark and the sign, with their VoiceOver words", w.mark === "she" && w.markLabel === "id.mark.she" && w.sign === "gemini" && w.signLabel === "zd.gemini");
-  ok("on: VoiceOver hears name, mark, sign", w.spoken === `${name}, id.mark.she, zd.gemini`);
+  // a stranger is never shown with the she/he mark: it is a kindred's to see (owner, 2026-11-12)
+  ok("on: a stranger keeps the sign alone, never the mark", w.mark === null && w.markLabel === "" && w.sign === "gemini" && w.signLabel === "zd.gemini");
+  ok("on: VoiceOver hears name and sign, never the mark", w.spoken === `${name}, zd.gemini`);
+  const k = on.kindredMarks(A);
+  ok("on: a kindred's marks carry the mark and the sign, with their VoiceOver words", k.mark === "she" && k.markLabel === "id.mark.she" && k.sign === "gemini" && k.signLabel === "zd.gemini");
+  ok("on: a mark with no sign shows a stranger nothing at all", same(W.whoBook({ identity: true, t, penPal, lang: "en", marks: () => ({ mark: "he", sign: null }) }).marks(A), W.NO_WHO_MARKS));
+  ok("off: no kindred's marks either", same(W.whoBook({ identity: false, t, penPal, lang: "en", marks }).kindredMarks(A), W.NO_WHO_MARKS));
   const b = on.who(B);
   ok("on: a sign without a mark sits where the mark would be (no empty comma)", b.mark === null && b.sign === "leo" && b.spoken === `${strangerName(B, { lang: "en", unsigned: "" })}, zd.leo`);
   ok("on: nothing to show is NO_WHO_MARKS", same(on.marks("someone-else"), W.NO_WHO_MARKS));

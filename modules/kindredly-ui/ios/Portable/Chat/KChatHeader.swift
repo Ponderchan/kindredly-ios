@@ -382,7 +382,9 @@ struct KChatHeaderFace: View {
  - THE FACE: round, 36 across, as lib/faces resolves a kindred (their portrait, the glyph when
    they gave none; a member's gold stamp round it, C2). Deliberately as the Swift room draws a
    kindred: a closed account is the veil here, where the React Native header kept their picture.
- - THE NAME in system 600 16 on one line (it truncates), the state 2 under it in mono 600 10 at
+ - THE NAME in system 600 16 on one line (it truncates), their she/he mark and star sign after it
+   (KWhoMarks at 13: names are traded, so they are kindreds, and the mark is a kindred's to see;
+   owner 2026-11-12), the state 2 under it in mono 600 10 at
    .1em, in its tone: ind, brass (the brass seal in every theme, as BRAND.brassSeal), else mute.
    Face and name are one button (it fades to .6 while pressed) that opens their page when
    canOpenPage, one element for VoiceOver either way (TS's label, the stamp's words in it).
@@ -452,6 +454,8 @@ struct KChatHeaderRevealed: View {
             .kText(.system(16, .semibold))
             .foregroundStyle(theme.ink)
             .lineLimit(1)
+          // a kindred's she/he mark and star sign (0.8 × the 16pt name), as the room's header
+          KWhoMarks(mark: model.mark, sign: model.sign, size: 13, color: theme.sub)
           if model.muted {
             KChatMutedBell(theme: theme, size: 12)
           }

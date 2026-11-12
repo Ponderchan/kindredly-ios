@@ -153,7 +153,8 @@ ok("accessibility sizes wrap", R.largeType(1.6) && R.largeType(3.1));
   ok("identity on: a pen pal is the courier name in capitals", R.correspondentLabel(north, onF) === courier.toLocaleUpperCase());
   ok("identity on: their letters are signed with it, mine YOU", conv.every((m) => R.signatureOf(m, north, onF) === (m.mine ? "ui.you" : courier.toLocaleUpperCase())));
   const w = R.correspondentWho(north, onF)!;
-  ok("identity on: the header has the frost, the mark and the sign", w.face.kind === "frost" && JSON.stringify(w.face.spec) === JSON.stringify(frostSpec(north.other, false)) && w.mark === "she" && w.sign === "leo" && w.spoken === `${courier}, id.mark.she, zd.leo`);
+  // a pen pal is a stranger: the sign, never the she/he mark (owner, 2026-11-12)
+  ok("identity on: the header has the frost and the sign, never the mark", w.face.kind === "frost" && JSON.stringify(w.face.spec) === JSON.stringify(frostSpec(north.other, false)) && w.mark === null && w.sign === "leo" && w.spoken === `${courier}, zd.leo`);
   ok("identity on: the reply bar is addressed to the courier name", R.replyPlaceholder(north, t, onBook) === `id.writeBackTo(name=${courier})`);
   ok("identity on: the line is the identity key whatever has() says (switch off never reads it)", R.replyPlaceholder(north, t, onBook, (k) => k !== "ld.writeBackTo") === `id.writeBackTo(name=${courier})`);
   ok("identity on: the hint never gives the person a gender", R.replyHint("hi", false, t, true).text === "id.th.replyGoesStraight" && R.replyHint("hi", true, t, true).text === "id.th.goesStraight");

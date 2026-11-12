@@ -226,6 +226,12 @@ public struct KKindredPageContent {
   public var faceA11y = ""
   public var revealed = false
   public var heading = ""
+  /// a kindred's she/he mark and star sign after the name (TS decides; nil for none, and always
+  /// nil before names are traded: the mark is a kindred's to see, owner 2026-11-12)
+  public var mark: KLineGlyph?
+  public var sign: KLineGlyph?
+  /// VoiceOver for the name with its marks ("Mira, she, Gemini"); "" reads the heading alone
+  public var headingA11y = ""
   public var sub = ""
   /// THE FACE YOU WATCHED ARRIVE; "" for none
   public var arrival = ""
@@ -383,11 +389,17 @@ public struct KKindredPageScreen: View {
       face
       VStack(alignment: .leading, spacing: 0) {
         if content.revealed {
-          Text(content.heading)
-            .kText(.system(26, .semibold, lineHeight: 32.0 / 26.0))
-            .foregroundStyle(theme.ink)
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityAddTraits(.isHeader)
+          // the name, then a kindred's she/he mark and star sign (0.8 × the 26pt name)
+          HStack(alignment: .firstTextBaseline, spacing: 0) {
+            Text(content.heading)
+              .kText(.system(26, .semibold, lineHeight: 32.0 / 26.0))
+              .foregroundStyle(theme.ink)
+              .fixedSize(horizontal: false, vertical: true)
+            KWhoMarks(mark: content.mark, sign: content.sign, size: 21, color: theme.sub)
+          }
+          .accessibilityElement(children: .ignore)
+          .accessibilityLabel(content.headingA11y.isEmpty ? content.heading : content.headingA11y)
+          .accessibilityAddTraits(.isHeader)
           if !content.arrival.isEmpty {
             HStack(alignment: .center, spacing: 8) {
               KMosaic(mask: content.arrivalMask, cell: 3, gap: 1, color: theme.ink)

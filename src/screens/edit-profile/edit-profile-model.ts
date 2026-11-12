@@ -374,17 +374,15 @@ export type IdentityNoteVM = {
   done: string;
 };
 
-/** The note's words, the preview and its two switches (the mark's for she / he only). */
+/** The note's words, the preview and its two switches (the mark's for she / he only). The preview is
+    you to a stranger, so it never says the she/he mark: that one is a kindred's to see (owner,
+    2026-11-12), and its switch only decides what kindreds are shown. */
 export function identityNote(
   f: { pronoun: PronounId; showMark: unknown; showSign: unknown; sign: string | null; previewName: string },
   t: TFn,
 ): IdentityNoteVM {
   const letters = lettersView(f.pronoun, f, t);
-  const spoken = [
-    f.previewName,
-    letters.mark?.on ? t(`id.mark.${f.pronoun}`) : "",
-    letters.sign.on && f.sign ? t(signKey(f.sign)) : "",
-  ]
+  const spoken = [f.previewName, letters.sign.on && f.sign ? t(signKey(f.sign)) : ""]
     .filter(Boolean)
     .join(", ");
   return {

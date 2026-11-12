@@ -1,18 +1,20 @@
 import { StyleSheet, Text, View, type StyleProp, type TextStyle } from "react-native";
 import { useTheme } from "../lib/theme";
 import type { WhoMarks } from "../lib/stranger-who";
-import { LineIcon } from "./10a/LineIcon";
+import { LineIcon, type LineIconName } from "./10a/LineIcon";
+import { ZODIAC_EMOJI, isZodiac } from "../lib/zodiac";
 
 /* A STRANGER'S NAME WITH ITS MARKS, DRAWN BY REACT NATIVE (identity Phase 1;
    identity-plan §4, §9 and the zodiac addendum).
    ────────────────────────────────────────────────────────────────────────
    The courier name, then the she/he mark 6pt after it, then the star sign
    4pt after the mark (or 6pt after the name, where the mark would be). Both
-   glyphs are LineIcon's line drawings (the same paths as Swift's
-   KLineGlyph and the web's), drawn for stroke 2 at 0.8 × the name's size,
-   in the theme's sub — the colour of the line under the name — and never
-   tinted: no pink, no blue, no disc, nothing that reads as a dating app.
-   They only ever come after the name.
+   mark sits white on a small disc (light blue for he, pink for she) and the
+   sign is its emoji — OwnMark below, the same look as Swift's KOwnMark, as
+   Me's pill and onboarding (owner, 2026-11-12: "信上也统一"; until then
+   they were grey line drawings, never tinted, by the 2026-10-18 decision).
+   About 0.8 × the name's size plus two points. They only ever come after
+   the name.
 
    Which glyphs to draw is lib/stranger-who's answer (WhoMarks): none with
    the switch off, none until marks_for answers (and none at all before the
@@ -25,15 +27,38 @@ import { LineIcon } from "./10a/LineIcon";
    hidden from it here. Nothing may ever sort, hide or choose anyone by
    them. */
 
-/** The mark and the sign after a name, `size` points each (0.8 × the name's size), in sub. */
+/** The disc's colours: the older product's light blue for he, pink for she (Swift: KMarkTint). */
+export const MARK_TINT = { he: "#56B8F5", she: "#F58FB4" } as const;
+
+/** A person's mark or sign in a box of `size`: she/he white on its disc, a star sign as its emoji;
+    any other icon as the line drawing it is, in `color`. */
+export function OwnMark({ name, size, color }: { name: string; size: number; color?: string }) {
+  if (name === "she" || name === "he") {
+    return (
+      <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: MARK_TINT[name], alignItems: "center", justifyContent: "center" }}>
+        <LineIcon name={name} size={Math.round(size * 0.7)} stroke={2.6} color="#FFFFFF" />
+      </View>
+    );
+  }
+  if (isZodiac(name)) {
+    return (
+      <Text allowFontScaling={false} style={{ width: size, height: size, fontSize: size * 0.86, lineHeight: size, textAlign: "center" }}>
+        {ZODIAC_EMOJI[name]}
+      </Text>
+    );
+  }
+  return <LineIcon name={name as LineIconName} size={size} stroke={2} color={color ?? "#1E1B35"} />;
+}
+
+/** The mark and the sign after a name, `size` points each (0.8 × the name's size, plus the disc's two). */
 export function WhoGlyphs({ mark, sign, size, color, lead = 6 }: Pick<WhoMarks, "mark" | "sign"> & { size: number; color?: string; /** the room before the first glyph; a row that already spaces its children passes the difference */ lead?: number }) {
   const { t: tk } = useTheme();
   if (!mark && !sign) return null;
   const ink = color ?? tk.sub;
   return (
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ flexDirection: "row", alignItems: "center", marginLeft: lead, gap: 4, flexShrink: 0 }}>
-      {mark && <LineIcon name={mark} size={size} stroke={2} color={ink} />}
-      {sign && <LineIcon name={sign} size={size} stroke={2} color={ink} />}
+      {mark && <OwnMark name={mark} size={size + 2} color={ink} />}
+      {sign && <OwnMark name={sign} size={size + 2} color={ink} />}
     </View>
   );
 }
@@ -46,14 +71,15 @@ function InlineGlyphs({ mark, sign, size }: Pick<WhoMarks, "mark" | "sign"> & { 
   const { t: tk } = useTheme();
   if (!mark && !sign) return null;
   const n = (mark ? 1 : 0) + (sign ? 1 : 0);
+  const g = size + 2;
   return (
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ width: 6 + n * size + (n - 1) * 4, height: size, flexDirection: "row", justifyContent: "flex-end", gap: 4 }}
+      style={{ width: 6 + n * g + (n - 1) * 4, height: g, flexDirection: "row", justifyContent: "flex-end", gap: 4 }}
     >
-      {mark && <LineIcon name={mark} size={size} stroke={2} color={tk.sub} />}
-      {sign && <LineIcon name={sign} size={size} stroke={2} color={tk.sub} />}
+      {mark && <OwnMark name={mark} size={g} color={tk.sub} />}
+      {sign && <OwnMark name={sign} size={g} color={tk.sub} />}
     </View>
   );
 }

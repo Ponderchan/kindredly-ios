@@ -287,8 +287,9 @@ const COURIER: ReelBuild = {
 
 /* ── what's new in 1.0.5 (news-reel/v1-0-5; 1.0.6 plays it too) ── */
 const N_NAMED = [
-  { seed: "news-105-9288", mark: "she", sign: "gemini" },
-  { seed: "news-105-32", mark: "he", sign: "leo" },
+  // strangers: the sign alone, never ♀ / ♂ (owner, 2026-11-12: the mark is a kindred's to see)
+  { seed: "news-105-9288", mark: "", sign: "gemini" },
+  { seed: "news-105-32", mark: "", sign: "leo" },
   { seed: "news-105-13", mark: "", sign: "pisces" },
 ] as const;
 const N_THEM = { seed: "news-105-9288", face: "f-02-tender-thinker", sig: penDemo("news-105-mira") };

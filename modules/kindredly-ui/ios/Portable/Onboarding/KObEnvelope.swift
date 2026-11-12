@@ -13,6 +13,11 @@ import SwiftUI
  (they show and hide the glyphs on the card) and the reveal strip on a loop. No session yet: the
  window waits, pulsing, and the name's place says the courier is thinking of a name.
 
+ NO ♀ / ♂ ON THESE ENVELOPES since 2026-11-12 (owner: "信上就别显示性别了吧 只有成为kindreds 才能看见
+ 性别"): they are you to a stranger, and the mark is a kindred's to see. TS sends no mark
+ (OnboardingNative's envelope record), so the card wears the sign alone and only the sign's
+ switch is drawn; the mark's code below stays for the record's shape and draws nothing.
+
  "Looks right": a gold ring of warmth opens behind the egg, the card turns over, and the letter's
  paper grows out of it until the sheet is the screen (7's ground). Reduce Motion: assembled at
  once, the strip at rest on its cleared frame, the key goes straight on.

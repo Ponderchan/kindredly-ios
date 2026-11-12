@@ -1,3 +1,4 @@
+import { useWhoBook } from "../../lib/who";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Image, InteractionManager, Linking } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -423,6 +424,10 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
   const { trans, translateLine, hideTranslation } = useTranslations(ui, wren);
 
   const name = detail?.otherName || t("cm.kindred");
+  /* the kindred's she/he mark and star sign, for the header (lib/stranger-who kindredMarks): the
+     mark is only ever shown between kindreds (owner, 2026-11-12) */
+  const whoBook = useWhoBook({ uids: detail && !detail.gone ? [detail.other] : [] });
+  const kindredMarks = useMemo(() => (detail && !detail.gone ? whoBook.kindredMarks(detail.other) : null), [whoBook, detail]);
   const read = useCorrespondentRead(detail);
   const ceremony = useCeremony(id, detail, status, { recentOnly: true });
 
@@ -1260,6 +1265,7 @@ export function useRoomModel(id: string | undefined, { ui, expiredParam, closing
     openLore,
     onBlocked,
     theirLatest: theirLatest(detail?.messages, detail?.openingFromMe ? null : detail?.opening),
+    kindredMarks,
     ...ceremony,
   };
 }

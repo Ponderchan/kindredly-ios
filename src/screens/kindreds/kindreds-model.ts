@@ -517,7 +517,9 @@ export function rowFor(
   // a pen pal as the book says (off: penPal exactly; on: the courier name, mark and sign); a kindred by the name they gave
   const pal = kindred ? null : book.who(gone ? null : th.other);
   const name = pal ? pal.name : th.otherName || t("kd.aKindred");
-  const marks: WhoMarks = pal ? { mark: pal.mark, markLabel: pal.markLabel, sign: pal.sign, signLabel: pal.signLabel } : NO_WHO_MARKS;
+  // a kindred shows the she/he mark and the sign after their pen name; a pen pal the sign alone
+  // (owner, 2026-11-12: the mark is for kindreds)
+  const marks: WhoMarks = pal ? { mark: pal.mark, markLabel: pal.markLabel, sign: pal.sign, signLabel: pal.signLabel } : gone ? NO_WHO_MARKS : book.kindredMarks(th.other);
   /* no "was …" on the list (owner, 2026-10-31): a pen pal never said "was No. 4481" (10-21), and a
      kindred no longer says "was Sunday Kite" either; their page keeps it, as FIRST MET AS */
   const was = "";
@@ -544,7 +546,7 @@ export function rowFor(
   const a11yLabel = [
     // switch on, a pen pal is said as one: "Pen pal, Sunday Kite, she, Gemini, was No. 4481" (off: the name alone, as ever)
     pal && book.identity ? t("id.vo.penPal") : null,
-    pal ? pal.spoken : name,
+    pal ? pal.spoken : book.spoken({ name, markLabel: marks.markLabel, signLabel: marks.signLabel }),
     was || null,
     closes,
     milestone ?? turn?.label ?? null,

@@ -250,7 +250,8 @@ export function useKindredsModel(): KindredsModel {
   /* who the pen pals are (lib/who): the courier names from this very list (demo rows
      included), the frost, and the ♀/♂ and star sign of the pen pals on it — switch off,
      the numbers and mosaics exactly as before */
-  const strangers = useMemo(() => source.filter((th) => !th.revealed && !th.gone).map((th) => th.other), [source]);
+  // everyone on the list: a pen pal's sign, and a kindred's she/he mark and sign (lib/stranger-who)
+  const strangers = useMemo(() => source.filter((th) => !th.gone).map((th) => th.other), [source]);
   const who = useWhoBook({ threads: source, uids: strangers });
 
   const view = useMemo(

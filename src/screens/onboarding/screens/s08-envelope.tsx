@@ -87,11 +87,12 @@ export function envelopeDate(now: number): string {
 /** Your courier name in your language (salt 0), or "" before there is a user id. */
 export const yourCourierName = (uid: string | null, lang: Lang): string => strangerName(uid, { lang, unsigned: "" });
 
-/** What the envelope shows after the name: the mark only for she/he with the switch on (null = on), the sign with its switch (null = on). */
-export function yourMarks(o: { pronoun: PronounId | null; showMark: boolean | null; showSign: boolean | null; dob: Dob | null }) {
-  const mark = (o.pronoun === "she" || o.pronoun === "he") && o.showMark !== false ? o.pronoun : null;
+/** What the envelope shows after the name: the sign with its switch (null = on), and never the she/he
+    mark. This envelope goes to a stranger, and the mark is a kindred's to see (owner, 2026-11-12);
+    pronoun and showMark are still taken so the callers stay as they are. */
+export function yourMarks(o: { pronoun: PronounId | null; showMark: boolean | null; showSign: boolean | null; dob: Dob | null }): { mark: "she" | "he" | null; sign: ReturnType<typeof signOf> } {
   const sign = o.showSign !== false ? signOf(o.dob) : null;
-  return { mark, sign };
+  return { mark: null, sign };
 }
 
 export type EnvelopeCorner = "empty" | "glow" | "filled" | "none";

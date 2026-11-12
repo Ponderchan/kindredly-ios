@@ -501,8 +501,9 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   const on = M.buildCard({ letter: L({ id: "a" }), offer: null, signal: null, voiceReady: false }, "#FFFFFF", { ...fmt, who: onBook(true) });
   ok("identity on: who is the courier name in title case, never a number", on.who.name === courier && !on.who.name.includes("No."));
   ok("identity on: the face slot is their frosted window (FROST v1)", on.who.face.kind === "frost" && JSON.stringify(on.who.face.spec) === JSON.stringify(frostSpec(UID, false)));
-  ok("identity on: the mark and the sign with their VoiceOver words", on.who.mark === "she" && on.who.markLabel === "id.mark.she" && on.who.sign === "gemini" && on.who.signLabel === "zd.gemini");
-  ok("identity on: VoiceOver opens with name, mark and sign, then when — no number", on.a11yLabel === `${courier}, id.mark.she, zd.gemini. PM09. #tiny win. I fixed the wobbly chair today.` && !on.a11yLabel.includes("NO."));
+  // a letter is from a stranger: the star sign alone, never the she/he mark (owner, 2026-11-12)
+  ok("identity on: a letter shows the sign alone, never the mark", on.who.mark === null && on.who.markLabel === "" && on.who.sign === "gemini" && on.who.signLabel === "zd.gemini");
+  ok("identity on: VoiceOver opens with name and sign (never the mark), then when — no number", on.a11yLabel === `${courier}, zd.gemini. PM09. #tiny win. I fixed the wobbly chair today.` && !on.a11yLabel.includes("NO.") && !on.a11yLabel.includes("id.mark"));
   ok("identity on: the reply field names the courier name (id.writeBackTo, in all nine)", on.replyPlaceholder === `id.writeBackTo(name=${courier})`);
   ok("identity on: the reply box replies to the courier name", on.replyingTo === `rd.replyingTo(name=${courier})`);
   ok("identity on: the legacy docket carries the courier name in capitals", on.postmark === `PM09 · ${courier.toLocaleUpperCase()}`);

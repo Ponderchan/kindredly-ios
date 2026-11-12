@@ -599,8 +599,8 @@ enum KReelNews105 {
               .foregroundStyle(l.ink)
               .lineLimit(1)
             HStack(spacing: 4) {
-              if let mark { KLineIcon(mark, size: gs, lineWidth: 2, color: l.sub) }
-              if let sign { KLineIcon(sign, size: gs, lineWidth: 2, color: l.sub) }
+              if let mark { KOwnMark(mark, size: gs + 2, ink: l.sub) }
+              if let sign { KOwnMark(sign, size: gs + 2, ink: l.sub) }
             }
             .padding(.leading, 6)
             .scaleEffect(0.4 + 0.6 * pop)

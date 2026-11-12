@@ -2,7 +2,8 @@ import { useCallback, useRef, useState, type ReactNode } from "react";
 import { View, useWindowDimensions } from "react-native";
 import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LineIcon, type LineIconName } from "../../../components/10a/LineIcon";
+import type { LineIconName } from "../../../components/10a/LineIcon";
+import { OwnMark } from "../../../components/WhoName";
 import { nestEggRect } from "./s01-geometry";
 
 /* A GLYPH FLYING INTO THE EGG'S WARMTH (storyboard §6 · 3 → 4, 4 → 5).
@@ -72,7 +73,7 @@ export function useGlyphFlight(): { overlay: ReactNode; fly: (from: View | null,
 
   const overlay = f ? (
     <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, top: 0 }, style]}>
-      <LineIcon name={f.glyph} size={f.from.size} stroke={2} color={f.color} />
+      <OwnMark name={f.glyph} size={f.from.size} color={f.color} />
     </Animated.View>
   ) : null;
   return { overlay, fly };

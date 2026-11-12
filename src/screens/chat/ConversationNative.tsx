@@ -309,10 +309,10 @@ export function RoomNative({ id, expiredParam, closingParam, topInset }: { id: s
   const stampOf = useMemberStamps([detail?.other]);
   const stamp = detail && !detail.gone ? stampOf(detail.other) : "";
   const header = useMemo<KChatHeader>(
-    () => withMute(withStamp(roomHeader({ t, locale: m.locale, name: m.name, sub: subtitle, face, canReport: !report.nobody }), stamp), mute),
+    () => withMute(withStamp(roomHeader({ t, locale: m.locale, name: m.name, sub: subtitle, face, canReport: !report.nobody, marks: m.kindredMarks }), stamp), mute),
     // face is a fresh record each render; its fields are what change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [m.name, subtitle, face.kind, face.uri, face.key, face.overscan, face.mask, report.nobody, lang, stamp, mute],
+    [m.name, subtitle, face.kind, face.uri, face.key, face.overscan, face.mask, report.nobody, lang, stamp, mute, m.kindredMarks],
   );
   const headerTop = topInset ?? safe.top;
   const insets = useMemo(() => ({ top: headerTop, bottom: safe.bottom, tabBarRoom: 0 }), [headerTop, safe.bottom]);
@@ -551,7 +551,7 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
   const header = useMemo<KChatHeader | null>(
     () => {
       const h = revealedSwift
-        ? withStamp(revealedLettersHeader({ t, name: m.name, face: revealedFace, state: m.state, canOpenPage: m.canOpenPage, canReport: !report.nobody }), stamp)
+        ? withStamp(revealedLettersHeader({ t, name: m.name, face: revealedFace, state: m.state, canOpenPage: m.canOpenPage, canReport: !report.nobody, marks: m.kindredMarks }), stamp)
         : swiftHeader
         ? withStamp({
             ...lettersHeader({
@@ -591,6 +591,7 @@ export function LettersNative({ id, topInset }: { id: string | undefined; topIns
       detail?.theirSigned,
       m.state,
       m.canOpenPage,
+      m.kindredMarks,
       report.nobody,
       lang,
       stamp,

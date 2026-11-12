@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, { FadeInDown, useReducedMotion } from "react-native-reanimated";
-import { LineIcon } from "../../../components/10a/LineIcon";
+import { OwnMark } from "../../../components/WhoName";
 import { t } from "../../../lib/i18n";
 import type { PronounId } from "../../../lib/pronouns";
 import { Headline, Line, ScreenFrame } from "../parts/frame";
@@ -101,7 +101,7 @@ export default function S04Pronoun(props: ObScreenProps) {
                     <Text maxFontSizeMultiplier={OB_MAX_FONT} style={{ flex: 1, ...FONT.semi, fontSize: 17, color: ink }}>{t(c.key)}</Text>
                     {c.glyph && (
                       <View ref={(r) => void (glyphs.current[c.id] = r)} collapsable={false}>
-                        <LineIcon name={c.glyph} size={22} stroke={2} color={ink} />
+                        <OwnMark name={c.glyph} size={24} color={ink} />
                       </View>
                     )}
                   </View>

@@ -4,7 +4,6 @@ import { KIdentityNoteView } from "../../../modules/kindredly-ui";
 import { SurfaceHost } from "../../components/NativeSurface";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import type { Mark } from "../../lib/identity-core";
-import { markOffered } from "./edit-profile-model";
 import type { IdentityNoteSheetProps } from "./IdentityNote";
 
 /* THE ONE-TIME IDENTITY NOTE, IN SWIFTUI (2026-10-27; "identitynote" in app_surfaces, off by
@@ -23,7 +22,9 @@ export function IdentityNoteSwift({ note, frost, pronoun, sign, when, onMark, on
   const letterFont = useLetterFont();
   const insets = useSafeAreaInsets();
   const { letters } = note;
-  const mark: Mark | null = letters.mark?.on && markOffered(pronoun) ? (pronoun as Mark) : null;
+  // the preview is you TO A STRANGER, who never sees ♀ / ♂ (owner, 2026-11-12: the mark is a
+  // kindred's to see), so it wears the sign alone whatever the mark's switch says
+  const mark: Mark | null = null;
   const shownSign = letters.sign.on ? sign : null;
 
   return (

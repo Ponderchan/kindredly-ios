@@ -79,7 +79,9 @@ export function KindredPageNative({ id }: { id?: string }) {
   const voice = useOpeningVoiceRN(detail, isDemo);
   const identity = useIdentityOn();
   // the book for the frost, and (Phase 2) the courier name under THE NAME THEY SIGNED
-  const book = useWhoBook();
+  // and a kindred's she/he mark and star sign after their name (asked only once names are traded)
+  const kindredUid = detail && detail.revealed && !detail.gone ? detail.other : null;
+  const book = useWhoBook({ uids: kindredUid ? [kindredUid] : [] });
   const firstOnAt = useIdentityFirstOn(identity);
   const toKindreds = useCallback(() => router.replace("/(tabs)/kindreds"), [router]);
   // a held signature: Report this signature / Block, about the other side of this thread
@@ -146,6 +148,7 @@ export function KindredPageNative({ id }: { id?: string }) {
       // the opening letter's five lines, six in a roomier face (SF Mono, Garamond)
       openingLines: letterFitLines(letterFont, 5),
       hasFrost: !!frost,
+      marks: kindredUid ? book.kindredMarks(kindredUid) : null,
       canReport: !report.nobody,
       holdable: hold.can,
       firstMet,

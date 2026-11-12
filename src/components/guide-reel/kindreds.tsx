@@ -103,15 +103,16 @@ function Appear({ delay = 0, children }: { delay?: number; children: ReactNode }
   return <Animated.View style={st}>{children}</Animated.View>;
 }
 
-/* their courier name and, after it, the ♀ mark and their star sign: the
-   glyphs in sub, never tinted (components/WhoName) */
+/* their courier name and, after it, their star sign (components/WhoName). No
+   ♀ / ♂: a pen pal is still a stranger, and the mark is a kindred's to see
+   (owner, 2026-11-12) */
 function PalName({ size, max }: { size: number; max?: number }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", flexShrink: 1, maxWidth: max }}>
       <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ flexShrink: 1, fontSize: size, fontWeight: "600", color: P.ink }}>
         {palName()}
       </Text>
-      <WhoGlyphs mark="she" sign="gemini" size={size * 0.8} color={SUB} lead={size * 0.36} />
+      <WhoGlyphs mark={null} sign="gemini" size={size * 0.8} color={SUB} lead={size * 0.36} />
     </View>
   );
 }
