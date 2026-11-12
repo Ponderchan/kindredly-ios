@@ -1,5 +1,5 @@
 /* run: node src/lib/fold-frame.test.ts */
-import { COLUMN_MAX, foldFrame } from "./fold-frame.ts";
+import { COLUMN_MAX, foldFrame, isLaptop } from "./fold-frame.ts";
 import type { FoldState } from "./fold.ts";
 
 let failed = 0;
@@ -73,6 +73,16 @@ const OPEN: FoldState = {
   // a camera hole alone, no status area down the side: no band is claimed
   const f = foldFrame({ ...CLOSED, safe: { top: 59, right: 0, bottom: 34, left: 0 }, occlusions: [region(180, 12, 37, 37)] }, { width: 466, height: 678 });
   ok("no status area in the corner: no band, no rail", f.band === 0 && !f.rail && f.right === 0, f);
+}
+
+{
+  // the small laptop: the inner screen upright and half-folded, and nothing else
+  const upright = { ...OPEN, width: 669, height: 951, occlusions: [], safe: { top: 54, right: 0, bottom: 34, left: 0 } };
+  const laptop = foldFrame({ ...upright, hinge: "partly" }, { width: 669, height: 951 });
+  const flatUpright = foldFrame(upright, { width: 669, height: 951 });
+  const halfWide = foldFrame({ ...OPEN, hinge: "partly" }, { width: 951, height: 669 });
+  ok("laptop: upright and half-folded only", isLaptop(laptop) && !isLaptop(flatUpright) && !isLaptop(halfWide), { laptop, flatUpright, halfWide });
+  ok("laptop: never with the switch off, never on the closed phone", !isLaptop(foldFrame({ ...upright, hinge: "partly" }, { width: 669, height: 951 }, false)) && !isLaptop(foldFrame(CLOSED, { width: 466, height: 678 })));
 }
 
 console.log(failed ? `\n${failed} FAILED` : "\nall passed");
