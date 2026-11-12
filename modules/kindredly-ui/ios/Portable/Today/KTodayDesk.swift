@@ -373,12 +373,20 @@ public struct KTodayDesk: View {
     let (slotHeight, compact) = card
     // THE SPREAD: the sheet across both pages, or on the left one while replying; the band and
     // what hangs off it in the right page
+    /* HALF-FOLDED (the hinge part-way, the two pages at an angle; found walking the simulator,
+       2026-11-12: the letter's lines ran straight across the bend, where they can't be read).
+       The sheet keeps to the left page, as it does while replying, at a letter's usual measure,
+       and NEXT, Wren and REPLY stand in the middle of the right page instead of over the
+       sheet's foot. Flat open it is the sheet across both pages, as before. */
+    let apart = crease != nil && fold.frame.half && !stage.open
     let slotWidth: CGFloat = {
       guard let crease else { return max(0, W - 2 * KTodayGeometry.gutter) }
-      return stage.open ? max(0, crease - KTodayGeometry.gutter - KTodayGeometry.pageGap) : max(0, W - 2 * KTodayGeometry.gutter)
+      return stage.open || apart ? max(0, crease - KTodayGeometry.gutter - KTodayGeometry.pageGap) : max(0, W - 2 * KTodayGeometry.gutter)
     }()
     let bandX = crease ?? 0
     let bandW = crease.map { W - $0 } ?? W
+    // where the band stands: over the sheet's foot (or under it), or half-folded the page's middle
+    let bandTop = apart ? (g.cardTop + (g.cardHeight - KTodayGeometry.controlHeight) / 2).rounded() : g.controlTop
     return ZStack(alignment: .topLeading) {
       // 1. the page's ground: the page colour, flat (the radial wash went on 2026-11-12)
       KTodayGround(theme: theme)
@@ -405,7 +413,7 @@ public struct KTodayDesk: View {
         KDoneView(theme: theme, letter: content.wrenLetter, birds: content.birds, flow: flow) { [actions] in actions.onBringBack() }
       }
       // THE SPREAD: the open sheet's lines keep a reader's length
-      .environment(\.kCardSpread, crease != nil && !stage.open ? KCardSpread(measure: KTodayGeometry.spreadMeasure) : nil)
+      .environment(\.kCardSpread, crease != nil && !stage.open && !apart ? KCardSpread(measure: KTodayGeometry.spreadMeasure) : nil)
       .frame(width: slotWidth, height: slotHeight)
       // the keyboard's own length, so the card and the bar move together; a short ease under
       // Reduce Motion (a change of size, not a slide)
@@ -445,7 +453,7 @@ public struct KTodayDesk: View {
         onReply: { if let id = deck.shownId { reply(id) } }
       )
       .frame(width: bandW, height: KBandLayout.height)
-      .offset(x: bandX, y: g.controlTop)
+      .offset(x: bandX, y: bandTop)
 
       // 5. the window to her game, in the band's place once the day is done
       KFlightWindow(theme: theme, model: content.window, looping: flow.looping) { [actions] in
@@ -458,7 +466,7 @@ public struct KTodayDesk: View {
       .animation(KTodayMotion.bandFade, value: plus)
       .allowsHitTesting(windowShown)
       .accessibilityHidden(!windowShown)
-      .offset(x: bandX + KTodayGeometry.gutter, y: g.controlTop + KBandLayout.windowFrameTop)
+      .offset(x: bandX + KTodayGeometry.gutter, y: bandTop + KBandLayout.windowFrameTop)
 
       // 6. Wren, over everything; only her own figure takes a touch (a tap: she hops), and only
       // while she stands on the band
@@ -467,7 +475,7 @@ public struct KTodayDesk: View {
         birds: content.birds,
         wren: content.wren,
         width: bandW,
-        controlTop: g.controlTop,
+        controlTop: bandTop,
         canPlay: content.window.canPlay,
         // her arrival bubble stands where the Undo capsule does: it waits while the capsule is up
         arrivalLine: undoShown ? "" : content.arrivalLine,
@@ -485,7 +493,7 @@ public struct KTodayDesk: View {
       KUndoCapsule(theme: theme, label: content.labels.undo, hint: content.labels.undoHint, shown: undoShown) { [actions] in
         actions.onBringBack()
       }
-      .position(x: bandX + bandW / 2, y: g.controlTop - KUndoCapsule.lift)
+      .position(x: bandX + bandW / 2, y: bandTop - KUndoCapsule.lift)
     }
   }
 
