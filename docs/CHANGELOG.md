@@ -42,7 +42,7 @@ What the owner found on build 42 (2026-11-12) [the spacing and the onboarding ma
 - Me no longer opens on guesses. It used to draw an egg, no day and a dash for your numbers until its first read came back from the network, then change under your eyes (a grown courier flashed as an egg with her journey strip; kindreds and notes appeared late). It now opens on what it knew last time, kept on the phone, and her stage is the one the rest of the app draws.
 - A guest's courier is no longer an egg on Me after hatching: Me follows the app-wide stage, which knows a guest's bird has hatched.
 - The Edit button no longer reads "jd.edit": the page loads the wording files it borrows from other screens.
-- More room between Edit / the gear and her card.
+- More room between Edit / the gear and her card (14, then 26, then 40 after the owner looked again: "还是和设置什么的贴的太近").
 - Onboarding is drawn by SwiftUI by default: flat keys and soft shadows, no black edges. (The React Native run is kept as the fallback.)
 - One look for a person's mark and star sign everywhere (owner, 2026-11-12: "信上也统一"): the she/he mark is white on a small pink or light-blue disc and the star sign is its emoji — in Kindreds, in a conversation's header, on a kindred's page, in the blocked list, on Me's pill and through onboarding (the pronoun chips, the birthday badge and its sentence, the envelope). Until now they were grey line drawings. Sentences that mention the symbols in running text ("Show ♂ to your kindreds") keep the plain symbol. [binary]
 

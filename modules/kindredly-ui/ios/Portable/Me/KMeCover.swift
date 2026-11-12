@@ -257,8 +257,9 @@ struct KMeIdentity<Avatar: View>: View {
     }
     .padding(.horizontal, 16)
     .padding(.top, 12)
-    // room between Edit / the gear and her card (owner on build 42: "太近了")
-    .padding(.bottom, 26)
+    // room between Edit / the gear and her card (owner on build 42: "太近了", 14 → 26; then, with
+    // 26 on his simulator, "还是和设置什么的贴的太近": 40, so the card sits a clear step below them)
+    .padding(.bottom, 40)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(theme.bg)
     .overlay(alignment: .topTrailing) {
