@@ -146,17 +146,22 @@ public enum KTabBarMetrics {
 
   /* THE RAISED + (owner, 2026-11-12: "➕发布那里是不是也可以做一个向上凸的", with his old app's
      bar: a disc bigger than the bar's icons, standing proud of the bar in a round swell of the
-     bar's own material). The disc is 52 and sits 11 above the row's middle, so it stands 6 over
-     the bar's top edge; the glass rises round it as a collar 6 wider than the disc, meeting the
+     bar's own material). The disc is 48 and sits 12 above the row's middle, so it stands 5 over
+     the bar's top edge (52 and 11 at first; the owner the same day: "黑圈稍微小一点点", with a
+     bigger, bolder +); the glass rises round it as a collar 6 wider than the disc, meeting the
      top edge in a 10pt hollow either side, so it is one outline and not a ring round a button.
      The bar's frame is `plusHeadroom` taller at the top to hold the swell; whoever sizes the
      Host adds the same (NativeTabBar.tsx PLUS_HEADROOM). While the bar is grown round its tray
      the top edge is far above the row, so the swell sinks flat and the disc comes down to the
      row's middle; both travel with the bar's growth. */
   public static let plusHeadroom: CGFloat = 12
-  static let plusRaisedSize: CGFloat = 52
+  static let plusRaisedSize: CGFloat = 48
   static let plusSize: CGFloat = 46
-  static let plusRise: CGFloat = 11
+  static let plusRise: CGFloat = 12
+  /// the + drawn on the disc: its frame (the arms are 14/24 of it, so 16.3 long) and its stroke.
+  /// 22 and 2.6 until the owner asked for a bigger, bolder + (2026-11-12)
+  static let plusMark: CGFloat = 28
+  static let plusStroke: CGFloat = 3.4
   static let collarGap: CGFloat = 6
   static let collarFillet: CGFloat = 10
 
@@ -674,7 +679,7 @@ struct KOuterShadow<S: InsettableShape>: View {
   }
 }
 
-/// The +: an ink disc with the + in the page's colour, 22 across at 2.6, and a bright line along
+/// The +: an ink disc with the + in the page's colour (KTabBarMetrics.plusMark, plusStroke), and a bright line along
 /// its top; open, it turns 45 degrees into an x and the disc goes postmark red with the x in
 /// white (owner, 2026-11-12: "➕ 咱们的蓝色 换成贴图三那样的黑色设计", his old app's bar: a black +
 /// that opens as a red x). G1 had an ind disc that went ink. On a dark theme ink is the light
@@ -723,8 +728,8 @@ struct KGlassPlus: View {
 
   private func mark(_ color: Color) -> some View {
     KPlusGlyph()
-      .stroke(color, style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
-      .frame(width: 22, height: 22)
+      .stroke(color, style: StrokeStyle(lineWidth: KTabBarMetrics.plusStroke, lineCap: .round))
+      .frame(width: KTabBarMetrics.plusMark, height: KTabBarMetrics.plusMark)
   }
 }
 

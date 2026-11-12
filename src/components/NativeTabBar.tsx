@@ -191,7 +191,7 @@ export function nativeTabBarSpace(insetBottom: number): number {
   return barBottomGap(insetBottom) + NATIVE_BAR_H;
 }
 
-/** THE RAISED + (owner, 2026-11-12): the + stands 6 over the bar's top edge in a swell of the
+/** THE RAISED + (owner, 2026-11-12): the + stands 5 over the bar's top edge in a swell of the
     bar's glass, 12 high. The Host's strip is this much taller at the top to hold it
     (KTabBarMetrics.plusHeadroom; change them together). Only the Host grows: the room a screen
     keeps clear (nativeTabBarSpace) is the bar's, as it was, and the 12 is inside the 12 a

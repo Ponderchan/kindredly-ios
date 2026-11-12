@@ -41,7 +41,7 @@ import ExpoUI
    VoiceOver says for each
  - barHidden: the bar slides 160 down out of sight and reach (a fade under Reduce Motion): Today's
    reply (the chat composers' A1, owner 2026-10-18), while the reader writes back on the keyboard
- - plusRaised: the + is bigger and stands 6 over the bar's top edge in a swell of the bar's glass
+ - plusRaised: the + is bigger and stands 5 over the bar's top edge in a swell of the bar's glass
    (owner, 2026-11-12); the Host's strip is 12 taller for it (NativeTabBar PLUS_HEADROOM)
  Every string arrives translated; nothing in Swift holds a word.
 
