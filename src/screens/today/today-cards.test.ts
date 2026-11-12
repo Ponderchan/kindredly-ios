@@ -672,5 +672,16 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   ok("reply: the long letter's 18/29 stays", long.size === 18 && long.line === 29);
 }
 
+/* the inner screen of a folding phone, as Swift's KTodayGeometry lays it out (floating, bend) */
+{
+  const open = M.deskGeometry({ hostH: 669, safeTop: 14, tabBarRoom: 20, floating: true });
+  ok("spread: the sheet runs to the foot and the band floats 12 over its edge", open.cardH === Math.round(669 - 70 - 22) && open.controlTop === open.cardTop + open.cardH - 68 - 12, open);
+  const laptop = M.deskGeometry({ hostH: 951, safeTop: 54, tabBarRoom: 20, bend: 476 });
+  ok("laptop: the sheet ends 14 over the bend, the band in the middle under it", laptop.cardH === 476 - laptop.cardTop - 14 && laptop.controlTop > 476 && laptop.controlTop + 68 < 951 - 20, laptop);
+  const lowBend = M.deskGeometry({ hostH: 951, safeTop: 54, tabBarRoom: 20, bend: 200 });
+  const plain = M.deskGeometry({ hostH: 951, safeTop: 54, tabBarRoom: 20 });
+  ok("a bend too high for a card: the usual desk", lowBend.cardH === plain.cardH && lowBend.controlTop === plain.controlTop, { lowBend, plain });
+}
+
 console.log(fails ? `\n${fails} failed` : "\nall passed");
 if (fails) process.exit(1);

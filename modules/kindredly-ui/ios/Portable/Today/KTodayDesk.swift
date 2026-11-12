@@ -491,12 +491,17 @@ public struct KTodayDesk: View {
       .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.bandSlide, value: slotHeight)
       // (the width follows the reply; a change of the fold is the unfold's, below, not a slide)
       .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.bandSlide, value: stage.open)
-      // THE UNFOLD: until the flap has landed only the left page's half of the sheet shows
-      .mask {
-        HStack(spacing: 0) {
-          Rectangle().frame(width: unfolding ? max(0, (crease ?? W) - KTodayGeometry.gutter) : nil)
-          if unfolding { Color.clear }
-        }
+      // THE UNFOLD: until the flap has landed only the left page's half of the sheet shows. At
+      // every other moment the mask reaches far past the slot on every side, so it clips nothing:
+      // the next letter rising from 70 below, a pulled card's foot and Wren's chip all hang
+      // outside the slot (found in review, 2026-11-13: a mask the slot's own size clipped them on
+      // every iPhone). Always there, so the deck keeps its identity when the phone unfolds.
+      .mask(alignment: .topLeading) {
+        let reach: CGFloat = 4000
+        let shown = unfolding ? max(0, (crease ?? W) - KTodayGeometry.gutter) : slotWidth + reach
+        Rectangle()
+          .frame(width: shown + reach, height: slotHeight + 2 * reach)
+          .offset(x: -reach, y: -reach)
       }
       // the + panel: the card steps back a little
       .scaleEffect(plus == .sheet ? 0.98 : plus == .pop ? 0.97 : 1)

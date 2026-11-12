@@ -736,8 +736,9 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
     // a container of its own, so VoiceOver's escape reaches it from any element on the page
     .accessibilityElement(children: .contain)
     .accessibilityAction(.escape) {
-      // an open tray closes first (onTray toggles the open one shut); then the guarded way out
-      if content.tray != .none {
+      // an open tray closes first (onTray toggles the open one shut); then the guarded way out.
+      // The spread's stamps on the left page are no tray to close.
+      if content.tray != .none && !(spread && content.tray == .stamps) {
         actions.onTray(content.tray)
       } else {
         actions.onClose()
@@ -773,6 +774,9 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
         .accessibilityAddTraits(.isHeader)
 
       SwiftUI.Button {
+        // on the spread the stamps are already open on the left page: the corner opens nothing
+        // (a tray there would be one nobody sees, and the keyboard would go for it)
+        guard !spread else { return }
         driver.blurAll()
         actions.onTray(.stamps)
       } label: {

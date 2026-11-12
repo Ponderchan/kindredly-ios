@@ -894,6 +894,10 @@ struct KKindredsBand: View {
       .onChange(of: toolsSignature, initial: true) { _, _ in
         publishTools()
       }
+      // gone (the empty page took its place, the tab went to React Native): its keys go with it,
+      // never left in the band doing nothing; back again, they are published again
+      .onAppear { publishTools() }
+      .onDisappear { KRailTools.shared.set(.kindreds, []) }
   }
 
   /// TS sent the search's words (JS from before the search sends none: no chip, no field)

@@ -77,8 +77,10 @@ function ComposePage() {
     tk,
   });
   const { act } = state;
-  // a folding phone: the band's corner key is this page's own guarded ✕ (lib/corner-key)
-  useCornerKey({ kind: "close", label: t("wren.trackClose"), onPress: act.close });
+  // a folding phone: the band's corner key is this page's own guarded ✕ (lib/corner-key); gone
+  // while the letter is going out (the send-off covers the page's own ✕ too, and a Discard then
+  // would throw away a letter that is already on its way)
+  useCornerKey(state.step === "sending" || state.busy ? null : { kind: "close", label: t("wren.trackClose"), onPress: act.close });
 
   const leaveActions: LeaveAction[] = [
     ...(state.leaveCanSave ? [{ label: t("cp.leave.draft"), kind: "primary" as const, onPress: act.saveAndLeave }] : []),

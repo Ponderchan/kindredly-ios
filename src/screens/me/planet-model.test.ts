@@ -96,16 +96,22 @@ const slot = (f: ShelfFacts, id: string) => shelfSlots(f).find((x) => x.id === i
 }
 {
   const s = shelfSlots({ ...base, dress: "scarf", week: 0 });
-  eq("what she wears keeps its place whatever the week", [s[0].id, s[0].worn], ["dress:scarf", true]);
+  ok("what she wears is on the shelf, ticked, whatever the week", [0, 1, 2, 3, 4, 5, 6, 7].every((w) => slot({ ...base, dress: "scarf", week: w }, "dress:scarf")?.worn === true), s.map((x) => x.id));
+  // put a look on and it stays under the thumb: the slots don't move, only the tick does
+  const bare = ids({ ...base, week: 0 });
+  const second = bare[1];
+  const after = ids({ ...base, week: 0, dress: second.slice("dress:".length) as ShelfFacts["dress"] });
+  eq("a look put on stays where it was tapped (a second tap there takes it off)", after, bare);
+  eq("…and that second tap takes it off", shelfTap(second, { ...base, week: 0, dress: second.slice("dress:".length) as ShelfFacts["dress"] }), { do: "dress", value: "none" });
   const member: ShelfFacts = { ...base, premium: true, skin: "plush", dress: "shades", week: 0 };
-  eq("a member's worn colour and piece lead their groups", [ids(member)[3], slot(member, "skin:plush")?.worn, ids(member)[5], slot(member, "dress:shades")?.worn], ["skin:plush", true, "dress:shades", true]);
+  eq("a member's worn colour and piece are on the shelf, ticked", [ids(member).includes("skin:plush"), slot(member, "skin:plush")?.worn, ids(member)[5], slot(member, "dress:shades")?.worn], [true, true, "dress:shades", true]);
   eq("a member: no locks", shelfSlots(member).map((x) => x.firstClass), [false, false, false, false, false, false]);
   eq("Moss opens with the first kindred, not with First Class", [slot({ ...base, premium: true }, "skin:moss")?.open, slot({ ...base, kindreds: 1 }, "skin:moss")?.open], [false, true]);
   eq("kindreds not read yet: Moss is not offered as hers", slot({ ...base, kindreds: null }, "skin:moss")?.open, false);
   eq("the coat she hatched in is hers without First Class", slot({ ...base, hatchSkin: "peach", week: 0 }, "skin:peach")?.open, true);
   eq("in a season its looks take the free places", ids({ ...base, season: ["witch", "ghost"], week: 1 }).slice(0, 2).sort(), ["dress:ghost", "dress:witch"]);
   eq("a season with one look: it leads, an every-day piece beside it", ids({ ...base, season: ["ghost"], week: 0 }).slice(0, 2), ["dress:ghost", "dress:beanie"]);
-  eq("a seasonal look she still wears keeps its place after the season", ids({ ...base, dress: "witch" })[0], "dress:witch");
+  ok("a seasonal look she still wears stays on the shelf after the season", ids({ ...base, dress: "witch" }).slice(0, 2).includes("dress:witch"));
   ok("out of its season, and not on her, a seasonal look is not offered", !ids(base).includes("dress:witch"));
   eq("a season look this build can't draw is skipped", ids({ ...base, season: ["cape"], week: 0 })[0], "dress:beanie");
 }
@@ -115,7 +121,8 @@ const slot = (f: ShelfFacts, id: string) => shelfSlots(f).find((x) => x.id === i
   eq("what this phone reaches for most comes first", ids({ ...base, heat: { party: 3, flower: 9, ink: 2 } }).slice(3), ["skin:ink", "skin:peach", "dress:flower"]);
   eq("put forward beats reached for", ids({ ...base, featured: ["party"], heat: { flower: 9 } })[5], "dress:party");
   eq("in season beats put forward", ids({ ...base, season: ["ghost"], featured: ["scarf"] }).slice(0, 2), ["dress:ghost", "dress:scarf"]);
-  eq("what she wears beats them all", ids({ ...base, dress: "beanie", season: ["ghost"], featured: ["scarf"], heat: { scarf: 50 } })[0], "dress:beanie");
+  eq("what she wears is never pushed off: it takes its group's last place", ids({ ...base, dress: "beanie", season: ["ghost"], featured: ["scarf"], heat: { scarf: 50 } }).slice(0, 2), ["dress:ghost", "dress:beanie"]);
+  eq("a lapsed member's paid piece still on her: open, no lock, a tap takes it off", [slot({ ...base, dress: "phones", premium: false }, "dress:phones")?.open, slot({ ...base, dress: "phones", premium: false }, "dress:phones")?.firstClass, shelfTap("dress:phones", { ...base, dress: "phones", premium: false })], [true, false, { do: "dress", value: "none" }]);
   eq("a count that isn't a number is no heat", ids({ ...base, heat: { flower: Number.NaN, party: -4 } as Record<string, number> })[5], "dress:phones");
   eq("the table's rows: only shelf.* set true, bare ids", shelfFeatured({ "shelf.phones": true, "shelf.peach": false, "shelf.": true, halloween: true, "shelf.ink": true }), ["ink", "phones"]);
   eq("no table yet: nothing put forward", shelfFeatured(null), []);

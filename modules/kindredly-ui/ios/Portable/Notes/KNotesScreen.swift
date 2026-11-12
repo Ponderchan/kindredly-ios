@@ -426,6 +426,9 @@ public struct KNotesScreen: View {
     .onChange(of: toolsSignature(spread: spread), initial: true) { _, _ in
       publishTools(spread: spread)
     }
+    // gone, its keys go with it; back again, they are published again (KKindredsScreen)
+    .onAppear { publishTools(spread: spread) }
+    .onDisappear { KRailTools.shared.set(.notes, []) }
   }
 
   /// everything the band's copies of the header keys show: they are published again when it changes

@@ -467,7 +467,9 @@ struct KPhoneLength: Layout {
 
   private func capped(_ p: ProposedViewSize) -> ProposedViewSize {
     guard let w = p.width, w > over else { return p }
-    return ProposedViewSize(width: cap, height: p.height)
+    // only ever narrower: a cap wider than the room (the reader's 600 on the Duo's 466 outer
+    // screen) must not push the content past the edge
+    return ProposedViewSize(width: min(cap, w), height: p.height)
   }
 
   func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {

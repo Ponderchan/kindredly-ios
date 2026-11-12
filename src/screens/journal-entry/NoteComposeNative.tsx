@@ -33,7 +33,7 @@ import { firstWeekday, weekdayLetters } from "../../lib/format";
 import { swiftReadsFold, useFoldFrame } from "../../lib/fold";
 import { demoJournal } from "../../data/demo";
 import type { KNotesMonthRecord } from "../../../modules/kindredly-ui/src/Notes";
-import { buildMonth, ymOf } from "../notes/notes-model";
+import { buildMonth, dayKey, ymOf } from "../notes/notes-model";
 import { notesFormat } from "../notes/useNotesModel";
 import { cardsOn, chosenFaceOf, openGroupFor, panelGroups, sealAction } from "./note-compose-model";
 import { useNoteComposeState, type NoteComposeState } from "./useNoteComposeState";
@@ -106,7 +106,7 @@ export function NoteComposeNative({
   latest.current = text;
   // a folding phone's inner screen: this month goes to the left page (useMonthPage)
   const frame = useFoldFrame();
-  const page = useMonthPage(!!frame.pages && swiftReadsFold(), state.mood);
+  const page = useMonthPage(!!frame.pages && swiftReadsFold(), state.mood, editing ? editing.date : null);
   const monthNow = useRef(page.month);
   monthNow.current = page.month;
   const commands = useKCommands<KNoteComposeCommands>(viewRef, {
@@ -339,7 +339,9 @@ type SurfaceProps = {
    build, so the simulator's month is the one Notes shows), and built into the record Notes
    itself sends; the arrows are off (this is a look at the month, not a way through the
    journal). Today's square takes the mood as it is picked, before the page is sealed. */
-function useMonthPage(on: boolean, mood: string | null | undefined): { month: KNotesMonthRecord | null; weekdays: string[] } {
+/** `pageDate`: the day of a sealed page being edited (its month, and its own square take the
+    mood); null for a new page (this month, today's square). */
+function useMonthPage(on: boolean, mood: string | null | undefined, pageDate: string | null): { month: KNotesMonthRecord | null; weekdays: string[] } {
   const lang = useLang();
   const [pages, setPages] = useState<JournalEntry[] | null>(null);
   useEffect(() => {
@@ -362,14 +364,18 @@ function useMonthPage(on: boolean, mood: string | null | undefined): { month: KN
     if (!on || !pages) return null;
     const now = new Date();
     const all = __DEV__ ? [...pages, ...demoJournal({ store: false })] : pages;
-    const m = buildMonth(all, ymOf(now), now, firstWeekday(lang), notesFormat());
+    const at = pageDate ? new Date(pageDate) : now;
+    const pageKey = pageDate ? dayKey(pageDate) : null;
+    const m = buildMonth(all, ymOf(at), now, firstWeekday(lang), notesFormat());
     return {
       key: m.key,
       title: m.title,
       lead: m.lead,
       days: m.days.map((d) => {
-        // today's square: the mood on the page being written, once one is picked
-        const picked = d.today && mood ? mood : null;
+        // the page's own square (today's, for a new page): the mood on the page being written,
+        // once one is picked
+        const mine = pageKey ? d.key === pageKey : d.today;
+        const picked = mine && mood ? mood : null;
         const shown = picked ?? d.mood;
         return {
           n: d.n,
@@ -389,7 +395,7 @@ function useMonthPage(on: boolean, mood: string | null | undefined): { month: KN
       canPrev: false,
       canNext: false,
     };
-  }, [on, pages, lang, mood]);
+  }, [on, pages, lang, mood, pageDate]);
   const weekdays = useMemo(() => (on ? weekdayLetters(firstWeekday(lang), { locale: localeTag() }) : []), [on, lang]);
   return { month, weekdays };
 }

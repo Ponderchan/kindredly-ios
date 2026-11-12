@@ -121,7 +121,9 @@ export function planetLetters(
    WHICH six is not written here (owner, 2026-11-11: "这些放出来的不是固定的，可以是基于节日或者
    用户点击的热度，这个别写死"). The candidates are the wardrobe's own catalogue (lib/wren-style,
    passed in as `catalogue`), and inside each group they are put in order by, first to last:
-     1. what she has on: it keeps its place;
+     1. what she has on: it keeps its place on the shelf (never moved to the front: put a look on
+        and it stays under the thumb, so a second tap there takes it off; one she put on from
+        the wardrobe that isn't shown takes its group's last place);
      2. the season on now (lib/season: a festival's looks by date, with its remote switch);
      3. what the server puts forward (`featured`: app_surfaces rows "shelf.<look>" set true —
         a festival, a drop, what is popular; a row, not a build);
@@ -225,9 +227,16 @@ const warmth = (heat: Readonly<Record<string, number>>, id: string): number => {
   return typeof v === "number" && Number.isFinite(v) && v > 0 ? v : 0;
 };
 
-/** A group's candidates in the shelf's order (see the top): worn, in season, put forward, reached
-    for, then the week's turn. */
-function inOrder<T extends string>(pool: readonly T[], worn: string, season: readonly string[], f: ShelfFacts): T[] {
+/** A group's places on the shelf (see the top): its candidates in season, put forward, reached
+    for, then the week's turn; what she wears keeps its place among them, or takes the last one. */
+function inOrder<T extends string>(pool: readonly T[], worn: string, season: readonly string[], f: ShelfFacts, places: number): T[] {
+  const shown = ranked(pool, season, f).slice(0, places);
+  const wornHere = pool.find((v) => v === worn);
+  if (wornHere && places > 0 && !shown.includes(wornHere)) shown[shown.length < places ? shown.length : places - 1] = wornHere;
+  return shown;
+}
+
+function ranked<T extends string>(pool: readonly T[], season: readonly string[], f: ShelfFacts): T[] {
   const n = pool.length;
   const featured = f.featured ?? [];
   const heat = f.heat ?? {};
@@ -236,7 +245,6 @@ function inOrder<T extends string>(pool: readonly T[], worn: string, season: rea
     .map((v, i) => ({ v, i }))
     .sort(
       (a, b) =>
-        Number(b.v === worn) - Number(a.v === worn) ||
         Number(season.includes(b.v)) - Number(season.includes(a.v)) ||
         Number(featured.includes(b.v)) - Number(featured.includes(a.v)) ||
         warmth(heat, b.v) - warmth(heat, a.v) ||
@@ -257,8 +265,9 @@ export function shelfSlots(f: ShelfFacts): ShelfSlot[] {
 
   const dress = (value: PlanetDress, paid: boolean): ShelfSlot => {
     const worn = f.dress === value;
-    const open = !paid || f.premium;
-    return { id: `dress:${value}`, kind: "dress", value, look: { skin: f.skin, dress: value }, worn, open, firstClass: paid && !f.premium, dim: false };
+    // one she still has on after First Class has ended can always come off (as a colour can)
+    const open = !paid || f.premium || worn;
+    return { id: `dress:${value}`, kind: "dress", value, look: { skin: f.skin, dress: value }, worn, open, firstClass: paid && !open, dim: false };
   };
   const skin = (value: PlanetSkin, lock: "kindred" | "plus"): ShelfSlot => {
     const worn = f.skin === value;
@@ -267,10 +276,10 @@ export function shelfSlots(f: ShelfFacts): ShelfSlot[] {
     return { id: `skin:${value}`, kind: "skin", value, look: { skin: value, dress: f.dress }, worn, open, firstClass: lock === "plus" && !open, dim: lock === "kindred" && !open };
   };
   return [
-    ...inOrder(freeDress, f.dress, season, f).slice(0, SHELF_PLACES.freeDress).map((v) => dress(v, false)),
-    ...inOrder(kindredSkins, f.skin, season, f).slice(0, SHELF_PLACES.kindredSkin).map((v) => skin(v, "kindred")),
-    ...inOrder(paidSkins, f.skin, season, f).slice(0, SHELF_PLACES.paidSkin).map((v) => skin(v, "plus")),
-    ...inOrder(paidDress, f.dress, season, f).slice(0, SHELF_PLACES.paidDress).map((v) => dress(v, true)),
+    ...inOrder(freeDress, f.dress, season, f, SHELF_PLACES.freeDress).map((v) => dress(v, false)),
+    ...inOrder(kindredSkins, f.skin, season, f, SHELF_PLACES.kindredSkin).map((v) => skin(v, "kindred")),
+    ...inOrder(paidSkins, f.skin, season, f, SHELF_PLACES.paidSkin).map((v) => skin(v, "plus")),
+    ...inOrder(paidDress, f.dress, season, f, SHELF_PLACES.paidDress).map((v) => dress(v, true)),
   ];
 }
 
@@ -357,6 +366,9 @@ export type PlanetStampsSource = {
   emptyTitle: string;
   emptyText: string;
   made: readonly { id: string; note: string }[];
+  /** every stamp of yours that stands (not refused, not taken down): `made` is only the card's two
+      newest, so the cover's number is counted from this (absent: from `made`) */
+  madeCount?: number;
 };
 
 export type StampsTileVM = {
@@ -535,6 +547,8 @@ export type CoverVM = {
 export type CoverFormat = MePlanetFormat & {
   /** "notes", as the Notes tab is called, for under a number */
   notesUnit: string;
+  /** the same for one ("note"; a language with no plural repeats it) */
+  notesUnitOne?: string;
 };
 
 /** The cover's two ways in, you under it, and where the report stands. */
@@ -554,7 +568,8 @@ export function buildCover(f: CoverFacts, stamps: StampsTileVM, fmt: CoverFormat
   const markWord = f.mark === "she" ? t("pr.she") : f.mark === "he" ? t("pr.he") : "";
   const door = f.door;
   return {
-    stampsEntry: { count: made, a11y: [t("me.seg.stamps"), madeN > 0 ? made : stamps.make ? t("cs2.me.makeOne") : ""].filter(Boolean).join(", "), hint: stamps.hint },
+    // the "+" opens the press, not the album: it says what it is ("Make one") and hints nothing more
+    stampsEntry: { count: made, a11y: [t("me.seg.stamps"), madeN > 0 ? made : stamps.make ? t("cs2.me.makeOne") : ""].filter(Boolean).join(", "), hint: madeN > 0 || !stamps.make ? stamps.hint : "" },
     lettersEntry: { count: letters, a11y: f.letters.a11y, hint: f.letters.hint },
     me: {
       mark: f.mark ?? "",
@@ -563,7 +578,13 @@ export function buildCover(f: CoverFacts, stamps: StampsTileVM, fmt: CoverFormat
       signA11y: [markWord, signName].filter(Boolean).join(", "),
       stats: [
         { key: "kindreds", ...f.kindreds },
-        { key: "notes", count: f.notes == null ? FIGURE_UNKNOWN : String(f.notes), unit: fmt.notesUnit, a11y: f.notes == null ? fmt.notesUnit : t("jt.notesN", { n: f.notes }), hint: "" },
+        {
+          key: "notes",
+          count: f.notes == null ? FIGURE_UNKNOWN : String(f.notes),
+          unit: f.notes === 1 ? (fmt.notesUnitOne ?? fmt.notesUnit) : fmt.notesUnit,
+          a11y: f.notes == null ? fmt.notesUnit : f.notes === 1 ? t("jt.notes1") : t("jt.notesN", { n: f.notes }),
+          hint: "",
+        },
       ],
       edit: t("jd.edit"),
     },
@@ -623,7 +644,7 @@ export function buildMePlanet(f: MePlanetFacts, fmt: CoverFormat): MePlanetVM {
   const chip = c.playing ? c.dayOffTag : c.chip;
   return {
     // the stamps you made yourself (a made stamp with a note is one still being checked, or refused)
-    ...buildCover(f.cover, stamps, fmt, f.stamps.made.filter((m) => !m.note).length),
+    ...buildCover(f.cover, stamps, fmt, f.stamps.madeCount ?? f.stamps.made.filter((m) => !m.note).length),
     her: buildHerBadge(c.name, chip, f.stage, f.cover.day, fmt),
     state: planetWrenState(f.where, f.dayOff),
     napping: planetNapping(f.where),

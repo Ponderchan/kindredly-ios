@@ -617,7 +617,9 @@ export function useMakeFaceModel(p: { from: MakeFaceFrom; dob?: string | null; r
             // they asked for the knock, so they go: no second tap on Leave (allowed or not, the
             // banner still finds them in the app). From onboarding (an older binary: a newer one
             // shows no card there) the run goes on to its next screen; from Me, back to Edit profile.
-            leave();
+            // Unless she finished while iOS was asking: the page is showing her answer now, and
+            // leaving would throw it away unseen (no banner comes for a job already answered).
+            if (job && job.from === from && !job.answer) leave();
           })
           .catch((e) => {
             console.warn("[make-face] notifications:", e);

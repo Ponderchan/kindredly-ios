@@ -85,5 +85,14 @@ const OPEN: FoldState = {
   ok("laptop: never with the switch off, never on the closed phone", !isLaptop(foldFrame({ ...upright, hinge: "partly" }, { width: 669, height: 951 }, false)) && !isLaptop(foldFrame(CLOSED, { width: 466, height: 678 })));
 }
 
+{
+  // a hinge the system can't read yet, on a phone that shows no other sign of folding
+  const plain = foldFrame({ hinge: "unknown", angle: 0, safe: { top: 59, right: 0, bottom: 34, left: 0 }, occlusions: [region(150, 11, 102, 37)], divisions: [] }, { width: 393, height: 852 });
+  const plainSideways = foldFrame({ hinge: "unknown", angle: 0, safe: { top: 0, right: 59, bottom: 21, left: 59 }, occlusions: [], divisions: [] }, { width: 852, height: 393 });
+  ok("unknown hinge, no band, no crease: a phone (upright and sideways)", !plain.duo && plain.pages === null && !plainSideways.duo && plainSideways.pages === null, { plain, plainSideways });
+  const duoUnknown = foldFrame({ ...CLOSED, hinge: "unknown" }, { width: 466, height: 678 });
+  ok("unknown hinge with the Duo's band: still the Duo", duoUnknown.duo && duoUnknown.rail, duoUnknown);
+}
+
 console.log(failed ? `\n${failed} FAILED` : "\nall passed");
 if (failed) process.exit(1);

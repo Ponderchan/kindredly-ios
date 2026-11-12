@@ -230,7 +230,10 @@ export function MeNative({ model }: { model: MeModel }) {
   // clock runs only while the tab is focused. Kept by content like the records below, and in
   // the rev with them: Swift converts it with the page's content
   const focused = useIsFocused();
-  const planetAnswer = useMePlanetData(model, collection.card, { live: focused });
+  // the cover counts every stamp of yours that stands, not the card's two-cell preview
+  const madeCount = collection.card.madeShow ? collection.mine.filter((m) => m.state !== "removed" && m.state !== "rejected").length : 0;
+  const stampsSource = useMemo(() => ({ ...collection.card, madeCount }), [collection.card, madeCount]);
+  const planetAnswer = useMePlanetData(model, stampsSource, { live: focused });
   // "wait": the planet is on, her stage not read yet (a cold start's first moment): the page is
   // held blank rather than drawn with an egg that turns into her a moment later
   const planetWaits = planetAnswer === "wait";

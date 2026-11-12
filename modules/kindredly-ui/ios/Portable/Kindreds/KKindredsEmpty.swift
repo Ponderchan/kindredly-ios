@@ -197,6 +197,11 @@ public struct KKindredsEmpty: View {
     let open = content.slips.first { $0.id == picked }
     return VStack(spacing: 10) {
       KCatchSky(theme: theme, width: max(0, width - 32), you: content.you, slips: content.slips, picked: picked, active: content.active) { pick($0) }
+        // the slips are laid out at a fixed pitch in a sky of a fixed height (still with Reduce
+        // Motion, drifting otherwise): their words stop growing at Large, so a four-line slip never
+        // covers the one under it or runs out of the sky. A caught slip opens its whole letter,
+        // which grows as the reader asks.
+        .dynamicTypeSize(...DynamicTypeSize.large)
       KKindredsEmptyDeskCard(theme: theme, desk: content.desk, onTap: onDesk)
       if let open {
         KCatchLetter(theme: theme, slip: open, letGo: content.letGo, writeBack: content.writeBack, onLetGo: { pick(nil) }, onWriteBack: { onAnswer(open.id) })

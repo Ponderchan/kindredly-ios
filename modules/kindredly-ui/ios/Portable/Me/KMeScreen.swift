@@ -737,6 +737,9 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
     .onChange(of: toolsSignature, initial: true) { _, _ in
       publishTools()
     }
+    // gone, its keys go with it; back again, they are published again (KKindredsScreen)
+    .onAppear { publishTools() }
+    .onDisappear { KRailTools.shared.set(.me, []) }
     .overlay(alignment: .bottom) {
       // (THE SPREAD: the fade is the right page's own; her planet's page runs to the foot)
       if !fold.frame.twoPages {
@@ -838,6 +841,17 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
         KMeCover(planet: planet, topInset: topInset, pull: pull, actions: coverActions())
           .frame(height: base + pull)
           .frame(height: base, alignment: .bottom)
+          // VoiceOver can't pull: the way to the planet page is a button only it sees, over the
+          // planet (which it skips), so a finger still pulls and scrolls through it
+          .background(alignment: .top) {
+            Color.clear
+              .frame(height: max(1, base - 120))
+              .allowsHitTesting(false)
+              .accessibilityElement()
+              .accessibilityLabel(planet.track)
+              .accessibilityAddTraits(.isButton)
+              .accessibilityAction { actions.onTrack() }
+          }
         KMeIdentity(theme: theme, profile: content.profile, me: planet.me, settingsLabel: content.settingsLabel, actions: actions, taken: railTools.taken(.me), avatar: avatar)
           .padding(.leading, fold.frame.left)
           .padding(.trailing, fold.frame.right)

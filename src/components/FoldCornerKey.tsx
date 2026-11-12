@@ -1,4 +1,5 @@
-import { Pressable, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Keyboard, Pressable, View } from "react-native";
 import { useRouter, useSegments } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
@@ -17,7 +18,12 @@ import "../data/strings-step5-kitrn";
    the tab bar has stepped out and this ✕ is the way back), not on the launch piece or onboarding (they are the whole
    window and have no way back), and not on the pages iOS presents as its own sheets (the
    paywall, the Stamp Press, the face maker): those cover this layer and close themselves.
-   On a phone that doesn't fold there is no band, and this draws nothing. */
+   On a phone that doesn't fold there is no band, and this draws nothing.
+
+   Over the keyboard: the software keyboard runs across the band too, and Today's reply ✕ only
+   shows while the reply has the keyboard up; so the key rides 12 above the keyboard's top while
+   it is there (found in review, 2026-11-13: under it, the key could only be pressed with a
+   hardware keyboard, the simulator's). */
 
 const SIZE = 50;
 /** the +'s place in the rail (KTabBarMetrics: the 62 square, railFoot over the safe area) */
@@ -33,6 +39,18 @@ export function FoldCornerKey() {
   const insets = useSafeAreaInsets();
   const { t: tk } = useTheme();
   const own = useCornerKeyOwn();
+  // how far the keyboard reaches up from the window's foot, 0 when it is down
+  const [keyboard, setKeyboard] = useState(0);
+  const windowHeight = frame.height;
+  useEffect(() => {
+    if (!frame.rail) return;
+    const change = Keyboard.addListener("keyboardWillChangeFrame", (e) => setKeyboard(Math.max(0, windowHeight - e.endCoordinates.screenY)));
+    const hide = Keyboard.addListener("keyboardWillHide", () => setKeyboard(0));
+    return () => {
+      change.remove();
+      hide.remove();
+    };
+  }, [frame.rail, windowHeight]);
 
   const root = segments[0];
   if (!frame.rail || !root) return null;
@@ -50,7 +68,7 @@ export function FoldCornerKey() {
       style={{
         position: "absolute",
         right: (frame.band - SIZE) / 2,
-        bottom: Math.max(insets.bottom, 16) + FOOT + (POD - SIZE) / 2,
+        bottom: Math.max(Math.max(insets.bottom, 16) + FOOT + (POD - SIZE) / 2, keyboard > 0 ? keyboard + 12 : 0),
       }}
     >
       <Pressable

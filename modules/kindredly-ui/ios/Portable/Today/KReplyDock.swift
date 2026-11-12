@@ -176,8 +176,11 @@ struct KReplyDock: View {
       scrimColor
         // a folding phone's outer screen: the dim runs on under the system's clock to the edge
         // (the tab bar that stands there has stepped out), or the page is dimmed beside a
-        // strip of bare page (found walking the simulator, 2026-11-12)
-        .padding(.trailing, page ? 0 : -fold.frame.band)
+        // strip of bare page (found walking the simulator, 2026-11-12); and out over the
+        // column's air on both sides when the inner screen is held upright (the page there is
+        // a column in the middle)
+        .padding(.leading, page ? 0 : -fold.frame.left)
+        .padding(.trailing, page ? 0 : -fold.frame.right)
         .opacity(focused && !page ? 1 : 0.001)
         .animation(.easeOut(duration: 0.2), value: focused)
         .contentShape(Rectangle())

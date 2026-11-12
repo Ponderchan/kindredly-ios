@@ -39,7 +39,7 @@ blocks.forEach((b, i) => {
   const bad = keys.filter((k) => k in b && vars(b[k]) !== vars(en[k]));
   ok(`${lang}: the same {vars} as English`, bad.length === 0, bad.join(" "));
   if (i > 0) {
-    const same = keys.filter((k) => b[k] === en[k] && !/^(m4\.pw\.save|m4\.pw\.cfBadge|m4\.rt\.archTyped)$/.test(k));
+    const same = keys.filter((k) => b[k] === en[k] && !/^(m4\.pw\.save|m4\.pw\.cfBadge|m4\.rt\.archTyped|m4\.unit\.noteOne)$/.test(k));
     ok(`${lang}: nothing left in English`, same.length === 0, same.join(" "));
   }
 });

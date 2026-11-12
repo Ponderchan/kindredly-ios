@@ -53,6 +53,7 @@ strings(
     "m4.unit.letterOne": "letter",
     "m4.unit.kindreds": "kindreds",
     "m4.unit.kindredOne": "kindred",
+    "m4.unit.noteOne": "note",
 
     "m4.peek.seeAll": "See all {n} →",
     "m4.peek.noLetters": "No letters yet.",
@@ -162,6 +163,7 @@ strings(
     "m4.unit.letterOne": "carta",
     "m4.unit.kindreds": "afines",
     "m4.unit.kindredOne": "afín",
+    "m4.unit.noteOne": "nota",
 
     "m4.peek.seeAll": "Ver las {n} →",
     "m4.peek.noLetters": "Aún no hay cartas.",
@@ -271,6 +273,7 @@ strings(
     "m4.unit.letterOne": "carta",
     "m4.unit.kindreds": "almas afins",
     "m4.unit.kindredOne": "alma afim",
+    "m4.unit.noteOne": "nota",
 
     "m4.peek.seeAll": "Ver todas ({n}) →",
     "m4.peek.noLetters": "Nenhuma carta ainda.",
@@ -380,6 +383,7 @@ strings(
     "m4.unit.letterOne": "surat",
     "m4.unit.kindreds": "kerabat",
     "m4.unit.kindredOne": "kerabat",
+    "m4.unit.noteOne": "catatan",
 
     "m4.peek.seeAll": "Lihat semua {n} →",
     "m4.peek.noLetters": "Belum ada surat.",
@@ -489,6 +493,7 @@ strings(
     "m4.unit.letterOne": "lettre",
     "m4.unit.kindreds": "semblables",
     "m4.unit.kindredOne": "semblable",
+    "m4.unit.noteOne": "note",
 
     "m4.peek.seeAll": "Voir les {n} →",
     "m4.peek.noLetters": "Pas encore de lettres.",
@@ -600,6 +605,7 @@ strings(
     // was feminine). "Seele" is anyone, as in "keine Seele"; the glyph and the tray say which souls
     "m4.unit.kindreds": "Seelen",
     "m4.unit.kindredOne": "Seele",
+    "m4.unit.noteOne": "Notiz",
 
     "m4.peek.seeAll": "Alle {n} ansehen →",
     "m4.peek.noLetters": "Noch keine Briefe.",
@@ -709,6 +715,7 @@ strings(
     "m4.unit.letterOne": "lettera",
     "m4.unit.kindreds": "anime affini",
     "m4.unit.kindredOne": "anima affine",
+    "m4.unit.noteOne": "nota",
 
     "m4.peek.seeAll": "Vedi tutte e {n} →",
     "m4.peek.noLetters": "Ancora nessuna lettera.",
@@ -818,6 +825,7 @@ strings(
     "m4.unit.letterOne": "通の手紙",
     "m4.unit.kindreds": "人の心友",
     "m4.unit.kindredOne": "人の心友",
+    "m4.unit.noteOne": "ノート",
 
     "m4.peek.seeAll": "{n}通すべて見る →",
     "m4.peek.noLetters": "まだ手紙はありません。",
@@ -927,6 +935,7 @@ strings(
     "m4.unit.letterOne": "통의 편지",
     "m4.unit.kindreds": "명의 인연",
     "m4.unit.kindredOne": "명의 인연",
+    "m4.unit.noteOne": "노트",
 
     "m4.peek.seeAll": "{n}통 모두 보기 →",
     "m4.peek.noLetters": "아직 편지가 없어요.",

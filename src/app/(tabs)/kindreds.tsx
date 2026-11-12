@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
-import { usePathname, useRouter } from "expo-router";
+import { usePathname, useRouter, useSegments } from "expo-router";
 import { isKindredlyUIViewAvailable } from "../../../modules/kindredly-ui";
 import { swiftReadsFold, useFoldFrame } from "../../lib/fold";
 import { useNativeSurface } from "../../lib/surfaces";
@@ -70,6 +70,16 @@ export default function KindredsTab() {
     },
   });
   const close = useCallback(() => setPane(null), []);
+  /* ANOTHER TAB. The tabs stay mounted, so a conversation left open on the right page would go on
+     under Today or Notes: marking a kindred's new letters seen that nobody read, and pushed over
+     that tab when the phone folds. Going to another tab puts it away, as leaving a pushed
+     conversation does on a phone. (A page pushed over Kindreds, a kindred's page from inside the
+     conversation, leaves the tab focused here and the conversation where it was.) */
+  const segments = useSegments() as string[];
+  const otherTab = segments[0] === "(tabs)" && segments[1] !== "kindreds";
+  useEffect(() => {
+    if (otherTab) setPane(null);
+  }, [otherTab]);
   /* FOLDED AND OPENED AGAIN. One page again (the phone was folded) with a conversation open: it
      goes on as its own screen, on the outer one. Opened again while that screen is still the
      one on top: it comes back here, beside the list, where it was (found walking the simulator:
@@ -79,7 +89,8 @@ export default function KindredsTab() {
   const carried = useRef<{ id: string; revealed: boolean; wren?: boolean } | null>(null);
   const hrefOf = (th: { id: string; revealed: boolean }) => (th.revealed ? `/room/${th.id}` : `/chat/${th.id}`);
   useEffect(() => {
-    if (!twoPages && pane) {
+    // carried only from Kindreds itself: over a page pushed on top it waits, unshown, until then
+    if (!twoPages && pane && pathname === "/kindreds") {
       carried.current = pane;
       setPane(null);
       router.push(hrefOf(pane));
@@ -103,7 +114,11 @@ export default function KindredsTab() {
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
       {model.empty ? (
-        <KindredsEmpty onWrite={() => router.push("/compose")} />
+        // the inner screen gives this tab the whole window for its two pages; the empty page is
+        // one page, so it keeps to the column every single page keeps (never across the crease)
+        <View style={frame.pages ? { flex: 1, paddingLeft: frame.left, paddingRight: Math.max(0, frame.right - frame.band) } : { flex: 1 }}>
+          <KindredsEmpty onWrite={() => router.push("/compose")} />
+        </View>
       ) : (
         <View style={{ flex: 1, flexDirection: "row" }}>
           <View style={open && frame.pages ? { width: frame.pages.crease } : { flex: 1 }}>

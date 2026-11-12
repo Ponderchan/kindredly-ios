@@ -33,8 +33,14 @@ export const unstable_settings = { initialRouteName: "index" };
 export default function MeStackLayout() {
   const { t: tk } = useTheme();
   const frame = useFoldFrame();
-  // the inner screen: the column; the index page keeps the whole scene (see above)
-  const column = frame.pages ? { paddingLeft: frame.left, paddingRight: Math.max(0, frame.right - frame.band) } : null;
+  // the inner screen: the column; the index page keeps the whole scene (see above). The outer
+  // screen: Me's scene takes nothing (its sky runs to the edge), so its pushed pages keep out of
+  // the band themselves, as every other page there does
+  const column = frame.pages
+    ? { paddingLeft: frame.left, paddingRight: Math.max(0, frame.right - frame.band) }
+    : frame.duo
+      ? { paddingLeft: frame.left, paddingRight: frame.right }
+      : null;
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: tk.bg, ...column } }}>

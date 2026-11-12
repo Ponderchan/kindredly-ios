@@ -70,6 +70,9 @@ export function foldFrame(fold: FoldState, window: { width: number; height: numb
   const safeRight = Math.max(0, fold.safe?.right ?? 0);
   // the system's status area: what it covers at the top of the right edge
   const corner = (fold.occlusions ?? []).filter((o) => o.x + o.w >= width - 1 && o.y <= 1 && o.w >= 40);
+  // a hinge the system can't read yet ("unknown"), with nothing else that says the phone folds
+  // (no band, no division), is a phone: an iPhone that doesn't fold must never get this layout
+  if (fold.hinge === "unknown" && !corner.length && !(fold.divisions ?? []).length) return phoneFrame(width, height);
   const band = corner.length ? safeRight : 0;
   const bandTop = corner.reduce((m, o) => Math.max(m, o.y + o.h), 0);
 

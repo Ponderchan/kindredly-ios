@@ -174,7 +174,7 @@ export function ProgressBar({ pct, color = C.purple, track = C.lineSoft, height 
    strip in a chat) and decides how long it stays; it takes no touch.
    VoiceOver hears the line once when it appears, so a confirmation isn't
    something only sighted readers get. */
-export function Toast({ msg, bottom = 110 }: { msg: string; bottom?: number }) {
+export function Toast({ msg, bottom = 110, left = 16, right = 16 }: { msg: string; bottom?: number; left?: number; right?: number }) {
   /* SWIFT OR REACT NATIVE (2026-10-27): SwiftUI's KToastView when the
      "toast" switch is on and the binary has the view, else ToastRN below,
      exactly as before. Each showing decides once (NativeSurface in mount
@@ -185,8 +185,8 @@ export function Toast({ msg, bottom = 110 }: { msg: string; bottom?: number }) {
       surface="toast"
       view="KToastView"
       mode="mount"
-      native={() => <ToastSwift msg={msg} bottom={bottom} />}
-      fallback={() => <ToastRN msg={msg} bottom={bottom} />}
+      native={() => <ToastSwift msg={msg} bottom={bottom} left={left} right={right} />}
+      fallback={() => <ToastRN msg={msg} bottom={bottom} left={left} right={right} />}
       // a frame or two while the breadcrumb is written: nothing, as before it appears
       pending={() => null}
     />
@@ -195,7 +195,7 @@ export function Toast({ msg, bottom = 110 }: { msg: string; bottom?: number }) {
 
 /* The Swift pill, in a Host as wide as the React Native toast's row and as
    tall as the pill; neither takes a touch. */
-function ToastSwift({ msg, bottom }: { msg: string; bottom: number }) {
+function ToastSwift({ msg, bottom, left, right }: { msg: string; bottom: number; left: number; right: number }) {
   const { t: tk, key: theme, dark } = useTheme();
   const host = useSurfaceHost();
   const c = toastColors(tk);
@@ -203,7 +203,7 @@ function ToastSwift({ msg, bottom }: { msg: string; bottom: number }) {
     if (msg) AccessibilityInfo.announceForAccessibility(msg);
   }, [msg]);
   return (
-    <View style={{ position: "absolute", left: 16, right: 16, bottom }} pointerEvents="none">
+    <View style={{ position: "absolute", left, right, bottom }} pointerEvents="none">
       <Host matchContents={{ vertical: true }} ignoreSafeArea="all" colorScheme={dark ? "dark" : "light"} pointerEvents="none" style={{ alignSelf: "stretch" }} onLayoutContent={host?.onLayoutContent}>
         <KToastView theme={theme} message={msg} fill={c.fill} ink={c.text} />
       </Host>
@@ -212,14 +212,14 @@ function ToastSwift({ msg, bottom }: { msg: string; bottom: number }) {
 }
 
 /* the React Native toast, unchanged */
-function ToastRN({ msg, bottom }: { msg: string; bottom: number }) {
+function ToastRN({ msg, bottom, left, right }: { msg: string; bottom: number; left: number; right: number }) {
   const { t: tk } = useTheme();
   const c = toastColors(tk);
   React.useEffect(() => {
     if (msg) AccessibilityInfo.announceForAccessibility(msg);
   }, [msg]);
   return (
-    <View style={{ position: "absolute", left: 16, right: 16, bottom, alignItems: "center" }} pointerEvents="none">
+    <View style={{ position: "absolute", left, right, bottom, alignItems: "center" }} pointerEvents="none">
       <View style={{ backgroundColor: c.fill, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 22 }}>
         <Text style={{ color: c.text, fontSize: 13, fontWeight: "600", textAlign: "center" }}>{msg}</Text>
       </View>

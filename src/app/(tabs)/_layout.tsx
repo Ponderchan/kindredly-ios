@@ -1,6 +1,6 @@
 import { FaceReadyBanner } from "../../components/FaceReadyBanner";
 import { useEffect, useState } from "react";
-import { View, useWindowDimensions } from "react-native";
+import { View } from "react-native";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PostTabBar, tabBarHeight } from "../../components/PostTabBar";
@@ -85,11 +85,12 @@ export default function TabsLayout() {
   const spreadScene = { sceneStyle: { backgroundColor: tk.bg, paddingRight: frame.band } };
 
   /* the + open: the photo roll read ahead (screens/photo-roll/roll-prime), so Diary note rises with
-     its pictures already in it — only where the phone has already allowed the library */
-  const { width: windowWidth } = useWindowDimensions();
+     its pictures already in it — only where the phone has already allowed the library. The roll
+     is as wide as a pushed page: the window less a folding phone's band and column */
+  const rollWidth = frame.width - frame.left - frame.right;
   useEffect(() => {
-    if (choosing) primeRoll(windowWidth);
-  }, [choosing, windowWidth]);
+    if (choosing) primeRoll(rollWidth);
+  }, [choosing, rollWidth]);
   /* and her pictures on the pages the + opens taken ahead (lib/bird-images warmBirdPoses): a
      quiet moment after the tabs first stand, and again as the + opens (nothing, when they are
      already taken), so no capture runs while a composer slides up */

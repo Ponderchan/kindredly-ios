@@ -5,7 +5,10 @@ import { Toast } from "../../components/ui";
 import { LeaveSheet } from "../../components/LeaveSheet";
 import { SignUpSheet } from "../../components/SignUpSheet";
 import { ReportSheet } from "../../components/ReportMenu";
-import { deskGeometry } from "./today-cards";
+import { CONTROL_H, deskGeometry } from "./today-cards";
+import { isLaptop } from "../../lib/fold-frame";
+import { swiftReadsFold, useFoldFrame } from "../../lib/fold";
+import { useNativeSurface } from "../../lib/surfaces";
 import { LetterReader } from "./LetterReader";
 import { TodayWardrobeSlip } from "./WardrobeSlip";
 import type { TodayModel } from "./useTodayDesk";
@@ -32,11 +35,19 @@ export function TodayOverlays({ model }: { model: TodayModel }) {
   const insets = useScreenInsets();
   const { height: hostH } = useWindowDimensions();
   const { view, act, sheets } = model;
-  // the desk's one geometry (TodayNative and TodayRN place the card and the band by it too)
-  const { cardTop, controlTop } = deskGeometry({ hostH, safeTop: insets.top, tabBarRoom: insets.tabBarRoom });
+  // the desk's one geometry (TodayNative and TodayRN place the card and the band by it too). On a
+  // folding phone's inner screen Swift's desk lays the band out by the fold (KTodayDesk): over the
+  // sheet's foot on the right page when open flat, in the middle of the right page half-folded,
+  // under the bend held upright; "Reply sent." stands over the band wherever it is
+  const frame = useFoldFrame();
+  const swiftFold = useNativeSurface("today") && swiftReadsFold();
+  const spread = swiftFold && frame.pages ? frame.pages : null;
+  const bend = swiftFold && isLaptop(frame) ? Math.round(hostH / 2) : null;
+  const { cardTop, cardH, controlTop } = deskGeometry({ hostH, safeTop: insets.top, tabBarRoom: insets.tabBarRoom, floating: !!spread, bend });
+  const bandTop = spread && frame.half ? Math.round(cardTop + (cardH - CONTROL_H) / 2) : controlTop;
   return (
     <>
-      {view.toast && <Toast msg={t("ld.toast.thread")} bottom={hostH - controlTop + 12} />}
+      {view.toast && <Toast msg={t("ld.toast.thread")} bottom={hostH - bandTop + 12} left={spread ? spread.crease + 16 : 16} right={16} />}
 
       {/* while the reader is open it draws this sheet itself: a second Modal
           can't be presented over its page sheet (LetterReader) */}

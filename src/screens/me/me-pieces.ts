@@ -92,6 +92,16 @@ function stand(key: MePieceKey): void {
   armingChanged();
 }
 
+/** true while a piece that is on (and that this binary has) still has its mark on the way to the
+    disk: the first show in a process, before Swift may draw it. A page can hold itself blank for
+    that moment rather than draw what it draws without the piece and then change. */
+export function useSwiftPiecePending(key: MePieceKey): boolean {
+  const on = useNativeSurface(key) && isKindredlyUIViewAvailable(PIECE_VIEW[key]);
+  useSyncExternalStore(subscribeArming, readArming, readArming);
+  const s = arming.get(key);
+  return on && (s === undefined || s === "arming");
+}
+
 /** true = Swift draws this piece now (see THE GATE). `showing`: the piece is on screen. */
 export function useSwiftPiece(key: MePieceKey, showing: boolean): boolean {
   const on = useNativeSurface(key) && isKindredlyUIViewAvailable(PIECE_VIEW[key]);
@@ -232,12 +242,15 @@ export function courierCardData(model: CourierCardModel, bird: ImageRefRecord | 
  */
 export function useMePlanetData(model: MeModel, stamps: PlanetStampsSource, { live }: { live: boolean }): KMePlanetData | null | "wait" {
   const on = useSwiftPiece("meplanet", true);
+  const arming = useSwiftPiecePending("meplanet");
   useLang(); // the words are the reader's language's: re-written when it changes
   const stage = useWrenStage();
   /* "wait": the planet is on but the phone's record of her stage is still being read (the first
      milliseconds of a cold start). The host draws nothing for that moment: a grown courier was
-     drawn as an egg, with her journey strip, and then changed (owner on build 42, 2026-11-12). */
-  const waiting = on && !model.stageKnown;
+     drawn as an egg, with her journey strip, and then changed (owner on build 42, 2026-11-12).
+     Likewise while the planet's mark is being written on the first visit in a process: the old
+     page of segments was drawn for that moment (found in review, 2026-11-13). */
+  const waiting = (on && !model.stageKnown) || (!on && arming);
   const data = on && !waiting ? mePlanetData(mePlanetOf(model, stamps), courierModelOf(model.courier).palette, { form: stage.form, mark: stage.mark }, live) : null;
   const same = useSameContent(data);
   return waiting ? "wait" : same;
@@ -260,7 +273,7 @@ export function mePlanetOf(model: MeModel, stamps: PlanetStampsSource, hour?: nu
       stage: courier.stage,
       wilt: !!courier.hunger?.wilt,
     },
-    { t, upper: (s) => s.toLocaleUpperCase(), wren: courier.wren, ago: (at) => agoLabel(at), notesUnit: notesUnit() },
+    { t, upper: (s) => s.toLocaleUpperCase(), wren: courier.wren, ago: (at) => agoLabel(at), notesUnit: notesUnit(), notesUnitOne: t("m4.unit.noteOne") },
   );
 }
 

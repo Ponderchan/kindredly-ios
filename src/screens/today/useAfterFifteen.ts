@@ -96,7 +96,7 @@ export function useAfterFifteen(model: TodayModel): AfterFifteen {
   const lang = useLang();
   const router = useRouter();
   const focused = useIsFocused();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const { view, act: desk } = model;
   const live = on && (!view.demo || devAfterOnDemoDesk());
   const day = view.day;
@@ -155,7 +155,9 @@ export function useAfterFifteen(model: TodayModel): AfterFifteen {
   }, [timedId, deskDayKey]);
 
   /* ── the day's log, the settling, the reopening ── */
-  const createdAt = user?.created_at ? Date.parse(user.created_at) : null;
+  // a guest's age is unknown to the pages (after-fifteen-core: null → the mailbox), though an
+  // anonymous session has a created_at of its own
+  const createdAt = !isGuest && user?.created_at ? Date.parse(user.created_at) : null;
   const hatched = view.wren.stage !== "egg";
   const answeredKey = day.answered.join(",");
   useEffect(() => {
@@ -179,6 +181,7 @@ export function useAfterFifteen(model: TodayModel): AfterFifteen {
   const sawReading = useRef(false);
   if (view.phase === "reading") sawReading.current = true;
   const [show, setShow] = useState(false);
+  const [now, setNow] = useState(() => new Date());
   const [fromPass, setFromPass] = useState(false);
   const [undoUntil, setUndoUntil] = useState(0);
   useEffect(() => {
@@ -188,7 +191,10 @@ export function useAfterFifteen(model: TodayModel): AfterFifteen {
       setUndoUntil(0);
       return;
     }
+    // the clock is set in the same render the page first appears in (its countdown and the
+    // window's sky are never the last showing's for a frame)
     if (!sawReading.current) {
+      setNow(new Date());
       setShow(true);
       return;
     }
@@ -196,7 +202,10 @@ export function useAfterFifteen(model: TodayModel): AfterFifteen {
     sawReading.current = false;
     setFromPass(true);
     setUndoUntil(Date.now() + SWAP_MS + UNDO_MS);
-    const id = setTimeout(() => setShow(true), SWAP_MS);
+    const id = setTimeout(() => {
+      setNow(new Date());
+      setShow(true);
+    }, SWAP_MS);
     return () => clearTimeout(id);
   }, [wants]);
 
@@ -214,7 +223,6 @@ export function useAfterFifteen(model: TodayModel): AfterFifteen {
   }, [doneNow]);
 
   /* ── the clock: her countdown by the minute, and Undo's end ── */
-  const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     if (!show) return;
     setNow(new Date());

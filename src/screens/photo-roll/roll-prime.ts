@@ -1,4 +1,4 @@
-import { PixelRatio } from "react-native";
+import { AppState, PixelRatio } from "react-native";
 import * as MediaLibrary from "expo-media-library/legacy";
 import { primeLibraryPictures } from "../../../modules/kindredly-ui";
 import { ROLL_PAGE } from "./photo-roll-model";
@@ -10,10 +10,13 @@ import { ROLL_PAGE } from "./photo-roll-model";
    When the + opens, the roll's first page is read from the phone's library and its first
    pictures are drawn into the Swift loader's memory at the size the roll's cells ask for, so
    when Diary note is chosen the roll rises already whole. Only where the phone has already said
-   yes to the library (never asks: the roll asks, once, when it opens); nothing leaves the phone,
-   and nothing is copied (the roll reads in place). A read is fresh for a minute and handed over
-   once (takePrimed); a roll that opens before the read has answered reads for itself as before,
-   and that late read is dropped. */
+   yes to the whole library (never asks: the roll asks, once, when it opens; and not with access to
+   selected photos only, where the launch's first read of the library can bring up iOS's own
+   "Select more photos" alert, which belongs over the roll, not over the +); nothing leaves the
+   phone, and nothing is copied (the roll reads in place). Each opening of the + reads again (a
+   photo taken a moment ago is in it), the read is fresh for a minute and handed over once
+   (takePrimed), and leaving the app drops it; a roll that opens before the read has answered
+   reads for itself as before, and that late read is dropped. */
 
 export type RollFrame = { id: string; uri: string; w: number; h: number; video: boolean; duration: number };
 
@@ -36,30 +39,39 @@ let priming = false;
    rather than handed to the next roll as if it were new */
 let epoch = 0;
 
-/** A cell's side in pixels for a roll as wide as the window: what KImage will ask the loader for. */
-function cellPixels(windowWidth: number): number {
-  const side = (windowWidth - 2 * GAP) / 3;
+/* gone to the background: whatever happens to the library out there (the camera, a deletion) is
+   read when the + opens again */
+AppState.addEventListener("change", (st) => {
+  if (st === "background") {
+    primed = null;
+    epoch += 1;
+  }
+});
+
+/** A cell's side in pixels for a roll this wide: what KImage will ask the loader for. */
+function cellPixels(rollWidth: number): number {
+  const side = (rollWidth - 2 * GAP) / 3;
   return side > 0 ? Math.ceil(side * PixelRatio.get()) : 0;
 }
 
-function warm(frames: RollFrame[], windowWidth: number): void {
-  const px = cellPixels(windowWidth);
+function warm(frames: RollFrame[], rollWidth: number): void {
+  const px = cellPixels(rollWidth);
   if (px > 0) primeLibraryPictures(frames.slice(0, WARM).map((f) => f.uri), px);
 }
 
-/** Read the roll's first page and warm its first pictures, if the phone has already allowed the library. */
-export function primeRoll(windowWidth: number): void {
+/**
+ * Read the roll's first page and warm its first pictures, if the phone has already allowed the
+ * whole library. `rollWidth` is the width the roll will have: the window less what a page keeps
+ * clear (a folding phone's band and column), so the warmed pictures are the size its cells ask for.
+ */
+export function primeRoll(rollWidth: number): void {
   if (priming) return;
-  if (primed && Date.now() - primed.at < FRESH_MS) {
-    warm(primed.frames, windowWidth); // a memory warning may have emptied the loader since
-    return;
-  }
   priming = true;
   const mine = epoch;
   void (async () => {
     try {
       const p = await MediaLibrary.getPermissionsAsync(false);
-      if (!p.granted) return;
+      if (!p.granted || p.accessPrivileges === "limited") return;
       const r = await MediaLibrary.getAssetsAsync({
         first: ROLL_PAGE,
         mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
@@ -67,8 +79,8 @@ export function primeRoll(windowWidth: number): void {
       });
       if (mine !== epoch) return; // a roll opened meanwhile and read for itself
       const frames = r.assets.map(frameOf);
-      primed = { at: Date.now(), perm: p.accessPrivileges === "limited" ? "limited" : "granted", frames, cursor: r.endCursor, more: r.hasNextPage };
-      warm(frames, windowWidth);
+      primed = { at: Date.now(), perm: "granted", frames, cursor: r.endCursor, more: r.hasNextPage };
+      warm(frames, rollWidth);
     } catch (e) {
       // said, not swallowed: the roll then simply reads for itself
       console.warn("[journal-pick] the roll wasn't read ahead:", e);

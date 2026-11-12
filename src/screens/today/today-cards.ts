@@ -1058,8 +1058,28 @@ export type DeskGeometry = { cardTop: number; cardH: number; controlTop: number 
  * phone (top 54, room 98) gives the card at 110, 560 tall, the band at
  * 684.
  */
-export function deskGeometry({ hostH, safeTop, tabBarRoom }: { hostH: number; safeTop: number; tabBarRoom: number }): DeskGeometry {
+/** THE SPREAD (a folding phone's inner screen, Swift's desk): the band floats this far over the sheet's foot */
+export const FLOAT_LIFT = 12;
+/** a letter keeps this far off a bend across the page (fold-frame BEND_GAP, Swift KTodayGeometry.bendGap) */
+const DESK_BEND_GAP = 14;
+
+/**
+ * The desk's geometry, as Swift's KTodayGeometry has it (change them together). `floating`: the
+ * inner screen's spread, where the sheet runs to the foot and the band floats over its edge;
+ * `bend`: the inner screen upright and half-folded, the bend's height across the page (the sheet
+ * ends over it, the band stands in the middle of what is under it).
+ */
+export function deskGeometry({ hostH, safeTop, tabBarRoom, floating = false, bend = null }: { hostH: number; safeTop: number; tabBarRoom: number; floating?: boolean; bend?: number | null }): DeskGeometry {
   const cardTop = safeTop + BAND + CONTENT_TOP;
+  if (bend != null && bend - cardTop - DESK_BEND_GAP >= REPLY_CARD_MIN) {
+    const cardH = Math.round(bend - cardTop - DESK_BEND_GAP);
+    const foot = hostH - (tabBarRoom + CONTROL_LIFT);
+    return { cardTop, cardH, controlTop: Math.round(bend + Math.max(DESK_BEND_GAP, (foot - bend - CONTROL_H) / 2)) };
+  }
+  if (floating) {
+    const cardH = Math.max(CARD_MIN, Math.round(hostH - cardTop - (tabBarRoom + CONTROL_LIFT)));
+    return { cardTop, cardH, controlTop: cardTop + cardH - CONTROL_H - FLOAT_LIFT };
+  }
   const cardH = Math.max(CARD_MIN, Math.round(hostH - cardTop - CARD_AIR - CONTROL_H - (tabBarRoom + CONTROL_LIFT)));
   return { cardTop, cardH, controlTop: cardTop + cardH + CARD_AIR };
 }

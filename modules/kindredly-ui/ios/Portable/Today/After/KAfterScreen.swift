@@ -242,6 +242,8 @@ struct KAfterWindow: View {
   static let pipeW: CGFloat = 56
   static let lip: CGFloat = 14
   static let line: CGFloat = 2.4
+  /// how far the plate's top stands over the window's foot (its 76 and the 16 under it), plus a hair
+  static let plateRise: CGFloat = 76 + 16 + 2
 
   var body: some View {
     if strip.canPlay {
@@ -277,7 +279,8 @@ struct KAfterWindow: View {
         KWrenBird(her, size: Self.bird)
           .frame(width: Self.bird, height: Self.bird)
           .offset(y: strip.canPlay && !still ? (up ? -Self.bob : Self.bob) : 0)
-          .position(x: (w * 0.27).rounded(), y: strip.canPlay ? gapY : groundTop - Self.bird * 0.42)
+          // asleep, she sits on the plate's top edge (it stands over the ground's line)
+          .position(x: (w * 0.27).rounded(), y: strip.canPlay ? gapY : min(groundTop, h - Self.plateRise) - Self.bird * 0.42)
           .accessibilityHidden(true)
         plate
           .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
@@ -314,8 +317,13 @@ struct KAfterWindow: View {
         disc(w * 0.82, 64, 20, sun.opacity(0.9))
       }
       if sky.moon {
-        disc(w * 0.82, 64, 16, KFreeFlightInk.moon)
-        disc(w * 0.82 + 7.5, 57, 14, sky.sky0)
+        // a true crescent: the bite is cut out of the moon, not painted over it in the sky's top
+        // colour (which showed as a dark disc where the soft disc above lightens the sky)
+        ctx.drawLayer { layer in
+          layer.fill(Path(ellipseIn: CGRect(x: w * 0.82 - 16, y: 64 - 16, width: 32, height: 32)), with: .color(KFreeFlightInk.moon))
+          layer.blendMode = .destinationOut
+          layer.fill(Path(ellipseIn: CGRect(x: w * 0.82 + 7.5 - 14, y: 57 - 14, width: 28, height: 28)), with: .color(.black))
+        }
       }
       // two pairs of the game's pillars, the gap stepping as the course does
       func block(_ rect: CGRect, _ radii: RectangleCornerRadii) {
@@ -358,7 +366,8 @@ struct KAfterWindow: View {
         if !strip.eyebrow.isEmpty {
           Text(strip.eyebrow)
             .kText(.mono(10, .medium, tracking: 0.14))
-            .foregroundStyle(theme.mute)
+            // 4.5:1 or better on the plate in every theme (mute is 3.5:1 on the light ones)
+            .foregroundStyle(theme.sub)
             .lineLimit(1)
             .minimumScaleFactor(0.7)
         }
