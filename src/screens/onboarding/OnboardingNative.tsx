@@ -16,6 +16,7 @@ import { WrenBird } from "../../components/WrenBird";
 import { FACES, getFace } from "../../data/aura-avatar-lib";
 import { getStamp, sname } from "../../data/stamps";
 import { firstWord } from "../../lib/first-word";
+import { useFoldFrame } from "../../lib/fold";
 import { frostSpec } from "../../lib/frost";
 import { postmark, monthsShort } from "../../lib/format";
 import { starterStamp } from "../../lib/hatch-engine";
@@ -130,7 +131,12 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
   const { key: theme } = useTheme();
   const safe = useSafeAreaInsets();
   const insets = useMemo(() => ({ top: safe.top, bottom: safe.bottom, tabBarRoom: 0 }), [safe.top, safe.bottom]);
-  const { width: W, height: H } = useWindowDimensions();
+  /* a folding phone (lib/fold-frame): this route is the whole window, so its ground runs edge to
+     edge; the run itself keeps out of the system's band and, on the inner screen, is one column
+     in the middle. W is that column's width (the islands are sized by it). */
+  const frame = useFoldFrame();
+  const { width: windowW, height: H } = useWindowDimensions();
+  const W = windowW - frame.left - frame.right;
   const viewRef = useRef<KScreenHandle>(null);
   const live = useRef(props);
   live.current = props;
@@ -1042,7 +1048,7 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
   const onEventStable = useCallback((e: KObEvent) => act.current(e), []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: ground === "blue" ? OB.blue : ground === "paper" ? OB.sheet : OB.shell }}>
+    <View style={{ flex: 1, backgroundColor: ground === "blue" ? OB.blue : ground === "paper" ? OB.sheet : OB.shell, paddingLeft: frame.left, paddingRight: frame.right }}>
       <StatusBar style={ground === "shell" ? "dark" : "light"} animated />
       {/* the run's own pictures being captured, offscreen (ob-pieces useRunPictures) */}
       {pics.strip}

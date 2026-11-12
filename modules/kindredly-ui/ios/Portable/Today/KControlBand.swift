@@ -530,6 +530,11 @@ private struct KBandDiscStyle: ButtonStyle {
  */
 struct KTodayGround: View {
   let theme: KTheme
+  /* ON A FOLDING PHONE THE GROUND IS FLAT (owner, 2026-11-12, at the lavender under Next and
+     Reply on the Duo's inner screen: "紫色的底哪里来的"). The glow fades out towards the edges of
+     a phone's screen; in a column on a wider one (or beside the system's band) it is cut off
+     square and reads as a purple block. So there it is the page's colour and nothing else. */
+  @ObservedObject private var fold = KFold.shared
 
   init(theme: KTheme) {
     self.theme = theme
@@ -557,6 +562,8 @@ struct KTodayGround: View {
         ))
         .frame(width: 2.4 * w, height: 1.2 * h)
         .position(x: w / 2, y: h)
+        // a folding phone: no glow (see above)
+        .opacity(fold.frame.duo ? 0 : 1)
     }
     .background(theme.bg)
     .clipped()

@@ -4,7 +4,8 @@ import { View } from "react-native";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PostTabBar, tabBarHeight } from "../../components/PostTabBar";
-import { NativeTabBar, TabBarSpace, nativeTabBarReady, nativeTabBarRoom } from "../../components/NativeTabBar";
+import { NativeTabBar, TabBarSpace, nativeTabBarReady, nativeTabBarRoom, railTabBarRoom, tabRail } from "../../components/NativeTabBar";
+import { swiftReadsFold, useFoldFrame } from "../../lib/fold";
 import { refreshWaiting, useWaiting } from "../../lib/waiting";
 import { useMyThreadsLive } from "../../lib/live";
 import { useAuth } from "../../lib/auth";
@@ -47,6 +48,14 @@ import { GrowthMoment } from "../../components/GrowthMoment";
    honour it, the Swift one and PostTabBar, and both only while Today is
    the tab on screen.
 
+   ON A FOLDING PHONE (iPhone Duo, 2026-11-12; lib/fold-frame). This layout is the whole window,
+   so the bar can stand in the system's band at the right edge (NativeTabBar, THE RAIL); the
+   tabs themselves keep out of that band, and on the inner screen sit as one column in the
+   middle (sceneStyle's padding; the root stack leaves this screen unpadded for it). With the
+   bar in the band a tab keeps only the home indicator clear at its foot (railTabBarRoom). The
+   overlays below get the same column. On a phone that doesn't fold every number is 0 and the
+   tree is what it was.
+
    Identity Phase 1: the one-time note for people who were here before the
    identity switch (IdentityNote: what strangers see now, with the ♀/♂ and
    star sign switches inside it) is mounted here once, over every tab; it
@@ -61,6 +70,14 @@ export default function TabsLayout() {
   const { t: tk } = useTheme();
   const native = useNativeSurface("tabbar") && nativeTabBarReady();
   const insets = useSafeAreaInsets();
+  const frame = useFoldFrame();
+  const rail = native && tabRail(frame);
+  const meNative = useNativeSurface("me");
+  const todayNative = useNativeSurface("today");
+  const notesNative = useNativeSurface("notes");
+  const kindredsNative = useNativeSurface("kindreds");
+  // a tab that is two pages on the inner screen: the window less the system's band, no column
+  const spreadScene = { sceneStyle: { backgroundColor: tk.bg, paddingRight: frame.band } };
 
   // prime the signal at launch — it has to be true before Kindreds is opened
   useEffect(() => {
@@ -71,7 +88,7 @@ export default function TabsLayout() {
   useMyThreadsLive(user?.id, refreshWaiting);
 
   return (
-    <TabBarSpace.Provider value={native ? nativeTabBarRoom(insets.bottom) : tabBarHeight(insets.bottom)}>
+    <TabBarSpace.Provider value={rail ? railTabBarRoom(insets.bottom) : native ? nativeTabBarRoom(insets.bottom) : tabBarHeight(insets.bottom)}>
     <PlusSheetOpen.Provider value={choosing}>
     <TabBarAway.Provider value={setBarAway}>
     <View style={{ flex: 1 }}>
@@ -83,20 +100,37 @@ export default function TabsLayout() {
             <PostTabBar {...props} onPost={() => setChoosing((c) => !c)} open={choosing} away={barAway} waiting={waiting} />
           )
         }
-        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: tk.bg } }}
+        screenOptions={{ headerShown: false, sceneStyle: frame.duo ? { backgroundColor: tk.bg, paddingLeft: frame.left, paddingRight: frame.right } : { backgroundColor: tk.bg } }}
       >
-        <Tabs.Screen name="letters" />
-        <Tabs.Screen name="journal" />
-        <Tabs.Screen name="kindreds" />
-        <Tabs.Screen name="me" />
+        {/* Today on the inner screen: the letter lies open across both pages (KTodayDesk, THE
+            SPREAD), so its page is the window less the system's band, not a column */}
+        <Tabs.Screen name="letters" options={frame.pages && todayNative && swiftReadsFold() ? spreadScene : undefined} />
+        {/* Notes and Kindreds on the inner screen are two pages (the month | the notes; the orbit
+            | the list): their Swift pages are the whole window and lay the two out themselves */}
+        <Tabs.Screen name="journal" options={frame.pages && notesNative && swiftReadsFold() ? spreadScene : undefined} />
+        <Tabs.Screen name="kindreds" options={frame.pages && kindredsNative && swiftReadsFold() ? spreadScene : undefined} />
+        {/* Me's cover is a sky that runs edge to edge: on a folding phone its Swift page is the
+            whole window and keeps its own content to the column (KMeScreen, KFold) */}
+        <Tabs.Screen name="me" options={frame.duo && meNative && swiftReadsFold() ? (frame.pages ? spreadScene : { sceneStyle: { backgroundColor: tk.bg } }) : undefined} />
       </Tabs>
 
       {!native && choosing && <PostFan onClose={() => setChoosing(false)} />}
-      <IdentityNote />
-      {/* Wren fledged or grew up since last time: the moment, once per stage */}
-      <GrowthMoment />
-      {/* a face Wren finished while the reader was elsewhere in the app (make-face) */}
-      <FaceReadyBanner />
+      {frame.duo ? (
+        // the same three, over the tabs' column rather than the band and the air beside it
+        <View pointerEvents="box-none" style={{ position: "absolute", top: 0, bottom: 0, left: frame.left, right: frame.right }}>
+          <IdentityNote />
+          <GrowthMoment />
+          <FaceReadyBanner />
+        </View>
+      ) : (
+        <>
+          <IdentityNote />
+          {/* Wren fledged or grew up since last time: the moment, once per stage */}
+          <GrowthMoment />
+          {/* a face Wren finished while the reader was elsewhere in the app (make-face) */}
+          <FaceReadyBanner />
+        </>
+      )}
     </View>
     </TabBarAway.Provider>
     </PlusSheetOpen.Provider>

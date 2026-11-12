@@ -352,6 +352,8 @@ struct KObAcidKey: View {
     .frame(height: KOb.keyRoom)
     .accessibilityLabel(label)
     .accessibilityHint(hint ?? "")
+    // never drawn longer than on a phone (the Duo's inner screen; KButtons, KPhoneLength)
+    .kPhoneLength()
   }
 }
 

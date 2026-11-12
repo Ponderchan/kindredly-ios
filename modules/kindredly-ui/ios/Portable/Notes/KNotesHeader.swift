@@ -185,6 +185,9 @@ struct KNotesHeaderBar: View {
   let strings: KNotesStrings
   let layout: KNoteLayout
   let calendarOpen: Bool
+  /// false on a folding phone's inner screen, where the calendar has the left page to itself
+  /// (KNotesScreen, THE SPREAD) and there is nothing for the button to open
+  var showsCalendar = true
   let recentGroups: [KMoodGroup]
   /// the empty state's header: the title and JUST YOU, never moving
   let empty: Bool
@@ -231,8 +234,10 @@ struct KNotesHeaderBar: View {
             KNotesViewButton(theme: theme, layout: layout, label: strings.viewLabel(layout), a11yName: strings.viewA11y, y: y) {
               actions.onCycleView()
             }
-            KNotesCalendarButton(theme: theme, open: calendarOpen, groups: recentGroups, a11yName: strings.calendarA11y) {
-              actions.onCalendarToggle(!calendarOpen)
+            if showsCalendar {
+              KNotesCalendarButton(theme: theme, open: calendarOpen, groups: recentGroups, a11yName: strings.calendarA11y) {
+                actions.onCalendarToggle(!calendarOpen)
+              }
             }
           }
         }

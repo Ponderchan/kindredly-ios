@@ -93,6 +93,16 @@ struct KReplyDock: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   /// the compact box as drawn: how far under the screen's edge it waits
   @State private var boxHeight: CGFloat = 140
+  /* THE RIGHT PAGE (iPhone Duo's inner screen; KTodayDesk, THE SPREAD). There the box is always
+     the page, standing on the right page from the letter's top to the keyboard: no quote (the
+     letter itself is on the left page), no expand or collapse (there is nothing smaller to go
+     back to), and the compact header's line saying who the words go to. `pageTop` is where the
+     page starts (the letter's top). */
+  private let page: Bool
+  private let pageTop: CGFloat
+  /// with no software keyboard under it, the page stands this far off the screen's foot (level
+  /// with the letter's)
+  private let pageFoot: CGFloat
   /// the box is the full page
   @State private var expanded = false
   /// Reduce Motion's cross-fade between the box and the page
@@ -120,6 +130,9 @@ struct KReplyDock: View {
     bottomInset: CGFloat,
     dock: KTodayDock,
     deck: KDeckState,
+    page: Bool = false,
+    pageTop: CGFloat = 0,
+    pageFoot: CGFloat = 0,
     actions: KTodayActions
   ) {
     self.theme = theme
@@ -128,6 +141,9 @@ struct KReplyDock: View {
     self.placeholder = placeholder
     self.topInset = topInset
     self.bottomInset = bottomInset
+    self.page = page
+    self.pageTop = pageTop
+    self.pageFoot = pageFoot
     self._dock = ObservedObject(wrappedValue: dock)
     self._deck = ObservedObject(wrappedValue: deck)
     self.actions = actions
@@ -154,8 +170,9 @@ struct KReplyDock: View {
     // one layer, the box drawn last: the scrim covers ALL of it behind the box, so a touch
     // anywhere else drops the keyboard and never reaches a card under the words
     ZStack(alignment: .bottom) {
+      // (the right page of a folding phone covers nothing: the letter is beside it, so no dim)
       scrimColor
-        .opacity(focused ? 1 : 0)
+        .opacity(focused && !page ? 1 : 0.001)
         .animation(.easeOut(duration: 0.2), value: focused)
         .contentShape(Rectangle())
         .onTapGesture { dock.reply.blur() }
@@ -217,7 +234,7 @@ struct KReplyDock: View {
   private var box: some View {
     let state = composer?.sendState ?? .disabled
     let focused = dock.focused
-    let isExpanded = expanded
+    let isExpanded = expanded || page
     return KReplyBox(
       theme: theme,
       labels: labels,
@@ -226,7 +243,8 @@ struct KReplyDock: View {
       notice: composer?.hint ?? "",
       noticeWarn: composer?.hintWarn == true,
       sendState: state,
-      expanded: expanded,
+      expanded: expanded || page,
+      page: page,
       // with a hardware keyboard the layer reaches the screen's foot: the keys stand over the
       // home indicator; with the software one the box sits right on it
       bottomPad: max(0, bottomInset - dock.keyboardInset),
@@ -259,8 +277,10 @@ struct KReplyDock: View {
       dock.stage.setStrip(height)
     }
     .opacity(fade)
-    // the full page stops under the status bar
-    .padding(.top, topInset)
+    // the full page stops under the status bar (the right page: level with the letter's top)
+    .padding(.top, page ? pageTop : topInset)
+    // inside the dock's own frame, so the keyboard's measure (the frame's height) never moves
+    .padding(.bottom, page && dock.keyboardInset < 1 ? pageFoot : 0)
     // up from under the screen's edge with the keyboard, and down and away with it (its own
     // height and its shadow beyond the edge); a fade alone under Reduce Motion
     .offset(y: focused || reduceMotion ? 0 : boxHeight + 32)
@@ -325,6 +345,8 @@ private struct KReplyBox: View {
   let noticeWarn: Bool
   let sendState: KSendState
   let expanded: Bool
+  /// the right page of a folding phone (KReplyDock, THE RIGHT PAGE)
+  var page = false
   let bottomPad: CGFloat
   let controller: KFieldController
   let onChange: (String) -> Void
@@ -351,12 +373,13 @@ private struct KReplyBox: View {
 
   var body: some View {
     let corner = expanded ? Self.fullCorner : Self.compactCorner
-    let shape = UnevenRoundedRectangle(topLeadingRadius: corner, topTrailingRadius: corner, style: .continuous)
+    // the right page is a sheet of its own, round at every corner; the box stands on the keyboard
+    let shape = UnevenRoundedRectangle(topLeadingRadius: corner, bottomLeadingRadius: page ? corner : 0, bottomTrailingRadius: page ? corner : 0, topTrailingRadius: corner, style: .continuous)
     // the field keeps its place in this stack whichever way the box is drawn, so it is the same
     // text view both ways
     VStack(spacing: 0) {
       header
-      if expanded {
+      if expanded && !page {
         quote
           .padding(.horizontal, 16)
           .transition(.opacity)
@@ -378,7 +401,7 @@ private struct KReplyBox: View {
 
   // ── the header ──
   @ViewBuilder private var header: some View {
-    if expanded {
+    if expanded && !page {
       ZStack {
         Text(replyingTo)
           .kText(Self.titleStyle)
@@ -405,9 +428,11 @@ private struct KReplyBox: View {
           .truncationMode(.tail)
           .frame(maxWidth: .infinity, alignment: .leading)
           .accessibilitySortPriority(5)
-        roundKey(expand: true, label: labels.expandA11y, action: onExpand)
+        if !page {
+          roundKey(expand: true, label: labels.expandA11y, action: onExpand)
+        }
       }
-      .padding(EdgeInsets(top: 12, leading: 16, bottom: 8, trailing: 16))
+      .padding(EdgeInsets(top: page ? 16 : 12, leading: 16, bottom: 8, trailing: 16))
     }
   }
 

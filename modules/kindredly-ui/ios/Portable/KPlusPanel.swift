@@ -981,6 +981,8 @@ public struct KTabStage: View {
   private let pop: KPublishPopModel
   private let barHidden: Bool
   private let plusRaised: Bool
+  private let rail: Bool
+  private let railTop: CGFloat
   private let onSelect: (Int) -> Void
   private let onPlus: () -> Void
   private let onPanelAction: (String) -> Void
@@ -1016,6 +1018,11 @@ public struct KTabStage: View {
   ///     Motion), whatever the + is doing: Today's reply has the bottom of the screen
   ///   - plusRaised: the + stands proud of the bar (KTabBar raised); the Host's strip must be
   ///     KTabBarMetrics.plusHeadroom taller for it
+  ///   - rail: the bar stands upright at the stage's right edge (KTabBarMetrics, THE RAIL: a
+  ///     folding phone's band), in the middle of the room between railTop and the bottom safe
+  ///     area. The Host is then the band (the whole window while the + is open), and the stage
+  ///     tells the two apart by its width, not its height. Only the grown bar is drawn for it.
+  ///   - railTop: where the system's own status area ends at the top of the band
   ///   - onPanelAction: a choice was tapped, with its key: a card's or the header link's
   ///     (cards), or KPublishAction.letter / .note (sheet, pop and grow)
   ///   - onDismiss: the dim was tapped, VoiceOver's escape, or the sheet was dragged down; the
@@ -1036,6 +1043,8 @@ public struct KTabStage: View {
     pop: KPublishPopModel = .init(),
     barHidden: Bool = false,
     plusRaised: Bool = false,
+    rail: Bool = false,
+    railTop: CGFloat = 0,
     onSelect: @escaping (Int) -> Void,
     onPlus: @escaping () -> Void,
     onPanelAction: @escaping (String) -> Void,
@@ -1056,6 +1065,8 @@ public struct KTabStage: View {
     self.pop = pop
     self.barHidden = barHidden
     self.plusRaised = plusRaised
+    self.rail = rail
+    self.railTop = railTop
     self.onSelect = onSelect
     self.onPlus = onPlus
     self.onPanelAction = onPanelAction
@@ -1069,6 +1080,8 @@ public struct KTabStage: View {
     let dims = open && style != .sheet
     // with Reduce Motion the 10a sheet only fades: no rise, no overshoot
     let rises = !reduceMotion
+    // read here: the geometry closure below runs off the main actor
+    let upright = rail
     // ── the dim. It is also the stage's frame: a colour takes exactly the space it is offered,
     // and everything else hangs off its bottom edge as overlays, which add nothing to its size.
     // So the stage is never bigger than its Host, even while the Host is only the bar's strip
@@ -1089,7 +1102,8 @@ public struct KTabStage: View {
       // first, which narrowed the race without closing it)
       .animation(KMotion.dimFade) { $0.opacity(dims ? 1 : 0) }
       // the stage is the Host's size: taller than any bar's strip means the whole screen
-      .onGeometryChange(for: Bool.self) { $0.size.height > 320 } action: { stageTall = $0 }
+      // (on the rail the Host is the band, as tall as the window: wider than any band, then)
+      .onGeometryChange(for: Bool.self) { upright ? $0.size.width > 200 : $0.size.height > 320 } action: { stageTall = $0 }
       .onChange(of: isPanelOpen && stageTall, initial: true) { _, want in
         if want {
           opening = true
@@ -1112,7 +1126,7 @@ public struct KTabStage: View {
       .accessibilityHidden(!dims)
       // ── the 10a sheet (H:129), at its own height whatever room it is offered ──
       .overlay(alignment: .bottom) {
-        if style == .cards {
+        if style == .cards && !rail {
           KPlusPanel(theme: theme, title: panelTitle, link: panelLink, cards: cards, onAction: onPanelAction)
             .dynamicTypeSize(...DynamicTypeSize.accessibility1)
             .fixedSize(horizontal: false, vertical: true)
@@ -1130,12 +1144,12 @@ public struct KTabStage: View {
       }
       // ── the returning reader's buttons, behind the bar ──
       .overlay {
-        if style == .pop {
+        if style == .pop && !rail {
           KPublishPop(theme: theme, model: pop, open: open, barGap: gap, onAction: onPanelAction)
         }
       }
-      // ── the bar (H:117), over the dim ──
-      .overlay(alignment: .bottom) {
+      // ── the bar (H:117), over the dim; on a folding phone the rail, at the right edge ──
+      .overlay(alignment: rail ? .trailing : .bottom) {
         KTabBar(
           theme: theme,
           items: items,
@@ -1148,13 +1162,17 @@ public struct KTabStage: View {
           // Today's reply has the screen's foot (the new reader's sheet covers the bar itself)
           hidden: barHidden,
           raised: plusRaised,
+          rail: rail,
           // the grown bar's rows (P2): the bar itself grows around them
           tray: style == .grow ? AnyView(KPublishTray(theme: theme, model: sheet, open: open, onAction: onPanelAction)) : nil,
           onSelect: onSelect,
           onPlus: onPlus
         )
-        .padding(.horizontal, KTabBarMetrics.sideInset)
-        .padding(.bottom, gap)
+        .padding(.horizontal, rail ? 0 : KTabBarMetrics.sideInset)
+        .padding(.bottom, rail ? safeAreaBottom : gap)
+        // the rail: in from the right edge, and centred in what the system's clock leaves
+        .padding(.trailing, rail ? KTabBarMetrics.railEdge : 0)
+        .padding(.top, rail ? railTop : 0)
       }
       .ignoresSafeArea()
       // ── the new reader's sheet: an iOS sheet, rising from the bottom of the window. A choice

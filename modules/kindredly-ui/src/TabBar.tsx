@@ -155,6 +155,8 @@ type NativeTabBarProps = CommonViewModifierProps & {
   pop: KTabBarPop;
   barHidden: boolean;
   plusRaised: boolean;
+  rail: boolean;
+  railTop: number;
   onTabPress?: (e: { nativeEvent: { index: number } }) => void;
   onPlusPress?: () => void;
   onPanelAction?: (e: { nativeEvent: { key: string } }) => void;
@@ -195,6 +197,13 @@ export type KTabBarProps = CommonViewModifierProps & {
       K_TAB_PLUS_HEADROOM taller at the top for it; a binary without the prop keeps the + in the
       row (ask kindredlyUIViewHasProp("KTabBarView", "plusRaised") before sizing the Host). false by default */
   plusRaised?: boolean;
+  /** a folding phone (iPhone Duo): the bar stands upright in the system's band at the right edge,
+      the + out of its left edge, and the + opens it sideways. The Host is then that band, the
+      whole window's height (and the whole window while the + is open). A binary without the prop
+      keeps the bar along the bottom (ask kindredlyUIViewHasProp("KTabBarView", "rail")). false by default */
+  rail?: boolean;
+  /** with rail: where the system's own status area ends at the top of the band, in points */
+  railTop?: number;
   /** a tab was tapped, selected or not */
   onTabPress?: (index: number) => void;
   /** the + (or ×) was tapped */
@@ -206,7 +215,7 @@ export type KTabBarProps = CommonViewModifierProps & {
 };
 
 /** The bare SwiftUI tab bar and sheet. Only inside an @expo/ui <Host>; see NativeTabBar in the app. */
-export function KTabBar({ modifiers, tabs, panelLink, panelStyle, sheet, pop, barHidden, plusRaised, onTabPress, onPlusPress, onPanelAction, onPanelDismiss, ...rest }: KTabBarProps) {
+export function KTabBar({ modifiers, tabs, panelLink, panelStyle, sheet, pop, barHidden, plusRaised, rail, railTop, onTabPress, onPlusPress, onPanelAction, onPanelDismiss, ...rest }: KTabBarProps) {
   return (
     <NativeTabBarView
       modifiers={modifiers}
@@ -222,6 +231,8 @@ export function KTabBar({ modifiers, tabs, panelLink, panelStyle, sheet, pop, ba
       // always sent, so Swift never sees it go missing
       barHidden={barHidden ?? false}
       plusRaised={plusRaised ?? false}
+      rail={rail ?? false}
+      railTop={railTop ?? 0}
       onTabPress={onTabPress ? (e) => onTabPress(e.nativeEvent.index) : undefined}
       onPlusPress={onPlusPress}
       onPanelAction={onPanelAction ? (e) => onPanelAction(e.nativeEvent.key) : undefined}

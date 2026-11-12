@@ -375,6 +375,15 @@ public struct KNotesScreen: View {
   /// the page just sealed (driver.fresh), while it pops in
   @State private var fresh: KNoteFresh?
 
+  /* THE SPREAD (iPhone Duo's inner screen; the canvas's Notes: "月历页 | 当天那一页", "列表翻成一本
+     摊开的日记"; owner, 2026-11-12: "要把整个屏都利用起来"). On a phone the month is an overlay
+     behind the calendar button. While the window is two pages (KFold; this screen is then the
+     whole window) the month has the left page to itself and the notes are the right page, as
+     they are: a day tapped on the left takes the list on the right to that day's page. The
+     header has no calendar button there, and the overlay is never raised. The right page stops
+     at the system's band. An empty diary keeps its one page: there is no month to show. */
+  @ObservedObject private var fold = KFold.shared
+
   /// - Parameters:
   ///   - topInset: the status bar's height (the Host ignores safe areas)
   ///   - tabBarRoom: the floating tab bar's room (0 where there is none)
@@ -394,6 +403,23 @@ public struct KNotesScreen: View {
   private var searching: Bool { content.search.available && content.search.on && !content.empty }
 
   public var body: some View {
+    let spread = fold.frame.twoPages && !content.empty
+    HStack(spacing: 0) {
+      if spread {
+        KNotesCalendar(theme: theme, strings: content.strings, topInset: topInset, driver: driver, actions: actions, page: true)
+          .frame(width: fold.frame.crease)
+      }
+      notesPage(spread: spread)
+        .frame(width: spread ? max(0, fold.frame.rightEnd - fold.frame.crease) : nil)
+      if spread {
+        Spacer(minLength: 0)
+      }
+    }
+    .background { theme.bg.ignoresSafeArea() }
+    .ignoresSafeArea(.keyboard)
+  }
+
+  private func notesPage(spread: Bool) -> some View {
     ZStack(alignment: .top) {
       VStack(spacing: 0) {
         // the status bar's strip: the page colour
@@ -409,6 +435,7 @@ public struct KNotesScreen: View {
             strings: content.strings,
             layout: content.layout,
             calendarOpen: content.calendarOpen,
+            showsCalendar: !spread,
             recentGroups: content.recentGroups,
             empty: content.empty,
             search: content.search,
@@ -433,15 +460,13 @@ public struct KNotesScreen: View {
       .allowsHitTesting(false)
       .accessibilityHidden(true)
 
-      if content.calendarOpen && !content.empty {
+      if content.calendarOpen && !content.empty && !spread {
         KNotesCalendar(theme: theme, strings: content.strings, topInset: topInset, driver: driver, actions: actions)
           .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
           .zIndex(2)
       }
     }
     .animation(KMotion.notesCalendar, value: content.calendarOpen)
-    .background { theme.bg.ignoresSafeArea() }
-    .ignoresSafeArea(.keyboard)
     .onAppear {
       scrollState.setVoiceOver(voiceOver)
       scrollState.setSearching(searching)

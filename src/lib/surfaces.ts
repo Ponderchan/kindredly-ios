@@ -465,6 +465,12 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
      taller for it. A false row ('tabraised', the version or '*', false) puts the + back in the
      row with no build; the bar's red accents and its ink + are not behind it. */
   tabraised: true,
+  /* the iPhone Duo's layout (lib/fold-frame; owner, 2026-11-12: "需要做完在模拟器看"): the tab bar
+     as a rail in the system's band, pages out of that band, one centred column on the inner
+     screen, and the two-page layouts. Not a view: it is read with the system's own word about
+     the hinge, so on a phone that doesn't fold it changes nothing whatever it says. A false row
+     ('duo', the version or '*', false) lays a Duo out as a plain phone again with no build. */
+  duo: true,
 };
 
 /** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages, a kindred's page, Wren's room, the five small pages and three Notes pages (the `surface` prop of NativeSurface) */

@@ -123,10 +123,29 @@ struct KNotesCalendar: View {
   let topInset: CGFloat
   @ObservedObject var driver: KNotesDriver
   let actions: KNotesActions
+  /* A PAGE OF ITS OWN (iPhone Duo's inner screen; KNotesScreen, THE SPREAD): the month stands on
+     the left page for good, in its middle, with no dim under it and no way to close it; a day
+     with pages still takes the list on the right to that page. */
+  var page = false
 
   @AccessibilityFocusState private var titleFocused: Bool
 
-  var body: some View {
+  @ViewBuilder var body: some View {
+    if page {
+      if let month = driver.month {
+        panel(month)
+          .frame(maxWidth: 400)
+          .padding(.horizontal, 24)
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
+      } else {
+        Color.clear
+      }
+    } else {
+      overlayBody
+    }
+  }
+
+  private var overlayBody: some View {
     ZStack(alignment: .top) {
       (theme.isDark ? Self.dimDark : Self.dim)
         .ignoresSafeArea()
@@ -172,6 +191,7 @@ struct KNotesCalendar: View {
         Spacer(minLength: 8)
         chevron(.chevronRight, enabled: month.canNext, label: strings.nextMonth) { actions.onCalendarMonth(1) }
         // (owner, 10-20) a way out you can see: the round grey ✕ the sheets wear
+        if !page {
         SwiftUI.Button {
           actions.onCalendarToggle(false)
         } label: {
@@ -185,6 +205,7 @@ struct KNotesCalendar: View {
         .buttonStyle(KFadePressStyle())
         .padding(.leading, 10)
         .accessibilityLabel(strings.close)
+        }
       }
       .padding(.horizontal, 4)
 

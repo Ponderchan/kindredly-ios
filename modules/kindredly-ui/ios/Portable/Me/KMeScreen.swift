@@ -598,6 +598,11 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
   private let auraArt: AuraArt
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  /* A FOLDING PHONE (KFold; iPhone Duo, 2026-11-12). There this screen is the whole window, so
+     the cover's sky runs edge to edge, under the system's band and beside the column; what is
+     read and pressed (her face and name, the cards, the old segments page) keeps to the column:
+     `fold.frame.left` and `.right`, both 0 on a phone. */
+  @ObservedObject private var fold = KFold.shared
   /// The header reads this (k = offset / 40); held in @State, never observed here.
   @State private var chrome = KScrollModel(offsetCap: 48, quantum: 0.5)
   @State private var position = ScrollPosition(edge: .top)
@@ -677,14 +682,23 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
   public var body: some View {
     Group {
       if let planet = content.planet {
-        coverBody(planet)
+        if fold.frame.twoPages {
+          spreadBody(planet)
+        } else {
+          coverBody(planet)
+        }
       } else {
         segmentsBody
+          .padding(.leading, fold.frame.left)
+          .padding(.trailing, fold.frame.right)
       }
     }
     .accessibilityElement(children: .contain)
     .overlay(alignment: .bottom) {
-      KBottomFade(theme: theme)
+      // (THE SPREAD: the fade is the right page's own; her planet's page runs to the foot)
+      if !fold.frame.twoPages {
+        KBottomFade(theme: theme)
+      }
     }
     .overlay {
       // the planet's page has no pull-tab: it would sit on her card's Open and All looks, and the
@@ -782,11 +796,15 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
           .frame(height: base + pull)
           .frame(height: base, alignment: .bottom)
         KMeIdentity(theme: theme, profile: content.profile, me: planet.me, settingsLabel: content.settingsLabel, actions: actions, avatar: avatar)
+          .padding(.leading, fold.frame.left)
+          .padding(.trailing, fold.frame.right)
         KMePlanetPage(content: content, planet: planet, theme: theme, actions: actions) {
           auraArt
         }
         .padding(.horizontal, Self.gutter)
         .padding(.bottom, bottomInset)
+        .padding(.leading, fold.frame.left)
+        .padding(.trailing, fold.frame.right)
       }
     }
     .scrollIndicators(.hidden)
@@ -816,6 +834,37 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
         shown: folded,
         actions: actions
       )
+    }
+  }
+
+  /* THE SPREAD (iPhone Duo's inner screen; the canvas's Me: "她的星球，整页 | 你的资料、她的工牌、
+     皮肤"; owner, 2026-11-12: "要把整个屏都利用起来"). While the window is two pages her planet is
+     the whole left page (KMeCover as a page: the big planet, the two ways in at its foot) and you
+     are the right page: your face and name, then her card and the tiles, scrolling on their own.
+     The right page stops at the system's band, where the tab bar stands. */
+  private func spreadBody(_ planet: KMePlanet) -> some View {
+    let f = fold.frame
+    return HStack(spacing: 0) {
+      KMeCover(planet: planet, topInset: topInset, pull: 0, actions: coverActions(), page: true, foot: bottomInset)
+        .frame(width: f.crease)
+      ScrollView(.vertical) {
+        VStack(spacing: 0) {
+          // your face stands over the block's top edge (as it does over the cover's)
+          Color.clear.frame(height: topInset + KMeCoverMetrics.faceOver + 12)
+          KMeIdentity(theme: theme, profile: content.profile, me: planet.me, settingsLabel: content.settingsLabel, actions: actions, avatar: avatar)
+          KMePlanetPage(content: content, planet: planet, theme: theme, actions: actions) {
+            auraArt
+          }
+          .padding(.horizontal, Self.gutter)
+          .padding(.bottom, bottomInset)
+        }
+      }
+      .scrollIndicators(.hidden)
+      .overlay(alignment: .bottom) {
+        KBottomFade(theme: theme)
+      }
+      .frame(width: max(0, f.rightEnd - f.crease))
+      Spacer(minLength: 0)
     }
   }
 

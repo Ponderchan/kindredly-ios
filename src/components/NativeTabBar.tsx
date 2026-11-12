@@ -6,6 +6,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Host } from "@expo/ui/swift-ui";
 import { KTabBar, isKindredlyUIViewAvailable, kindredlyUIViewHasProp, type KTabBarCard, type KTabBarProps, type KTabBarTab, type KTabGlyph } from "../../modules/kindredly-ui";
 import { useNativeSurface } from "../lib/surfaces";
+import { useFoldFrame } from "../lib/fold";
+import type { FoldFrame } from "../lib/fold-frame";
 import { t, useLang } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
 import { useBirdImageRef } from "../lib/bird-images";
@@ -111,6 +113,14 @@ import "../data/strings-audit-plus"; // pub.draft (the draft row's title)
    bar was, and must not be under a hosting view that might swallow its
    taps.
 
+   THE RAIL (iPhone Duo, 2026-11-12; lib/fold-frame). On a folding phone the system keeps a band
+   down the right edge of both screens, its clock at the top; the bar stands in that band,
+   upright (KTabBar rail), and the pages keep out of it (the tabs layout pads them). The Host is
+   then the band, the window's whole height, while the + is closed, and the whole window while
+   it is open or closing: the rail widens towards the page round the same rows. Everything else
+   here is unchanged: the same presses, the same tray, the same waits. A binary whose bar has no
+   `rail` keeps the bar along the bottom (tabRail).
+
    No haptics: PostTabBar and PostFan have none, so neither does this.
 
    Words: the tab names (tab.*), the +'s name (pc.post, the post chooser's
@@ -211,6 +221,18 @@ export const TabBarSpace = createContext<number | null>(null);
 /** the room the floating bar takes, plus the air a screen leaves above it */
 export function nativeTabBarRoom(insetBottom: number): number {
   return nativeTabBarSpace(insetBottom) + TAB_CLEAR;
+}
+
+/** THE RAIL: the Swift bar stands in the folding phone's band (lib/fold-frame `rail`) on a
+    binary whose bar can stand upright. */
+export function tabRail(frame: FoldFrame): boolean {
+  return frame.rail && kindredlyUIViewHasProp("KTabBarView", "rail");
+}
+
+/** With the bar in the band there is none along the bottom: a screen keeps clear of the home
+    indicator and the same air. */
+export function railTabBarRoom(insetBottom: number): number {
+  return Math.max(insetBottom, 16) + TAB_CLEAR;
 }
 
 /** The room at the bottom of a tab screen that the tab bar has: PostTabBar's
@@ -360,8 +382,13 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
      prop: an older one would get a taller strip and still draw the + in the row */
   const raised = useNativeSurface("tabraised") && kindredlyUIViewHasProp("KTabBarView", "plusRaised");
   const strip = nativeTabBarSpace(insets.bottom) + (raised ? PLUS_HEADROOM : 0);
+  /* the rail (iPhone Duo): the Host is the system's band, and grows sideways to the window */
+  const frame = useFoldFrame();
+  const rail = tabRail(frame);
   const onLayout = (e: LayoutChangeEvent) => {
-    if (full && !grown && e.nativeEvent.layout.height > strip + 1) requestAnimationFrame(() => setGrown(true));
+    const { width, height } = e.nativeEvent.layout;
+    const whole = rail ? width > frame.band + 1 : height > strip + 1;
+    if (full && !grown && whole) requestAnimationFrame(() => setGrown(true));
   };
 
   const wren = useWrenName();
@@ -441,7 +468,13 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
     <View
       onLayout={onLayout}
       pointerEvents={hidden ? "none" : "box-none"}
-      style={full ? { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 } : { position: "absolute", left: 0, right: 0, bottom: 0, height: strip }}
+      style={
+        full
+          ? { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }
+          : rail
+            ? { position: "absolute", right: 0, top: 0, bottom: 0, width: frame.band }
+            : { position: "absolute", left: 0, right: 0, bottom: 0, height: strip }
+      }
     >
       <Host style={{ flex: 1 }} pointerEvents="box-none" ignoreSafeArea="all" colorScheme={dark ? "dark" : "light"}>
         <KTabBar
@@ -460,6 +493,8 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
           sheet={sheet}
           barHidden={hidden}
           plusRaised={raised}
+          rail={rail}
+          railTop={frame.bandTop}
           onTabPress={onTabPress}
           onPlusPress={onPost}
           onPanelAction={onPanelAction}

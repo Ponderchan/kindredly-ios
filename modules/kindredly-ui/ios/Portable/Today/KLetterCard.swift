@@ -676,6 +676,7 @@ struct KCardText: View {
   @State private var frameHeight: CGFloat = 0
   @State private var textHeight: CGFloat = 0
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.kCardSpread) private var spread
 
   private var folded: Bool { frameHeight > 1 && textHeight > frameHeight + 1 }
 
@@ -743,6 +744,10 @@ struct KCardText: View {
       .multilineTextAlignment(card.bodyCenter ? .center : .leading)
       .frame(maxWidth: .infinity, alignment: card.bodyCenter ? .center : .leading)
       .padding(.horizontal, 10)
+      // a letter spread across a folding phone's inner screen: its lines keep a reader's
+      // length, in the middle of the sheet (KTodayDesk, THE SPREAD); nil on a phone
+      .frame(maxWidth: spread?.measure)
+      .frame(maxWidth: .infinity)
   }
 }
 
@@ -850,5 +855,23 @@ struct KLetterCardStamp: View {
     } else {
       stamp
     }
+  }
+}
+
+/// A letter card spread across a folding phone's inner screen (KTodayDesk, THE SPREAD): how long
+/// its lines may be. nil everywhere else, and the card is laid out as on a phone.
+struct KCardSpread: Equatable {
+  /// the longest a line of the letter runs
+  var measure: CGFloat
+}
+
+private struct KCardSpreadKey: EnvironmentKey {
+  static let defaultValue: KCardSpread? = nil
+}
+
+extension EnvironmentValues {
+  var kCardSpread: KCardSpread? {
+    get { self[KCardSpreadKey.self] }
+    set { self[KCardSpreadKey.self] = newValue }
   }
 }

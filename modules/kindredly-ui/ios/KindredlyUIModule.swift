@@ -23,6 +23,43 @@ public class KindredlyUIModule: Module {
     // JS reads as 1, the old blue-violet. Raise it whenever the dark tokens change again.
     Constant("themeRev") { 2 }
 
+    // THE FOLD (iPhone Duo, 2026-11-12; KFoldMonitor at the foot of this file). JS asks for what
+    // the system says about a folding phone (foldState) and hears when it changes (onFoldChange):
+    // the hinge (closed, partly open, open; its angle), the window's size, the crease and the
+    // regions the system has taken (camera, side status bar). On a phone that doesn't fold, and
+    // on a system from before iOS 27.1, the answer is "none" and nothing ever changes.
+    /* the layout the app decided for a folding phone (lib/fold-frame), for the views to read
+       (Portable KFold). Numbers in points; anything missing is 0. */
+    Function("setFoldFrame") { (f: [String: Any]) in
+      func n(_ k: String) -> CGFloat { CGFloat((f[k] as? NSNumber)?.doubleValue ?? 0) }
+      var next = KFoldFrame()
+      next.duo = (f["duo"] as? Bool) ?? false
+      next.posture = (f["posture"] as? String) ?? "phone"
+      next.half = (f["half"] as? Bool) ?? false
+      next.left = n("left")
+      next.right = n("right")
+      next.band = n("band")
+      next.bandTop = n("bandTop")
+      next.crease = n("crease")
+      next.rightEnd = n("rightEnd")
+      DispatchQueue.main.async { KFold.shared.set(next) }
+    }
+
+    Events("onFoldChange")
+    AsyncFunction("foldState") { () -> [String: Any] in
+      KFoldMonitor.shared.attachIfNeeded()
+      return KFoldMonitor.shared.snapshot()
+    }.runOnQueue(.main)
+    OnStartObserving {
+      DispatchQueue.main.async {
+        KFoldMonitor.shared.onChange = { [weak self] state in self?.sendEvent("onFoldChange", state) }
+        KFoldMonitor.shared.attachIfNeeded()
+      }
+    }
+    OnStopObserving {
+      DispatchQueue.main.async { KFoldMonitor.shared.onChange = nil }
+    }
+
     ExpoUIView(KInkCardView.self)
     // the 10a tab bar and its composer sheet, one Host for both (src/components/NativeTabBar.tsx)
     ExpoUIView(KTabBarView.self)
@@ -570,5 +607,100 @@ public class KindredlyUIModule: Module {
     // its cover. New files: a pod install before the build.
     ExpoUIView(KFreeFlightView.self)
 
+  }
+}
+
+
+/*
+ THE FOLD, AS THE SYSTEM REPORTS IT (iPhone Duo; owner 2026-11-12: "需要做完在模拟器看").
+
+ iOS 27.1 tells an app three things about a folding phone, and this reads all three:
+ - the hinge: closed, partly open or fully open, and its angle (UIHingeInteraction, added to the
+   window's root view; its handler runs on every change);
+ - the division regions of a view: where content should split in two, which is the crease
+   (UIView reservedRegions(kind: .division));
+ - the occlusion regions: what something else covers, the camera and the status area at the side
+   of the outer screen (kind: .occlusion).
+
+ It is written against the Objective-C runtime, by name, and not against the typed Swift API, on
+ purpose: the store build is compiled in the cloud with whatever Xcode that image carries, and a
+ typed call to an API the SDK there doesn't have is a build that fails. By name, the same source
+ compiles with any SDK, and on a system without these classes every lookup is nil: the answer
+ is hinge "none", no regions. Main thread only.
+ */
+final class KFoldMonitor: NSObject {
+  static let shared = KFoldMonitor()
+
+  /// called with a fresh snapshot when the hinge reports a change
+  var onChange: (([String: Any]) -> Void)?
+
+  private weak var host: UIView?
+  private var interaction: NSObject?
+  /// the hinge's last word: 0 unknown, 1 closed, 2 partly open, 3 fully open; nil with no hinge
+  private var status: Int?
+  private var angle: Double = 0
+
+  private static func rootView() -> UIView? {
+    let windows = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows)
+    return (windows.first { $0.isKeyWindow } ?? windows.first)?.rootViewController?.view
+  }
+
+  /// Hang the hinge's interaction on the window's root view, once per root view.
+  func attachIfNeeded() {
+    guard let view = Self.rootView(), view !== host else { return }
+    host = view
+    guard let cls = NSClassFromString("UIHingeInteraction") as? NSObject.Type else { return }
+    let handler: @convention(block) (AnyObject, AnyObject) -> Void = { [weak self] _, update in
+      guard let self else { return }
+      if let hinge = (update as? NSObject)?.value(forKey: "hinge") as? NSObject {
+        self.status = (hinge.value(forKey: "status") as? NSNumber)?.intValue ?? 0
+        self.angle = (hinge.value(forKey: "angle") as? NSNumber)?.doubleValue ?? 0
+      } else {
+        self.status = nil
+      }
+      self.onChange?(self.snapshot())
+    }
+    // alloc is ours (+1, held by `fresh`); init hands the same object back, which `made` retains;
+    // `fresh` lets its one go when it leaves scope
+    guard let fresh = cls.perform(NSSelectorFromString("alloc"))?.takeRetainedValue() as? NSObject,
+          let made = fresh.perform(NSSelectorFromString("initWithUpdateHandler:"), with: unsafeBitCast(handler, to: AnyObject.self))?.takeUnretainedValue() as? NSObject,
+          let asInteraction = made as? UIInteraction
+    else { return }
+    view.addInteraction(asInteraction)
+    interaction = made
+  }
+
+  private func regions(of view: UIView, kind: String) -> [[String: Any]] {
+    guard let kinds = NSClassFromString("UIViewReservedRegionKind") as? NSObject.Type,
+          let wanted = kinds.perform(NSSelectorFromString(kind))?.takeUnretainedValue()
+    else { return [] }
+    let ask = NSSelectorFromString("reservedRegionsOfKind:")
+    guard view.responds(to: ask), let found = view.perform(ask, with: wanted)?.takeUnretainedValue() as? [NSObject] else { return [] }
+    return found.map { region in
+      let frame = (region.value(forKey: "frame") as? NSValue)?.cgRectValue ?? .zero
+      let margins = (region.value(forKey: "margins") as? NSValue)?.uiEdgeInsetsValue ?? .zero
+      return [
+        "x": Double(frame.minX), "y": Double(frame.minY), "w": Double(frame.width), "h": Double(frame.height),
+        "top": Double(margins.top), "left": Double(margins.left), "bottom": Double(margins.bottom), "right": Double(margins.right),
+        "active": (region.value(forKey: "active") as? NSNumber)?.boolValue ?? true,
+      ]
+    }
+  }
+
+  /// Everything the system says now, as JS takes it.
+  func snapshot() -> [String: Any] {
+    let names = ["unknown", "closed", "partly", "open"]
+    var out: [String: Any] = [
+      "hinge": status.map { names.indices.contains($0) ? names[$0] : "unknown" } ?? "none",
+      "angle": angle,
+    ]
+    guard let view = Self.rootView() else { return out }
+    let safe = view.safeAreaInsets
+    out["width"] = Double(view.bounds.width)
+    out["height"] = Double(view.bounds.height)
+    out["safe"] = ["top": Double(safe.top), "left": Double(safe.left), "bottom": Double(safe.bottom), "right": Double(safe.right)]
+    out["divisions"] = regions(of: view, kind: "divisionRegionKind")
+    out["occlusions"] = regions(of: view, kind: "occlusionRegionKind")
+    return out
   }
 }

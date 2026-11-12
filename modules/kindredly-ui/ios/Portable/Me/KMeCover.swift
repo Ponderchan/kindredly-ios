@@ -53,11 +53,46 @@ struct KMeCover: View {
   /// how far the page is pulled down at its top
   let pull: CGFloat
   let actions: KMePlanetActions
+  /* A PAGE OF ITS OWN (iPhone Duo's inner screen; KMeScreen, THE SPREAD): "封面上的小星球长成整页".
+     There the planet is not a low cover but the whole left page: the page's big planet (the one
+     the planet page shows), turning under a finger, with the two ways in at its foot. `foot` is
+     what they keep clear at the bottom. Nothing to pull: the planet page is already open. */
+  var page = false
+  var foot: CGFloat = 0
 
   @State private var probe = KPlanetProbe()
   @State private var turned = false
+  /// a folding phone: the sky runs the window's whole width; the two ways in keep to the column
+  @ObservedObject private var fold = KFold.shared
 
-  var body: some View {
+  @ViewBuilder var body: some View {
+    if page {
+      pageBody
+    } else {
+      coverBody
+    }
+  }
+
+  private var pageBody: some View {
+    let night = planet.planet.palette.moon
+    return ZStack(alignment: .bottomLeading) {
+      KPlanetView(kind: .page, content: planet.planet, probe: probe, onTap: { what in actions.onTap(what) }, onTurned: { turned = true })
+      HStack(spacing: 8) {
+        entry(planet.stampsEntry, night: night, action: actions.onStamps) {
+          KMeStampsMark(fan: planet.stamps.fan)
+        }
+        entry(planet.lettersEntry, night: night, action: actions.onLetters) {
+          KMePostboxMark()
+        }
+      }
+      .padding(.leading, 16)
+      .padding(.bottom, 12 + foot)
+    }
+    .clipped()
+    .accessibilityElement(children: .contain)
+  }
+
+  private var coverBody: some View {
     let palette = planet.planet.palette
     let night = palette.moon
     // the sun (or the moon) sits high on its own side, under the clock: clear of the two ways in
@@ -82,7 +117,7 @@ struct KMeCover: View {
         }
         Spacer(minLength: 0)
       }
-      .padding(.leading, 14)
+      .padding(.leading, 14 + fold.frame.left)
       .padding(.bottom, 10)
       .opacity(fade)
     }

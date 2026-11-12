@@ -3,7 +3,7 @@ import { AppState, InteractionManager, LogBox, View } from "react-native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaInsetsContext, SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "../lib/auth";
 import { refreshFingerprint } from "../lib/aura";
 import { markWork, noteRoute, startStallProbe } from "../lib/stall-probe";
@@ -28,6 +28,8 @@ import { nativeSetTextScript } from "../../modules/kindredly-ui";
 import "../data/strings"; // registers every surface's catalog
 
 import { P } from "../theme/post";
+import { shareFoldFrame, useFoldFrame } from "../lib/fold";
+import { FOLD_TOP_AIR } from "../lib/fold-frame";
 import { fetchThreadMessages, readThreadDetailCache } from "../lib/db";
 
 SplashScreen.preventAutoHideAsync();
@@ -292,19 +294,39 @@ LogBox.ignoreLogs(["Error reading persisted server registration info"]);
 function ThemedStack() {
   const { t: tk, dark } = useTheme();
   const pal = useP();
-  const launchGround = useMemo(() => ({ contentStyle: { backgroundColor: launchInks(dark, tk).bg } }), [dark, tk]);
+  /* ON A FOLDING PHONE (iPhone Duo, 2026-11-12; lib/fold-frame, step 1: "先不坏"). The system
+     keeps a band down the right edge of both screens, and the inner screen is far wider than a
+     page should be. So every page's content is padded: out of the band, and on the inner screen
+     into one column no wider than 560 in the middle (`pad`); the page's ground still runs edge
+     to edge under it, because the padding is inside the painted content. Three screens are the
+     whole window instead and lay themselves out: the tabs (their bar stands in the band),
+     onboarding (its ground changes from step to step) and make-face (it floats over the page
+     under it). And the Duo's top safe inset is 0, its clock being in the band, so the insets
+     every screen reads get a little air at the top and no sides (the padding is the sides).
+     On a phone that doesn't fold `pad` is nothing and the insets are the system's own object. */
+  const frame = useFoldFrame();
+  const systemInsets = useSafeAreaInsets();
+  const insets = useMemo(
+    () => (frame.duo ? { top: Math.max(systemInsets.top, FOLD_TOP_AIR), bottom: systemInsets.bottom, left: 0, right: 0 } : systemInsets),
+    [frame.duo, systemInsets],
+  );
+  const pad = useMemo(() => (frame.duo ? { paddingLeft: frame.left, paddingRight: frame.right } : null), [frame.duo, frame.left, frame.right]);
+  const launchGround = useMemo(() => ({ contentStyle: { backgroundColor: launchInks(dark, tk).bg, ...pad } }), [dark, tk, pad]);
+  const whole = useMemo(() => ({ backgroundColor: tk.bg }), [tk.bg]);
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
+      <SafeAreaInsetsContext.Provider value={insets}>
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: tk.bg },
+          contentStyle: { backgroundColor: tk.bg, ...pad },
         }}
       >
         <Stack.Screen name="index" options={launchGround} />
-        {/* the two doors out of the launch fade in over its last frame */}
-        <Stack.Screen name="onboarding" options={{ animation: "fade", animationDuration: 450 }} />
-        <Stack.Screen name="(tabs)" options={{ animation: "fade", animationDuration: 450 }} />
+        {/* the two doors out of the launch fade in over its last frame; both are the whole
+            window on a folding phone and pad themselves (see above) */}
+        <Stack.Screen name="onboarding" options={{ animation: "fade", animationDuration: 450, contentStyle: whole }} />
+        <Stack.Screen name="(tabs)" options={{ animation: "fade", animationDuration: 450, contentStyle: whole }} />
         {/* an unknown link (app/+not-found) is only passed through, so it doesn't slide in */}
         <Stack.Screen name="+not-found" options={{ animation: "none" }} />
         {/* WRITING TO A STRANGER rises from the bottom (10a), and the edge
@@ -327,11 +349,24 @@ function ThemedStack() {
             it doesn't slide in from the side or pop up as a card */}
         <Stack.Screen name="thread/[id]" options={{ animation: "fade", animationDuration: 260 }} />
         {/* the two pages that still paint their own ground (see above) */}
-        <Stack.Screen name="courier" options={{ contentStyle: { backgroundColor: pal.penWash } }} />
-        <Stack.Screen name="aura-card" options={{ contentStyle: { backgroundColor: dark ? tk.bg : P.penWash } }} />
+        <Stack.Screen name="courier" options={{ contentStyle: { backgroundColor: pal.penWash, ...pad } }} />
+        <Stack.Screen name="aura-card" options={{ contentStyle: { backgroundColor: dark ? tk.bg : P.penWash, ...pad } }} />
       </Stack>
+      </SafeAreaInsetsContext.Provider>
     </View>
   );
+}
+
+/* THE FOLD (iPhone Duo; lib/fold): asked for at launch and again whenever the window changes
+   size, so every screen that reads useFold has the system's word. Draws nothing; on a phone that
+   doesn't fold it asks once, hears "none" and never changes. */
+function FoldWatch() {
+  const frame = useFoldFrame();
+  // the Swift views read the same frame (Portable KFold)
+  useEffect(() => {
+    shareFoldFrame(frame);
+  }, [frame]);
+  return null;
 }
 
 export default function RootLayout() {
@@ -368,6 +403,7 @@ export default function RootLayout() {
               <TextScript />
               <LocalLinesOnLaunch />
               <StallProbe />
+              <FoldWatch />
                 <BirdSnapshots />
               <KnockRouting />
               <ThemedStack />

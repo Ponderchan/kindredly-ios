@@ -38,6 +38,15 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 ## Unreleased
 
+iPhone Duo, the folding iPhone (owner, 2026-11-12: "需要做完在模拟器看", then on the inner screen "要把整个屏都利用起来") [switch: duo; needs a binary; nothing changes on a phone that doesn't fold]
+- On both of the Duo's screens the tab bar stands upright at the right edge, under the clock, where the hand holding the phone has its thumb: the same four icons, the red details, the badge and the black +, which stands out towards the page. The + opens it sideways: the bar widens round Write a letter and Daily note. Pages keep out of that edge.
+- Opening the phone opens the letter: on the inner screen Today's letter lies open across the whole screen, with Next, Wren and Reply floating over its bottom edge on the right. Reply moves the letter to the left page and gives you the right page to write back on, from the letter's top to the keyboard.
+- Notes on the inner screen is the month on the left page and your notes on the right; a day tapped on the left takes the right to that day's note.
+- Kindreds on the inner screen is the orbit on the left page, always open, and the list on the right.
+- Me on the inner screen is her planet as the whole left page (it turns under a finger) and you on the right: your face and name, her card and the tiles.
+- On the outer screen Me's sky runs under the clock to the edge, and Today has no lavender glow at its foot (it would be cut off square beside the tab bar).
+- Pages that are one list (Settings, the paywall, onboarding) sit as one column in the middle of the inner screen, no wider than 560, and a key never grows longer than it is on a phone: "Hatch my courier" stays its phone length there.
+
 What the owner found on build 42 (2026-11-12) [the spacing and the onboarding marks need a binary; the rest is JS]
 - Me no longer opens on guesses. It used to draw an egg, no day and a dash for your numbers until its first read came back from the network, then change under your eyes (a grown courier flashed as an egg with her journey strip; kindreds and notes appeared late). It now opens on what it knew last time, kept on the phone, and her stage is the one the rest of the app draws.
 - A guest's courier is no longer an egg on Me after hatching: Me follows the app-wide stage, which knows a guest's bird has hatched.

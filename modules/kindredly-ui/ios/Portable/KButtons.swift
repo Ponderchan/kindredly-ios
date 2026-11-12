@@ -448,3 +448,90 @@ public struct KRoundTool: View {
     }
   }
 }
+
+// MARK: - long bars stay phone-length
+
+/* LONG BARS STAY PHONE-LENGTH (owner, 2026-11-12, looking at "Hatch my courier" drawn 900 wide on
+   the iPhone Duo's inner screen: "适配的时候这种长条的一定注意别弄这么长… 要美合理"). A key, an
+   input bar or any other bar that fills its row on a phone must not grow with a wide screen: on
+   a page wider than any phone it keeps a phone's length and sits in the middle of its row.
+
+   kPhoneLength() does that for one view. Offered no more than `over` (440: the widest iPhone's
+   window) it changes nothing at all, so no phone is laid out differently; offered more, the view
+   is offered `cap` instead and centred in the room it was given. */
+struct KPhoneLength: Layout {
+  /// the length a bar keeps on a wide page
+  var cap: CGFloat = 360
+  /// offered more than this, the bar is on a page wider than any phone
+  var over: CGFloat = 440
+
+  private func capped(_ p: ProposedViewSize) -> ProposedViewSize {
+    guard let w = p.width, w > over else { return p }
+    return ProposedViewSize(width: cap, height: p.height)
+  }
+
+  func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    subviews.first?.sizeThatFits(capped(proposal)) ?? .zero
+  }
+
+  func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    subviews.first?.place(
+      at: CGPoint(x: bounds.midX, y: bounds.midY),
+      anchor: .center,
+      proposal: capped(ProposedViewSize(width: bounds.width, height: bounds.height))
+    )
+  }
+}
+
+extension View {
+  /// On a page wider than any phone this view keeps a phone's length (KPhoneLength); on a phone
+  /// it is laid out exactly as without it.
+  func kPhoneLength(_ cap: CGFloat = 360) -> some View {
+    KPhoneLength(cap: cap) { self }
+  }
+}
+
+// MARK: - the fold (iPhone Duo)
+
+/* THE FOLD, AS A VIEW READS IT (iPhone Duo, 2026-11-12). The app decides how a folding phone's
+   window is laid out in one place (React Native's lib/fold-frame: the system's band down the
+   right edge, one column on the inner screen, where two pages meet) and hands the numbers over
+   through the module (setFoldFrame). They are kept here so any view can read them without a
+   prop of its own:
+
+     @ObservedObject private var fold = KFold.shared     // then fold.frame
+
+   On a phone that doesn't fold nothing is ever handed over and the frame is `.phone`: every
+   number 0, duo false. A view should read it only to do something a phone never needs. */
+public struct KFoldFrame: Equatable, Sendable {
+  /// a folding phone, and the layout for it is on
+  public var duo = false
+  /// "phone", "closed" (the outer screen), "open" (the inner screen, wider than tall) or "tall"
+  public var posture = "phone"
+  /// the hinge is part-way: the phone is standing half-folded
+  public var half = false
+  /// what a page keeps clear on its left and right (the band, and the air beside one column)
+  public var left: CGFloat = 0
+  public var right: CGFloat = 0
+  /// the system's band down the right edge, and where its own status area ends
+  public var band: CGFloat = 0
+  public var bandTop: CGFloat = 0
+  /// two pages: the crease's x and the right page's own right edge; 0 when the window is one page
+  public var crease: CGFloat = 0
+  public var rightEnd: CGFloat = 0
+
+  public init() {}
+  public static let phone = KFoldFrame()
+  /// the window is two pages side by side
+  public var twoPages: Bool { duo && crease > 0 }
+}
+
+public final class KFold: ObservableObject {
+  public static let shared = KFold()
+  @Published public private(set) var frame = KFoldFrame.phone
+
+  /// main thread only
+  public func set(_ next: KFoldFrame) {
+    if next != frame { frame = next }
+  }
+}

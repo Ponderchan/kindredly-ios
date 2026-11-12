@@ -129,6 +129,10 @@ final class KTabBarViewProps: UIBaseViewProps {
   /// the + stands proud of the bar in a swell of its glass (2026-11-12). JS sends true only with a
   /// Host strip KTabBarMetrics.plusHeadroom taller; a JS that doesn't send it keeps the + in the row
   @Field var plusRaised: Bool = false
+  /// a folding phone: the bar stands upright in the system's band at the right edge (KTabStage
+  /// rail), under railTop, where the system's own status area ends
+  @Field var rail: Bool = false
+  @Field var railTop: CGFloat = 0
 
   var onTabPress = EventDispatcher()
   var onPlusPress = EventDispatcher()
@@ -172,6 +176,8 @@ struct KTabBarView: ExpoSwiftUI.View {
       pop: popModel,
       barHidden: props.barHidden,
       plusRaised: props.plusRaised,
+      rail: props.rail,
+      railTop: props.railTop,
       onSelect: { props.onTabPress(["index": $0]) },
       onPlus: { props.onPlusPress() },
       onPanelAction: { props.onPanelAction(["key": $0]) },

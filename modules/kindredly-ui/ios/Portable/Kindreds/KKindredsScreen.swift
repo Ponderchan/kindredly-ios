@@ -450,6 +450,18 @@ public struct KKindredsScreen: View {
   @State private var position = ScrollPosition(edge: .top)
   @State private var box = KKindredsBox()
 
+  /* THE SPREAD (iPhone Duo's inner screen; the canvas's Kindreds: "轨道展开，名单在下"; owner,
+     2026-11-12: "要把整个屏都利用起来"). On a phone the orbit is a band folded behind the Orbit
+     chip. While the window is two pages (KFold; this screen is then the whole window) it is
+     unfolded for good: the orbit is the left page, standing open in its middle, drifting and
+     taking taps on its faces as the open band does; the right page is the list as it is, with no
+     Orbit chip and no watermark, since there is nothing left to fold. The right page stops at the
+     system's band, where the tab bar stands. */
+  @ObservedObject private var fold = KFold.shared
+  /// the left page's orbit never scrolls: a still model for its block
+  @State private var still = KScrollModel(offsetCap: 81)
+  @State private var spreadLegend: CGFloat = 16
+
   /// - Parameters:
   ///   - topInset: the status bar's height (the Host ignores safe areas)
   ///   - bottomInset: how far the last row must clear the bottom (the tab bar and the fade)
@@ -465,6 +477,46 @@ public struct KKindredsScreen: View {
   }
 
   public var body: some View {
+    let spread = fold.frame.twoPages
+    HStack(spacing: 0) {
+      if spread {
+        orbitPage
+          .frame(width: fold.frame.crease)
+      }
+      listPage(spread: spread)
+        .frame(width: spread ? max(0, fold.frame.rightEnd - fold.frame.crease) : nil)
+      if spread {
+        Spacer(minLength: 0)
+      }
+    }
+    .background { theme.bg.ignoresSafeArea() }
+    .ignoresSafeArea(.keyboard)
+  }
+
+  /// THE SPREAD's left page: the orbit, open, a third larger than the band's, with its legend
+  private var orbitPage: some View {
+    KKindredsOrbitBlock(
+      theme: theme,
+      orbit: content.orbit,
+      me: content.orbitMe,
+      kin: content.orbitKin,
+      legendCloser: content.legendCloser,
+      legendTurn: content.legendTurn,
+      legendFrost: content.legendFrost,
+      open: true,
+      active: content.active,
+      chrome: still,
+      legendHeight: $spreadLegend,
+      onFace: { [actions] id in actions.onRow(id) }
+    )
+    .frame(width: 340)
+    .scaleEffect(1.3)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .padding(.top, topInset)
+    .padding(.bottom, bottomInset)
+  }
+
+  private func listPage(spread: Bool) -> some View {
     VStack(spacing: 0) {
       // the status bar's strip: the page colour, nothing pinned under the clock
       Color.clear.frame(height: topInset)
@@ -480,7 +532,7 @@ public struct KKindredsScreen: View {
               itemView(item)
             }
           } header: {
-            KKindredsBand(theme: theme, content: content, driver: driver, chrome: chrome, actions: actions)
+            KKindredsBand(theme: theme, content: content, driver: driver, chrome: chrome, actions: actions, spread: spread)
           }
         }
       }
@@ -502,8 +554,6 @@ public struct KKindredsScreen: View {
     .overlay(alignment: .bottom) {
       KBottomFade(theme: theme)
     }
-    .background { theme.bg.ignoresSafeArea() }
-    .ignoresSafeArea(.keyboard)
     .onReceive(driver.$scrollRequest) { request in
       guard let request, request.serial > box.scrollSerial else { return }
       box.scrollSerial = request.serial
@@ -765,6 +815,9 @@ struct KKindredsBand: View {
   @ObservedObject var driver: KKindredsDriver
   let chrome: KScrollModel
   let actions: KKindredsActions
+  /// THE SPREAD (KKindredsScreen): the orbit has a page of its own, so the band is only the chip
+  /// row: never open, no watermark, no Orbit chip
+  var spread = false
 
   @State private var chipRowHeight: CGFloat = 58
   @State private var legendHeight: CGFloat = 16
@@ -776,7 +829,7 @@ struct KKindredsBand: View {
   }
 
   var body: some View {
-    let open = driver.bandOpen
+    let open = driver.bandOpen && !spread
     Color.clear
       .frame(height: open ? openHeight : chipRowHeight)
       .frame(maxWidth: .infinity)
@@ -801,7 +854,7 @@ struct KKindredsBand: View {
         // only the open orbit takes taps (its faces); folded it is a watermark behind the chips
         .allowsHitTesting(open)
         // no watermark behind the search field: its rings would show past the field's ends
-        .opacity(driver.searching ? 0 : 1)
+        .opacity(driver.searching || spread ? 0 : 1)
       }
       .overlay(alignment: .bottom) {
         // both stay mounted (a focused field is never taken off screen); the one not in use is
@@ -829,13 +882,15 @@ struct KKindredsBand: View {
   private var chipRow: some View {
     ScrollView(.horizontal) {
       HStack(alignment: .center, spacing: 8) {
-        KOrbitChip(
-          theme: theme,
-          isOn: driver.bandOpen,
-          a11yLabel: content.orbitChipLabel,
-          a11yHint: [content.legendCloser, content.legendTurn].filter { !$0.isEmpty }.joined(separator: ". ")
-        ) {
-          driver.toggleBand()
+        if !spread {
+          KOrbitChip(
+            theme: theme,
+            isOn: driver.bandOpen,
+            a11yLabel: content.orbitChipLabel,
+            a11yHint: [content.legendCloser, content.legendTurn].filter { !$0.isEmpty }.joined(separator: ". ")
+          ) {
+            driver.toggleBand()
+          }
         }
         if hasSearch {
           KSearchChip(theme: theme, a11yLabel: content.searchLabel) {

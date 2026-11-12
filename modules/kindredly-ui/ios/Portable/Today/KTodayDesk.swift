@@ -127,10 +127,24 @@ public struct KTodayGeometry: Equatable, Sendable {
   /// the control band's top, y from the Host's top
   public let controlTop: CGFloat
 
-  public init(hostHeight: CGFloat, safeTop: CGFloat, tabBarRoom: CGFloat) {
+  /// THE SPREAD: the band floats this far over the sheet's foot
+  public static let floatLift: CGFloat = 12
+  /// THE SPREAD: the gap either side of the crease, between the two pages
+  public static let pageGap: CGFloat = 6
+  /// THE SPREAD: the longest a line of the letter runs across the open sheet
+  public static let spreadMeasure: CGFloat = 640
+
+  /// `floating` (THE SPREAD, on KTodayDesk): the sheet runs down to the foot and the control
+  /// band floats over its bottom edge instead of standing under it.
+  public init(hostHeight: CGFloat, safeTop: CGFloat, tabBarRoom: CGFloat, floating: Bool = false) {
     cardTop = safeTop + Self.band + Self.contentTop
-    cardHeight = max(Self.cardMin, (hostHeight - cardTop - Self.cardAir - Self.controlHeight - (tabBarRoom + Self.controlLift)).rounded())
-    controlTop = cardTop + cardHeight + Self.cardAir
+    if floating {
+      cardHeight = max(Self.cardMin, (hostHeight - cardTop - (tabBarRoom + Self.controlLift)).rounded())
+      controlTop = cardTop + cardHeight - Self.controlHeight - Self.floatLift
+    } else {
+      cardHeight = max(Self.cardMin, (hostHeight - cardTop - Self.cardAir - Self.controlHeight - (tabBarRoom + Self.controlLift)).rounded())
+      controlTop = cardTop + cardHeight + Self.cardAir
+    }
   }
 
   // ── writing back: the reply box (owner, 2026-11-09). The React Native fallback keeps the old
@@ -189,6 +203,30 @@ public struct KTodayDesk: View {
   @State private var box = KTodayDeskBox()
   /// the letter whose face or name was tapped, while its "who is this" sheet is up
   @State private var who: KWhoAsk?
+
+  /* THE SPREAD (iPhone Duo's inner screen; owner, 2026-11-12, at the letter in a column in the
+     middle of that screen: "就不能把信全屏幕展开 他两悬浮在信上不行么", and "要把整个屏都利用起来").
+     Opening the phone opens the letter. While the window is two pages (KFold twoPages; the Host
+     is then the window less the system's band, so the crease's x is this view's own):
+
+       reading   the sheet lies open across both pages, down to the foot; its lines keep a
+                 reader's length in the middle. NEXT, Wren and REPLY float over its bottom edge
+                 on the RIGHT page, by the hand that holds the phone and next to the rail.
+       replying  the sheet steps over to the left page, whole, and the right page is the
+                 reader's own: the reply box as a page (KReplyDock, THE RIGHT PAGE), from the
+                 letter's top to the keyboard. The right page is always where you write.
+
+     Everything that hangs off the band (the flight window, Wren on her wire, Undo) is laid out
+     in the right page with it. On a phone, and on the Duo's outer screen, none of this runs:
+     `crease(in:)` is nil and every number is what it was. */
+  @ObservedObject private var fold = KFold.shared
+
+  /// the crease's x in a Host `width` wide, when the window is two pages and the Host spans it
+  private func crease(in width: CGFloat) -> CGFloat? {
+    let f = fold.frame
+    guard f.twoPages, f.crease > 160, width - f.crease > 240 else { return nil }
+    return f.crease
+  }
 
   /// a pass TS hasn't confirmed by then, when it started the day's end, puts the desk back
   static let confirmWait = 1.5
@@ -256,7 +294,14 @@ public struct KTodayDesk: View {
   /// The card slot's height now: shrunk while replying (reply mode, and the box would otherwise
   /// reach the card), else the geometry's. The second value says it is shrunk: the letter is
   /// set at the compact size.
-  private func cardHeight(_ g: KTodayGeometry, hostHeight: CGFloat) -> (CGFloat, compact: Bool) {
+  private func cardHeight(_ g: KTodayGeometry, hostHeight: CGFloat, spread: Bool = false) -> (CGFloat, compact: Bool) {
+    if spread {
+      // on the left page while replying: no box under it, only the keyboard to clear
+      guard stage.open else { return (g.cardHeight, false) }
+      let fit = (hostHeight - stage.keyboard - KTodayGeometry.cardAir - g.cardTop).rounded(.down)
+      let h = max(KTodayGeometry.replyCardMin, min(g.cardHeight, fit))
+      return (h, h < KTodayGeometry.cardMin)
+    }
     guard stage.open,
           let h = g.replyCardHeight(hostHeight: hostHeight, keyboard: stage.keyboard, box: stage.strip)
     else { return (g.cardHeight, false) }
@@ -269,8 +314,9 @@ public struct KTodayDesk: View {
       // the desk: never moves for the keyboard (the card shrinks for it, from KReplyStage)
       GeometryReader { geo in
         let W = geo.size.width
-        let geometry = KTodayGeometry(hostHeight: geo.size.height, safeTop: topInset, tabBarRoom: tabBarRoom)
-        desk(width: W, geometry: geometry, card: cardHeight(geometry, hostHeight: geo.size.height))
+        let split = crease(in: W)
+        let geometry = KTodayGeometry(hostHeight: geo.size.height, safeTop: topInset, tabBarRoom: tabBarRoom, floating: split != nil)
+        desk(width: W, geometry: geometry, card: cardHeight(geometry, hostHeight: geo.size.height, spread: split != nil), crease: split)
           .frame(width: W, height: geo.size.height, alignment: .topLeading)
           .onChange(of: geo.size.height, initial: true) { _, height in
             if abs(dock.fullHeight - height) > 0.5 { dock.fullHeight = height }
@@ -289,8 +335,15 @@ public struct KTodayDesk: View {
         bottomInset: bottomInset,
         dock: dock,
         deck: deck,
+        page: fold.frame.twoPages,
+        pageTop: topInset + KTodayGeometry.band + KTodayGeometry.contentTop,
+        pageFoot: tabBarRoom + KTodayGeometry.controlLift,
         actions: actions
       )
+      // THE SPREAD: the reply is the right page. Only the sides: the dock's own height is how
+      // the keyboard is measured (dock.respectingHeight), so nothing outside it may change it
+      .padding(.leading, fold.frame.twoPages ? fold.frame.crease + KTodayGeometry.pageGap : 0)
+      .padding(.trailing, fold.frame.twoPages ? KTodayGeometry.gutter : 0)
     }
     .background { theme.bg.ignoresSafeArea() }
     // who is this: the Help page's answer, in an iOS sheet over the desk
@@ -314,10 +367,18 @@ public struct KTodayDesk: View {
 
   /// The desk layer, back to front, in the Host's coordinates. `card` is the slot's height now
   /// (shrunk while replying) and whether the letter is set at the compact size.
-  private func desk(width W: CGFloat, geometry g: KTodayGeometry, card: (CGFloat, compact: Bool)) -> some View {
+  private func desk(width W: CGFloat, geometry g: KTodayGeometry, card: (CGFloat, compact: Bool), crease: CGFloat? = nil) -> some View {
     let plus = content.plus
     let windowShown = flow.windowShown && plus == .closed
     let (slotHeight, compact) = card
+    // THE SPREAD: the sheet across both pages, or on the left one while replying; the band and
+    // what hangs off it in the right page
+    let slotWidth: CGFloat = {
+      guard let crease else { return max(0, W - 2 * KTodayGeometry.gutter) }
+      return stage.open ? max(0, crease - KTodayGeometry.gutter - KTodayGeometry.pageGap) : max(0, W - 2 * KTodayGeometry.gutter)
+    }()
+    let bandX = crease ?? 0
+    let bandW = crease.map { W - $0 } ?? W
     return ZStack(alignment: .topLeading) {
       // 1. the page and its faint radial ground (the glass needs something behind it)
       KTodayGround(theme: theme)
@@ -343,10 +404,13 @@ public struct KTodayDesk: View {
         )
         KDoneView(theme: theme, letter: content.wrenLetter, birds: content.birds, flow: flow) { [actions] in actions.onBringBack() }
       }
-      .frame(width: max(0, W - 2 * KTodayGeometry.gutter), height: slotHeight)
+      // THE SPREAD: the open sheet's lines keep a reader's length
+      .environment(\.kCardSpread, crease != nil && !stage.open ? KCardSpread(measure: KTodayGeometry.spreadMeasure) : nil)
+      .frame(width: slotWidth, height: slotHeight)
       // the keyboard's own length, so the card and the bar move together; a short ease under
       // Reduce Motion (a change of size, not a slide)
       .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.bandSlide, value: slotHeight)
+      .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.bandSlide, value: slotWidth)
       // the + panel: the card steps back a little
       .scaleEffect(plus == .sheet ? 0.98 : plus == .pop ? 0.97 : 1)
       .offset(y: plus == .sheet ? -10 : 0)
@@ -380,21 +444,21 @@ public struct KTodayDesk: View {
         onNext: { [deck] in deck.requestNext() },
         onReply: { if let id = deck.shownId { reply(id) } }
       )
-      .frame(width: W, height: KBandLayout.height)
-      .offset(y: g.controlTop)
+      .frame(width: bandW, height: KBandLayout.height)
+      .offset(x: bandX, y: g.controlTop)
 
       // 5. the window to her game, in the band's place once the day is done
       KFlightWindow(theme: theme, model: content.window, looping: flow.looping) { [actions] in
         if content.window.canPlay { actions.onWindow() }
       }
-      .frame(width: max(0, W - 2 * KTodayGeometry.gutter), height: KBandLayout.windowHeight)
+      .frame(width: max(0, bandW - 2 * KTodayGeometry.gutter), height: KBandLayout.windowHeight)
       .opacity(windowShown ? 1 : 0)
       .offset(y: flow.windowShown || reduceMotion ? 0 : 10)
       .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.windowIn, value: flow.windowShown)
       .animation(KTodayMotion.bandFade, value: plus)
       .allowsHitTesting(windowShown)
       .accessibilityHidden(!windowShown)
-      .offset(x: KTodayGeometry.gutter, y: g.controlTop + KBandLayout.windowFrameTop)
+      .offset(x: bandX + KTodayGeometry.gutter, y: g.controlTop + KBandLayout.windowFrameTop)
 
       // 6. Wren, over everything; only her own figure takes a touch (a tap: she hops), and only
       // while she stands on the band
@@ -402,7 +466,7 @@ public struct KTodayDesk: View {
         theme: theme,
         birds: content.birds,
         wren: content.wren,
-        width: W,
+        width: bandW,
         controlTop: g.controlTop,
         canPlay: content.window.canPlay,
         // her arrival bubble stands where the Undo capsule does: it waits while the capsule is up
@@ -412,15 +476,16 @@ public struct KTodayDesk: View {
         deck: deck,
         flow: flow
       )
-      .frame(width: W)
+      .frame(width: bandW)
       .frame(maxHeight: .infinity)
+      .offset(x: bandX)
 
       // 7. Undo after Next (owner's audit, 2026-11-10): over the band, centred, for the five
       // seconds TS offers the last pass back; the tap is the ⋯'s bring back
       KUndoCapsule(theme: theme, label: content.labels.undo, hint: content.labels.undoHint, shown: undoShown) { [actions] in
         actions.onBringBack()
       }
-      .position(x: W / 2, y: g.controlTop - KUndoCapsule.lift)
+      .position(x: bandX + bandW / 2, y: g.controlTop - KUndoCapsule.lift)
     }
   }
 
