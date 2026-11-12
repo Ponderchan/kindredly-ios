@@ -146,6 +146,15 @@ export type KKindredsOrbitItem = {
   stamp?: boolean;
 };
 
+/** One kindred on the orbit's home ring, beside you: their face as their row has it, where they
+    start (TS spaces them evenly, in a stable order), and whether letters of theirs are unread. */
+export type KKindredsOrbitKin = {
+  id: string;
+  face: KKindredsFace;
+  a0: number;
+  turn: boolean;
+};
+
 export type KKindredsStrings = {
   title: string;
   status: string;
@@ -184,6 +193,10 @@ export type KKindredsViewProps = CommonViewModifierProps &
     active: boolean;
     chips: KKindredsChip[];
     orbit: KKindredsOrbitItem[];
+    /** you, in the orbit's middle: your own face (round). null or absent keeps the ink cell */
+    orbitMe?: KKindredsFace | null;
+    /** your kindreds on the orbit's home ring, at most eight (kindreds-model orbitKindreds) */
+    orbitKin?: KKindredsOrbitKin[];
     items: KKindredsItem[];
     /** identity switch on: the PEN PALS chip mark's and the your-turn legend's sample window (kindreds-model legendFrost); null off */
     legendFrost?: KFrost | null;
@@ -226,6 +239,8 @@ type NativeKKindredsViewProps = Omit<
   | "rev"
   | "items"
   | "orbit"
+  | "orbitMe"
+  | "orbitKin"
   | "legendFrost"
   | "onRowPress"
   | "onRowAction"
@@ -245,6 +260,8 @@ type NativeKKindredsViewProps = Omit<
     ref?: Ref<KScreenHandle>;
     items: NativeItem[];
     orbit: NativeOrbit[];
+    orbitMe: { show: boolean; face: NativeFace };
+    orbitKin: { id: string; face: NativeFace; a0: number; turn: boolean }[];
     legendFrost: KFrost;
     onKindredsRowPress?: Ev<{ id: string }>;
     onKindredsRowAction?: Ev<{ id: string; key: string }>;
@@ -310,6 +327,15 @@ export function nativeKindredsItems(items: KKindredsItem[]): NativeItem[] {
   }));
 }
 
+/** A face as the Swift record wants it: frost NO_FROST unless it is a window, the stamp "" for none. */
+const nativeFace = (f: KKindredsFace): NativeFace => ({ ...f, frost: nativeFrost(f.kind === "frost" ? f.frost : null), stamp: f.stamp ?? "" });
+
+/** You in the orbit's middle, as the Swift record wants it: `show` false keeps the ink cell. */
+export const nativeKindredsOrbitMe = (me: KKindredsFace | null | undefined): { show: boolean; face: NativeFace } => ({ show: !!me, face: me ? nativeFace(me) : NO_FACE });
+/** Your kindreds on the home ring, as the Swift records want them. */
+export const nativeKindredsOrbitKin = (kin: readonly KKindredsOrbitKin[] | undefined): { id: string; face: NativeFace; a0: number; turn: boolean }[] =>
+  (kin ?? []).map((k) => ({ id: k.id, face: nativeFace(k.face), a0: k.a0, turn: k.turn }));
+
 /** The orbit as the Swift records want it: each frost NO_FROST when there is none. */
 export function nativeKindredsOrbit(orbit: KKindredsOrbitItem[]): NativeOrbit[] {
   return orbit.map((o) => ({ ...o, frost: nativeFrost(o.frost), stamp: o.stamp ?? false }));
@@ -329,6 +355,8 @@ export const KKindredsView = forwardRef<KScreenHandle, KKindredsViewProps>(funct
     rev,
     items,
     orbit,
+    orbitMe,
+    orbitKin,
     legendFrost,
     onRowPress,
     onRowAction,
@@ -349,6 +377,8 @@ export const KKindredsView = forwardRef<KScreenHandle, KKindredsViewProps>(funct
 ) {
   const sent = useMemo(() => nativeKindredsItems(items), [items]);
   const sentOrbit = useMemo(() => nativeKindredsOrbit(orbit), [orbit]);
+  const sentMe = useMemo(() => nativeKindredsOrbitMe(orbitMe), [orbitMe]);
+  const sentKin = useMemo(() => nativeKindredsOrbitKin(orbitKin), [orbitKin]);
   const sentLegend = useMemo(() => nativeFrost(legendFrost), [legendFrost]);
   return (
     <NativeKKindredsView
@@ -363,6 +393,8 @@ export const KKindredsView = forwardRef<KScreenHandle, KKindredsViewProps>(funct
       rev={rev ?? 0}
       items={sent}
       orbit={sentOrbit}
+      orbitMe={sentMe}
+      orbitKin={sentKin}
       legendFrost={sentLegend}
       onKindredsRowPress={onRowPress ? (e) => onRowPress(e.nativeEvent.id) : undefined}
       onKindredsRowAction={onRowAction ? (e) => onRowAction(e.nativeEvent.id, e.nativeEvent.key) : undefined}

@@ -331,6 +331,38 @@ const rowOf = (v: ReturnType<typeof M.buildKindredsView>, id: string) => {
   ok("a re-sort moves nobody on the orbit (same a0, dir, period)", a.every((o) => { const p = b.find((x) => x.id === o.id)!; return p.a0 === o.a0 && p.dir === o.dir && p.period === o.period; }));
 }
 
+/* ── the orbit's home ring: your kindreds, beside you (owner, 2026-11-12) ── */
+{
+  const kin = Array.from({ length: 10 }, (_, i) => th({ id: `k${i}`, revealed: true, otherName: `K${i}`, otherFace: i === 0 ? "f-honey" : null, lastAt: now - i * H, theirs: 2 }));
+  const ts = [...kin, th({ id: "p1", theirs: 3 }), th({ id: "kg", revealed: true, gone: true, other: null as unknown as string })];
+  const ledger = { k0: 0, k1: 2 }; // k0: two letters unread; k1: read up; the rest never opened (no entry: nothing unread)
+  const v2 = M.buildKindredsView(base(ts, { ledger }), fmt);
+  const ring = v2.orbitKin;
+  ok("the home ring holds your kindreds, never a pen pal or a closed account", ring.length === M.ORBIT_KIN_MAX && ring.every((k) => /^k\d$/.test(k.id)));
+  ok("more than eight: the eight heard from most lately keep a place", ring.map((k) => k.id).sort().join() === "k0,k1,k2,k3,k4,k5,k6,k7");
+  ok(
+    "round the ring in a stable order (thread id), evenly spaced from the top",
+    ring.map((k) => k.id).join() === "k0,k1,k2,k3,k4,k5,k6,k7" && ring.every((k, i) => Math.abs(k.a0 - (-Math.PI / 2 + (i / 8) * Math.PI * 2)) < 1e-9),
+  );
+  ok(
+    "each carries their row's face: a kindred's, with the face they gave",
+    JSON.stringify(ring[0].face) === JSON.stringify({ role: "kindred", seed: "u-k0", avatarId: "f-honey", gone: false }) && ring[1].face.avatarId === null && ring[1].seed === "u-k1",
+  );
+  ok("unread letters ring the face; read up or never counted, no ring", ring[0].turn === true && ring[1].turn === false && ring[2].turn === false);
+  // a letter re-sorts the list: nobody on the ring moves
+  const moved = ts.map((t) => (t.id === "k5" ? { ...t, lastAt: now + H } : t)).reverse();
+  const b = M.buildKindredsView(base(moved, { ledger }), fmt).orbitKin;
+  ok("a re-sort among the same eight moves nobody", JSON.stringify(b.map((k) => [k.id, k.a0])) === JSON.stringify(ring.map((k) => [k.id, k.a0])));
+  // someone outside the eight writes: they take the place of whoever was heard from longest ago
+  const woke = ts.map((t) => (t.id === "k9" ? { ...t, lastAt: now + H } : t));
+  const c = M.buildKindredsView(base(woke, { ledger }), fmt).orbitKin.map((k) => k.id);
+  ok("a kindred who writes again comes back onto the ring; the quietest of the eight gives up the place", c.includes("k9") && !c.includes("k7") && c.length === 8);
+  ok("the strangers' orbit still has no kindreds", v2.orbit.length === 1 && v2.orbit[0].id === "p1");
+  ok("the faces the ring needs are keyed kin:<id>, apart from the rows'", Object.keys(M.orbitKinFaceInputs(v2)).sort().join() === ring.map((k) => `kin:${k.id}`).sort().join());
+  ok("no kindreds: an empty ring", M.buildKindredsView(base([th({ id: "p" })]), fmt).orbitKin.length === 0);
+  ok("the ring doesn't follow the list's tab or the search", JSON.stringify(M.buildKindredsView(base(ts, { ledger, tab: "penpals" }), fmt).orbitKin) === JSON.stringify(ring));
+}
+
 /* ── the folded row ── */
 {
   const theirs = Array.from({ length: 8 }, (_, i) => th({ id: `f${i}`, lastSenderMe: true, mine: 2, theirs: 1 }));

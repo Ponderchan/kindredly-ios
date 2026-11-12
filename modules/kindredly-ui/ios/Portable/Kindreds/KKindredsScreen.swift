@@ -174,6 +174,10 @@ public struct KKindredsContent: Equatable, Sendable {
   public var active = true
   public var chips: [KKindredsChip] = []
   public var orbit: [KOrbitItem] = []
+  /// you, in the orbit's middle: your own face (nil keeps the ink cell)
+  public var orbitMe: KPersonFace?
+  /// your kindreds on the orbit's home ring, beside you (at most eight; TS picks and orders them)
+  public var orbitKin: [KOrbitKin] = []
   public var items: [KKindredsItem] = []
 
   public init() {}
@@ -780,6 +784,8 @@ struct KKindredsBand: View {
         KKindredsOrbitBlock(
           theme: theme,
           orbit: content.orbit,
+          me: content.orbitMe,
+          kin: content.orbitKin,
           legendCloser: content.legendCloser,
           legendTurn: content.legendTurn,
           legendFrost: content.legendFrost,
@@ -947,6 +953,9 @@ struct KKindredsOrbitBlock: View {
 
   let theme: KTheme
   let orbit: [KOrbitItem]
+  /// you in the middle and your kindreds beside you (KOrbit's `me` and `kin`)
+  var me: KPersonFace?
+  var kin: [KOrbitKin] = []
   let legendCloser: String
   let legendTurn: String
   /// identity switch on: the your-turn mark is the sample window with its ind ring
@@ -963,7 +972,7 @@ struct KKindredsOrbitBlock: View {
     let fade = max(0, min(1, 1 - chrome.offset / 80))
     VStack(spacing: 0) {
       // folded: the rings alone, still (no centre cell, no faces: they read as stray blocks)
-      KOrbit(theme: theme, items: orbit, active: active && open, ringsOnly: !open, onTap: open ? onFace : nil)
+      KOrbit(theme: theme, items: orbit, me: me, kin: kin, active: active && open, ringsOnly: !open, onTap: open ? onFace : nil)
         .equatable()
       legend
         .opacity(open ? 1 : 0)

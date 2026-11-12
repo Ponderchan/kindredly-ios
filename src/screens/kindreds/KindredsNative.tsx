@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from "react";
-import { useIsFocused, useNavigation } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useFocusEffect, useIsFocused, useNavigation } from "expo-router";
 import { useKCommands, useRev, type KScreenHandle } from "../../../modules/kindredly-ui";
 import {
   KKindredsView,
@@ -8,17 +8,20 @@ import {
   type KKindredsFace,
   type KKindredsItem,
   type KKindredsOrbitItem,
+  type KKindredsOrbitKin,
   type KKindredsStrings,
 } from "../../../modules/kindredly-ui/src/Kindreds";
 import { SurfaceHost } from "../../components/NativeSurface";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
-import { faceRecord, useFaceSources, type FaceSource } from "../../lib/faces";
+import { faceRecord, useFaceSources, type FaceInput, type FaceSource } from "../../lib/faces";
+import { useAuth } from "../../lib/auth";
+import { getAvatarPhoto } from "../../lib/avatar-photo";
 import { useBirdImageRef } from "../../lib/bird-images";
 import type { ImageRefRecord } from "../../lib/images";
 import { t } from "../../lib/i18n";
 import { stampSpoken, useMemberStamps } from "../../lib/member-marks";
-import { faceInputs, type ChipVM, type ItemVM, type OrbitVM } from "./kindreds-model";
+import { faceInputs, orbitKinFaceInputs, type ChipVM, type ItemVM, type OrbitKinVM, type OrbitVM } from "./kindreds-model";
 import type { KindredsModel } from "./useKindredsModel";
 
 /* THE KINDREDS TAB IN SWIFTUI (10a step 5): one Host for the whole screen
@@ -163,6 +166,15 @@ export const nativeChips = (chips: readonly ChipVM[]): KKindredsChip[] =>
 export const nativeOrbit = (orbit: readonly OrbitVM[], stampOf: StampOf = NO_STAMPS): KKindredsOrbitItem[] =>
   orbit.map((o) => ({ id: o.id, mask: o.mask, frost: o.frost, ring: o.ring, a0: o.a0, dir: o.dir, period: o.period, turn: o.turn, stamp: !!stampOf(o.seed) }));
 
+/** Your kindreds on the orbit's home ring as the Swift view takes them: each one's face is the
+    one resolved for "kin:<id>" (their portrait, the glyph when they gave none; the soft disc
+    while it loads). Never a stamp at this size. */
+export const nativeOrbitKin = (kin: readonly OrbitKinVM[], faces: Readonly<Record<string, FaceSource>>): KKindredsOrbitKin[] =>
+  kin.map((k) => ({ id: k.id, face: sourceFace(faces[`kin:${k.id}`], false), a0: k.a0, turn: k.turn }));
+
+/** The key your own face is resolved under, beside the rows' and the home ring's. */
+const ME_FACE = "orbit:me";
+
 /** The same value back while its content is the same (JSON), so a rebuilt but unchanged array
     keeps its identity and isn't re-sent to Swift. */
 export function useSameContent<T>(value: T): T {
@@ -201,7 +213,28 @@ export function KindredsNative({ model }: { model: KindredsModel }) {
     });
   }, [navigation, commands]);
 
-  const inputs = useMemo(() => faceInputs(view), [view]);
+  /* THE ORBIT'S MIDDLE AND HOME RING (owner, 2026-11-12): your own face in the middle, round, as Me
+     draws it (the face you chose, your photo, or the glyph), and your kindreds' faces beside it.
+     The photo is a local file, read when the tab comes into view (Edit profile may have changed it). */
+  const { user, profile } = useAuth();
+  const [photo, setPhoto] = useState<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      getAvatarPhoto()
+        .then((p) => alive && setPhoto(p))
+        .catch((e) => console.warn("[kindreds] your photo wasn't read for the orbit:", e));
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
+  const myAvatarId = (profile?.avatarId as string) || null;
+  const mySeed = user?.id || "you";
+  const inputs = useMemo(() => {
+    const me: FaceInput = { role: "kindred", seed: mySeed, avatarId: myAvatarId, photoUri: photo };
+    return { ...faceInputs(view), ...orbitKinFaceInputs(view), [ME_FACE]: me };
+  }, [view, mySeed, myAvatarId, photo]);
   const faces = useFaceSources(inputs);
   const official = useBirdImageRef("official");
   const mine = useBirdImageRef("content");
@@ -214,8 +247,10 @@ export function KindredsNative({ model }: { model: KindredsModel }) {
   );
   const chips = useSameContent(useMemo(() => nativeChips(view.chips), [view.chips]));
   const orbit = useSameContent(useMemo(() => nativeOrbit(view.orbit, stampOf), [view.orbit, stampOf]));
+  const orbitKin = useSameContent(useMemo(() => nativeOrbitKin(view.orbitKin, faces), [view.orbitKin, faces]));
+  const orbitMe = useSameContent(useMemo(() => sourceFace(faces[ME_FACE], false), [faces]));
   const legendFrost = useSameContent(view.legendFrost);
-  const rev = useRev(items, chips, orbit, legendFrost);
+  const rev = useRev(items, chips, orbit, orbitKin, orbitMe, legendFrost);
   const strings = useSameContent<KKindredsStrings>({
     title: view.title,
     status: view.status,
@@ -242,6 +277,8 @@ export function KindredsNative({ model }: { model: KindredsModel }) {
         active={focused}
         chips={chips}
         orbit={orbit}
+        orbitMe={orbitMe}
+        orbitKin={orbitKin}
         items={items}
         legendFrost={legendFrost}
         onRowPress={act.openRow}

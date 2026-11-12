@@ -220,6 +220,22 @@ export type OrbitVM = {
   turn: boolean;
 };
 
+/** One kindred on the orbit's home ring, beside you (owner, 2026-11-12: the middle is your own
+    face, and the people you have traded names with sit round it with theirs, clear and round;
+    strangers come in from outside as frosted windows). `face` is their row's own input; `a0`
+    spaces them evenly in a stable order (thread id), so a reply that re-sorts the list moves
+    nobody; `turn`: letters of theirs you have not read. */
+export type OrbitKinVM = {
+  id: string;
+  seed: string;
+  face: FaceInput;
+  a0: number;
+  turn: boolean;
+};
+
+/** How many kindreds the home ring holds: eight 14-unit faces fit it with room between them. */
+export const ORBIT_KIN_MAX = 8;
+
 export type KindredsView = {
   title: string;
   status: string;
@@ -236,6 +252,8 @@ export type KindredsView = {
   legendFrost: FrostSpec | null;
   chips: ChipVM[];
   orbit: OrbitVM[];
+  /** your kindreds on the orbit's home ring (at most ORBIT_KIN_MAX) */
+  orbitKin: OrbitKinVM[];
   items: ItemVM[];
   /** on you: the title's count and the tab badge */
   waiting: number;
@@ -444,6 +462,33 @@ export function orbitItems(live: readonly ThreadSummary[], ledger: Readonly<Reco
       turn: onMeOf(t, ledger),
     };
   });
+}
+
+/** Your kindreds on the orbit's home ring: everyone you have traded names with whose account is
+    still there. More than the ring holds: the ones you have heard from or written to most lately
+    keep a place (the rest are in the list, as ever). Round the ring they go in a stable order
+    (thread id), evenly spaced from the top, so nobody jumps when a letter re-sorts the list. */
+export function orbitKindreds(live: readonly ThreadSummary[], ledger: Readonly<Record<string, number>>): OrbitKinVM[] {
+  const kin = live.filter((t) => t.revealed && !t.gone && !!t.other);
+  const shown = [...kin]
+    .sort((a, b) => b.lastAt - a.lastAt || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    .slice(0, ORBIT_KIN_MAX)
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const n = Math.max(shown.length, 1);
+  return shown.map((t, i) => ({
+    id: t.id,
+    seed: t.other,
+    face: { role: "kindred", seed: t.other, avatarId: t.otherFace ?? null, gone: false },
+    a0: -Math.PI / 2 + (i / n) * Math.PI * 2,
+    turn: unreadIn(ledger, t) > 0,
+  }));
+}
+
+/** The faces the orbit's home ring needs, keyed "kin:<thread id>" (for useFaceSources, beside faceInputs). */
+export function orbitKinFaceInputs(view: Pick<KindredsView, "orbitKin">): Record<string, FaceInput> {
+  const out: Record<string, FaceInput> = {};
+  for (const k of view.orbitKin) out[`kin:${k.id}`] = k.face;
+  return out;
 }
 
 /** How long a new kindred's row still says the courier name they wore (identity Phase 2, plan §1 row 5). */
@@ -719,6 +764,7 @@ export function buildKindredsView(f: KindredsFacts, fmt0: KindredsFormat): Kindr
     legendFrost: book.frost(LEGEND_FROST_SEED),
     chips,
     orbit: orbitItems(c.live, f.ledger, book),
+    orbitKin: orbitKindreds(c.live, f.ledger),
     items,
     waiting: c.waiting,
     named: c.named,

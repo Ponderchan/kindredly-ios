@@ -29,6 +29,8 @@ import ExpoUI
  - active: the tab is focused (the orbit drifts only then)
  - chips: [{ key, label, count, glyph: none | kindred | penPal, selected, dot, a11yLabel }]
  - orbit: [{ id, mask, frost, ring, a0, dir, period, turn, stamp }]
+ - orbitMe: { show, face }, orbitKin: [{ id, face, a0, turn }]: you in the middle and your
+   kindreds on the home ring (2026-11-12); faces are the rows' own record
  - a face record's `stamp`, a fold face's `stamp`: a First Class member's denomination ("1ST" |
    "007" | ""), drawn as their stamp (C2, KStampAvatar); an orbit face's `stamp` is a Bool
  - items: [{ id, type, text, text2, image, row, fold }], type one of wrenLine | notice | line |
@@ -251,6 +253,25 @@ struct KKindredsOrbitRecord: Record {
   }
 }
 
+/// One kindred on the orbit's home ring (KOrbitKin): their face as their row has it.
+struct KKindredsOrbitKinRecord: Record {
+  @Field var id: String = ""
+  @Field var face: KKindredsFaceRecord = KKindredsFaceRecord()
+  @Field var a0: Double = 0
+  @Field var turn: Bool = false
+
+  var kin: KOrbitKin {
+    KOrbitKin(id: id, face: face.face, a0: a0, turn: turn)
+  }
+}
+
+/// You, in the orbit's middle. `show` false (the default: an older JS that sends none) keeps
+/// the ink cell.
+struct KKindredsOrbitMeRecord: Record {
+  @Field var show: Bool = false
+  @Field var face: KKindredsFaceRecord = KKindredsFaceRecord()
+}
+
 /// Every word of the screen that isn't in a list (KKindredsStrings in TS).
 struct KKindredsStringsRecord: Record {
   @Field var title: String = ""
@@ -272,6 +293,9 @@ final class KKindredsViewProps: KScreenProps {
   @Field var active: Bool = true
   @Field var chips: [KKindredsChipRecord] = []
   @Field var orbit: [KKindredsOrbitRecord] = []
+  /// you and your kindreds on the orbit (2026-11-12); absent from an older JS: the orbit as it was
+  @Field var orbitMe: KKindredsOrbitMeRecord = KKindredsOrbitMeRecord()
+  @Field var orbitKin: [KKindredsOrbitKinRecord] = []
   @Field var items: [KKindredsItemRecord] = []
   /// identity switch on: the PEN PALS mark's and the your-turn legend's sample window (NO_FROST off)
   @Field var legendFrost: KFrostRecord = KFrostRecord()
@@ -358,6 +382,8 @@ struct KKindredsView: ExpoSwiftUI.View {
     content.active = props.active
     content.chips = props.cached("chips") { props.chips.map(\.chip) }
     content.orbit = props.cached("orbit") { props.orbit.map(\.item) }
+    content.orbitMe = props.cached("orbitMe") { props.orbitMe.show ? props.orbitMe.face.face : nil }
+    content.orbitKin = props.cached("orbitKin") { props.orbitKin.map(\.kin) }
     content.items = props.cached("items") { props.items.compactMap(\.item) }
     let insets = props.insets
     return KKindredsScreen(
