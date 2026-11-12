@@ -8,7 +8,7 @@ import { useTheme } from "../../lib/theme";
 import { getLang, needsTranslating, sourceTag, t, useLang } from "../../lib/i18n";
 import { guessLatin } from "../../lib/lang-guess";
 import { keepStampFlow, reportStampFlow } from "../../lib/custom-stamps";
-import { POOL_CACHE_KEY, fetchMatches, fetchPool, fetchPoolPage, fetchThreads, lastWriteFail, markLetterRead, replyToLetter, type PoolLetter, type ThreadSummary } from "../../lib/db";
+import { POOL_CACHE_KEY, fetchMatches, fetchMyReads, fetchPool, fetchPoolPage, fetchThreads, lastWriteFail, markLetterRead, replyToLetter, type PoolLetter, type ThreadSummary } from "../../lib/db";
 import type { WriteFail } from "../../lib/thread-detail-core";
 import type { Signal } from "../../lib/today-signal";
 import { refreshFingerprint, signalFor } from "../../lib/aura";
@@ -22,6 +22,7 @@ import { onStorageUserChange } from "../../lib/scoped-store";
 import { useAuth } from "../../lib/auth";
 import { SEND_BEAT_MS } from "../../lib/net";
 import { DAY_LETTERS, MAX_IN_FLIGHT, inFlight, rationPool, type FlightThread } from "../../lib/ration";
+import { noteLetterShown, seenLetterIds } from "../../lib/seen-letters";
 import { deskDay, isNightHour } from "../../lib/day";
 import { endDayClosed, startDayClosed } from "../../lib/activities";
 import { onYou } from "../../lib/waiting";
@@ -399,7 +400,16 @@ export function useTodaySource(): TodaySource {
           console.warn("[today] matcher:", e);
           return null;
         });
-        const [page, th, wroteOn] = await Promise.all([fetchPoolPage(), fetchThreads(), lastLetterDay()]);
+        /* a letter comes once (lib/db fetchPoolPage): what the server knows this reader read, and
+           what this phone has shown, stay off the deal; today's own desk stays whole */
+        const skipP = (async () => {
+          const [server, shown] = await Promise.all([fetchMyReads(), seenLetterIds()]);
+          const skip = new Set(shown);
+          if (server) for (const id of server) skip.add(id);
+          for (const l of get().desk) skip.delete(l.id);
+          return skip;
+        })();
+        const [page, th, wroteOn] = await Promise.all([skipP.then((skip) => fetchPoolPage(C.POOL_PAGE, undefined, skip)), fetchThreads(), lastLetterDay()]);
         const p = page ? page.letters : null;
         if (stale()) return;
         setLetterDay(wroteOn);
@@ -425,7 +435,7 @@ export function useTodaySource(): TodaySource {
           const m = await matchesP;
           if (!m?.closest?.length) return null;
           const score = new Map(m.closest.map((c) => [c.uid, c.score]));
-          const theirs = mode === "frozen" ? [] : (await fetchPool(C.POOL_PAGE, m.closest.map((c) => c.uid))) || [];
+          const theirs = mode === "frozen" ? [] : (await fetchPool(C.POOL_PAGE, m.closest.map((c) => c.uid), await skipP)) || [];
           return { score, theirs };
         })().catch((e) => {
           console.warn("[today] matcher pass:", e);
@@ -1032,6 +1042,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   useEffect(() => {
     if (!currentId || currentId.startsWith("demo")) return;
     readNow.current = null;
+    if (!demoRef.current) noteLetterShown(currentId); // shown is enough for it not to come back (lib/seen-letters)
     const timer = setTimeout(() => markReadNow(currentId), 2000);
     return () => clearTimeout(timer);
   }, [currentId, markReadNow]);

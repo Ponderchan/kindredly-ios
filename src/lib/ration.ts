@@ -47,13 +47,22 @@ const fnv = (s: string): number => {
 
 /** Cut the fetched pool down to the day's desk: matched writers always make
     the desk (they are the product working), the rest rotate by day. */
-export function rationPool<T extends { id: string; close?: number }>(pool: T[]): T[] {
-  if (pool.length <= DAY_LETTERS) return pool;
+export function rationPool<T extends { id: string; close?: number; author?: string | null }>(pool: T[]): T[] {
   const matched = pool.filter((l) => l.close != null);
   const rest = pool
     .filter((l) => l.close == null)
     .sort((a, b) => fnv(a.id + dayKey()) - fnv(b.id + dayKey()));
-  return [...matched, ...rest].slice(0, DAY_LETTERS);
+  /* one letter per writer on a desk (2026-11-12: some write six a day, and three of one
+     person's letters side by side read as the same letter again); the first of theirs in
+     this order is the one dealt */
+  const writers = new Set<string>();
+  const one = [...matched, ...rest].filter((l) => {
+    if (!l.author) return true;
+    if (writers.has(l.author)) return false;
+    writers.add(l.author);
+    return true;
+  });
+  return one.length <= DAY_LETTERS && one.length === pool.length ? pool : one.slice(0, DAY_LETTERS);
 }
 
 /* IN FLIGHT — the smarter half of the ration.
