@@ -407,18 +407,19 @@ export function loadMode(rec: DayRecord, placeholder: boolean): LoadMode {
 /**
  * A reload lands on a desk already in use: every letter the server still
  * has stays where it is, and (unless the desk is frozen) the day's new ones
- * join at the end, up to the fifteen. `all` is one page of the newest
+ * join at the end, up to the ten. `all` is one page of the newest
  * letters; when it is full, a letter missing from it may simply have aged
  * past it, so only the server's whole pool (`whole`: fetchPoolPage, read
  * from the page as sent, never from its length here — the page is filtered
  * on the phone first) can say a letter is gone.
  */
-export function keepDesk<T extends { id: string }>(cur: readonly T[], all: readonly T[], whole: boolean, fresh: readonly T[], frozen = false): T[] {
+export function keepDesk<T extends { id: string; author?: string | null }>(cur: readonly T[], all: readonly T[], whole: boolean, fresh: readonly T[], frozen = false): T[] {
   const alive = new Set(all.map((l) => l.id));
   const kept = whole ? cur.filter((l) => alive.has(l.id)) : [...cur];
   if (frozen) return kept.length === cur.length ? (cur as T[]) : kept;
   const seen = new Set(kept.map((l) => l.id));
-  const add = fresh.filter((l) => !seen.has(l.id));
+  const writers = new Set(kept.map((l) => l.author).filter(Boolean)); // one letter per writer (lib/ration)
+  const add = fresh.filter((l) => !seen.has(l.id) && !(l.author && writers.has(l.author)));
   return [...kept, ...add].slice(0, Math.max(kept.length, DAY_LETTERS));
 }
 
@@ -428,13 +429,14 @@ export function keepDesk<T extends { id: string }>(cur: readonly T[], all: reado
  * reader has passed stays, in pass order, then the letter on screen; the
  * deal fills in behind them. Nothing swaps under the thumb.
  */
-export function dealDesk<T extends { id: string }>(cur: readonly T[], passed: readonly string[], dealt: readonly T[]): T[] {
+export function dealDesk<T extends { id: string; author?: string | null }>(cur: readonly T[], passed: readonly string[], dealt: readonly T[]): T[] {
   const byId = new Map(cur.map((l) => [l.id, l]));
   const head: T[] = passed.map((id) => byId.get(id)).filter((l): l is T => !!l);
   const onScreen = unpassed(cur, passed)[0];
   if (onScreen) head.push(onScreen);
   const taken = new Set(head.map((l) => l.id));
-  return [...head, ...dealt.filter((l) => !taken.has(l.id))].slice(0, Math.max(head.length, DAY_LETTERS));
+  const writers = new Set(head.map((l) => l.author).filter(Boolean)); // one letter per writer (lib/ration)
+  return [...head, ...dealt.filter((l) => !taken.has(l.id) && !(l.author && writers.has(l.author)))].slice(0, Math.max(head.length, DAY_LETTERS));
 }
 
 /* ── her letter (the counted note) and the window ─────────────────────── */

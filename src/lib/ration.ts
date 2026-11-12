@@ -9,7 +9,9 @@ import { deskDay } from "./day";
  * words, and the rule: reply to twenty people and it means nothing.
  *
  * So the day has a shape now:
- *   · FIFTEEN letters on the desk, rotated daily — tomorrow is different
+ *   · TEN letters on the desk, rotated daily — tomorrow is different (fifteen
+ *     until 2026-11-12: the median reader opened four a day and only one
+ *     reader-day in eleven reached fifteen, and the owner found fifteen too many)
  *   · FIVE letters in flight — see the in-flight note below; scarcity is
  *     what makes a reply a decision, and an answer is what buys the next
  *   · replies INSIDE a correspondence are never counted, ever. The paywall
@@ -25,13 +27,13 @@ import { deskDay } from "./day";
  * suspend).
  */
 
-export const DAY_LETTERS = 15;
+export const DAY_LETTERS = 10;
 
 /** the desk's day — turns at the hour she's back, see lib/day */
 export const dayKey = (): string => deskDay();
 
 /* FNV-1a — a stable per-day shuffle, not randomness. The same reader sees
-   the same fifteen all day (no re-roll by re-opening), and different ones
+   the same ten all day (no re-roll by re-opening), and different ones
    tomorrow. Seeded with the letter id and the day only: matching, not the
    shuffle, is what personalises the desk. */
 const fnv = (s: string): number => {
@@ -45,13 +47,22 @@ const fnv = (s: string): number => {
 
 /** Cut the fetched pool down to the day's desk: matched writers always make
     the desk (they are the product working), the rest rotate by day. */
-export function rationPool<T extends { id: string; close?: number }>(pool: T[]): T[] {
-  if (pool.length <= DAY_LETTERS) return pool;
+export function rationPool<T extends { id: string; close?: number; author?: string | null }>(pool: T[]): T[] {
   const matched = pool.filter((l) => l.close != null);
   const rest = pool
     .filter((l) => l.close == null)
     .sort((a, b) => fnv(a.id + dayKey()) - fnv(b.id + dayKey()));
-  return [...matched, ...rest].slice(0, DAY_LETTERS);
+  /* one letter per writer on a desk (2026-11-12: some write six a day, and three of one
+     person's letters side by side read as the same letter again); the first of theirs in
+     this order is the one dealt */
+  const writers = new Set<string>();
+  const one = [...matched, ...rest].filter((l) => {
+    if (!l.author) return true;
+    if (writers.has(l.author)) return false;
+    writers.add(l.author);
+    return true;
+  });
+  return one.length <= DAY_LETTERS && one.length === pool.length ? pool : one.slice(0, DAY_LETTERS);
 }
 
 /* IN FLIGHT — the smarter half of the ration.

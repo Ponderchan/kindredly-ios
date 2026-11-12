@@ -417,9 +417,45 @@ export interface PoolLetter {
 /* last time's pool, so a cold open paints before the network answers (Today
    reads it; onboarding primes it) */
 export const POOL_CACHE_KEY = "kindredly_pool_cache";
-export async function fetchPool(limit = 40, authors?: string[]): Promise<PoolLetter[] | null> {
-  const page = await fetchPoolPage(limit, authors);
+export async function fetchPool(limit = 40, authors?: string[], skip?: ReadonlySet<string>): Promise<PoolLetter[] | null> {
+  const page = await fetchPoolPage(limit, authors, skip);
   return page ? page.letters : null;
+}
+
+/* A LETTER COMES ONCE (owner, 2026-11-12: "好多信重复被推荐"). The desk used to forget at
+   every turn of the day and dealt from the newest forty, about three days of letters, so a
+   letter passed yesterday came back today and tomorrow. Now what this reader has read stays
+   off their desk: the server's own list (0054 my_read_letters: letter_reads, their rows
+   only, iPhone and web alike) plus the phone's (lib/seen-letters: everything put on screen,
+   even flicked past). With `skip`, the pool reads further back, page by page, until it has
+   POOL_WANT letters this reader hasn't seen, or POOL_REACH_DAYS, or POOL_MAX_PAGES. The
+   first page is the newest `limit` as it always was (no age limit), and only a short FIRST
+   page says the pool is whole: a page cut short by the age limit has not seen everything,
+   and keepDesk would drop a desk letter that was simply older than it. */
+const POOL_MAX_PAGES = 5;
+const POOL_REACH_DAYS = 60;
+const POOL_WANT = 20; // twice a desk: room for the day's shuffle and the one-per-writer rule
+
+/** the letters this reader has read (0054). null = no answer (offline, or 0054 not run yet):
+    the phone's own list still holds, and nothing is kept out on a guess */
+export async function fetchMyReads(days = POOL_REACH_DAYS): Promise<Set<string> | null> {
+  if (!supabaseReady) return null;
+  try {
+    const { data, error } = await supabase!.rpc("my_read_letters", { p_days: days });
+    if (error || !Array.isArray(data)) {
+      if (error) console.warn("[db] my_read_letters (has 0054 run?)", error);
+      return null;
+    }
+    const out = new Set<string>();
+    for (const r of data as unknown[]) {
+      const id = typeof r === "string" ? r : r && typeof r === "object" ? (r as Record<string, unknown>).my_read_letters : null;
+      if (typeof id === "string") out.add(id);
+    }
+    return out;
+  } catch (e) {
+    console.warn("[db] my_read_letters", e);
+    return null;
+  }
 }
 
 /** fetchPool, and whether that page is the server's whole pool: fewer rows came back than were
@@ -431,11 +467,13 @@ const POOL_MEDIA_COLUMNS = "id, author, stamp, body, lang, created_at, kind, med
 /** letters.paper was refused once this run (0041 not run): the pool stops asking for it */
 let poolWithoutPaper = false;
 
-export async function fetchPoolPage(limit = 40, authors?: string[]): Promise<{ letters: PoolLetter[]; whole: boolean } | null> {
+export async function fetchPoolPage(limit = 40, authors?: string[], skip?: ReadonlySet<string>): Promise<{ letters: PoolLetter[]; whole: boolean } | null> {
   if (!supabaseReady) return null;
   if (authors && !authors.length) return { letters: [], whole: true };
   const me = await uid();
-  try {
+  const since = skip ? new Date(Date.now() - POOL_REACH_DAYS * 86400000).toISOString() : null;
+  // page 0 is the newest `limit`; each further page reaches back past what this reader has seen
+  const fetchRows = async (from: number) => {
     const page = (columns: string) => {
       let q = supabase!
         .from("letters")
@@ -443,8 +481,9 @@ export async function fetchPoolPage(limit = 40, authors?: string[]): Promise<{ l
         .eq("active", true)
         .not("author", "is", null)
         .order("created_at", { ascending: false })
-        .limit(limit);
+        .range(from, from + limit - 1);
       if (authors) q = q.in("author", authors);
+      if (since && from > 0) q = q.gte("created_at", since);
       return q;
     };
     // the paper (0041), then the media columns without it (0007), then the oldest list
@@ -464,7 +503,21 @@ export async function fetchPoolPage(limit = 40, authors?: string[]): Promise<{ l
       data = fallback.data as any;
       if (fallback.error || !data) return null;
     }
-    if (!data) return null;
+    return data ? (data as unknown as PoolLetter[]) : null; // the column list is built at run time (page above), so its rows are untyped
+  };
+  try {
+    const first = await fetchRows(0);
+    if (!first) return null;
+    let rows = first;
+    const whole = first.length < limit;
+    // reach back while too few of them are new to this reader (only with `skip`)
+    for (let n = 1, last = first; skip && last.length === limit && n < POOL_MAX_PAGES && rows.filter((r) => !skip.has(r.id)).length < POOL_WANT; n++) {
+      const more = await fetchRows(n * limit);
+      if (!more) break; // what came back already is still a pool
+      const have = new Set(rows.map((r) => r.id)); // a letter written between pages shifts the next page by one
+      rows = rows.concat(more.filter((r) => !have.has(r.id)));
+      last = more;
+    }
 
     /* WHOEVER IS ALREADY IN KINDREDS IS NOT A STRANGER.
        Today is where you meet people you don't know; the moment a
@@ -500,10 +553,9 @@ export async function fetchPoolPage(limit = 40, authors?: string[]): Promise<{ l
        a normal-looking card in Today whose SEND lit up and whose every reply
        came back "Couldn't send. Try again." — advice that could never work.
        Filtered in the query as well, so ghosts don't eat the page budget. */
-    const rows = data as unknown as PoolLetter[]; // the column list is built at run time (page above), so its rows are untyped
     return {
-      letters: rows.filter((r) => r.author && r.author !== me && !known.has(r.author)),
-      whole: rows.length < limit,
+      letters: rows.filter((r) => r.author && r.author !== me && !known.has(r.author) && !skip?.has(r.id)),
+      whole,
     };
   } catch {
     return null;
