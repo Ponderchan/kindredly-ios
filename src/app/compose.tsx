@@ -8,6 +8,8 @@ import { LeaveSheet, type LeaveAction } from "../components/LeaveSheet";
 import { SignUpSheet } from "../components/SignUpSheet";
 import { useTheme } from "../lib/theme";
 import { useAuth } from "../lib/auth";
+import { swiftReadsFold, useFoldFrame } from "../lib/fold";
+import { useNativeSurface } from "../lib/surfaces";
 import { useEntitlement } from "../lib/entitlement";
 import { useWrenName } from "../lib/wren-name";
 import { t } from "../lib/i18n";
@@ -53,9 +55,12 @@ export default function Compose() {
   // the Swift page's view: blurred before every sheet, Alert and push
   const viewRef = useRef<KScreenHandle>(null);
 
+  // a folding phone's inner screen, with the Swift page drawing: the stamps have the left page
+  const frame = useFoldFrame();
+  const spread = useNativeSurface("compose") && !!frame.pages && swiftReadsFold();
   const state = useComposeState({
     params,
-    env: { premium, premiumSettled: settled, isGuest, signedIn: !!user, wren },
+    env: { premium, premiumSettled: settled, isGuest, signedIn: !!user, wren, stampsAlways: spread },
     target: viewRef,
     tk,
   });

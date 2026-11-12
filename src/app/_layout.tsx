@@ -321,6 +321,7 @@ function ThemedStack() {
   const twoPages = !!frame.pages && swiftReadsFold();
   const readerSpread = useNativeSurface("reader") && twoPages;
   const noteSpread = useNativeSurface("journalentry") && twoPages;
+  const composeSpread = useNativeSurface("compose") && twoPages;
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
       <SafeAreaInsetsContext.Provider value={insets}>
@@ -340,7 +341,7 @@ function ThemedStack() {
         {/* WRITING TO A STRANGER rises from the bottom (10a), and the edge
             swipe can't take it away: the guarded ✕ is its one way out, so
             words are never lost to a stray swipe (owner). */}
-        <Stack.Screen name="compose" options={{ animation: "slide_from_bottom", gestureEnabled: false }} />
+        <Stack.Screen name="compose" options={{ animation: "slide_from_bottom", gestureEnabled: false, ...(composeSpread ? spreadPage : null) }} />
         {/* a page to yourself rises the same way */}
         <Stack.Screen name="journal-entry" options={{ animation: "slide_from_bottom", ...(noteSpread ? spreadPage : null) }} />
         <Stack.Screen name="journal-pick" options={{ animation: "slide_from_bottom" }} />

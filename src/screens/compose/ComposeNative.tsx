@@ -5,6 +5,7 @@ import { KIsland, useKCommands, useRev, type KScreenHandle, type KInsets, type K
 import {
   KComposeView,
   type KComposeCommands,
+  type KComposeEnvelope,
   type KComposeLive,
   type KComposeMore,
   type KComposePaperHead,
@@ -24,7 +25,15 @@ import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets } from "../../lib/screen-insets";
 import { COMPOSE_WREN_MOODS, composeWrenPose, useBirdImageRefs } from "../../lib/bird-images";
 import { useSwiftIsland } from "../../lib/swift-island";
-import { t } from "../../lib/i18n";
+import { getLang, t, useLang } from "../../lib/i18n";
+import { useAuth } from "../../lib/auth";
+import { swiftReadsFold, useFoldFrame } from "../../lib/fold";
+import { frostSpec } from "../../lib/frost";
+import { localeTag } from "../../lib/format";
+import { strangerName } from "../../lib/stranger-name";
+import { zodiacFromDob } from "../../lib/zodiac";
+import { showsSign } from "../edit-profile/edit-profile-model";
+import "../../data/strings-onboarding2";
 import "../../data/strings-stamps2";
 import type { ComposeActions, ComposeState } from "./useComposeState";
 
@@ -100,6 +109,40 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
   const letterFont = useLetterFont();
   const insets = useScreenInsets();
   const { width } = useWindowDimensions();
+
+  /* THE ENVELOPE, FOR THE LEFT PAGE (iPhone Duo's inner screen; KComposePage, THE SPREAD). You,
+     as a stranger will see you on this letter: the courier name, the frosted window, the star
+     sign when you show it, today's date and the line onboarding's envelope is addressed with.
+     Never ♀ / ♂ (a stranger never sees one). null everywhere else: nothing is built or sent. */
+  const lang = useLang();
+  const frame = useFoldFrame();
+  const spread = !!frame.pages && swiftReadsFold();
+  const { user, profile } = useAuth();
+  const uid = user?.id ?? null;
+  const dob = typeof profile?.dob === "string" ? (profile.dob as string) : null;
+  const signShown = showsSign(profile?.showSign);
+  const envelope = useMemo<KComposeEnvelope | null>(() => {
+    if (!spread) return null;
+    const name = uid ? strangerName(uid, { lang: getLang(), unsigned: "" }) : "";
+    let date = "";
+    try {
+      date = new Intl.DateTimeFormat(localeTag(), { month: "short", day: "numeric" }).format(new Date()).toLocaleUpperCase(localeTag());
+    } catch (e) {
+      console.warn("[compose] the envelope's date couldn't be formatted:", e);
+      const d = new Date();
+      date = `${d.getMonth() + 1}/${d.getDate()}`;
+    }
+    return {
+      name,
+      frost: uid ? frostSpec(uid) : null,
+      sign: (signShown ? zodiacFromDob(dob) : null) ?? "",
+      date,
+      to: t("ob2.stamp.to"),
+      a11y: t("ob2.stamp.envA11y", { name }),
+    };
+    // lang: the name, the date and the two lines follow the language on screen
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spread, uid, dob, signShown, lang]);
 
   // the live state, sent when it changes (and on attach)
   const live: KComposeLive = {
@@ -235,6 +278,7 @@ export function ComposeNative({ state, viewRef }: { state: ComposeState; viewRef
         more={more}
         plusDot={state.plusDot}
         quota={state.quota}
+        envelope={envelope}
         capPanel={state.capPanel}
         busy={state.busy}
         trayTab={state.trayTab}
@@ -277,6 +321,7 @@ type SurfaceProps = {
   more: KComposeMore;
   plusDot: boolean;
   quota: string;
+  envelope: KComposeEnvelope | null;
   capPanel: boolean;
   busy: boolean;
   trayTab: "official" | "custom";
@@ -320,6 +365,7 @@ const ComposeSurface = memo(function ComposeSurface(p: SurfaceProps) {
         more={p.more}
         plusDot={p.plusDot}
         quota={p.quota}
+        envelope={p.envelope}
         capPanel={p.capPanel}
         busy={p.busy}
         trayTab={p.trayTab}

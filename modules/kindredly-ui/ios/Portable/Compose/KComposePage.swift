@@ -394,8 +394,25 @@ public struct KComposeStrings: Equatable, Sendable {
 }
 
 /// Everything the page draws that isn't live: the caller's props.
+/// You, to a stranger, for the envelope this letter will travel in: drawn on the left page of a
+/// folding phone's inner screen (KComposePage, THE SPREAD). The courier name a stranger sees,
+/// the frosted window, the star sign when it is shown, today's date and the line it is
+/// addressed with. Never ♀ / ♂: a stranger never sees one.
+public struct KComposeEnvelope: Equatable, Sendable {
+  public var name = ""
+  public var frost: KFrostSpec?
+  public var sign: KLineGlyph?
+  public var date = ""
+  public var to = ""
+  public var a11y = ""
+
+  public init() {}
+}
+
 public struct KComposeContent: Equatable, Sendable {
   public var strings = KComposeStrings()
+  /// the envelope, where there is a left page for it; nil on a phone
+  public var envelope: KComposeEnvelope?
   /// nil: none chosen yet
   public var stamp: KComposeStamp?
   public var mode: KComposeMode = .write
@@ -489,6 +506,8 @@ public final class KComposeActions {
 }
 
 public struct KComposePage<Wren: View, Recorder: View>: View {
+  /// a folding phone's inner screen: the envelope and the stamps on the left page (THE SPREAD)
+  @ObservedObject private var fold = KFold.shared
   /// the page's side margin (compose.tsx: the scroll's paddingHorizontal 22)
   static var gutter: CGFloat { 22 }
   /// the tray's height above the home indicator (ComposeTray TRAY_H)
@@ -569,7 +588,10 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
     2 * min(writingLine, 46.5) + 2 * KComposeEditor.topInset
   }
   /// the tray, once the keyboard has gone
-  private var showTray: Bool { content.tray != .none && !keyboardUp }
+  /// THE SPREAD: the envelope and the stamps have the left page (see `body`)
+  private var spread: Bool { fold.frame.twoPages && content.envelope != nil }
+  /// (on the spread the stamps are never a tray under the page: they are the left page)
+  private var showTray: Bool { content.tray != .none && !keyboardUp && !(spread && content.tray == .stamps) }
   /// the cap panel, only while the keyboard and the trays are away (see the top of the file)
   private var showCap: Bool { content.capPanel && !keyboardUp && !showTray }
 
@@ -588,7 +610,58 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
     }
   }
 
+  /* THE SPREAD (iPhone Duo's inner screen; the canvas's "写信": "右页写，左页是这封信的信封";
+     owner, 2026-11-12: "逐个做吧"). On a phone the stamp tray and the keyboard want the same
+     ground, so choosing a stamp means putting the keyboard away. Open, nothing has to give:
+     · the right page is the page being written, exactly as on a phone;
+     · the left page is the envelope this letter will travel in (you, as a stranger sees you:
+       the courier name, the frosted window, the star sign, today's date, "to: someone who
+       writes like you", and the stamp in its corner) and under it the stamp tray, open for
+       good: a stamp tapped there is on the envelope at once, the keyboard still up.
+     The paper and the + trays stay where they were, under the right page. TS sends the
+     envelope and keeps the tray's sections coming only on this screen (ComposeNative); without
+     an envelope the page is the one column it always was. The Host is the window less the
+     system's band (app/_layout: compose). */
   public var body: some View {
+    if spread, let envelope = content.envelope {
+      HStack(alignment: .top, spacing: 0) {
+        leftPage(envelope)
+          .frame(width: fold.frame.crease)
+        pageBody
+          .frame(width: max(0, fold.frame.rightEnd - fold.frame.crease))
+        Spacer(minLength: 0)
+      }
+      .background { theme.bg.ignoresSafeArea() }
+    } else {
+      pageBody
+    }
+  }
+
+  private func leftPage(_ envelope: KComposeEnvelope) -> some View {
+    VStack(spacing: 0) {
+      KComposeEnvelopeFront(theme: theme, envelope: envelope, stamp: content.stamp, width: min(340, max(0, fold.frame.crease - 56)))
+        .padding(.top, topInset + 26)
+        .padding(.bottom, 22)
+      KStampTray(
+        theme: theme,
+        sections: content.sections,
+        selectedId: content.stamp?.id ?? "",
+        bottomInset: bottomInset,
+        onPick: actions.onPickStamp,
+        custom: content.customTray,
+        tab: content.trayTab,
+        strings: content.strings,
+        onTab: actions.onTrayTab,
+        onMake: actions.onMakeStamp,
+        onFullCta: actions.onFullCta
+      )
+      .clipShape(UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 22, style: .continuous))
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    .ignoresSafeArea(.keyboard)
+  }
+
+  private var pageBody: some View {
     VStack(spacing: 0) {
       header
         .padding(.top, topInset + 8)
@@ -656,8 +729,9 @@ public struct KComposePage<Wren: View, Recorder: View>: View {
       .ignoresSafeArea(.keyboard)
     }
     .onChange(of: content.tray) { _, tray in
-      // a tray takes the keyboard's place: let go first
-      if tray != .none { driver.blurAll() }
+      // a tray takes the keyboard's place: let go first (not the stamps on the spread, which
+      // have a page of their own)
+      if tray != .none && !(spread && tray == .stamps) { driver.blurAll() }
     }
     // a container of its own, so VoiceOver's escape reaches it from any element on the page
     .accessibilityElement(children: .contain)
@@ -1131,5 +1205,106 @@ private struct KComposeNoteLine: View {
     case .amber: return theme.isDark ? KBrand.goldText : KBrand.brassSeal
     case .post: return KBrand.postRed
     }
+  }
+}
+
+/*
+ THE ENVELOPE THIS LETTER WILL TRAVEL IN (KComposePage, THE SPREAD): onboarding's envelope front
+ (KObEnvelopeFront, 340 × 214, scaled to `width`), drawn from plain values so the composer needs
+ none of onboarding's own. White paper inside the airmail band; your frosted window, your courier
+ name and star sign, the date; "to: someone who writes like you"; and the corner where the stamp
+ goes: the stamp you picked at its small tilt, or its dashed place while there is none. An
+ object, the same in every theme (paper is paper); flat with a soft shadow, no hard edge (owner,
+ 2026-11-12, on the folding phone: "不要那些紫色的阴影什么的").
+ */
+struct KComposeEnvelopeFront: View {
+  static let w: CGFloat = 340
+  static let h: CGFloat = 214
+  static let corner = CGRect(x: 340 - 22 - 60, y: 22, width: 60, height: 72)
+
+  let theme: KTheme
+  let envelope: KComposeEnvelope
+  let stamp: KComposeStamp?
+  var width: CGFloat = 340
+
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  var body: some View {
+    let s = max(0.01, width / Self.w)
+    let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+    ZStack(alignment: .topLeading) {
+      KObAirmail(period: 28, bar: 8, red: Color(hex: "#E2453C"))
+      RoundedRectangle(cornerRadius: 5, style: .continuous)
+        .fill(KOb.paper)
+        .padding(13)
+
+      Group {
+        if let stamp {
+          KStamp(id: stamp.id, width: Self.corner.width, dark: false)
+            .rotationEffect(.degrees(2))
+            .id(stamp.id)
+            .transition(reduceMotion ? .opacity : .scale(scale: 1.25).combined(with: .opacity))
+        } else {
+          KStampSlot(width: Self.corner.width, stroke: KOb.inkSoft)
+        }
+      }
+      .frame(width: Self.corner.width, height: Self.corner.height)
+      .offset(x: Self.corner.minX, y: Self.corner.minY)
+      .animation(reduceMotion ? .easeOut(duration: 0.15) : .spring(duration: 0.32, bounce: 0.3), value: stamp?.id)
+
+      HStack(spacing: 0) {
+        // (no account on this phone, as in the demo: no window and no name to show, so only
+        // the date stands there, at the row's foot)
+        if let spec = envelope.frost {
+          KFrost(theme: .classic, spec: spec, size: 56)
+            .padding(.trailing, 12)
+        } else if !envelope.name.isEmpty {
+          RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .strokeBorder(KOb.inkSoft, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+            .frame(width: 56, height: 56)
+            .padding(.trailing, 12)
+        }
+        VStack(alignment: .leading, spacing: 3) {
+          HStack(spacing: 0) {
+            Text(envelope.name.isEmpty ? " " : envelope.name)
+              .font(.system(size: 23, weight: .bold))
+              .tracking(-0.4)
+              .foregroundStyle(KOb.ink)
+              .lineLimit(1)
+              .minimumScaleFactor(0.7)
+            if let sign = envelope.sign {
+              KOwnMark(sign, size: 20, ink: KOb.inkSoft)
+                .padding(.leading, 6)
+                .fixedSize()
+            }
+          }
+          Text(envelope.date)
+            .font(.system(size: 12.5, weight: .medium, design: .monospaced))
+            .tracking(1.4)
+            .foregroundStyle(KOb.inkSoft)
+            .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, minHeight: 56, alignment: .bottomLeading)
+      }
+      .frame(width: Self.w - 26 - 22)
+      .offset(x: 26, y: 104)
+
+      Text(envelope.to)
+        .kText(.content(15.5, italic: true))
+        .foregroundStyle(KOb.ink)
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+        .frame(width: Self.w - 26 - 22, alignment: .leading)
+        .offset(x: 26, y: Self.h - 50)
+    }
+    .frame(width: Self.w, height: Self.h, alignment: .topLeading)
+    .clipShape(shape)
+    .kSoftShadows([KSoftShadow(y: 8, blur: 22, spread: -8, color: Color.black.opacity(theme.isDark ? 0.5 : 0.16))], in: shape)
+    .environment(\.dynamicTypeSize, .large)
+    .scaleEffect(s, anchor: .topLeading)
+    .frame(width: width, height: Self.h * s, alignment: .topLeading)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(envelope.a11y)
+    .accessibilityAddTraits(.isImage)
   }
 }

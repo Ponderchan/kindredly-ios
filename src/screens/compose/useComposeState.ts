@@ -139,6 +139,9 @@ export type ComposeEnv = {
   signedIn: boolean;
   /** her name, for her lines */
   wren: string;
+  /** a folding phone's inner screen: the stamp tray is the left page, open for good, so its
+      sections are built whether or not `tray` says stamps (KComposePage, THE SPREAD) */
+  stampsAlways?: boolean;
 };
 
 /** Everything the page does to the world, so the dev page can stand in for it (no network, no
@@ -621,12 +624,21 @@ export function useComposeState(opts: {
   const seasonStamps = useSeason().stamps;
   // on the reader's own birthday, the birthday stamp first of all (owner's audit, 2026-11-10)
   const birthdayStamp = useBirthdayStamp();
-  const trayText = tray === "stamps" ? text : "";
+  /* where the tray is a page of its own (env.stampsAlways) the sections are always there, and
+     "for this letter" follows the words once the writer pauses, not at every key */
+  const always = !!env.stampsAlways;
+  const [pausedText, setPausedText] = useState(text);
+  useEffect(() => {
+    if (!always) return;
+    const id = setTimeout(() => setPausedText(text), 700);
+    return () => clearTimeout(id);
+  }, [always, text]);
+  const trayText = tray === "stamps" ? text : always ? pausedText : "";
   const sections = useMemo(
-    () => (tray === "stamps" ? traySections({ suggested: suggestStamps(trayText), recent, tk, season: seasonStamps, birthday: birthdayStamp }) : []),
+    () => (tray === "stamps" || always ? traySections({ suggested: suggestStamps(trayText), recent, tk, season: seasonStamps, birthday: birthdayStamp }) : []),
     // the words follow the reader's language (getLang inside sname / t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [tray, trayText, recent, tk, seasonStamps, birthdayStamp, getLang()],
+    [tray, always, trayText, recent, tk, seasonStamps, birthdayStamp, getLang()],
   );
 
   // ── actions ──

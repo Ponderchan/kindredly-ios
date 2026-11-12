@@ -226,6 +226,18 @@ func kComposeColor(_ hex: String) -> Color? {
   return Color(hex: digits)
 }
 
+/// You, to a stranger, for the envelope on a folding phone's left page (KComposeEnvelope).
+struct KComposeEnvelopeRecord: Record {
+  @Field var on: Bool = false
+  @Field var name: String = ""
+  @Field var frost: KFrostRecord = KFrostRecord()
+  /// the sign's line glyph name (KLineGlyph), "" for none
+  @Field var sign: String = ""
+  @Field var date: String = ""
+  @Field var to: String = ""
+  @Field var a11y: String = ""
+}
+
 final class KComposeViewProps: KScreenProps {
   @Field var strings: KComposeStringsRecord = KComposeStringsRecord()
   @Field var stamp: KComposeStampRecord = KComposeStampRecord()
@@ -236,6 +248,9 @@ final class KComposeViewProps: KScreenProps {
   @Field var more: KComposeMoreRecord = KComposeMoreRecord()
   @Field var plusDot: Bool = false
   @Field var quota: String = ""
+  /// a folding phone's inner screen: the envelope for the left page (KComposePage, THE SPREAD);
+  /// `on` false everywhere else
+  @Field var envelope: KComposeEnvelopeRecord = KComposeEnvelopeRecord()
   @Field var capPanel: Bool = false
   @Field var busy: Bool = false
   @Field var trayTab: String = "official"
@@ -384,6 +399,16 @@ final class KComposeViewProps: KScreenProps {
     c.voiceLocked = more.voiceLocked
     c.plusDot = plusDot
     c.quota = quota
+    if envelope.on {
+      var e = KComposeEnvelope()
+      e.name = envelope.name
+      e.frost = envelope.frost.spec
+      e.sign = KLineGlyph(rawValue: envelope.sign)
+      e.date = envelope.date
+      e.to = envelope.to
+      e.a11y = envelope.a11y
+      c.envelope = e
+    }
     c.capPanel = capPanel
     c.busy = busy
     c.paper = KPaper(key: paper)

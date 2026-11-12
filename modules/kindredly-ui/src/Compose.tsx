@@ -2,7 +2,7 @@ import { requireNativeView } from "expo";
 import { forwardRef, useMemo, type ReactNode, type Ref } from "react";
 import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
-import type { KInsets, KScreenBaseProps, KScreenHandle, KStandardCommands } from "./types";
+import { nativeFrost, type KFrost, type KInsets, type KScreenBaseProps, type KScreenHandle, type KStandardCommands } from "./types";
 import type { KVoiceSlotAction, KVoiceSlotCommand } from "./VoicePieces";
 import { nativeWrenMoods, type KWrenMoodsData } from "./LastIslands";
 
@@ -193,6 +193,9 @@ export type KComposeCommands = Omit<KStandardCommands, "setText" | "focus" | "co
   wrenMood: { mood: string };
 };
 
+/** The envelope a letter travels in (KComposePage, THE SPREAD): never ♀ / ♂. */
+export type KComposeEnvelope = { name: string; frost: KFrost | null; sign: string; date: string; to: string; a11y: string };
+
 export type KComposeViewProps = CommonViewModifierProps &
   KScreenBaseProps & {
     strings: KComposeStrings;
@@ -209,6 +212,9 @@ export type KComposeViewProps = CommonViewModifierProps &
     plusDot: boolean;
     /** "4 LEFT TODAY" for a free writer, "" otherwise */
     quota: string;
+    /** a folding phone's inner screen: you, to a stranger, for the envelope on the left page;
+        null (or absent) everywhere else */
+    envelope?: KComposeEnvelope | null;
     /** the daily-cap panel shows */
     capPanel: boolean;
     /** a send is in flight */
@@ -260,6 +266,7 @@ type Ev<T> = (e: { nativeEvent: T }) => void;
 
 type NativeKComposeViewProps = Omit<
   KComposeViewProps,
+  | "envelope"
   | "letterFont"
   | "insets"
   | "rev"
@@ -282,6 +289,7 @@ type NativeKComposeViewProps = Omit<
   | "wren"
 > &
   Required<Pick<KComposeViewProps, "letterFont" | "insets" | "rev">> & {
+  envelope: { on: boolean; name: string; frost: KFrost; sign: string; date: string; to: string; a11y: string };
     ref?: Ref<KScreenHandle>;
     sections: KComposeSection[];
     wren: ReturnType<typeof nativeWrenMoods>;
@@ -345,11 +353,25 @@ export const KComposeView = forwardRef<KScreenHandle, KComposeViewProps>(functio
     papers,
     paperHead,
     wren,
+    envelope,
     ...rest
   },
   ref,
 ) {
   const sent = useMemo(() => nativeComposeSections(sections), [sections]);
+  // every field present (a Swift @Field record can't take null or undefined); `on` false: none
+  const envelopeSent = useMemo(
+    () => ({
+      on: !!envelope,
+      name: envelope?.name ?? "",
+      frost: nativeFrost(envelope?.frost),
+      sign: envelope?.sign ?? "",
+      date: envelope?.date ?? "",
+      to: envelope?.to ?? "",
+      a11y: envelope?.a11y ?? "",
+    }),
+    [envelope],
+  );
   const wrenSent = useMemo(() => nativeWrenMoods(wren), [wren]);
   // every field present (a Swift @Field record can't take null or undefined)
   const customSent = useMemo(
@@ -376,6 +398,7 @@ export const KComposeView = forwardRef<KScreenHandle, KComposeViewProps>(functio
       insets={insets ?? NO_INSETS}
       rev={rev ?? 0}
       sections={sent}
+      envelope={envelopeSent}
       customStamps={customSent}
       papers={papersSent}
       paperHead={headSent}
