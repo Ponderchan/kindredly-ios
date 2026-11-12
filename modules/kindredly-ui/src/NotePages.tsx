@@ -1,4 +1,4 @@
-import { requireNativeView } from "expo";
+import { requireNativeView, requireOptionalNativeModule } from "expo";
 import { forwardRef, useMemo, type ReactNode, type Ref } from "react";
 import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
@@ -343,3 +343,18 @@ export const KPhotoRollView = forwardRef<KScreenHandle, KPhotoRollViewProps>(fun
     />
   );
 });
+
+type KindredlyUIRoll = { primeLibraryPictures?: (uris: string[], pixels: number) => void };
+
+/** The photo roll's first pictures read into memory before the roll opens (KPhotoLibraryLoader
+    prime), at a cell's side in pixels, so KPhotoRollView rises with them already drawn. Nothing on
+    a binary without it (before 1.2.8's build 43). */
+export function primeLibraryPictures(uris: string[], pixels: number): void {
+  const native = requireOptionalNativeModule<KindredlyUIRoll>("KindredlyUI");
+  if (typeof native?.primeLibraryPictures !== "function") return;
+  try {
+    native.primeLibraryPictures(uris, pixels);
+  } catch (e) {
+    console.warn("[kindredly-ui] primeLibraryPictures failed:", e);
+  }
+}

@@ -56,7 +56,8 @@ export function PhotoRollNative() {
   const keys = useSameContent(first.keys.length ? first.keys : NO_KEYS);
   const rev = useRev(rest);
 
-  const empty: KPhotoRollEmpty = frames.length ? "" : perm === "denied" ? "denied" : perm === "asking" ? "" : "nothing";
+  // "No photos yet." only once a read has answered: never in the rise, before the first read is in
+  const empty: KPhotoRollEmpty = frames.length ? "" : perm === "denied" ? "denied" : perm === "asking" || !roll.settled ? "" : "nothing";
   const strings = useSameContent<KPhotoRollStrings>({
     closeLabel: t("wren.trackClose"),
     title: album.title,

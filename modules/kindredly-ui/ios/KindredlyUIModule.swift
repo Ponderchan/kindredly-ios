@@ -188,6 +188,12 @@ public class KindredlyUIModule: Module {
       guard let url, let out = try? KFacePhoto.prepare(sourceURL: url) else { return "" }
       return out.absoluteString
     }
+    // the photo roll's first pictures read into memory before the roll opens (KPhotoLibraryLoader
+    // prime; JS: src/screens/photo-roll/roll-prime, when the + opens), at the pixels its cells
+    // will ask for, so the roll rises with its pictures already in it. Returns at once.
+    Function("primeLibraryPictures") { (uris: [String], pixels: Double) in
+      KPhotoLibraryLoader.shared.prime(uris, pixels: CGFloat(pixels))
+    }
     // the onboarding (binary 1.2.6, App Store 1.0.7; behind app_surfaces "onboarding", off by
     // default): adapter in Adapters/KOnboardingView.swift, the run in Portable/Onboarding;
     // src/app/onboarding.tsx. New files: a pod install before the build.

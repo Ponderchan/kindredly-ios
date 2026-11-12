@@ -18,6 +18,7 @@ import { newerVersion } from "../lib/update-prompt-core";
 import "../data/strings-note-compose"; // jp.camera, jp.cameraDenied
 import { NativeSurface } from "../components/NativeSurface";
 import { PhotoRollNative } from "../screens/photo-roll/PhotoRollNative";
+import { PAGE_FROM_ROLL } from "../screens/photo-roll/usePhotoRoll";
 
 /* TO YOURSELF STARTS AT THE PICTURES (owner, 2026-09-20).
    ────────────────────────────────────────────────────────────────────────
@@ -121,6 +122,8 @@ function JournalPickRN() {
      an older read that answers late is dropped instead of adding its frames twice */
   const readRef = useRef(0);
   const seenAny = useRef(false);
+  // a read has answered: "No photos yet." waits for it (the Swift roll's rule, usePhotoRoll)
+  const [settled, setSettled] = useState(false);
 
   const page = useCallback(async () => {
     if (loading.current || !more_.current) return;
@@ -140,10 +143,12 @@ function JournalPickRN() {
       cursor.current = r.endCursor;
       more_.current = r.hasNextPage;
       setFrames((f) => [...f, ...r.assets.map((a) => ({ id: a.id, uri: a.uri, w: a.width, h: a.height, video: a.mediaType === "video", duration: a.duration || 0 }))]);
+      setSettled(true);
     } catch (e) {
       // said, not swallowed: an empty roll that should have photos is otherwise a mystery
       console.warn("[journal-pick] the roll didn't load:", e);
       more_.current = false;
+      if (readRef.current === read) setSettled(true);
     } finally {
       if (readRef.current === read) loading.current = false;
     }
@@ -156,6 +161,7 @@ function JournalPickRN() {
     more_.current = true;
     loading.current = false;
     setFrames([]);
+    setSettled(false);
     void page();
   }, [page]);
 
@@ -270,7 +276,7 @@ function JournalPickRN() {
     const uri = await fileOf(f);
     setBusy(false);
     leavePicked({ video: { uri, duration: f.duration } });
-    router.replace("/journal-entry");
+    router.replace(PAGE_FROM_ROLL);
   };
 
   /* NEXT: the chosen frames become files the page can keep */
@@ -286,7 +292,7 @@ function JournalPickRN() {
     setBusy(false);
     leavePicked({ photos: [...keptRef.current, ...out] });
     if (adding) router.back();
-    else router.replace("/journal-entry");
+    else router.replace(PAGE_FROM_ROLL);
   };
 
   const cell = (width - 4) / 3;
@@ -341,7 +347,7 @@ function JournalPickRN() {
       if (!shot) return;
       leavePicked({ photos: [...keptRef.current, { uri: shot.uri, ratio: shot.width && shot.height ? shot.width / shot.height : 0.75 }] });
       if (adding) router.back();
-      else router.replace("/journal-entry");
+      else router.replace(PAGE_FROM_ROLL);
     } catch (e) {
       console.warn("[journal-pick] the camera didn't give a picture:", e);
     }
@@ -378,8 +384,8 @@ function JournalPickRN() {
   const header = adding ? null : (
     <View style={{ flexDirection: "row", gap: 2, marginBottom: 2 }}>
       {CAMERA_CARD ? <Tile label={t("jp.camera")} look={KEYS.camera} onPress={() => void shoot()} icon={ICON.camera} /> : null}
-      <Tile label={t("jp.write")} look={KEYS.text} onPress={() => router.replace("/journal-entry")} icon={ICON.text} />
-      <Tile label={t("jp.say")} look={KEYS.voice} onPress={() => router.replace("/journal-entry?start=voice")} icon={ICON.voice} />
+      <Tile label={t("jp.write")} look={KEYS.text} onPress={() => router.replace(PAGE_FROM_ROLL)} icon={ICON.text} />
+      <Tile label={t("jp.say")} look={KEYS.voice} onPress={() => router.replace(`${PAGE_FROM_ROLL}&start=voice`)} icon={ICON.voice} />
       {CAMERA_CARD ? null : frames[0] ? frame(frames[0]) : <View style={{ width: cell, height: cell, backgroundColor: tk.soft2 }} />}
     </View>
   );
@@ -439,7 +445,7 @@ function JournalPickRN() {
                 <Text style={{ ...PFM.monoSemi, fontSize: 11, letterSpacing: 1.4, color: P.pen }}>{t("jp.settings")} ›</Text>
               </Pressable>
             </View>
-          ) : perm === "asking" ? null : (
+          ) : perm === "asking" || !settled ? null : (
             <View style={{ alignItems: "center", paddingTop: 48, paddingHorizontal: 40 }}>
               <Text style={{ fontFamily: PF.letter, fontSize: 15, lineHeight: 22, color: P.ink60, textAlign: "center" }}>{t("jp.none")}</Text>
             </View>

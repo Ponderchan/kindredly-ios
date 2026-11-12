@@ -67,6 +67,25 @@ final class KPhotoLibraryLoader: KImageLoading, @unchecked Sendable {
     "ph|\(Int(box.width))x\(Int(box.height))|\(ref.cacheKey)"
   }
 
+  /// The roll's first pictures read into memory ahead of the roll (THE + OPENS, owner 2026-11-12:
+  /// "点写日记…还是抖": the roll rose with grey squares that filled in one by one on the way up).
+  /// `pixels` is a cell's side in pixels, what KImage will ask for (its side × the display scale,
+  /// rounded up), so the cells find them on their first frame. Only ph:// refs; at most `limit`;
+  /// returns at once.
+  func prime(_ uris: [String], pixels: CGFloat, limit: Int = 21) {
+    guard pixels > 0, pixels.isFinite else { return }
+    let size = CGSize(width: pixels.rounded(.up), height: pixels.rounded(.up))
+    let refs = uris.prefix(limit).compactMap(Self.ref).filter(Self.isLibrary)
+    guard !refs.isEmpty else { return }
+    Task.detached(priority: .userInitiated) { [self] in
+      await withTaskGroup(of: Void.self) { group in
+        for ref in refs where cachedImage(ref, pixelSize: size) == nil {
+          group.addTask { _ = await self.load(ref, pixelSize: size) }
+        }
+      }
+    }
+  }
+
   // MARK: - KImageLoading
 
   func cachedImage(_ ref: KImageRef, pixelSize: CGSize) -> CGImage? {

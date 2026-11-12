@@ -343,8 +343,17 @@ function ThemedStack() {
             swipe can't take it away: the guarded ✕ is its one way out, so
             words are never lost to a stray swipe (owner). */}
         <Stack.Screen name="compose" options={{ animation: "slide_from_bottom", gestureEnabled: false, ...(composeSpread ? spreadPage : null) }} />
-        {/* a page to yourself rises the same way */}
-        <Stack.Screen name="journal-entry" options={{ animation: "slide_from_bottom", ...(noteSpread ? spreadPage : null) }} />
+        {/* a page to yourself rises the same way — except from the photo roll (?via=roll), which has
+            already risen: there the page fades in over it where it stands, one sheet changing what
+            it holds rather than a second one rising (owner, 2026-11-12: "重复跳了两次页面的感觉");
+            the page puts its way out back to sliding down once it has arrived (journal-entry) */}
+        <Stack.Screen
+          name="journal-entry"
+          options={({ route }) => ({
+            ...((route.params as { via?: string } | undefined)?.via === "roll" ? { animation: "fade" as const, animationDuration: FROM_ROLL_MS } : { animation: "slide_from_bottom" as const }),
+            ...(noteSpread ? spreadPage : null),
+          })}
+        />
         <Stack.Screen name="journal-pick" options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
         {/* STAMP PRESS: the camera and then the edit page cover everything, the tab bar too; the ×
@@ -380,6 +389,9 @@ function FoldWatch() {
   }, [frame]);
   return null;
 }
+
+/** the diary page fading in over the photo roll (journal-entry ?via=roll) */
+const FROM_ROLL_MS = 220;
 
 export default function RootLayout() {
   /* the launch piece lives on the entry route (app/index.tsx): the egg,

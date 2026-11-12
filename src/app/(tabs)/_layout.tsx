@@ -1,6 +1,6 @@
 import { FaceReadyBanner } from "../../components/FaceReadyBanner";
 import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { View, useWindowDimensions } from "react-native";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PostTabBar, tabBarHeight } from "../../components/PostTabBar";
@@ -15,6 +15,7 @@ import { PlusSheetOpen, TabBarAway } from "../../lib/screen-insets";
 import { PostFan } from "../../components/PostFan";
 import { IdentityNote } from "../../screens/edit-profile/IdentityNote";
 import { GrowthMoment } from "../../components/GrowthMoment";
+import { primeRoll } from "../../screens/photo-roll/roll-prime";
 
 /* The fan lives HERE rather than inside the tab bar, and as a plain
    overlay rather than a Modal. Both matter for the same reason: a composer
@@ -78,6 +79,13 @@ export default function TabsLayout() {
   const kindredsNative = useNativeSurface("kindreds");
   // a tab that is two pages on the inner screen: the window less the system's band, no column
   const spreadScene = { sceneStyle: { backgroundColor: tk.bg, paddingRight: frame.band } };
+
+  /* the + open: the photo roll read ahead (screens/photo-roll/roll-prime), so Diary note rises with
+     its pictures already in it — only where the phone has already allowed the library */
+  const { width: windowWidth } = useWindowDimensions();
+  useEffect(() => {
+    if (choosing) primeRoll(windowWidth);
+  }, [choosing, windowWidth]);
 
   // prime the signal at launch — it has to be true before Kindreds is opened
   useEffect(() => {

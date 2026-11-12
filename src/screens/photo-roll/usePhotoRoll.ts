@@ -9,6 +9,7 @@ import { t } from "../../lib/i18n";
 import { leavePicked, takeKept } from "../../lib/journal-handoff";
 import { newerVersion } from "../../lib/update-prompt-core";
 import { ROLL_PAGE, roomFor, togglePick } from "./photo-roll-model";
+import { frameOf, takePrimed, type RollFrame } from "./roll-prime";
 import "../../data/strings-note-compose"; // jp.camera, jp.cameraDenied
 
 /* THE PHOTO ROLL'S STATE, for the Swift roll (PhotoRollNative, KPhotoRollView).
@@ -26,6 +27,10 @@ import "../../data/strings-note-compose"; // jp.camera, jp.cameraDenied
      roll read once more 700ms later unless the first read brought
      something; a read that answers after the roll started over (the first
      yes, another album) is dropped (readRef), and a read that fails is said;
+   - the roll READ AHEAD when the + opened (roll-prime, owner 2026-11-12): its first page and
+     the phone's answer taken over, so the roll rises whole; and an empty roll says "No photos
+     yet." only once a read has answered (`settled`), never while the first read is on its way
+     (it used to flash up in the rise, then give way to the pictures);
    - the albums: our own name (Recents, in the app's language) on the whole
      roll and the first row, the phone's names for the rest, smart albums
      first; the list shown as soon as the names are known, the covers
@@ -43,9 +48,14 @@ import "../../data/strings-note-compose"; // jp.camera, jp.cameraDenied
 const BINARY: string | null = Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? null;
 export const CAMERA_CARD = !!BINARY && !newerVersion("1.2.6", BINARY);
 
-export type RollFrame = { id: string; uri: string; w: number; h: number; video: boolean; duration: number };
+export type { RollFrame };
 export type RollAlbum = { id: string | null; title: string; count: number; cover: string | null };
 export type RollAccess = "asking" | "granted" | "limited" | "denied";
+
+/* the diary page, from the roll: `via=roll` has it fade in over the roll where it stands (app/_layout)
+   instead of rising from the bottom a second time (owner, 2026-11-12: "还一种感觉重复跳了两次页面的
+   感觉" — + → Diary note rose once, Text note rose again over it) */
+export const PAGE_FROM_ROLL = "/journal-entry?via=roll";
 
 export function usePhotoRoll() {
   const router = useRouter();
@@ -55,21 +65,26 @@ export function usePhotoRoll() {
   const [kept] = useState(() => takeKept());
   const room = roomFor(kept.length);
 
-  const [perm, setPerm] = useState<RollAccess>("asking");
-  const [frames, setFrames] = useState<RollFrame[]>([]);
+  // the roll read ahead when the + opened (roll-prime), taken once
+  const [ahead] = useState(takePrimed);
+  const [perm, setPerm] = useState<RollAccess>(ahead?.perm ?? "asking");
+  const [frames, setFrames] = useState<RollFrame[]>(ahead?.frames ?? []);
+  /* a read of the roll has answered (or it came read ahead): until then an empty roll is a roll
+     not read yet, and says nothing */
+  const [settled, setSettled] = useState(!!ahead);
   const [picked, setPicked] = useState<string[]>([]); // asset ids, in the order chosen
   const [busy, setBusy] = useState(false);
   const [album, setAlbum] = useState<RollAlbum>({ id: null, title: t("jp.recentRow"), count: 0, cover: null });
   const [albums, setAlbums] = useState<RollAlbum[] | null>(null);
   const [albumsOpen, setAlbumsOpen] = useState(false);
-  const cursor = useRef<string | undefined>(undefined);
-  const more_ = useRef(true);
+  const cursor = useRef<string | undefined>(ahead?.cursor);
+  const more_ = useRef(ahead ? ahead.more : true);
   const loading = useRef(false);
   const albumRef = useRef<string | null>(null);
   /* which read of the roll is current: a fresh start (the first yes, another album) bumps it, and
      an older read that answers late is dropped instead of adding its frames twice */
   const readRef = useRef(0);
-  const seenAny = useRef(false);
+  const seenAny = useRef(!!ahead?.frames.length);
 
   const page = useCallback(async () => {
     if (loading.current || !more_.current) return;
@@ -88,11 +103,13 @@ export function usePhotoRoll() {
       if (r.assets.length) seenAny.current = true;
       cursor.current = r.endCursor;
       more_.current = r.hasNextPage;
-      setFrames((f) => [...f, ...r.assets.map((a) => ({ id: a.id, uri: a.uri, w: a.width, h: a.height, video: a.mediaType === "video", duration: a.duration || 0 }))]);
+      setFrames((f) => [...f, ...r.assets.map(frameOf)]);
+      setSettled(true);
     } catch (e) {
       // said, not swallowed: an empty roll that should have photos is otherwise a mystery
       console.warn("[journal-pick] the roll didn't load:", e);
       more_.current = false;
+      if (readRef.current === read) setSettled(true);
     } finally {
       if (readRef.current === read) loading.current = false;
     }
@@ -105,6 +122,7 @@ export function usePhotoRoll() {
     more_.current = true;
     loading.current = false;
     setFrames([]);
+    setSettled(false);
     void page();
   }, [page]);
 
@@ -118,10 +136,11 @@ export function usePhotoRoll() {
       if (!alive) return;
       if (!r.granted) {
         setPerm("denied");
+        setFrames([]); // read ahead before the phone said no
         return;
       }
       setPerm(r.accessPrivileges === "limited" ? "limited" : "granted");
-      void page();
+      if (!ahead) void page();
       // THE FIRST YES: read the roll once more when it has settled, unless the first read brought something
       if (before?.status === "undetermined") {
         again = setTimeout(() => {
@@ -199,7 +218,7 @@ export function usePhotoRoll() {
     const uri = await fileOf(f);
     setBusy(false);
     leavePicked({ video: { uri, duration: f.duration } });
-    router.replace("/journal-entry");
+    router.replace(PAGE_FROM_ROLL);
   };
 
   const framesRef = useRef(frames);
@@ -241,7 +260,7 @@ export function usePhotoRoll() {
     setBusy(false);
     leavePicked({ photos: [...kept, ...out] });
     if (adding) router.back();
-    else router.replace("/journal-entry");
+    else router.replace(PAGE_FROM_ROLL);
   };
 
   /* the camera: a picture taken here goes to the page as one picked from the roll would */
@@ -260,7 +279,7 @@ export function usePhotoRoll() {
       if (!shot) return;
       leavePicked({ photos: [...kept, { uri: shot.uri, ratio: shot.width && shot.height ? shot.width / shot.height : 0.75 }] });
       if (adding) router.back();
-      else router.replace("/journal-entry");
+      else router.replace(PAGE_FROM_ROLL);
     } catch (e) {
       console.warn("[journal-pick] the camera didn't give a picture:", e);
     }
@@ -268,8 +287,8 @@ export function usePhotoRoll() {
 
   const key = (k: "camera" | "text" | "voice") => {
     if (k === "camera") void shoot();
-    else if (k === "text") router.replace("/journal-entry");
-    else router.replace("/journal-entry?start=voice");
+    else if (k === "text") router.replace(PAGE_FROM_ROLL);
+    else router.replace(`${PAGE_FROM_ROLL}&start=voice`);
   };
 
   const close = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)/journal"));
@@ -282,6 +301,7 @@ export function usePhotoRoll() {
   return {
     adding,
     perm,
+    settled,
     frames,
     picked,
     busy,

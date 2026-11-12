@@ -25,12 +25,14 @@ export function useAfterFifteenOn(): boolean {
   return useNativeSurface("afterfifteen") && isKindredlyUIViewAvailable(AFTER_VIEW);
 }
 
-/* DEV ONLY: let the dev demo desk (the sample letters a dev build shows an account with nothing
-   dealt) hand over to these pages too, so the swap from the desk — the last card leaving, the
+/* DEV ONLY: the dev demo desk (the sample letters a dev build shows an account with nothing
+   dealt) hands over to these pages too, so the swap from the desk — the last card leaving, the
    page arriving, Undo, a relaunch — can be tried on a simulator whose account gets no real
-   letters. kindredly:///dev/after-fifteen?desk=1 turns it on for this run and opens Today.
+   letters. ON in every dev build (owner, 2026-11-12, reading the sample letters to the end on
+   his simulator and meeting the old end of the day: "你的新包为啥读完信后 还是老的交互 我们做的
+   新的呢"); it used to wait for kindredly:///dev/after-fifteen?desk=1, which still opens Today.
    What it keeps is the phone's real record (dev page: WIPE). Never true in a release. */
-let devOnDemoDesk = false;
+let devOnDemoDesk = __DEV__;
 export function setDevAfterOnDemoDesk(on: boolean): void {
   if (__DEV__) devOnDemoDesk = on;
 }

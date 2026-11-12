@@ -52,12 +52,24 @@ import { NoteComposeNative } from "../screens/journal-entry/NoteComposeNative";
    fallback with `edit` it goes back rather than write a second page. The guard below asks only
    over real changes (the state reports what changed, not what the page holds), with its own
    sentence. */
+/** the native stack's own length for a page rising or falling (react-native-screens' default) */
+const SLIDE_MS = 500;
+
 export default function JournalEntryRoute() {
   useLang();
   const P = useP();
   const router = useRouter();
   const navigation = useNavigation();
-  const { demo, edit } = useLocalSearchParams<{ demo?: string; edit?: string }>();
+  const { demo, edit, via } = useLocalSearchParams<{ demo?: string; edit?: string; via?: string }>();
+  /* from the photo roll the page faded in over it (app/_layout); once it has arrived its way out
+     is the page's own again: it slides down to where it came from, like every page to yourself */
+  useEffect(() => {
+    if (via !== "roll") return;
+    const nav = navigation as unknown as { addListener: (e: "transitionEnd", cb: (ev: { data?: { closing?: boolean } }) => void) => () => void; setOptions: (o: object) => void };
+    return nav.addListener("transitionEnd", (ev) => {
+      if (!ev.data?.closing) nav.setOptions({ animation: "slide_from_bottom", animationDuration: SLIDE_MS });
+    });
+  }, [via, navigation]);
   const [text, setText] = useState(__DEV__ && storeMode && demo ? DEMO_TEXT[getLang()].line : "");
   const goBack = useCallback(() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/journal")), [router]);
 

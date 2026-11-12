@@ -305,6 +305,7 @@ export {
   type KPhotoRollKey,
   type KPhotoRollStrings,
   type KPhotoRollViewProps,
+  primeLibraryPictures,
 } from "./src/NotePages";
 // Wren's introduction, the whole sheet (2026-10-27), in Swift, behind the "introritual" switch,
 // off until the simulator pass (src/components/IntroductionNative.tsx)
