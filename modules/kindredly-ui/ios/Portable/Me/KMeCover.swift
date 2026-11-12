@@ -252,7 +252,8 @@ struct KMeIdentity<Avatar: View>: View {
     }
     .padding(.horizontal, 16)
     .padding(.top, 12)
-    .padding(.bottom, 14)
+    // room between Edit / the gear and her card (owner on build 42: "太近了")
+    .padding(.bottom, 26)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(theme.bg)
     .overlay(alignment: .topTrailing) {
@@ -276,7 +277,7 @@ struct KMeIdentity<Avatar: View>: View {
     HStack(spacing: 5) {
       if me.mark == "he" || me.mark == "she" {
         ZStack {
-          Circle().fill(me.mark == "she" ? KMeCoverMetrics.she : KMeCoverMetrics.he)
+          Circle().fill(me.mark == "she" ? KMarkTint.she : KMarkTint.he)
           KLineIcon(me.mark == "she" ? .she : .he, size: 12, lineWidth: 2.6, color: .white)
         }
         .frame(width: 17, height: 17)

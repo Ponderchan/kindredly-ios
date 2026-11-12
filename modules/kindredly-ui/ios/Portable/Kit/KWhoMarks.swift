@@ -112,3 +112,70 @@ public struct KWhoMarks: View {
     KLineIcon(g, size: (size * scale).rounded(), lineWidth: 2, color: color)
   }
 }
+
+/*
+ A PERSON'S OWN MARK AND SIGN, THE NEWER WAY (owner: 2026-11-11 for Me's pill, 2026-11-12 for
+ onboarding — "选完生日那个星座符号用 emoji 对应的星座表情，选完性别应该淡蓝男、粉色女图标").
+ Where someone is choosing or being shown THEIR OWN: the she/he mark sits white on a disc — the
+ older product's light blue for he, pink for she — and the star sign is its emoji.
+
+ KWhoMarks above (the marks after a STRANGER'S name on a letter, in a list) is still the grey line
+ drawing of the 2026-10-18 decision; whether those follow is the owner's to say.
+ */
+
+public enum KMarkTint {
+  public static let he = Color(hex: "#56B8F5")
+  public static let she = Color(hex: "#F58FB4")
+}
+
+public extension KLineGlyph {
+  /// The star sign as its emoji (with the emoji presentation); nil for a glyph that is no sign.
+  var signEmoji: String? {
+    switch self {
+    case .aries: return "\u{2648}\u{FE0F}"
+    case .taurus: return "\u{2649}\u{FE0F}"
+    case .gemini: return "\u{264A}\u{FE0F}"
+    case .cancer: return "\u{264B}\u{FE0F}"
+    case .leo: return "\u{264C}\u{FE0F}"
+    case .virgo: return "\u{264D}\u{FE0F}"
+    case .libra: return "\u{264E}\u{FE0F}"
+    case .scorpio: return "\u{264F}\u{FE0F}"
+    case .sagittarius: return "\u{2650}\u{FE0F}"
+    case .capricorn: return "\u{2651}\u{FE0F}"
+    case .aquarius: return "\u{2652}\u{FE0F}"
+    case .pisces: return "\u{2653}\u{FE0F}"
+    default: return nil
+    }
+  }
+}
+
+/// A person's own mark or sign in a frame of `size`: the mark on its disc, the sign as its emoji;
+/// any other glyph as the line drawing it is, in `ink`.
+public struct KOwnMark: View {
+  private let glyph: KLineGlyph
+  private let size: CGFloat
+  private let ink: Color
+
+  public init(_ glyph: KLineGlyph, size: CGFloat, ink: Color = .white) {
+    self.glyph = glyph
+    self.size = size
+    self.ink = ink
+  }
+
+  public var body: some View {
+    if glyph == .she || glyph == .he {
+      ZStack {
+        Circle().fill(glyph == .she ? KMarkTint.she : KMarkTint.he)
+        KLineIcon(glyph, size: (size * 0.7).rounded(), lineWidth: 2.6, color: .white)
+      }
+      .frame(width: size, height: size)
+    } else if let emoji = glyph.signEmoji {
+      Text(emoji)
+        .font(.system(size: size * 0.86))
+        .frame(width: size, height: size)
+    } else {
+      KLineIcon(glyph, size: size, lineWidth: 2, color: ink)
+    }
+  }
+}
+

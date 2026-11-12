@@ -269,7 +269,8 @@ struct KObBirthday: View {
       .accessibilityLabel(ctx.w("wheelA11y"))
 
       if let sign = dob.sign {
-        KLineIcon(sign, size: 24, lineWidth: 2, color: KOb.ink)
+        // the sign as its emoji (owner, 2026-11-12)
+        KOwnMark(sign, size: 28, ink: KOb.ink)
           .frame(width: 46, height: 46)
           .background(Circle().fill(KOb.paper))
           .obDepth(Circle(), onBlue: true, offset: 3)
@@ -499,7 +500,8 @@ struct KObPronoun: View {
           .foregroundStyle(ink)
           .frame(maxWidth: .infinity, alignment: .leading)
         if let glyph {
-          KLineIcon(glyph, size: 22, lineWidth: 2, color: ink)
+          // she on pink, he on light blue (owner, 2026-11-12)
+          KOwnMark(glyph, size: 24, ink: ink)
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(KObSpace.root)) } action: { glyphFrames[id] = $0 }
         }
       }

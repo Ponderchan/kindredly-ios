@@ -66,6 +66,23 @@ export const ZODIAC_TEXT: Readonly<Record<Zodiac, string>> = {
   pisces: "♓︎",
 };
 
+/** The sign as its emoji (U+FE0F, the coloured square), for where a person is shown their OWN
+    sign: Me's pill and onboarding (owner, 2026-11-11 and 11-12). Letters keep the line glyph. */
+export const ZODIAC_EMOJI: Readonly<Record<Zodiac, string>> = {
+  aries: "\u2648\uFE0F",
+  taurus: "\u2649\uFE0F",
+  gemini: "\u264A\uFE0F",
+  cancer: "\u264B\uFE0F",
+  leo: "\u264C\uFE0F",
+  virgo: "\u264D\uFE0F",
+  libra: "\u264E\uFE0F",
+  scorpio: "\u264F\uFE0F",
+  sagittarius: "\u2650\uFE0F",
+  capricorn: "\u2651\uFE0F",
+  aquarius: "\u2652\uFE0F",
+  pisces: "\u2653\uFE0F",
+};
+
 /** the days in each month, with 29 for February (a leap-day birthday is a real one) */
 const MONTH_DAYS = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 

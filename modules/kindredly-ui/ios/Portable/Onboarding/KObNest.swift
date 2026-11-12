@@ -141,7 +141,7 @@ struct KObGlyphFlight: View, Animatable {
     let cy = min(from.y, to.y) - 30
     let x = v * v * from.x + 2 * v * u * cx + u * u * to.x
     let y = v * v * from.y + 2 * v * u * cy + u * u * to.y
-    KLineIcon(glyph, size: size, lineWidth: 2, color: KOb.ink)
+    KOwnMark(glyph, size: size, ink: KOb.ink)
       .scaleEffect(1 - 0.65 * u)
       .opacity(u < 0.7 ? 1 : 1 - (u - 0.7) / 0.3)
       .position(x: x, y: y)

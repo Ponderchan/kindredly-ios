@@ -196,7 +196,8 @@ for (const g of G) {
   const id = `group-${g}`;
   const name = fmt.t(`mood.group.${g}`);
   const n = Notes.buildNote(page("n", 14, id), fmt);
-  eq(`buildNote(${id}): group, mood, icon, labels`, [n.group, n.mood, n.icon, n.label, n.listLabel, n.shortLabel], [g, id, `mood-${id}`, `OCT 14 · 12:00 · ${name}`, `OCT 14 · ${name}`, "OCT 14"]);
+  eq(`buildNote(${id}): group, mood, icon, labels`, [n.group, n.mood, n.icon, n.label, n.listLabel, n.shortLabel], // the card's label is day · time with no mood name (the mood square says it: notes-model.test, the owner's card layouts of 2026-10-18)
+  [g, id, `mood-${id}`, "OCT 14 · 12:00", `OCT 14 · ${name}`, "OCT 14"]);
   ok(`buildNote(${id}): VoiceOver names the group`, n.a11y.split(", ").includes(name));
   eq(`buildNotes(${id})`, Notes.buildNotes([page("n", 14, id)], fmt).map((x) => [x.group, x.icon]), [[g, `mood-${id}`]]);
   const month = Notes.buildMonth([page("n", 14, id)], { y: 2026, m: 9 }, NOW, 0, fmt);

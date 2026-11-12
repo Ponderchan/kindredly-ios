@@ -208,11 +208,11 @@ struct KObEnvelopeScreen: View {
         .layoutPriority(1)
       HStack(spacing: 4 * k) {
         if showMark, let mark = env.mark, beat >= 1 {
-          KLineIcon(mark, size: g, lineWidth: 2, color: KOb.inkSoft)
+          KOwnMark(mark, size: g, ink: KOb.inkSoft)
             .transition(.scale(scale: 0.01).animation(ctx.reduceMotion ? nil : .timingCurve(0.34, 2.2, 0.64, 1, duration: 0.26)))
         }
         if showSign, let sign = env.sign, beat >= 2 {
-          KLineIcon(sign, size: g, lineWidth: 2, color: KOb.inkSoft)
+          KOwnMark(sign, size: g, ink: KOb.inkSoft)
             .transition(.scale(scale: 0.01).animation(ctx.reduceMotion ? nil : .timingCurve(0.34, 2.2, 0.64, 1, duration: 0.26)))
         }
       }
@@ -264,7 +264,7 @@ struct KObEnvelopeScreen: View {
         if !ctx.w("sw.before").isEmpty {
           Text(ctx.w("sw.before")).kText(.system(15, .semibold)).foregroundStyle(KOb.ink).padding(.trailing, 4)
         }
-        KLineIcon(glyph, size: 16, lineWidth: 2, color: KOb.ink).padding(.trailing, 7)
+        KOwnMark(glyph, size: 20, ink: KOb.ink).padding(.trailing, 7)
         Text(ctx.w("sw.after")).kText(.system(15, .semibold)).foregroundStyle(KOb.ink).lineLimit(2)
         Spacer(minLength: 8)
         KObToggle(on: on)
@@ -523,8 +523,8 @@ struct KObEnvelopeFront: View {
             let sign = env.showSign ? env.sign : nil
             if mark != nil || sign != nil {
               HStack(spacing: 4) {
-                if let mark { KLineIcon(mark, size: 18, lineWidth: 2, color: KOb.inkSoft) }
-                if let sign { KLineIcon(sign, size: 18, lineWidth: 2, color: KOb.inkSoft) }
+                if let mark { KOwnMark(mark, size: 20, ink: KOb.inkSoft) }
+                if let sign { KOwnMark(sign, size: 20, ink: KOb.inkSoft) }
               }
               .padding(.leading, 6)
               .fixedSize()

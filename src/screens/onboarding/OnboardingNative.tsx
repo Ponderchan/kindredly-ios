@@ -32,7 +32,7 @@ import { useLetterFamily, useLetterFont, useTheme } from "../../lib/theme";
 import { OPENING_MIN, weightedCount } from "../../lib/weighted-count";
 import { screenNow } from "../../lib/wren";
 import { NAME_IDEAS, WREN_NAME_MAX, isReservedName } from "../../lib/wren-name";
-import { ZODIAC_TEXT, zodiacKey } from "../../lib/zodiac";
+import { ZODIAC_EMOJI, zodiacKey } from "../../lib/zodiac";
 import { letterFitLines, letterFitSize } from "../../theme/post";
 import { THEMES } from "../../theme/themes";
 import { traySections } from "../compose/useComposeState";
@@ -710,7 +710,8 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
         Object.assign(o, {
           head: t("ob2.birthday.head"),
           before: t("ob2.birthday.before"),
-          after: shownSign ? `${ZODIAC_TEXT[shownSign]} ${t("ob2.birthday.after", { sign: t(zodiacKey(shownSign)) })}` : "",
+          // the sign as its emoji before its name (owner, 2026-11-12)
+          after: shownSign ? `${ZODIAC_EMOJI[shownSign]} ${t("ob2.birthday.after", { sign: t(zodiacKey(shownSign)) })}` : "",
           age: age !== null ? t("ob.ageIs", { n: age }) : "",
           key: t("ob2.birthday.key"),
           month: t("ob2.birthday.month"),

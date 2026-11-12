@@ -14,6 +14,7 @@ import { track } from "../../lib/track";
 import { saveWrenEgg, saveWrenName } from "../../lib/wren-name";
 import { wrenStageDirty } from "../../lib/wren-stage";
 import { bumpStageFloor } from "../../lib/wren-style";
+import { keepMeLast } from "../../lib/me-last";
 import { readPerm, turnNotificationsOn } from "../../components/NotifyBanner";
 import { DEMO_UID, demoMember, devConfig, devNote, setDevPayload } from "./dev";
 import * as block from "./device-block";
@@ -136,6 +137,9 @@ export function useObServices({ demo, patchDemoCtx }: { demo: boolean; patchDemo
         try {
           if (p.wren) {
             await bumpStageFloor("hatch");
+            // Me opens on what is true now — she has hatched, day 1, nobody yet — instead of an
+            // egg and a dash until its first read lands (owner on build 42, 2026-11-12)
+            keepMeLast({ stage: "hatch", kindreds: 0, day: 1, notes: 0 });
             const read = hatch([text]);
             await saveHatchlingForm(hatchlingForm(read.dims));
             await saveWrenEgg(p.wren.shell);

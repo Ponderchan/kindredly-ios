@@ -19,6 +19,13 @@ import { buildMePlanet, type MePlanetVM, type PlanetStampsSource } from "./plane
 import { useWrenStage } from "../../lib/wren-stage";
 import type { HatchlingForm } from "../../lib/hatchling-form";
 import type { MeCourier, MeModel } from "./useMeModel";
+/* the words the cover uses that live in other screens' files. Until one of those screens had
+   been opened the page showed the bare key ("jd.edit" on the Edit button, owner on build 42,
+   2026-11-12): a strings file only counts once something has imported it. */
+import "../../data/strings-audit-notes"; // jd.edit (Edit)
+import "../../data/strings-step5-notes"; // jt.notesN (notes, under your number)
+import "../../data/strings-identity"; // zd.* (your star sign's name)
+import "../../data/strings-step5-kitrn"; // a11y.back (the planet page's way back)
 
 /* TWO PIECES OF ME IN SWIFTUI (2026-10-27): the courier's card and the Aura card's picture, which
    are React Native islands inside the Swift Me tab (MeNative) and the Swift aura room (AuraNative).
@@ -223,12 +230,17 @@ export function courierCardData(model: CourierCardModel, bird: ImageRefRecord | 
  * @param stamps the Stamps card's record (useStampCollection().card): the tile reads it
  * @param live the planet's clock may run (the tab is focused)
  */
-export function useMePlanetData(model: MeModel, stamps: PlanetStampsSource, { live }: { live: boolean }): KMePlanetData | null {
+export function useMePlanetData(model: MeModel, stamps: PlanetStampsSource, { live }: { live: boolean }): KMePlanetData | null | "wait" {
   const on = useSwiftPiece("meplanet", true);
   useLang(); // the words are the reader's language's: re-written when it changes
   const stage = useWrenStage();
-  const data = on ? mePlanetData(mePlanetOf(model, stamps), courierModelOf(model.courier).palette, { form: stage.form, mark: stage.mark }, live) : null;
-  return useSameContent(data);
+  /* "wait": the planet is on but the phone's record of her stage is still being read (the first
+     milliseconds of a cold start). The host draws nothing for that moment: a grown courier was
+     drawn as an egg, with her journey strip, and then changed (owner on build 42, 2026-11-12). */
+  const waiting = on && !model.stageKnown;
+  const data = on && !waiting ? mePlanetData(mePlanetOf(model, stamps), courierModelOf(model.courier).palette, { form: stage.form, mark: stage.mark }, live) : null;
+  const same = useSameContent(data);
+  return waiting ? "wait" : same;
 }
 
 /** The planet's view model for Me's model, in the reader's language. */

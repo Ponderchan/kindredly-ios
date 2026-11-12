@@ -362,8 +362,12 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
   // on since 2026-11-10: it shipped behind a row for 1.2.6 and 1.2.7, and the first build without
   // a row of its own (1.2.8 on TestFlight) lost the ＋ cell and hid the faces already made
   makeface: true,
-  // deliberately off: shipped dark in 1.2.6, switched on by a row after device testing
-  onboarding: false,
+  /* ON since 2026-11-12 (owner on build 42: "onboarding 完全没有去黑框"). The Swift run is the
+     one with flat keys and soft shadows instead of black edges; it shipped dark in 1.2.6 and
+     stayed off while the React Native run was what people saw. All thirteen screens were walked
+     on a simulator that day. A false row ('onboarding', version or '*', false) puts the React
+     Native run back with no build; two crashes at opening do the same on that phone. */
+  onboarding: true,
   // the last Me pages (owner, 2026-10-27: "make Me all Swift")
   keepsakes: true,
   keepsake: true,

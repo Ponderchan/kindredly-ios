@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LineIcon, type LineIconName } from "../../../components/10a/LineIcon";
 import { monthsShort } from "../../../lib/format";
 import { t } from "../../../lib/i18n";
-import { ZODIAC_TEXT, zodiacKey } from "../../../lib/zodiac";
+import { ZODIAC_EMOJI, zodiacKey } from "../../../lib/zodiac";
 import { ageOn, clampDob, dayOf, gate, signOf, wheelYears, type Dob } from "../flow";
 import { Headline, Line, ScreenFrame, TOPBAR_H } from "../parts/frame";
 import * as haptics from "../parts/haptics";
@@ -122,7 +122,7 @@ export default function S03Birthday(props: ObScreenProps) {
           {sign ? (
             <Animated.Text maxFontSizeMultiplier={OB_MAX_FONT} key={sign} entering={FadeIn.duration(220)} style={[TYPE.lineSmall, { color: OB.white, textAlign: "center" }]}>
               {/* the sign as a text glyph here (plain text: the line glyph is the badge on the card) */}
-              {`${ZODIAC_TEXT[sign]} ${t("ob2.birthday.after", { sign: t(zodiacKey(sign)) })}`}
+              {`${ZODIAC_EMOJI[sign]} ${t("ob2.birthday.after", { sign: t(zodiacKey(sign)) })}`}
             </Animated.Text>
           ) : (
             <Text maxFontSizeMultiplier={OB_MAX_FONT} style={[TYPE.lineSmall, { color: OB.white, textAlign: "center" }]}>{t("ob2.birthday.before")}</Text>

@@ -326,6 +326,7 @@ function MeLab() {
       scroll: { serial },
       act,
       // the cover: the header's own numbers, nine notes, a Scorpio, her twelfth day, the report door on show
+      stageKnown: true,
       planet: {
         ...planet,
         cover: {

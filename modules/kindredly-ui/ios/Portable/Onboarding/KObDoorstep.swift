@@ -684,8 +684,8 @@ struct KObNameMarks: View {
         .minimumScaleFactor(0.7)
       if mark != nil || sign != nil {
         HStack(spacing: 4 * size / 17) {
-          if let mark { KLineIcon(mark, size: g, lineWidth: 2, color: KOb.inkSoft) }
-          if let sign { KLineIcon(sign, size: g, lineWidth: 2, color: KOb.inkSoft) }
+          if let mark { KOwnMark(mark, size: g + 2, ink: KOb.inkSoft) }
+          if let sign { KOwnMark(sign, size: g + 2, ink: KOb.inkSoft) }
         }
         .padding(.leading, 6 * size / 17)
         .fixedSize()

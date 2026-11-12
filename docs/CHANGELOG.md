@@ -38,6 +38,14 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 ## Unreleased
 
+What the owner found on build 42 (2026-11-12) [the spacing and the onboarding marks need a binary; the rest is JS]
+- Me no longer opens on guesses. It used to draw an egg, no day and a dash for your numbers until its first read came back from the network, then change under your eyes (a grown courier flashed as an egg with her journey strip; kindreds and notes appeared late). It now opens on what it knew last time, kept on the phone, and her stage is the one the rest of the app draws.
+- A guest's courier is no longer an egg on Me after hatching: Me follows the app-wide stage, which knows a guest's bird has hatched.
+- The Edit button no longer reads "jd.edit": the page loads the wording files it borrows from other screens.
+- More room between Edit / the gear and her card.
+- Onboarding is drawn by SwiftUI by default: flat keys and soft shadows, no black edges. (The React Native run is kept as the fallback.)
+- In onboarding your own mark is white on a light-blue (he) or pink (she) disc and your star sign is its emoji: on the pronoun chips, the birthday badge and its sentence, the envelope and its two switches. Letters from strangers keep the grey line marks.
+
 Settings, Export my journal with no notes yet (owner on build 42, 2026-11-12) [JS: can go over the air]
 - With no notes of your own on this phone, the row used to do nothing when tapped, which read as broken. It now answers with the same sentence it shows: your journal lives only on this phone, and there is nothing to export yet.
 

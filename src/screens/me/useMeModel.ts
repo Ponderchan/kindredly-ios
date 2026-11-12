@@ -45,6 +45,8 @@ import { flightLogFacts } from "./planet-log";
 import { useSeason } from "../../lib/season";
 import { remoteSurfaces, subscribeSurfaces } from "../../lib/surfaces";
 import { bumpLookHeat, loadLookHeat, lookHeat } from "../../lib/look-heat";
+import { keepMeLast, meLastNow, readMeLast, type MeLast } from "../../lib/me-last";
+import { useWrenStage } from "../../lib/wren-stage";
 import {
   ME4A_ROUTES,
   ME_ROUTES,
@@ -180,6 +182,9 @@ export type MeModel = {
   /** what the courier's planet is drawn from (screens/me/planet-model): the letters behind the
       stamps, newest first, what the shelf's six are chosen from, and her flight log's facts */
   planet: { letters: PlanetLetterVM[]; shelf: ShelfFacts; log: FlightLogFacts; cover: CoverFacts };
+  /** the phone's record of her stage is in: before it she is not drawn (never an egg that turns
+      into a grown bird a moment later) */
+  stageKnown: boolean;
 };
 
 /* where the planet's taps go: the round button on her card opens the planet page (app/planet) */
@@ -248,7 +253,32 @@ export function useMeModel(): MeModel {
   const doorOpened = useRef(false);
   const [seenTodayN, setSeenTodayN] = useState(0);
   const [photo, setPhoto] = useState<string | null>(null);
-  const [stageFloor, setStageFloor] = useState<WrenStage>("egg");
+  /* what the page knew last time (me-last): her stage, her day, your kindreds, your notes. The
+     page opens on these instead of an egg and a dash, and the reads below only move them when
+     something changed. `stageKnown`: the phone's own record of her stage is in (milliseconds
+     after a cold start) — until then she is not drawn at all rather than as an egg. */
+  const first = useRef(meLastNow()).current;
+  const [last, setLast] = useState<MeLast | null>(first);
+  const [stageFloor, setStageFloor] = useState<WrenStage>(first?.stage ?? "egg");
+  const [stageKnown, setStageKnown] = useState(first != null);
+  useEffect(() => {
+    let alive = true;
+    Promise.all([getStageFloor(), readMeLast()])
+      .then(([floor, kept]) => {
+        if (!alive) return;
+        if (kept) setLast((l) => l ?? kept);
+        // the highest the phone remembers; the stats below can only raise it
+        setStageFloor((cur) => [floor, kept?.stage ?? "egg"].reduce<WrenStage>((a, b) => (stageIndex(b) > stageIndex(a) ? b : a), cur));
+        setStageKnown(true);
+      })
+      .catch((e) => {
+        console.warn("[me] her stage wasn't read from the phone:", e);
+        if (alive) setStageKnown(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
   const [used, setUsed] = useState<UsedStamp[]>([]);
   const [shelf, setShelf] = useState<Minted[]>([]);
   const [fresh, setFresh] = useState<ReadonlySet<string>>(() => new Set());
@@ -256,6 +286,22 @@ export function useMeModel(): MeModel {
   const [scrollSerial, setScrollSerial] = useState(0);
   const threadsRef = useRef<ThreadSummary[]>([]);
   threadsRef.current = threads;
+
+  /* THE ONE STAGE (lib/wren-stage): what the rest of the app draws her at. It wins where it is
+     ahead of Me's own read, and it knows what Me's read did not: a guest's courier is never an
+     egg once the guest is in the app (a guest has no threads to count, and the floor onboarding
+     wrote may not be in this bucket) — the owner hatched one as a guest on build 42 and Me alone
+     still showed the egg. */
+  const oneStage = useWrenStage().stage;
+  const stageNow: WrenStage = (() => {
+    const best = oneStage && stageIndex(oneStage) > stageIndex(stageFloor) ? oneStage : stageFloor;
+    return auth.isGuest && best === "egg" ? "hatch" : best;
+  })();
+  const stageIsKnown = stageKnown || oneStage != null;
+
+  // your kindreds as last known until the count is in (a dash only on a phone that has never had one)
+  // (and on a phone with no such record yet, the kept list of correspondences already says it)
+  const kindredsShown = statsIn ? stats.kindreds : (last?.kindreds ?? (threadsIn ? threads.filter((x) => x.revealed).length : null));
 
   /* THE WARDROBE IS ON THE DEVICE; WHAT UNLOCKS IT IS ON THE ACCOUNT.
      Checked where it's worn, not only where it's chosen — and only once
@@ -289,7 +335,10 @@ export function useMeModel(): MeModel {
         .catch((e) => console.warn("[me] the looks' heat wasn't read:", e));
       // how many notes you have, for the number under the cover
       loadJournal()
-        .then((j) => alive && setNotesN(j.length))
+        .then((j) => {
+          keepMeLast({ notes: j.length });
+          if (alive) setNotesN(j.length);
+        })
         .catch((e) => console.warn("[me] your notes weren't counted:", e));
       loadShelf()
         .then(async (s) => {
@@ -321,7 +370,10 @@ export function useMeModel(): MeModel {
             setStatsIn(true);
             const live = wrenStage(s);
             // stage only ever moves forward; remember the highest ever reached, and the day it turned
-            setStageFloor(stageIndex(live) >= stageIndex(floor) ? live : floor);
+            const stage = stageIndex(live) >= stageIndex(floor) ? live : floor;
+            setStageFloor(stage);
+            setStageKnown(true);
+            setLast(keepMeLast({ stage, kindreds: s.kindreds, day: s.day }));
             if (stageIndex(live) > stageIndex(floor)) {
               void bumpStageFloor(live);
               void recordStageDate(live);
@@ -421,17 +473,17 @@ export function useMeModel(): MeModel {
   const book = useWhoBook({ threads });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const hunger = useMemo(() => hungerRead({ threads, lastWrittenAt, book }), [threads, lastWrittenAt, lang, book]);
-  const dayOff = isDayOff({ state: where.state, hunger, stage: stageFloor });
+  const dayOff = isDayOff({ state: where.state, hunger, stage: stageNow });
   const best = flightBest?.gates ?? 0;
   /* her day-off push is planned days ahead (lib/local-push): put away what
      isDayOff reads once her stats and writing are in, and re-plan when it moved */
   const haveAura = !!aura;
   useEffect(() => {
     if (!statsIn || !haveAura) return;
-    void noteWork({ threads, state: where.state, lastWrittenAt, stage: stageFloor })
+    void noteWork({ threads, state: where.state, lastWrittenAt, stage: stageNow })
       .then((moved) => (moved ? replanLocal({ force: true }) : undefined))
       .catch((e) => console.warn("[me] work note:", e));
-  }, [statsIn, haveAura, threads, where.state, lastWrittenAt, stageFloor]);
+  }, [statsIn, haveAura, threads, where.state, lastWrittenAt, stageNow]);
 
   /* the diary line: the card shows it and VoiceOver reads it, from one read */
   const light = daylight();
@@ -460,7 +512,7 @@ export function useMeModel(): MeModel {
         createdAt: user?.created_at ?? null,
         cofounderNo,
         letters: aura ? aura.sources.letters : null,
-        kindreds: statsIn ? stats.kindreds : null,
+        kindreds: kindredsShown,
       },
       aura: auraCardFacts(aura),
       stamps: stampFacts(used),
@@ -479,7 +531,7 @@ export function useMeModel(): MeModel {
     return buildMeView(facts, meFormat());
     // lang: every word follows the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handle, user?.created_at, cofounderNo, aura, statsIn, stats.kindreds, used, shelf, fresh, premium, wren, dayOff, where.state, best, entry, hunger, lang]);
+  }, [handle, user?.created_at, cofounderNo, aura, statsIn, stats.kindreds, kindredsShown, used, shelf, fresh, premium, wren, dayOff, where.state, best, entry, hunger, lang]);
 
   /* photo stamps on your letters ("c:<uuid>"): resolved and pushed to Swift for the peek's cards;
      their colour for the frame while they load */
@@ -495,7 +547,7 @@ export function useMeModel(): MeModel {
     const letters = writing ? writing.length : aura ? aura.sources.letters : null;
     return buildMe4a(
       {
-        profile: { handle, createdAt: user?.created_at ?? null, cofounderNo, letters, kindreds: statsIn ? stats.kindreds : null },
+        profile: { handle, createdAt: user?.created_at ?? null, cofounderNo, letters, kindreds: kindredsShown },
         letters: writing ? buildLetterCards(writing, threads, []) : null,
         stampHex: hexOf,
         threads: threadsIn ? threads : null,
@@ -508,7 +560,7 @@ export function useMeModel(): MeModel {
     );
     // lang: every word follows the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handle, user?.created_at, cofounderNo, writing, aura, statsIn, stats.kindreds, threads, threadsIn, book, accessory, premium, wren, seasonLooks, trial, report, lang, hexOf]);
+  }, [handle, user?.created_at, cofounderNo, writing, aura, statsIn, stats.kindreds, kindredsShown, threads, threadsIn, book, accessory, premium, wren, seasonLooks, trial, report, lang, hexOf]);
 
   /* THE COURIER'S PLANET (docs/courier-planet.md): the letters behind its stamps and what the
      shelf's six looks are chosen from (the wardrobe's catalogue, the season, what the table
@@ -524,7 +576,7 @@ export function useMeModel(): MeModel {
       skin,
       dress: accessory,
       premium,
-      kindreds: statsIn ? stats.kindreds : null,
+      kindreds: kindredsShown,
       hatchSkin,
       season: seasonLooks,
       week: shelfWeek(Date.now()),
@@ -535,7 +587,7 @@ export function useMeModel(): MeModel {
     return { letters, shelf };
     // lang: the days are written in the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [writing, threads, aura, hexOf, skin, accessory, premium, statsIn, stats.kindreds, hatchSkin, seasonLooks, featuredKey, heat, lang]);
+  }, [writing, threads, aura, hexOf, skin, accessory, premium, statsIn, stats.kindreds, kindredsShown, hatchSkin, seasonLooks, featuredKey, heat, lang]);
   const shelfRef = useRef(planet.shelf);
   shelfRef.current = planet.shelf;
 
@@ -611,8 +663,8 @@ export function useMeModel(): MeModel {
   const courier = useMemo<MeCourier>(() => {
     // while the Post's letter waits, Wren's line on the card is about it
     const invite = fc.view.courierLine ? { ...entry, line: fc.view.courierLine, sub: fc.view.courierSub } : entry;
-    return { wren, where, threads, lastWrittenAt, hunger: fc.view.courierLine ? null : hunger, seenToday: seenTodayN, stage: stageFloor, dayOff, best, entry: invite };
-  }, [wren, where, threads, lastWrittenAt, hunger, seenTodayN, stageFloor, dayOff, best, entry, fc.view.courierLine, fc.view.courierSub]);
+    return { wren, where, threads, lastWrittenAt, hunger: fc.view.courierLine ? null : hunger, seenToday: seenTodayN, stage: stageNow, dayOff, best, entry: invite };
+  }, [wren, where, threads, lastWrittenAt, hunger, seenTodayN, stageNow, dayOff, best, entry, fc.view.courierLine, fc.view.courierSub]);
 
   /* her flight log on the planet's card (planet-log): the run she is on, your newest letter
      nobody has answered, and whether her own line still has to be said — the Post's letter,
@@ -620,7 +672,10 @@ export function useMeModel(): MeModel {
   const postLine = !!fc.view.courierLine;
   const myMark = profile?.pronoun === "she" || profile?.pronoun === "he" ? (profile.pronoun as "she" | "he") : null;
   const mySign = zodiacFromDob(typeof profile?.dob === "string" ? (profile.dob as string) : null);
-  const statsDay = statsIn ? stats.day : null;
+  // her day needs no network: it is counted from the day the account began (lib/stats does the same)
+  const begun = user?.created_at ? Date.parse(user.created_at) : NaN;
+  const statsDay = statsIn ? stats.day : (last?.day ?? (Number.isNaN(begun) ? null : Math.max(1, Math.floor((Date.now() - begun) / 86400000) + 1)));
+  const notesShown = notesN ?? last?.notes ?? null;
   const planetAll = useMemo(() => {
     const cards = writing ? buildLetterCards(writing, threads, []) : null;
     const log = flightLogFacts({ threads, where, wren, nameOf: (th) => book.threadName(th), cards, say: postLine || !!hunger || dayOff });
@@ -632,7 +687,7 @@ export function useMeModel(): MeModel {
     const cover: CoverFacts = {
       letters: stat("letters"),
       kindreds: stat("kindreds"),
-      notes: notesN,
+      notes: notesShown,
       mark: myMark,
       sign: mySign,
       day: statsDay,
@@ -642,12 +697,12 @@ export function useMeModel(): MeModel {
     return { ...planet, log, cover };
     // lang: the rows are written in the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planet, writing, threads, where, wren, book, postLine, hunger, dayOff, lang, me4a, notesN, myMark, mySign, statsDay, door]);
+  }, [planet, writing, threads, where, wren, book, postLine, hunger, dayOff, lang, me4a, notesShown, myMark, mySign, statsDay, door]);
 
   const avatarId = (profile?.avatarId as string) || null;
   const seed = user?.id || "you";
   const avatar = useMemo(() => ({ id: avatarId, photo, seed }), [avatarId, photo, seed]);
   const scroll = useMemo(() => ({ serial: scrollSerial }), [scrollSerial]);
 
-  return { view, me4a, segment, courier, aura, avatar, kindreds: stats.kindreds, scroll, act, fc, planet: planetAll };
+  return { view, me4a, segment, courier, aura, avatar, kindreds: stats.kindreds, scroll, act, fc, planet: planetAll, stageKnown: stageIsKnown };
 }

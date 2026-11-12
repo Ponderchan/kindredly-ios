@@ -229,8 +229,12 @@ export function MeNative({ model }: { model: MeModel }) {
   // clock runs only while the tab is focused. Kept by content like the records below, and in
   // the rev with them: Swift converts it with the page's content
   const focused = useIsFocused();
-  const planet = useMePlanetData(model, collection.card, { live: focused });
-  const onPlanet = !!planet;
+  const planetAnswer = useMePlanetData(model, collection.card, { live: focused });
+  // "wait": the planet is on, her stage not read yet (a cold start's first moment): the page is
+  // held blank rather than drawn with an egg that turns into her a moment later
+  const planetWaits = planetAnswer === "wait";
+  const planet = planetAnswer === "wait" ? null : planetAnswer;
+  const onPlanet = !!planet || planetWaits;
 
   // her pictures: the looks tiles (grown, each look pinned; lookWorn is whatever she has on) and
   // the First Class stamp
@@ -319,6 +323,7 @@ export function MeNative({ model }: { model: MeModel }) {
     <SurfaceHost>
       {/* the planet is the page's cover: the clock sits on its sky, white at night */}
       {planet && focused ? <StatusBar style={daylight() === "night" ? "light" : "dark"} /> : null}
+      {planetWaits ? null : (
       <KMeView
         ref={commands.ref}
         theme={theme}
@@ -392,6 +397,7 @@ export function MeNative({ model }: { model: MeModel }) {
           {showsAura && view.aura && !auraArt && !onPlanet ? <AuraArtSlot art={view.aura.art} width={artW} /> : null}
         </KIsland>
       </KMeView>
+      )}
     </SurfaceHost>
   );
 }
