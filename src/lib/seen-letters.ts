@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { remoteSurfaces } from "./surfaces";
 
 /* THE PHONE'S HALF OF "A LETTER COMES ONCE" (lib/db fetchPoolPage's note).
    The server counts a letter read after two seconds on screen (the writer's eye, 0020);
@@ -55,4 +56,14 @@ export function noteLetterShown(id: string): void {
       await AsyncStorage.setItem(KEY, JSON.stringify(cache));
     })
     .catch((e) => console.warn("[seen-letters] the letter wasn't kept", e));
+}
+
+/* THE SWITCH. "A letter comes once" is on unless app_surfaces says otherwise: a row
+   ('letteronce', the binary's version or '*', false) puts the deal back as it was — the newest
+   forty, nothing skipped — with no build and no OTA. Read at each load; until the table has
+   answered it is on. One letter per writer (lib/ration) is not behind it. */
+export function letterOnceOn(): boolean {
+  const r = remoteSurfaces();
+  const v = r ? r.letteronce : undefined;
+  return typeof v === "boolean" ? v : true;
 }

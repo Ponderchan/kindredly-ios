@@ -22,7 +22,7 @@ import { onStorageUserChange } from "../../lib/scoped-store";
 import { useAuth } from "../../lib/auth";
 import { SEND_BEAT_MS } from "../../lib/net";
 import { DAY_LETTERS, MAX_IN_FLIGHT, inFlight, rationPool, type FlightThread } from "../../lib/ration";
-import { noteLetterShown, seenLetterIds } from "../../lib/seen-letters";
+import { letterOnceOn, noteLetterShown, seenLetterIds } from "../../lib/seen-letters";
 import { deskDay, isNightHour } from "../../lib/day";
 import { endDayClosed, startDayClosed } from "../../lib/activities";
 import { onYou } from "../../lib/waiting";
@@ -402,7 +402,8 @@ export function useTodaySource(): TodaySource {
         });
         /* a letter comes once (lib/db fetchPoolPage): what the server knows this reader read, and
            what this phone has shown, stay off the deal; today's own desk stays whole */
-        const skipP = (async () => {
+        const skipP = (async (): Promise<Set<string> | undefined> => {
+          if (!letterOnceOn()) return undefined; // switched off on the server: the deal as it was
           const [server, shown] = await Promise.all([fetchMyReads(), seenLetterIds()]);
           const skip = new Set(shown);
           if (server) for (const id of server) skip.add(id);
