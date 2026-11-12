@@ -38,6 +38,11 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 ## Unreleased
 
+Ten letters a day, and a letter comes once (owner, 2026-11-12: "每天15份读信是不是有点多", "10 很好", then "好多信重复被推荐") [OTA 11-12 to 1.0.8 / binary 1.2.7: group 03fbca68, branch `ota-1.0.8-day-ten` 4ae541f] [server: 0054] [switch: letteronce, for the second line]
+- Today's desk holds ten letters a day instead of fifteen. The help page says ten in all nine languages, and the guide animation's desk is five by two.
+- A letter you have read never comes back to your desk, on the iPhone or on the web; one you only flicked past doesn't come back on this phone either. When the newest letters are all read, the desk reaches back up to two months for ones you haven't seen, and only then deals fewer than ten.
+- One letter per writer on a desk: someone who wrote several today shows up once.
+
 Today is flat: no lavender behind the buttons, no lavender edge on the letter (owner, 2026-11-12: "紫色的底哪里来的", then "去掉吧") [binary]
 - The faint lavender glow at the foot of Today, behind Next, Wren, Reply and the tab bar, is gone on every iPhone: the page is one colour from the title to the tab bar.
 - The letter no longer has a lavender edge showing to its right and under it. It is a flat sheet with a hairline round it, on Today's card, on Wren's letter when the day is done, on the loading and offline card, and when a long letter is unfolded (which is now centred: it kept 6 points clear on the right for that edge). In every theme; the dark theme had a grey edge there.
