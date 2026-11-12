@@ -188,6 +188,8 @@ struct KNotesHeaderBar: View {
   /// false on a folding phone's inner screen, where the calendar has the left page to itself
   /// (KNotesScreen, THE SPREAD) and there is nothing for the button to open
   var showsCalendar = true
+  /// the keys the rail drew instead (KRailTools: a folding phone's band); left out of this row
+  var taken: Set<String> = []
   let recentGroups: [KMoodGroup]
   /// the empty state's header: the title and JUST YOU, never moving
   let empty: Bool
@@ -226,15 +228,17 @@ struct KNotesHeaderBar: View {
         } else {
           // 4 between the 44pt hit squares: the 40pt circles stand 8 apart
           HStack(spacing: 4) {
-            if search.available {
+            if search.available && !taken.contains(KNotesTool.search) {
               KNotesSearchButton(theme: theme, a11yName: search.button) {
                 actions.onSearch(true)
               }
             }
-            KNotesViewButton(theme: theme, layout: layout, label: strings.viewLabel(layout), a11yName: strings.viewA11y, y: y) {
-              actions.onCycleView()
+            if !taken.contains(KNotesTool.view) {
+              KNotesViewButton(theme: theme, layout: layout, label: strings.viewLabel(layout), a11yName: strings.viewA11y, y: y) {
+                actions.onCycleView()
+              }
             }
-            if showsCalendar {
+            if showsCalendar && !taken.contains(KNotesTool.calendar) {
               KNotesCalendarButton(theme: theme, open: calendarOpen, groups: recentGroups, a11yName: strings.calendarA11y) {
                 actions.onCalendarToggle(!calendarOpen)
               }
@@ -266,6 +270,14 @@ struct KNotesHeaderBar: View {
     .accessibilityHidden(hidden)
     .dynamicTypeSize(...DynamicTypeSize.accessibility1)
   }
+}
+
+/// The header keys' names as the band's tools (KRailTools), in the order the band takes them: the
+/// view and the calendar first (the two the owner named), the search last.
+enum KNotesTool {
+  static let view = "notes.view"
+  static let calendar = "notes.calendar"
+  static let search = "notes.search"
 }
 
 /// The header buttons' shared size: a 40pt circle in a 44pt hit square that takes 44 of the row.

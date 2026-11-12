@@ -538,3 +538,98 @@ public final class KFold: ObservableObject {
     if next != frame { frame = next }
   }
 }
+
+// MARK: - The page's own tools, in the band (iPhone Duo)
+
+/*
+ THE PAGE'S TOOLS MOVE INTO THE BAND (owner, 2026-11-12, at the outer screen: "类似 notes 等这个
+ 屏的时候…日历和切换 grid/card 图标什么的自动切到侧边栏。你想想还有那些 tap 可以切").
+
+ On a folding phone the tab bar stands in the band at the right edge (KTabBarMetrics, THE RAIL),
+ and between the system's clock and the tabs the band is empty. A page's round keys, the ones
+ that sat at the top right of its header (as far from the thumb as a key can be), stand there
+ instead, over the tabs: Notes' view and calendar, Kindreds' orbit and search, Me's Edit and
+ settings. Today has none.
+
+ How it works, all in Swift (no bridge):
+ · a tab's screen PUBLISHES its tools here, most wanted first, each one the finished button it
+   would have drawn in its header (so it looks and behaves exactly the same);
+ · the rail DRAWS the selected tab's tools, as many as it has room for (2 on the outer screen,
+   3 on the inner), and says how many that is (`room`);
+ · the screen LEAVES OUT of its header the ones the rail took (`taken`), and keeps the rest.
+ On a phone, with the bar along the bottom, or with a tab bar that is not this one, `room` is 0
+ and every header is exactly as it was.
+
+ A tool is a snapshot: the screen publishes again whenever something its buttons show changes
+ (.onChange of a signature), never from a body.
+ */
+public struct KRailTool: Identifiable {
+  /// unique across tabs ("notes.view"), so a tool arriving or leaving is its own transition
+  public let id: String
+  let view: AnyView
+
+  public init<V: View>(_ id: String, @ViewBuilder view: () -> V) {
+    self.id = id
+    self.view = AnyView(view())
+  }
+}
+
+public final class KRailTools: ObservableObject {
+  public static let shared = KRailTools()
+  /// each tab's tools, most wanted first
+  @Published public private(set) var tools: [KTabGlyph: [KRailTool]] = [:]
+  /// how many of a page's tools the rail draws: 0 unless the tab bar stands in the band
+  @Published public private(set) var room = 0
+
+  /// main thread only
+  public func set(_ tab: KTabGlyph, _ list: [KRailTool]) {
+    if list.isEmpty && (tools[tab]?.isEmpty ?? true) { return }
+    tools[tab] = list
+  }
+
+  /// main thread only (the rail's)
+  public func setRoom(_ n: Int) {
+    if n != room { room = n }
+  }
+
+  /// the tools of `tab` the rail draws: the page leaves these out of its own header
+  public func taken(_ tab: KTabGlyph) -> Set<String> {
+    Set((tools[tab] ?? []).prefix(room).map(\.id))
+  }
+}
+
+/// A page's round key as the band draws it, for a tool whose header form is not already one
+/// (Kindreds' chips, Me's Edit): 40 round on the theme's soft, lav while on, in a 44 square,
+/// as Notes' header keys are.
+public struct KRailKey<Icon: View>: View {
+  let theme: KTheme
+  let on: Bool
+  let label: String
+  let hint: String
+  let action: () -> Void
+  let icon: Icon
+
+  public init(theme: KTheme, on: Bool = false, label: String, hint: String = "", action: @escaping () -> Void, @ViewBuilder icon: () -> Icon) {
+    self.theme = theme
+    self.on = on
+    self.label = label
+    self.hint = hint
+    self.action = action
+    self.icon = icon()
+  }
+
+  public var body: some View {
+    SwiftUI.Button(action: action) {
+      icon
+        .frame(width: 40, height: 40)
+        .background(Circle().fill(on ? theme.lav : theme.soft))
+        .frame(width: 44, height: 44)
+        .contentShape(Rectangle())
+        .animation(.easeInOut(duration: 0.18), value: on)
+    }
+    .buttonStyle(KFadePressStyle())
+    .accessibilityLabel(label)
+    .accessibilityHint(hint)
+    .accessibilityAddTraits(on ? .isSelected : [])
+  }
+}

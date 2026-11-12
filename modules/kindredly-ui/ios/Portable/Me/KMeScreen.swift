@@ -603,6 +603,8 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
      read and pressed (her face and name, the cards, the old segments page) keeps to the column:
      `fold.frame.left` and `.right`, both 0 on a phone. */
   @ObservedObject private var fold = KFold.shared
+  /// Edit and the gear stand in the band on a folding phone (KRailTools)
+  @ObservedObject private var railTools = KRailTools.shared
   /// The header reads this (k = offset / 40); held in @State, never observed here.
   @State private var chrome = KScrollModel(offsetCap: 48, quantum: 0.5)
   @State private var position = ScrollPosition(edge: .top)
@@ -683,6 +685,34 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
   /// bar in the band (KBottomFade.foot)
   private var foot: CGFloat { KBottomFade.foot(bottomInset, in: fold.frame) }
 
+  /// everything the band's Edit and gear show: they are published again when it changes
+  private var toolsSignature: String {
+    [theme.key, content.planet == nil ? "segments" : "cover", content.profile.editLabel, content.settingsLabel].joined(separator: "|")
+  }
+
+  /// Edit and the gear, for the band: round keys that do what the two in the page do. Only on
+  /// the page with her planet's cover (the older page keeps its own header as it is).
+  private func publishTools() {
+    guard content.planet != nil else {
+      KRailTools.shared.set(.me, [])
+      return
+    }
+    let theme = theme
+    let actions = actions
+    KRailTools.shared.set(.me, [
+      KRailTool(KMeTool.edit) {
+        KRailKey(theme: theme, label: content.profile.editLabel, action: { actions.onEdit() }) {
+          KLineIcon(.pen, size: 20, lineWidth: 1.9, color: theme.ink)
+        }
+      },
+      KRailTool(KMeTool.settings) {
+        KRailKey(theme: theme, label: content.settingsLabel, action: { actions.onSettings() }) {
+          KLineIcon(.gear, size: 21, lineWidth: 1.9, color: theme.ink)
+        }
+      },
+    ])
+  }
+
   public var body: some View {
     Group {
       if let planet = content.planet {
@@ -698,6 +728,10 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
       }
     }
     .accessibilityElement(children: .contain)
+    // Edit and the gear, for the band on a folding phone (KRailTools): again whenever they change
+    .onChange(of: toolsSignature, initial: true) { _, _ in
+      publishTools()
+    }
     .overlay(alignment: .bottom) {
       // (THE SPREAD: the fade is the right page's own; her planet's page runs to the foot)
       if !fold.frame.twoPages {
@@ -799,7 +833,7 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
         KMeCover(planet: planet, topInset: topInset, pull: pull, actions: coverActions())
           .frame(height: base + pull)
           .frame(height: base, alignment: .bottom)
-        KMeIdentity(theme: theme, profile: content.profile, me: planet.me, settingsLabel: content.settingsLabel, actions: actions, avatar: avatar)
+        KMeIdentity(theme: theme, profile: content.profile, me: planet.me, settingsLabel: content.settingsLabel, actions: actions, taken: railTools.taken(.me), avatar: avatar)
           .padding(.leading, fold.frame.left)
           .padding(.trailing, fold.frame.right)
         KMePlanetPage(content: content, planet: planet, theme: theme, actions: actions) {
@@ -836,7 +870,8 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
         settingsLabel: content.settingsLabel,
         topInset: topInset,
         shown: folded,
-        actions: actions
+        actions: actions,
+        taken: railTools.taken(.me)
       )
     }
   }
@@ -855,7 +890,7 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
         VStack(spacing: 0) {
           // your face stands over the block's top edge (as it does over the cover's)
           Color.clear.frame(height: topInset + KMeCoverMetrics.faceOver + 12)
-          KMeIdentity(theme: theme, profile: content.profile, me: planet.me, settingsLabel: content.settingsLabel, actions: actions, avatar: avatar)
+          KMeIdentity(theme: theme, profile: content.profile, me: planet.me, settingsLabel: content.settingsLabel, actions: actions, taken: railTools.taken(.me), avatar: avatar)
           KMePlanetPage(content: content, planet: planet, theme: theme, actions: actions) {
             auraArt
           }

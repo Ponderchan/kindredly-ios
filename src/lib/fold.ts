@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
-import { useWindowDimensions } from "react-native";
+import { AppState, useWindowDimensions } from "react-native";
 import { requireOptionalNativeModule } from "expo";
 import { foldFrame, type FoldFrame } from "./fold-frame";
 import { useNativeSurface } from "./surfaces";
@@ -16,7 +16,9 @@ import { useNativeSurface } from "./surfaces";
    useFoldFrame (at the foot) is how a screen reads them.
 
    The state is asked for at start, again whenever the window changes size (opening the phone or
-   turning it changes the window before the hinge says anything), and pushed by the hinge. */
+   turning it changes the window before the hinge says anything), once more when the app has
+   settled and each time it comes to the front, and pushed by the hinge and by a change of the
+   root view's safe area. */
 
 /** A region the system reserves in the window, in points; the margins are already inside it. */
 export type FoldRegion = { x: number; y: number; w: number; h: number; top: number; left: number; bottom: number; right: number; active: boolean };
@@ -84,6 +86,17 @@ export function refreshFold(): void {
     } catch (e) {
       console.log("[fold] could not listen for the hinge; the state is only read on demand:", e);
     }
+    /* A FIRST READING CAN BE WRONG, and nothing used to ask again until the phone was folded
+       (found walking the Duo simulator, 2026-11-12: read while another window was in front, the
+       band came back as 0, so the tab bar dropped to the bottom and the page ran under the
+       system's clock). Native now reads the app's own window and pushes when its safe area
+       changes; these are the belt to those braces, and cost nothing, since an identical
+       reading changes nothing: once the app has settled, and whenever it comes to the front. */
+    setTimeout(refreshFold, 600);
+    setTimeout(refreshFold, 2500);
+    AppState.addEventListener("change", (s) => {
+      if (s === "active") refreshFold();
+    });
   }
   native
     .foldState()

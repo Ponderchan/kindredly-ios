@@ -201,6 +201,20 @@ public enum KTabBarMetrics {
   public static let railTray: CGFloat = 276
   /// the lens on the rail: the bar's, upright
   static let railLens = CGSize(width: 50, height: 58)
+  /* THE PAGE'S TOOLS (KRailTools, in KButtons.swift): over the tabs, each a 44 square,
+     railToolGap apart, railToolsGap over the tabs' capsule; the stage counts how many fit
+     between the system's clock and the tabs, keeping railToolsAir clear under the clock. */
+  static let railTool: CGFloat = 44
+  static let railToolGap: CGFloat = 4
+  static let railToolsGap: CGFloat = 16
+  static let railToolsAir: CGFloat = 10
+  /// how many of a page's tools the rail has room for in a band `height` tall whose clock ends
+  /// at `top`, standing `foot` clear of the bottom edge
+  public static func railToolSlots(height: CGFloat, top: CGFloat, foot: CGFloat, tabs: Int) -> Int {
+    let stack = foot + self.height + railGap + railTabsLength(tabs)
+    let free = height - top - stack - railToolsGap - railToolsAir
+    return max(0, min(3, Int((free + railToolGap) / (railTool + railToolGap))))
+  }
   /// the tabs' capsule, top to bottom
   static func railTabsLength(_ tabs: Int) -> CGFloat { CGFloat(max(1, tabs)) * railSlot }
 
@@ -302,12 +316,15 @@ public struct KTabBar: View {
   private let hidden: Bool
   private let raised: Bool
   private let rail: Bool
+  private let toolSlots: Int
   private let tray: AnyView?
   private let onSelect: (Int) -> Void
   private let onPlus: () -> Void
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   /// the tray's own height, measured, so the bar grows by exactly that
   @State private var trayHeight: CGFloat = 0
+  /// the pages' own tools, which the rail draws over the tabs (KRailTools)
+  @ObservedObject private var railTools = KRailTools.shared
 
   /// where the finger went down, while it is down
   @State private var downX: CGFloat?
@@ -335,6 +352,8 @@ public struct KTabBar: View {
   ///     RAISED +); the bar's frame is plusHeadroom taller at the top. false: the + sits in the row
   ///   - rail: the bar stands upright (KTabBarMetrics, THE RAIL): the tabs top to bottom in their
   ///     capsule, the + on its own under them, growing to the left and up round its tray
+  ///   - toolSlots: on the rail, how many of the page's own tools it draws over the tabs
+  ///     (KTabBarMetrics.railToolSlots); 0 draws none
   ///   - tray: what the bar grows around while isPanelOpen (the publish entry's rows); nil keeps
   ///     the bar 62 tall whatever isPanelOpen says
   ///   - onSelect: a tab was chosen (tapped, or a drag let go over it), with its index; selected or not
@@ -350,6 +369,7 @@ public struct KTabBar: View {
     hidden: Bool = false,
     raised: Bool = false,
     rail: Bool = false,
+    toolSlots: Int = 0,
     tray: AnyView? = nil,
     onSelect: @escaping (Int) -> Void,
     onPlus: @escaping () -> Void
@@ -364,6 +384,7 @@ public struct KTabBar: View {
     self.hidden = hidden
     self.raised = raised
     self.rail = rail
+    self.toolSlots = toolSlots
     self.tray = tray
     self.onSelect = onSelect
     self.onPlus = onPlus
@@ -410,11 +431,18 @@ public struct KTabBar: View {
   }
 
   public var body: some View {
-    if rail {
-      railBody
-    } else {
-      barBody
+    Group {
+      if rail {
+        railBody
+      } else {
+        barBody
+      }
     }
+    // the pages are told how many of their tools stand here (none unless this is the rail)
+    .onChange(of: rail ? toolSlots : 0, initial: true) { _, n in
+      KRailTools.shared.setRoom(n)
+    }
+    .onDisappear { KRailTools.shared.setRoom(0) }
   }
 
   /// where a touch is along the bar: across the screen on the bar, down it on the rail
@@ -483,11 +511,15 @@ public struct KTabBar: View {
     let tone = KGlassTone.of(theme)
     let grown = trayOpen
     return VStack(alignment: .trailing, spacing: KTabBarMetrics.railGap) {
-      railTabs(tone: tone)
-        // the +'s card grows up over where the tabs stand: they step out while it is open
-        .animation(reduceMotion ? KMotion.publishReduced : grown ? KMotion.trayOut : KMotion.trayIn) { $0.opacity(grown ? 0 : 1) }
-        .allowsHitTesting(!grown)
-        .accessibilityHidden(grown)
+      // the +'s card grows up over where the tools and the tabs stand: they step out while it
+      // is open
+      VStack(spacing: KTabBarMetrics.railGap) {
+        railToolColumn
+        railTabs(tone: tone)
+      }
+      .animation(reduceMotion ? KMotion.publishReduced : grown ? KMotion.trayOut : KMotion.trayIn) { $0.opacity(grown ? 0 : 1) }
+      .allowsHitTesting(!grown)
+      .accessibilityHidden(grown)
       railPod(tone: tone, grown: grown)
     }
     .frame(width: KTabBarMetrics.height)
@@ -502,6 +534,24 @@ public struct KTabBar: View {
     .allowsHitTesting(!hidden)
     .accessibilityElement(children: .contain)
     .accessibilityHidden(hidden)
+  }
+
+  /// the selected page's own tools (KRailTools), over the tabs: as many as the band has room for.
+  /// Each is the button the page would have drawn in its header; they change with the tab.
+  private var railToolColumn: some View {
+    let tab: KTabGlyph? = selectedIndex.flatMap { items.indices.contains($0) ? items[$0].glyph : nil }
+    let list = tab.map { Array((railTools.tools[$0] ?? []).prefix(max(0, toolSlots))) } ?? []
+    return VStack(spacing: KTabBarMetrics.railToolGap) {
+      ForEach(list) { tool in
+        tool.view
+          .frame(width: KTabBarMetrics.railTool, height: KTabBarMetrics.railTool)
+          .transition(reduceMotion ? .opacity : .scale(scale: 0.6).combined(with: .opacity))
+      }
+    }
+    .frame(width: KTabBarMetrics.height)
+    .padding(.bottom, list.isEmpty ? 0 : KTabBarMetrics.railToolsGap - KTabBarMetrics.railGap)
+    .dynamicTypeSize(...DynamicTypeSize.large)
+    .animation(reduceMotion ? .easeInOut(duration: 0.2) : .spring(duration: 0.3, bounce: 0.2), value: list.map(\.id))
   }
 
   /// the tabs' capsule: the four icons top to bottom, the lens behind them

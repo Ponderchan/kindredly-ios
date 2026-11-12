@@ -1002,6 +1002,8 @@ public struct KTabStage: View {
      prop held back until that height is the screen's, and then one more turn of the run loop,
      so the resize is laid out, unanimated, before anything opens. Closing is never held back. */
   @State private var stageTall = false
+  /// the stage's height: on the rail, the band's (how many of the page's tools fit in it)
+  @State private var stageHeight: CGFloat = 0
   @State private var shownOpen = false
   /// an opening is waiting for its turn of the run loop; a close that arrives first cancels it
   @State private var opening = false
@@ -1102,6 +1104,8 @@ public struct KTabStage: View {
       // the stage is the Host's size: taller than any bar's strip means the whole screen
       // (on the rail the Host is the band, as tall as the window: wider than any band, then)
       .onGeometryChange(for: Bool.self) { upright ? $0.size.width > 200 : $0.size.height > 320 } action: { stageTall = $0 }
+      // the band's height, for how many of the page's own tools the rail has room for
+      .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { stageHeight = $0 }
       .onChange(of: isPanelOpen && stageTall, initial: true) { _, want in
         if want {
           opening = true
@@ -1161,6 +1165,9 @@ public struct KTabStage: View {
           hidden: barHidden,
           raised: plusRaised,
           rail: rail,
+          toolSlots: rail && stageHeight > 0
+            ? KTabBarMetrics.railToolSlots(height: stageHeight, top: railTop, foot: max(safeAreaBottom, 16) + KTabBarMetrics.railFoot, tabs: items.count)
+            : 0,
           // the grown bar's rows (P2): the bar itself grows around them
           tray: style == .grow ? AnyView(KPublishTray(theme: theme, model: sheet, open: open, onAction: onPanelAction)) : nil,
           onSelect: onSelect,

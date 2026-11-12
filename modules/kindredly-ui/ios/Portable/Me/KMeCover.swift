@@ -222,6 +222,12 @@ struct KMePostboxMark: View {
   }
 }
 
+/// Edit's and the gear's names as the band's tools (KRailTools), in the order it takes them.
+enum KMeTool {
+  static let edit = "me.edit"
+  static let settings = "me.settings"
+}
+
 /// You, under the cover: your name, the mark-and-sign pill, two numbers, Edit and the gear; your
 /// face half over the cover's edge.
 struct KMeIdentity<Avatar: View>: View {
@@ -230,6 +236,8 @@ struct KMeIdentity<Avatar: View>: View {
   let me: KMeSelf
   let settingsLabel: String
   let actions: KMeActions
+  /// Edit and the gear stand in the band on a folding phone (KRailTools): left out of this row
+  var taken: Set<String> = []
   let avatar: Avatar
 
   var body: some View {
@@ -270,6 +278,7 @@ struct KMeIdentity<Avatar: View>: View {
         }
         Spacer(minLength: 0)
         HStack(spacing: 8) {
+          if !taken.contains(KMeTool.edit) {
           SwiftUI.Button(action: { actions.onEdit() }) {
             HStack(spacing: 6) {
               KLineIcon(.pen, size: 15, lineWidth: 1.9, color: theme.ink)
@@ -288,6 +297,8 @@ struct KMeIdentity<Avatar: View>: View {
           }
           .buttonStyle(KFadePressStyle())
           .accessibilityLabel(profile.editLabel)
+          }
+          if !taken.contains(KMeTool.settings) {
           SwiftUI.Button(action: { actions.onSettings() }) {
             KLineIcon(.gear, size: 19, lineWidth: 1.9, color: theme.ink)
               .frame(width: 36, height: 36)
@@ -297,7 +308,10 @@ struct KMeIdentity<Avatar: View>: View {
           }
           .buttonStyle(KFadePressStyle())
           .accessibilityLabel(settingsLabel)
+          }
         }
+        // the row is as tall with them gone as with them there
+        .frame(minHeight: 44)
       }
       .padding(.top, 12)
     }
@@ -371,6 +385,8 @@ struct KMeCoverBar: View {
   /// 0 while the cover shows, 1 once it has gone
   let shown: CGFloat
   let actions: KMeActions
+  /// the pen and the gear stand in the band on a folding phone (KRailTools): left out of the bar
+  var taken: Set<String> = []
 
   var body: some View {
     VStack(spacing: 0) {
@@ -381,21 +397,27 @@ struct KMeCoverBar: View {
           .foregroundStyle(palette.text)
           .lineLimit(1)
         Spacer(minLength: 8)
-        SwiftUI.Button(action: { actions.onEdit() }) {
-          KLineIcon(.pen, size: 20, lineWidth: 1.9, color: palette.text)
-            .frame(width: 40, height: 44)
-            .contentShape(Rectangle())
+        if !taken.contains(KMeTool.edit) {
+          SwiftUI.Button(action: { actions.onEdit() }) {
+            KLineIcon(.pen, size: 20, lineWidth: 1.9, color: palette.text)
+              .frame(width: 40, height: 44)
+              .contentShape(Rectangle())
+          }
+          .buttonStyle(KFadePressStyle())
+          .accessibilityLabel(editLabel)
         }
-        .buttonStyle(KFadePressStyle())
-        .accessibilityLabel(editLabel)
-        SwiftUI.Button(action: { actions.onSettings() }) {
-          KLineIcon(.gear, size: 20, lineWidth: 1.9, color: palette.text)
-            .frame(width: 40, height: 44)
-            .contentShape(Rectangle())
+        if !taken.contains(KMeTool.settings) {
+          SwiftUI.Button(action: { actions.onSettings() }) {
+            KLineIcon(.gear, size: 20, lineWidth: 1.9, color: palette.text)
+              .frame(width: 40, height: 44)
+              .contentShape(Rectangle())
+          }
+          .buttonStyle(KFadePressStyle())
+          .accessibilityLabel(settingsLabel)
         }
-        .buttonStyle(KFadePressStyle())
-        .accessibilityLabel(settingsLabel)
       }
+      // the bar is as tall with them gone as with them there
+      .frame(minHeight: 44)
       .padding(.leading, 16)
       .padding(.trailing, 6)
       .frame(height: KMeCoverMetrics.bar)

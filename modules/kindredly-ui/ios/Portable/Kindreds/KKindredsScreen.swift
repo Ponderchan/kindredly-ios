@@ -806,6 +806,12 @@ public struct KKindredsScreen: View {
 
 /// The pinned band: the orbit (open) or its watermark (folded), and the chip row along its
 /// bottom. Observes the driver; the scroll-driven parts are its small children.
+/// The band's two chips' names as the rail's tools (KRailTools), in the order it takes them.
+enum KKindredsTool {
+  static let orbit = "kindreds.orbit"
+  static let search = "kindreds.search"
+}
+
 struct KKindredsBand: View {
   /// H's open band
   static let openHeight: CGFloat = 300
@@ -821,6 +827,8 @@ struct KKindredsBand: View {
   /// THE SPREAD (KKindredsScreen): the orbit has a page of its own, so the band is only the chip
   /// row: never open, no watermark, no Orbit chip
   var spread = false
+  /// the Orbit chip and the search stand in the band on a folding phone (KRailTools)
+  @ObservedObject private var railTools = KRailTools.shared
 
   @State private var chipRowHeight: CGFloat = 58
   @State private var legendHeight: CGFloat = 16
@@ -877,15 +885,59 @@ struct KKindredsBand: View {
       }
       .clipped()
       .background(theme.bg)
+      // the two chips, for the band on a folding phone (KRailTools): again whenever they change
+      .onChange(of: toolsSignature, initial: true) { _, _ in
+        publishTools()
+      }
   }
 
   /// TS sent the search's words (JS from before the search sends none: no chip, no field)
   private var hasSearch: Bool { !content.searchLabel.isEmpty }
 
+  /// the chips the band's rail drew instead (a folding phone): left out of the row
+  private var taken: Set<String> { railTools.taken(.kindreds) }
+
+  /// everything the band's copies of the two chips show: they are published again when it changes
+  private var toolsSignature: String {
+    [
+      theme.key, driver.bandOpen ? "open" : "folded", spread ? "spread" : "page", hasSearch ? "search" : "",
+      driver.searching ? "searching" : "", content.orbitChipLabel, content.searchLabel, content.legendCloser, content.legendTurn,
+    ].joined(separator: "|")
+  }
+
+  /// The Orbit chip and the search, for the band: round keys that do what the chips do. No
+  /// Orbit key where the orbit has a page of its own; none at all while the search field is up.
+  private func publishTools() {
+    guard !driver.searching else {
+      KRailTools.shared.set(.kindreds, [])
+      return
+    }
+    let theme = theme
+    let driver = driver
+    var tools: [KRailTool] = []
+    if !spread {
+      let on = driver.bandOpen
+      let hint = [content.legendCloser, content.legendTurn].filter { !$0.isEmpty }.joined(separator: ". ")
+      tools.append(KRailTool(KKindredsTool.orbit) {
+        KRailKey(theme: theme, on: on, label: content.orbitChipLabel, hint: hint, action: { driver.toggleBand() }) {
+          KLineIcon(.orbit, size: 22, lineWidth: 1.8, color: theme.ink)
+        }
+      })
+    }
+    if hasSearch {
+      tools.append(KRailTool(KKindredsTool.search) {
+        KRailKey(theme: theme, label: content.searchLabel, action: { driver.beginSearch() }) {
+          KLineIcon(.noteSearch, size: 22, lineWidth: 2, color: theme.ink)
+        }
+      })
+    }
+    KRailTools.shared.set(.kindreds, tools)
+  }
+
   private var chipRow: some View {
     ScrollView(.horizontal) {
       HStack(alignment: .center, spacing: 8) {
-        if !spread {
+        if !spread && !taken.contains(KKindredsTool.orbit) {
           KOrbitChip(
             theme: theme,
             isOn: driver.bandOpen,
@@ -895,7 +947,7 @@ struct KKindredsBand: View {
             driver.toggleBand()
           }
         }
-        if hasSearch {
+        if hasSearch && !taken.contains(KKindredsTool.search) {
           KSearchChip(theme: theme, a11yLabel: content.searchLabel) {
             driver.beginSearch()
           }

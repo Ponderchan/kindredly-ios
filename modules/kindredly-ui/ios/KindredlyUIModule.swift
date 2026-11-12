@@ -640,9 +640,32 @@ final class KFoldMonitor: NSObject {
   private var status: Int?
   private var angle: Double = 0
 
+  /* THE APP'S OWN WINDOW, NOT WHICHEVER IS KEY. Found walking the Duo simulator, 2026-11-12:
+     with another window in front for a moment (there the development menu; an alert, a
+     purchase sheet or a share sheet has one of its own too) the key window's root view reported
+     a safe area of top 82 / right 0 where the app's own has top 0 / right 84. Read then, the
+     band was gone: the tab bar dropped to the bottom and the page ran under the system's clock,
+     and nothing asked again until the phone was folded. So: the lowest normal window with a
+     root (the app's own is the first made), and the key one only if there is none. */
   private static func rootView() -> UIView? {
     let windows = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows)
-    return (windows.first { $0.isKeyWindow } ?? windows.first)?.rootViewController?.view
+    let own = windows.first { $0.windowLevel == .normal && !$0.isHidden && $0.rootViewController != nil }
+    return (own ?? windows.first { $0.isKeyWindow } ?? windows.first)?.rootViewController?.view
+  }
+
+  /// tells when the root view's safe area or size changes (see KFoldProbe)
+  private weak var probe: KFoldProbe?
+  private var telling = false
+
+  /// One fresh snapshot after the root view has settled, however many changes came in this pass.
+  private func tellSoon() {
+    guard !telling else { return }
+    telling = true
+    DispatchQueue.main.async { [weak self] in
+      guard let self else { return }
+      self.telling = false
+      self.onChange?(self.snapshot())
+    }
   }
 
   /// Hang the hinge's interaction on the window's root view, once per root view.
@@ -668,6 +691,13 @@ final class KFoldMonitor: NSObject {
     else { return }
     view.addInteraction(asInteraction)
     interaction = made
+    // and a probe in the same view: the band is the root's safe area, which the system can
+    // settle after the first reading (a root view asked before its window had laid it out)
+    probe?.removeFromSuperview()
+    let watcher = KFoldProbe(frame: view.bounds)
+    watcher.onChange = { [weak self] in self?.tellSoon() }
+    view.insertSubview(watcher, at: 0)
+    probe = watcher
   }
 
   private func regions(of view: UIView, kind: String) -> [[String: Any]] {
@@ -702,5 +732,40 @@ final class KFoldMonitor: NSObject {
     out["divisions"] = regions(of: view, kind: "divisionRegionKind")
     out["occlusions"] = regions(of: view, kind: "occlusionRegionKind")
     return out
+  }
+}
+
+/// An invisible view at the back of the window's root view (a folding phone only: KFoldMonitor
+/// adds it with the hinge's interaction). The system tells a view when its safe area changes;
+/// this passes that on, and a change of size with it, so the band is read again the moment the
+/// system moves it and not only when the hinge does.
+final class KFoldProbe: UIView {
+  var onChange: (() -> Void)?
+  private var last = CGSize.zero
+
+  override init(frame: CGRect) {
+    super.init(frame: frame)
+    autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    isUserInteractionEnabled = false
+    backgroundColor = .clear
+    alpha = 0
+    isAccessibilityElement = false
+    accessibilityElementsHidden = true
+  }
+
+  @available(*, unavailable)
+  required init?(coder: NSCoder) { fatalError("KFoldProbe is made in code") }
+
+  override func safeAreaInsetsDidChange() {
+    super.safeAreaInsetsDidChange()
+    onChange?()
+  }
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    if bounds.size != last {
+      last = bounds.size
+      onChange?()
+    }
   }
 }

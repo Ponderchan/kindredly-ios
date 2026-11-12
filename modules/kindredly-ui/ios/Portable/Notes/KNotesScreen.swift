@@ -383,6 +383,8 @@ public struct KNotesScreen: View {
      header has no calendar button there, and the overlay is never raised. The right page stops
      at the system's band. An empty diary keeps its one page: there is no month to show. */
   @ObservedObject private var fold = KFold.shared
+  /// the header's keys stand in the band on a folding phone (KRailTools)
+  @ObservedObject private var railTools = KRailTools.shared
 
   /// - Parameters:
   ///   - topInset: the status bar's height (the Host ignores safe areas)
@@ -420,6 +422,54 @@ public struct KNotesScreen: View {
     }
     .background { theme.bg.ignoresSafeArea() }
     .ignoresSafeArea(.keyboard)
+    // the header's keys, for the band on a folding phone (KRailTools): again whenever they change
+    .onChange(of: toolsSignature(spread: spread), initial: true) { _, _ in
+      publishTools(spread: spread)
+    }
+  }
+
+  /// everything the band's copies of the header keys show: they are published again when it changes
+  private func toolsSignature(spread: Bool) -> String {
+    let c = content
+    return [
+      theme.key, String(describing: c.layout), c.calendarOpen ? "open" : "shut", String(describing: c.recentGroups),
+      c.strings.viewA11y, c.strings.viewLabel(c.layout), c.strings.calendarA11y, c.search.button,
+      spread ? "spread" : "page", c.empty ? "empty" : "notes", c.search.on ? "searching" : "",
+    ].joined(separator: "|")
+  }
+
+  /// the header's keys, for the band: the same buttons, doing the same things. None on the empty
+  /// page (the header has none) or while the search row is up (it has taken the header).
+  private func publishTools(spread: Bool) {
+    let c = content
+    guard !c.empty, !(c.search.available && c.search.on) else {
+      KRailTools.shared.set(.notes, [])
+      return
+    }
+    let theme = theme
+    let actions = actions
+    var tools: [KRailTool] = [
+      KRailTool(KNotesTool.view) {
+        KNotesViewButton(theme: theme, layout: c.layout, label: c.strings.viewLabel(c.layout), a11yName: c.strings.viewA11y, y: 0) {
+          actions.onCycleView()
+        }
+      },
+    ]
+    if !spread {
+      tools.append(KRailTool(KNotesTool.calendar) {
+        KNotesCalendarButton(theme: theme, open: c.calendarOpen, groups: c.recentGroups, a11yName: c.strings.calendarA11y) {
+          actions.onCalendarToggle(!c.calendarOpen)
+        }
+      })
+    }
+    if c.search.available {
+      tools.append(KRailTool(KNotesTool.search) {
+        KNotesSearchButton(theme: theme, a11yName: c.search.button) {
+          actions.onSearch(true)
+        }
+      })
+    }
+    KRailTools.shared.set(.notes, tools)
   }
 
   private func notesPage(spread: Bool) -> some View {
@@ -439,6 +489,7 @@ public struct KNotesScreen: View {
             layout: content.layout,
             calendarOpen: content.calendarOpen,
             showsCalendar: !spread,
+            taken: railTools.taken(.notes),
             recentGroups: content.recentGroups,
             empty: content.empty,
             search: content.search,
