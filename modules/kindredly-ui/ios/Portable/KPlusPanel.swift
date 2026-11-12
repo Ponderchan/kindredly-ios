@@ -980,6 +980,7 @@ public struct KTabStage: View {
   private let sheet: KPublishSheetModel
   private let pop: KPublishPopModel
   private let barHidden: Bool
+  private let plusRaised: Bool
   private let onSelect: (Int) -> Void
   private let onPlus: () -> Void
   private let onPanelAction: (String) -> Void
@@ -1013,6 +1014,8 @@ public struct KTabStage: View {
   ///   - pop: the returning reader's buttons, for the pop style
   ///   - barHidden: the bar steps away (slides 160 down out of sight; a fade under Reduce
   ///     Motion), whatever the + is doing: Today's reply has the bottom of the screen
+  ///   - plusRaised: the + stands proud of the bar (KTabBar raised); the Host's strip must be
+  ///     KTabBarMetrics.plusHeadroom taller for it
   ///   - onPanelAction: a choice was tapped, with its key: a card's or the header link's
   ///     (cards), or KPublishAction.letter / .note (sheet, pop and grow)
   ///   - onDismiss: the dim was tapped, VoiceOver's escape, or the sheet was dragged down; the
@@ -1032,6 +1035,7 @@ public struct KTabStage: View {
     sheet: KPublishSheetModel = .init(),
     pop: KPublishPopModel = .init(),
     barHidden: Bool = false,
+    plusRaised: Bool = false,
     onSelect: @escaping (Int) -> Void,
     onPlus: @escaping () -> Void,
     onPanelAction: @escaping (String) -> Void,
@@ -1051,6 +1055,7 @@ public struct KTabStage: View {
     self.sheet = sheet
     self.pop = pop
     self.barHidden = barHidden
+    self.plusRaised = plusRaised
     self.onSelect = onSelect
     self.onPlus = onPlus
     self.onPanelAction = onPanelAction
@@ -1142,6 +1147,7 @@ public struct KTabStage: View {
           plusTurn: style == .cards ? KMotion.plusTurn : style == .grow ? KMotion.plusTurnGrow : KMotion.plusTurnPublish,
           // Today's reply has the screen's foot (the new reader's sheet covers the bar itself)
           hidden: barHidden,
+          raised: plusRaised,
           // the grown bar's rows (P2): the bar itself grows around them
           tray: style == .grow ? AnyView(KPublishTray(theme: theme, model: sheet, open: open, onAction: onPanelAction)) : nil,
           onSelect: onSelect,

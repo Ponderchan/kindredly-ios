@@ -41,6 +41,8 @@ import ExpoUI
    VoiceOver says for each
  - barHidden: the bar slides 160 down out of sight and reach (a fade under Reduce Motion): Today's
    reply (the chat composers' A1, owner 2026-10-18), while the reader writes back on the keyboard
+ - plusRaised: the + is bigger and stands 6 over the bar's top edge in a swell of the bar's glass
+   (owner, 2026-11-12); the Host's strip is 12 taller for it (NativeTabBar PLUS_HEADROOM)
  Every string arrives translated; nothing in Swift holds a word.
 
  Events, with what nativeEvent carries:
@@ -124,6 +126,9 @@ final class KTabBarViewProps: UIBaseViewProps {
   @Field var pop: KTabBarPopRecord = KTabBarPopRecord()
   /// Today's reply has the screen's foot: the bar steps away
   @Field var barHidden: Bool = false
+  /// the + stands proud of the bar in a swell of its glass (2026-11-12). JS sends true only with a
+  /// Host strip KTabBarMetrics.plusHeadroom taller; a JS that doesn't send it keeps the + in the row
+  @Field var plusRaised: Bool = false
 
   var onTabPress = EventDispatcher()
   var onPlusPress = EventDispatcher()
@@ -166,6 +171,7 @@ struct KTabBarView: ExpoSwiftUI.View {
       sheet: sheetModel,
       pop: popModel,
       barHidden: props.barHidden,
+      plusRaised: props.plusRaised,
       onSelect: { props.onTabPress(["index": $0]) },
       onPlus: { props.onPlusPress() },
       onPanelAction: { props.onPanelAction(["key": $0]) },

@@ -154,6 +154,7 @@ type NativeTabBarProps = CommonViewModifierProps & {
   sheet: NativeSheet;
   pop: KTabBarPop;
   barHidden: boolean;
+  plusRaised: boolean;
   onTabPress?: (e: { nativeEvent: { index: number } }) => void;
   onPlusPress?: () => void;
   onPanelAction?: (e: { nativeEvent: { key: string } }) => void;
@@ -190,6 +191,10 @@ export type KTabBarProps = CommonViewModifierProps & {
   pop?: KTabBarPop;
   /** the bar steps away (slides down out of sight): Today's reply has the foot of the screen. false by default */
   barHidden?: boolean;
+  /** the + stands proud of the bar in a swell of its glass (owner, 2026-11-12). The Host must be
+      K_TAB_PLUS_HEADROOM taller at the top for it; a binary without the prop keeps the + in the
+      row (ask kindredlyUIViewHasProp("KTabBarView", "plusRaised") before sizing the Host). false by default */
+  plusRaised?: boolean;
   /** a tab was tapped, selected or not */
   onTabPress?: (index: number) => void;
   /** the + (or ×) was tapped */
@@ -201,7 +206,7 @@ export type KTabBarProps = CommonViewModifierProps & {
 };
 
 /** The bare SwiftUI tab bar and sheet. Only inside an @expo/ui <Host>; see NativeTabBar in the app. */
-export function KTabBar({ modifiers, tabs, panelLink, panelStyle, sheet, pop, barHidden, onTabPress, onPlusPress, onPanelAction, onPanelDismiss, ...rest }: KTabBarProps) {
+export function KTabBar({ modifiers, tabs, panelLink, panelStyle, sheet, pop, barHidden, plusRaised, onTabPress, onPlusPress, onPanelAction, onPanelDismiss, ...rest }: KTabBarProps) {
   return (
     <NativeTabBarView
       modifiers={modifiers}
@@ -216,6 +221,7 @@ export function KTabBar({ modifiers, tabs, panelLink, panelStyle, sheet, pop, ba
       pop={pop ?? EMPTY_POP}
       // always sent, so Swift never sees it go missing
       barHidden={barHidden ?? false}
+      plusRaised={plusRaised ?? false}
       onTabPress={onTabPress ? (e) => onTabPress(e.nativeEvent.index) : undefined}
       onPlusPress={onPlusPress}
       onPanelAction={onPanelAction ? (e) => onPanelAction(e.nativeEvent.key) : undefined}

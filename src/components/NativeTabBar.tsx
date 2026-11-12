@@ -4,7 +4,8 @@ import { Tabs, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Host } from "@expo/ui/swift-ui";
-import { KTabBar, isKindredlyUIViewAvailable, type KTabBarCard, type KTabBarProps, type KTabBarTab, type KTabGlyph } from "../../modules/kindredly-ui";
+import { KTabBar, isKindredlyUIViewAvailable, kindredlyUIViewHasProp, type KTabBarCard, type KTabBarProps, type KTabBarTab, type KTabGlyph } from "../../modules/kindredly-ui";
+import { useNativeSurface } from "../lib/surfaces";
 import { t, useLang } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
 import { useBirdImageRef } from "../lib/bird-images";
@@ -190,6 +191,13 @@ export function nativeTabBarSpace(insetBottom: number): number {
   return barBottomGap(insetBottom) + NATIVE_BAR_H;
 }
 
+/** THE RAISED + (owner, 2026-11-12): the + stands 6 over the bar's top edge in a swell of the
+    bar's glass, 12 high. The Host's strip is this much taller at the top to hold it
+    (KTabBarMetrics.plusHeadroom; change them together). Only the Host grows: the room a screen
+    keeps clear (nativeTabBarSpace) is the bar's, as it was, and the 12 is inside the 12 a
+    screen's content already stands off the bar. */
+export const PLUS_HEADROOM = 12;
+
 /** What a screen's own content keeps clear above a floating bar. With the
     6 Today already adds under its write-back box, the box sits the mock's
     12 above the bar (H:115: bottom 104 = 30 + 62 + 12). */
@@ -348,7 +356,10 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
      closed, at the bar), and the bar grows on the next layout, from where it sits. */
   const [grown, setGrown] = useState(false);
   if (!full && grown) setGrown(false);
-  const strip = nativeTabBarSpace(insets.bottom);
+  /* the raised +: behind the "tabraised" switch (on), and only on a binary whose bar takes the
+     prop: an older one would get a taller strip and still draw the + in the row */
+  const raised = useNativeSurface("tabraised") && kindredlyUIViewHasProp("KTabBarView", "plusRaised");
+  const strip = nativeTabBarSpace(insets.bottom) + (raised ? PLUS_HEADROOM : 0);
   const onLayout = (e: LayoutChangeEvent) => {
     if (full && !grown && e.nativeEvent.layout.height > strip + 1) requestAnimationFrame(() => setGrown(true));
   };
@@ -448,6 +459,7 @@ export function NativeTabBar({ state, navigation, open, away = false, onPost, on
           panelStyle="grow"
           sheet={sheet}
           barHidden={hidden}
+          plusRaised={raised}
           onTabPress={onTabPress}
           onPlusPress={onPost}
           onPanelAction={onPanelAction}

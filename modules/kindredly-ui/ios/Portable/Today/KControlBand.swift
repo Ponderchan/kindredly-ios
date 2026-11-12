@@ -502,7 +502,8 @@ private struct KBandDiscStyle: ButtonStyle {
     configuration.label
       .background {
         ZStack {
-          KGlassFace(tone: tone)
+          // the bar's own glass, drawn with the bar's capsule corners as it always was
+          KGlassFace(tone: tone, shape: RoundedRectangle(cornerRadius: KTabBarMetrics.corner, style: .circular))
           disc.fill(tone.lens).opacity(down ? 1 : 0)
         }
         .clipShape(disc)

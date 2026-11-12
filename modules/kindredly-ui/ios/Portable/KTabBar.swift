@@ -144,6 +144,22 @@ public enum KTabBarMetrics {
   /// screen's bottom edge from any gap.
   public static let hiddenDrop: CGFloat = 160
 
+  /* THE RAISED + (owner, 2026-11-12: "➕发布那里是不是也可以做一个向上凸的", with his old app's
+     bar: a disc bigger than the bar's icons, standing proud of the bar in a round swell of the
+     bar's own material). The disc is 52 and sits 11 above the row's middle, so it stands 6 over
+     the bar's top edge; the glass rises round it as a collar 6 wider than the disc, meeting the
+     top edge in a 10pt hollow either side, so it is one outline and not a ring round a button.
+     The bar's frame is `plusHeadroom` taller at the top to hold the swell; whoever sizes the
+     Host adds the same (NativeTabBar.tsx PLUS_HEADROOM). While the bar is grown round its tray
+     the top edge is far above the row, so the swell sinks flat and the disc comes down to the
+     row's middle; both travel with the bar's growth. */
+  public static let plusHeadroom: CGFloat = 12
+  static let plusRaisedSize: CGFloat = 52
+  static let plusSize: CGFloat = 46
+  static let plusRise: CGFloat = 11
+  static let collarGap: CGFloat = 6
+  static let collarFillet: CGFloat = 10
+
   /// the lens (G Prompt 1)
   static let lensSize = CGSize(width: 62, height: 50)
   /// a drag starts once the finger has moved this far (G Prompt 2)
@@ -240,6 +256,7 @@ public struct KTabBar: View {
   private let closeLabel: String
   private let plusTurn: Animation
   private let hidden: Bool
+  private let raised: Bool
   private let tray: AnyView?
   private let onSelect: (Int) -> Void
   private let onPlus: () -> Void
@@ -269,6 +286,8 @@ public struct KTabBar: View {
   ///   - hidden: the bar slides 160 down out of sight (the new reader's publish sheet takes its
   ///     place, or Today's reply has the keyboard: KTabStage barHidden), on the publish turn's
   ///     curve; with Reduce Motion it fades instead
+  ///   - raised: the + stands proud of the bar in a swell of its glass (KTabBarMetrics, THE
+  ///     RAISED +); the bar's frame is plusHeadroom taller at the top. false: the + sits in the row
   ///   - tray: what the bar grows around while isPanelOpen (the publish entry's rows); nil keeps
   ///     the bar 62 tall whatever isPanelOpen says
   ///   - onSelect: a tab was chosen (tapped, or a drag let go over it), with its index; selected or not
@@ -282,6 +301,7 @@ public struct KTabBar: View {
     closeLabel: String,
     plusTurn: Animation = KMotion.plusTurn,
     hidden: Bool = false,
+    raised: Bool = false,
     tray: AnyView? = nil,
     onSelect: @escaping (Int) -> Void,
     onPlus: @escaping () -> Void
@@ -294,6 +314,7 @@ public struct KTabBar: View {
     self.closeLabel = closeLabel
     self.plusTurn = plusTurn
     self.hidden = hidden
+    self.raised = raised
     self.tray = tray
     self.onSelect = onSelect
     self.onPlus = onPlus
@@ -340,9 +361,10 @@ public struct KTabBar: View {
 
   public var body: some View {
     let tone = KGlassTone.of(theme)
-    // the capsule's corners at any height: a capsule at 62, its corners kept while it grows
-    let shape = RoundedRectangle(cornerRadius: KTabBarMetrics.corner, style: .circular)
     let grown = trayOpen
+    // the capsule's corners at any height: a capsule at 62, its corners kept while it grows;
+    // raised, with the swell round the + over its top edge (flat while the bar is grown)
+    let shape = outline(swell: grown ? 0 : 1)
     // the bar's height: 62, and the tray's own measured height while it is open
     let barHeight = KTabBarMetrics.height + (grown ? trayHeight : 0)
     return ZStack(alignment: .bottom) {
@@ -362,12 +384,13 @@ public struct KTabBar: View {
           .accessibilityHidden(!grown)
           .padding(.bottom, KTabBarMetrics.height)
       }
-      tabRow(tone: tone)
+      tabRow(tone: tone, lifted: !grown)
     }
-    // bottom edge fixed: the frame grows upward and the tab row stays at its foot
-    .frame(height: barHeight, alignment: .bottom)
+    // bottom edge fixed: the frame grows upward and the tab row stays at its foot (the headroom
+    // above the top edge is the swell's)
+    .frame(height: barHeight + headroom, alignment: .bottom)
     .frame(maxWidth: .infinity)
-    .background { KGlassFace(tone: tone) }
+    .background { KGlassFace(tone: tone, shape: shape) }
     .clipShape(shape)
     .background { KOuterShadow(shadows: tone.shadow, shape: shape) }
     // THE GROWTH (P2: .45s, the bottom edge fixed). Keyed to the height, not to open or closed:
@@ -394,8 +417,25 @@ public struct KTabBar: View {
     .accessibilityHidden(hidden)
   }
 
-  /// the 62 row of tabs and the +, with the lens behind them
-  private func tabRow(tone: KGlassTone) -> some View {
+  /// room over the bar's top edge for the swell round a raised +
+  private var headroom: CGFloat { raised ? KTabBarMetrics.plusHeadroom : 0 }
+
+  /// The bar's outline in a frame `headroom` taller than the bar: the capsule, and with a raised
+  /// + the swell over its top edge (swell 1; 0 is the capsule alone).
+  private func outline(swell: CGFloat) -> KBarOutline {
+    KBarOutline(
+      corner: KTabBarMetrics.corner,
+      headroom: headroom,
+      collarRadius: KTabBarMetrics.plusRaisedSize / 2 + KTabBarMetrics.collarGap,
+      collarCentre: KTabBarMetrics.height / 2 - KTabBarMetrics.plusRise,
+      fillet: KTabBarMetrics.collarFillet,
+      swell: raised ? swell : 0
+    )
+  }
+
+  /// the 62 row of tabs and the +, with the lens behind them; `lifted`: a raised + is up (the bar
+  /// is not grown round its tray)
+  private func tabRow(tone: KGlassTone, lifted: Bool) -> some View {
     GeometryReader { geo in
       let width = geo.size.width
       let slot = width / CGFloat(max(1, columnCount))
@@ -405,7 +445,7 @@ public struct KTabBar: View {
         HStack(spacing: 0) {
           ForEach(0..<columnCount, id: \.self) { c in
             if c == leading {
-              plus
+              plus(lifted: lifted)
             } else {
               let i = c < leading ? c : c - 1
               tab(i, items[i], on: i == shown, tone: tone)
@@ -415,10 +455,13 @@ public struct KTabBar: View {
         .frame(width: width, height: KTabBarMetrics.height)
       }
       .frame(width: width, height: KTabBarMetrics.height)
-      .contentShape(Capsule(style: .circular))
+      // the row's touch is the bar's own outline, the swell included: the part of a raised + that
+      // stands over the top edge is pressed like the rest of it
+      .frame(width: width, height: KTabBarMetrics.height + headroom, alignment: .bottom)
+      .contentShape(outline(swell: lifted ? 1 : 0))
       .gesture(barGesture(slot: slot))
     }
-    .frame(height: KTabBarMetrics.height)
+    .frame(height: KTabBarMetrics.height + headroom)
     // the row never grows; its count is the only text (see the note at the top)
     .dynamicTypeSize(...DynamicTypeSize.large)
     .accessibilityElement(children: .contain)
@@ -541,7 +584,9 @@ public struct KTabBar: View {
   // ── a tab ──
   private func tab(_ i: Int, _ item: KTabItem, on: Bool, tone: KGlassTone) -> some View {
     let count = on ? 0 : max(0, item.badge)
-    return KTabIcon(glyph: item.glyph, on: on, lineColor: on ? theme.ink : tone.rest, accentColor: on ? theme.ind : tone.rest, pick: pick, moves: on && !reduceMotion)
+    // the accent of a selected tab is postmark red (owner, 2026-11-12, with the mock he meant:
+    // "底部导航图标 红色我说的是这一套"); G1 had it in ind
+    return KTabIcon(glyph: item.glyph, on: on, lineColor: on ? theme.ink : tone.rest, accentColor: on ? KBrand.postRed : tone.rest, pick: pick, moves: on && !reduceMotion)
       .animation(KMotion.tabTint, value: on)
       .frame(width: KTabBarMetrics.lensSize.width, height: KTabBarMetrics.lensSize.height)
       .overlay(alignment: .topTrailing) {
@@ -564,9 +609,12 @@ public struct KTabBar: View {
   }
 
   // ── the + (G Prompt 3) ──
-  private var plus: some View {
+  private func plus(lifted: Bool) -> some View {
     // the grown bar's + under Reduce Motion doesn't turn: the + and the x cross-fade
-    KGlassPlus(theme: theme, isOpen: isPanelOpen, turn: reduceMotion ? .easeInOut(duration: 0.25) : plusTurn, turns: !(reduceMotion && tray != nil))
+    KGlassPlus(theme: theme, isOpen: isPanelOpen, turn: reduceMotion ? .easeInOut(duration: 0.25) : plusTurn, turns: !(reduceMotion && tray != nil), size: raised ? KTabBarMetrics.plusRaisedSize : KTabBarMetrics.plusSize)
+      // raised: up out of the row's middle, and back down into it while the bar is grown (it
+      // travels with the bar's growth, which wraps the whole bar)
+      .offset(y: raised && lifted ? -KTabBarMetrics.plusRise : 0)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .contentShape(Rectangle())
       .accessibilityElement(children: .ignore)
@@ -582,11 +630,12 @@ public struct KTabBar: View {
 /// The capsule's glass, inside its edge (G Prompt 1). The caller clips it to the capsule. Its ring
 /// and lines keep the capsule's corners at any height, so the bar grown around its tray is the
 /// same glass, taller.
-struct KGlassFace: View {
+struct KGlassFace<S: InsettableShape>: View {
   let tone: KGlassTone
+  /// the bar's outline (the caller clips to the same)
+  let shape: S
 
   var body: some View {
-    let shape = RoundedRectangle(cornerRadius: KTabBarMetrics.corner, style: .circular)
     ZStack {
       Rectangle().fill(.ultraThinMaterial)
       Rectangle().fill(tone.tint)
@@ -625,34 +674,40 @@ struct KOuterShadow<S: InsettableShape>: View {
   }
 }
 
-/// The + (G Prompt 3): a 46 ind disc, a white + 22 across at 2.6, an ind glow and a bright line
-/// along its top; open, it turns 45 degrees into an x and the disc goes ink. In Midnight the mark
-/// is drawn in bg, as KPrimaryRound's is (white on its pale ind is under 3:1). turns false (the
-/// grown bar under Reduce Motion) keeps it still: the + fades out as an x, already turned, fades in.
+/// The +: an ink disc with the + in the page's colour, 22 across at 2.6, and a bright line along
+/// its top; open, it turns 45 degrees into an x and the disc goes postmark red with the x in
+/// white (owner, 2026-11-12: "➕ 咱们的蓝色 换成贴图三那样的黑色设计", his old app's bar: a black +
+/// that opens as a red x). G1 had an ind disc that went ink. On a dark theme ink is the light
+/// colour, so the disc is light with a dark +, as the theme's other ink buttons are. turns false
+/// (the grown bar under Reduce Motion) keeps it still: the + fades out as an x, already turned,
+/// fades in.
 struct KGlassPlus: View {
   let theme: KTheme
   let isOpen: Bool
   let turn: Animation
   var turns = true
+  /// the disc: 46 in the row, 52 raised
+  var size: CGFloat = KTabBarMetrics.plusSize
 
   var body: some View {
     let disc = Circle()
     // Every animation here is scoped to one effect (the turn, a fade), never .animation(_:value:)
     // on the disc: that also animated where the disc sits, and when the Host grew to the whole
     // screen in the pass that opened the +, the disc could ride in from the old layout
-    // (owner on TestFlight 1.2.8, 2026-11-10). The disc goes from ind to ink as ink fading in
-    // over ind, which draws the same blend.
+    // (owner on TestFlight 1.2.8, 2026-11-10). The disc goes from ink to red as red fading in
+    // over ink, which draws the same blend; the mark from the page's colour to white likewise.
     ZStack {
-      mark.animation(turn) { $0.opacity(turns || !isOpen ? 1 : 0) }
+      mark(theme.bg).animation(turn) { $0.opacity(turns || !isOpen ? 1 : 0) }
+      mark(Color.white).animation(turn) { $0.opacity(turns && isOpen ? 1 : 0) }
       if !turns {
-        mark.rotationEffect(.degrees(45)).animation(turn) { $0.opacity(isOpen ? 1 : 0) }
+        mark(Color.white).rotationEffect(.degrees(45)).animation(turn) { $0.opacity(isOpen ? 1 : 0) }
       }
     }
-      .frame(width: 46, height: 46)
+      .frame(width: size, height: size)
       .background {
         ZStack {
-          disc.fill(theme.ind)
-          disc.fill(theme.ink).animation(turn) { $0.opacity(isOpen ? 1 : 0) }
+          disc.fill(theme.ink)
+          disc.fill(KBrand.postRed).animation(turn) { $0.opacity(isOpen ? 1 : 0) }
         }
       }
       .overlay(
@@ -662,14 +717,94 @@ struct KGlassPlus: View {
         )
       )
       .animation(turn) { $0.rotationEffect(.degrees(turns && isOpen ? 45 : 0)) }
-      .kSoftShadows([KSoftShadow(y: 6, blur: 16, spread: -6, color: theme.ind.opacity(0.7))], in: disc)
+      .kSoftShadows([KSoftShadow(y: 6, blur: 16, spread: -6, color: Color.black.opacity(theme.isDark ? 0.55 : 0.32))], in: disc)
       .accessibilityHidden(true)
   }
 
-  private var mark: some View {
+  private func mark(_ color: Color) -> some View {
     KPlusGlyph()
-      .stroke(theme.isDark ? theme.bg : Color.white, style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
+      .stroke(color, style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
       .frame(width: 22, height: 22)
+  }
+}
+
+/// The bar's outline (THE RAISED +, KTabBarMetrics): a rounded rectangle whose corners keep the
+/// capsule's radius at any height, set `headroom` down from the top of its frame, and over its
+/// top edge, in the middle, a round collar that meets the edge in a hollow either side. One
+/// closed path, so the glass, its bright edge and its shadow all follow the swell. `swell` runs
+/// from 0 (the collar sunk under the edge: the plain bar) to 1 and animates.
+struct KBarOutline: InsettableShape {
+  var corner: CGFloat
+  var headroom: CGFloat
+  /// the collar's radius, and its centre's depth under the bar's top edge at swell 1
+  var collarRadius: CGFloat
+  var collarCentre: CGFloat
+  /// the hollow's radius where the collar meets the edge
+  var fillet: CGFloat
+  var swell: CGFloat
+  var inset: CGFloat = 0
+
+  var animatableData: CGFloat {
+    get { swell }
+    set { swell = newValue }
+  }
+
+  func inset(by amount: CGFloat) -> KBarOutline {
+    var s = self
+    s.inset += amount
+    return s
+  }
+
+  func path(in rect: CGRect) -> Path {
+    let top = rect.minY + headroom
+    let bar = CGRect(x: rect.minX + inset, y: top + inset, width: max(0, rect.width - inset * 2), height: max(0, rect.maxY - top - inset * 2))
+    let r = max(0, min(corner - inset, bar.width / 2, bar.height / 2))
+    // the collar's centre: sunk until its top is 2 under the edge at swell 0
+    let depth = collarCentre + (1 - min(max(swell, 0), 1)) * (collarRadius - collarCentre + 2)
+    let over = collarRadius - depth
+    guard over > 0.5, bar.width > 0, bar.height > 0 else {
+      return Path(roundedRect: bar, cornerRadius: r, style: .circular)
+    }
+    // the hollow is no deeper than the swell is tall, so a low swell is a low wave, not a notch
+    let f = min(fillet, over * 1.2)
+    let c = CGPoint(x: rect.midX, y: top + depth)
+    // the hollows' centres sit f over the edge, where they touch both the edge and the collar
+    let reach = (collarRadius + f) * (collarRadius + f) - (depth + f) * (depth + f)
+    let a = reach > 0 ? reach.squareRoot() : 0
+    guard a > 0, c.x - a > bar.minX + r, c.x + a < bar.maxX - r else {
+      return Path(roundedRect: bar, cornerRadius: r, style: .circular)
+    }
+    let rc = max(0, collarRadius - inset)
+    let rf = f + inset
+    let left = CGPoint(x: c.x - a, y: top - f)
+    let right = CGPoint(x: c.x + a, y: top - f)
+    func arc(_ centre: CGPoint, _ radius: CGFloat, from: CGFloat, to: CGFloat, into p: inout Path) {
+      let steps = 14
+      for i in 0...steps {
+        let t = from + (to - from) * CGFloat(i) / CGFloat(steps)
+        p.addLine(to: CGPoint(x: centre.x + radius * cos(t), y: centre.y + radius * sin(t)))
+      }
+    }
+    // angles with y down: the left hollow runs from straight down to where it meets the collar
+    let meetLeft = atan2(depth + f, a)
+    let meetRight = atan2(depth + f, -a)
+    let collarFrom = atan2(-(depth + f), -a)
+    let collarTo = atan2(-(depth + f), a)
+    var p = Path()
+    p.move(to: CGPoint(x: bar.minX + r, y: bar.minY))
+    arc(left, rf, from: .pi / 2, to: meetLeft, into: &p)
+    arc(c, rc, from: collarFrom, to: collarTo, into: &p)
+    arc(right, rf, from: meetRight, to: .pi / 2, into: &p)
+    p.addLine(to: CGPoint(x: bar.maxX - r, y: bar.minY))
+    p.addArc(tangent1End: CGPoint(x: bar.maxX, y: bar.minY), tangent2End: CGPoint(x: bar.maxX, y: bar.minY + r), radius: r)
+    p.addLine(to: CGPoint(x: bar.maxX, y: bar.maxY - r))
+    p.addArc(tangent1End: CGPoint(x: bar.maxX, y: bar.maxY), tangent2End: CGPoint(x: bar.maxX - r, y: bar.maxY), radius: r)
+    p.addLine(to: CGPoint(x: bar.minX + r, y: bar.maxY))
+    p.addArc(tangent1End: CGPoint(x: bar.minX, y: bar.maxY), tangent2End: CGPoint(x: bar.minX, y: bar.maxY - r), radius: r)
+    p.addLine(to: CGPoint(x: bar.minX, y: bar.minY + r))
+    p.addArc(tangent1End: CGPoint(x: bar.minX, y: bar.minY), tangent2End: CGPoint(x: bar.minX + r, y: bar.minY), radius: r)
+    p.closeSubpath()
+    return p
   }
 }
 
@@ -838,12 +973,13 @@ struct KTabBadge: View {
     Text(count > 9 ? "9+" : String(count))
       .font(.system(size: 11, weight: .bold))
       .monospacedDigit()
-      .foregroundStyle(theme.isDark ? theme.bg : Color.white)
+      // postmark red with white digits in every theme (owner's mock, 2026-11-12); G1 had it in ind
+      .foregroundStyle(Color.white)
       .lineLimit(1)
       .fixedSize()
       .padding(.horizontal, 5)
       .frame(minWidth: 18, minHeight: 18, maxHeight: 18)
-      .background(Capsule().fill(theme.ind))
+      .background(Capsule().fill(KBrand.postRed))
       .padding(2)
       .background(Capsule().fill(ring))
       .padding(-2)

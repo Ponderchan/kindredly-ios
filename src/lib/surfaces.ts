@@ -460,6 +460,11 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
      them. A false row in app_surfaces ('kindredscatch', the version or '*', false) puts the page back
      as it was with no build. */
   kindredscatch: true,
+  /* the raised + on the tab bar (owner, 2026-11-12: "➕发布那里是不是也可以做一个向上凸的"). Not a
+     view of its own: KTabBarView draws it when it is sent plusRaised, and the bar's Host is 12
+     taller for it. A false row ('tabraised', the version or '*', false) puts the + back in the
+     row with no build; the bar's red accents and its ink + are not behind it. */
+  tabraised: true,
 };
 
 /** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages, a kindred's page, Wren's room, the five small pages and three Notes pages (the `surface` prop of NativeSurface) */
