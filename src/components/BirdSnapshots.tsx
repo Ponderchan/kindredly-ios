@@ -51,6 +51,15 @@ const refs: Partial<Record<string, View | null>> = {};
 let ready = false;
 const waiting: (() => void)[] = [];
 
+/* HOW A PICTURE IS TAKEN (2026-11-13). renderInContext draws the bird's layers straight into the
+   file. view-shot's default (drawViewHierarchyInRect, afterScreenUpdates: YES) makes the whole
+   window redraw first, in the middle of whatever is moving: the letter composer, opened in the
+   first seconds after a launch, shook on its way up while its Wren's faces were taken. Checked on
+   every pose (dev/bird-capture), drawn long before and freshly mounted: the same pixels both ways,
+   and the file is now tagged sRGB, which is what the numbers in it are (the old way tagged the same
+   numbers Display P3, so Swift drew her a shade too vivid). */
+const SHOT = { format: "png", quality: 1, result: "tmpfile", useRenderInContext: true } as const;
+
 /* the view has re-rendered with the new look; give it two frames to draw */
 const settle = () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 30))));
 /** after a failed capture, wait this long before the next round (as FaceShot does) */
@@ -64,7 +73,7 @@ export async function snapshotBird(pose: BirdPose): Promise<string | null> {
   const v = refs[birdVariant(pose)];
   if (!v) return null;
   try {
-    return await captureRef(v, { format: "png", quality: 1, result: "tmpfile" });
+    return await captureRef(v, SHOT);
   } catch {
     return null;
   }
@@ -135,7 +144,7 @@ export function BirdSnapshots() {
             const look = poseLook(parseBirdVariant(v).pose);
             let uri: string | null = null;
             try {
-              uri = await captureRef(view, { format: "png", quality: 1, result: "tmpfile" });
+              uri = await captureRef(view, SHOT);
             } catch {
               uri = null;
             }

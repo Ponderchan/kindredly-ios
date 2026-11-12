@@ -1,4 +1,5 @@
 import { MORNING_HOUR, untilMorning } from "../../lib/day";
+import { PALETTE, daylight } from "../../components/courier-card-model";
 import { streakDots, streakRun, type AfterToday, type Thing, type Totals } from "../../lib/after-fifteen-core";
 
 /* TODAY, AFTER FIFTEEN — WHAT THE PAGE SAYS (docs/today-after-fifteen.md).
@@ -64,6 +65,40 @@ export type AfterFacts = {
   undoHint: string;
 };
 
+/** KAfterSkyRecord: the hour's sky as Free Flight draws it (screens/courier/free-flight-model). */
+export type AfterSky = {
+  sky0: string;
+  sky1: string;
+  land: string;
+  forest: string;
+  scrim: string;
+  pillarInk: string;
+  /** "" for no sun */
+  sun: string;
+  moon: boolean;
+  stars: boolean;
+  night: boolean;
+};
+
+/** The sky her game is played under at `now` (PALETTE[daylight()], the pillars edged as the game edges them). */
+export function afterSky(now: Date): AfterSky {
+  const hour = daylight(now.getHours());
+  const p = PALETTE[hour];
+  const night = hour === "night";
+  return {
+    sky0: p.sky[0],
+    sky1: p.sky[1],
+    land: p.land,
+    forest: p.forest,
+    scrim: p.scrim,
+    pillarInk: night ? "#DAD6F2" : p.chip,
+    sun: p.sun ?? "",
+    moon: p.moon,
+    stars: p.stars,
+    night,
+  };
+}
+
 export type AfterRow = { id: string; label: string; value: string; strong: boolean; unshared: boolean };
 
 /** KAfterFifteenView's records, field for field (modules/kindredly-ui/src/AfterFifteen.tsx). */
@@ -83,6 +118,8 @@ export type AfterVM = {
     keepHint: string;
   };
   strip: { canPlay: boolean; eyebrow: string; title: string; hint: string };
+  /** her game's sky at this hour, for the window on a folding phone's right page (afterSky) */
+  sky: AfterSky;
   box: {
     line: string;
     sub: string;
@@ -243,6 +280,7 @@ export function buildAfterView(f: AfterFacts, fmt: AfterFormat): AfterVM {
     strip: f.canPlay
       ? { canPlay: true, eyebrow: upper(t("af.strip.eyebrow", { name })), title: t("win.fly", { name }), hint: t("af.strip.hint") }
       : { canPlay: false, eyebrow: "", title: `${backIn} ${countdown}`, hint: "" },
+    sky: afterSky(f.now),
     box: {
       line: count(t, "af.box.say", read),
       sub: f.replied > 0 ? count(t, "wl.replied", f.replied) : "",

@@ -29,11 +29,12 @@ export function AfterFifteenNative({ vm, look, act }: { vm: AfterVM; look: KWren
 
   const thing = useSameContent(vm.thing);
   const strip = useSameContent(vm.strip);
+  const sky = useSameContent(vm.sky);
   const box = useSameContent(vm.box);
   const receipt = useSameContent(vm.receipt);
   const bed = useSameContent(vm.bed);
   const sentLook = useSameContent(look);
-  const rev = useRev(vm.page, vm.title, thing, strip, box, receipt, bed, sentLook, vm.undo, vm.undoHint);
+  const rev = useRev(vm.page, vm.title, thing, strip, sky, box, receipt, bed, sentLook, vm.undo, vm.undoHint);
 
   return (
     <SurfaceHost>
@@ -47,6 +48,7 @@ export function AfterFifteenNative({ vm, look, act }: { vm: AfterVM; look: KWren
         look={sentLook}
         thing={thing}
         strip={strip}
+        sky={sky}
         box={box}
         receipt={receipt}
         bed={bed}

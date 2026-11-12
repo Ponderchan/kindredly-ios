@@ -168,13 +168,11 @@ export function WrenBird({
       {keys.map((k) => (
         <Shapes
           key={k}
-          list={
-            stage === "hatch" && form
-              ? shapeHatchling(WREN_FAMILY[k] || [], form)
-              : pose === "fly" && !letter
-                ? withoutLetter(WREN_FAMILY[k] || [])
-                : WREN_FAMILY[k] || []
-          }
+          list={(() => {
+            const shaped = stage === "hatch" && form ? shapeHatchling(WREN_FAMILY[k] || [], form) : WREN_FAMILY[k] || [];
+            // the letter comes off whatever her shape (a hatchling flying off the clock carried one, 2026-11-13)
+            return pose === "fly" && !letter ? withoutLetter(shaped) : shaped;
+          })()}
           bare={!outlined}
           wilt={wilt}
         />

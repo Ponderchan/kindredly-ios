@@ -531,10 +531,12 @@ function want(v: string): () => void {
 
 /**
  * Her pictures taken AHEAD of the screens that show them (owner, 2026-11-12: "点写信…抖动且弹两次").
- * A first capture draws the bird offscreen and screenshots it with afterScreenUpdates, which makes
- * the screen redraw in the middle of whatever is moving: the letter composer, opened for the first
- * time after launch, shook on its way up (measured: its top edge went back down eleven times) while
- * its Wren's faces and her flying picture were taken; every later open was smooth. Wanted here for
+ * A first capture used to screenshot the bird with afterScreenUpdates, which made the screen redraw
+ * in the middle of whatever was moving: the letter composer, opened for the first time after
+ * launch, shook on its way up (measured: its top edge went back down eleven times) while its Wren's
+ * faces and her flying picture were taken. Captures no longer touch the screen (BirdSnapshots
+ * SHOT, 2026-11-13); taking them ahead still keeps that work, and the first frame without her,
+ * out of the composer's way up. Wanted here for
  * `holdMs` (a capture round), then let go: a picture once taken stays (shots) until iOS purges the
  * file or her look changes, so the screen's own ask finds it ready. A pose already captured costs
  * nothing.

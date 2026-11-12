@@ -170,6 +170,30 @@ struct Inner: View {
   }
 }
 
+/* her window's sky at each hour (components/courier-card-model PALETTE, as after-view afterSky sends it) */
+func sky(_ hour: String) -> KAfterSky {
+  var k = KAfterSky()
+  switch hour {
+  case "morning":
+    k.sky0 = Color(hex: "#FBE3D6"); k.sky1 = Color(hex: "#EAF1E4"); k.land = Color(hex: "#B4DCA6"); k.forest = Color(hex: "#4E9A5C")
+    k.scrim = Color(hex: "#C4E1C6"); k.pillarInk = Color(hex: "#2D5B3A"); k.sun = Color(hex: "#FFD79A")
+  case "evening":
+    k.sky0 = Color(hex: "#F6C39A"); k.sky1 = Color(hex: "#E8C7E6"); k.land = Color(hex: "#93BB8C"); k.forest = Color(hex: "#3A6F46")
+    k.scrim = Color(hex: "#E6CBD3"); k.pillarInk = Color(hex: "#4A2F3F"); k.sun = Color(hex: "#FF9A57")
+  case "night":
+    k.sky0 = Color(hex: "#1E1B35"); k.sky1 = Color(hex: "#2E2A6B"); k.land = Color(hex: "#2F5148"); k.forest = Color(hex: "#1B3530")
+    k.scrim = Color(hex: "#2B2660"); k.pillarInk = Color(hex: "#DAD6F2"); k.sun = nil; k.moon = true; k.stars = true; k.night = true
+  default: break
+  }
+  return k
+}
+
+func at(_ c: KAfterContent, _ hour: String) -> KAfterContent {
+  var c = c
+  c.sky = sky(hour)
+  return c
+}
+
 @main
 struct Main {
   @MainActor static func main() {
@@ -181,18 +205,20 @@ struct Main {
     var shut = base(.box); shut.box.shut = true
     var printed = base(.receipt); printed.receipt.phase = .printed
     var ready = base(.bedtime); ready.bed.fed = true; ready.bed.patted = true
+    var undo = base(.box); undo.undo = "Undo"
+    var asleep = base(.bedtime); asleep.strip.canPlay = false; asleep.strip.eyebrow = ""; asleep.strip.title = "POND IS BACK IN 9H 12M"
     write(VStack(alignment: .leading, spacing: 24) {
       HStack(alignment: .top, spacing: 24) {
-        Inner(content: base(.box), label: "inner · mailbox open")
-        Inner(content: shut, label: "inner · mailbox shut")
+        Inner(content: at(base(.box), "day"), label: "inner · mailbox open · day")
+        Inner(content: at(undo, "evening"), label: "inner · mailbox, Undo offered · evening")
       }
       HStack(alignment: .top, spacing: 24) {
-        Inner(content: printed, label: "inner · receipt printed")
-        Inner(content: ready, label: "inner · bedtime")
+        Inner(content: at(printed, "morning"), label: "inner · receipt printed · morning")
+        Inner(content: at(ready, "night"), label: "inner · bedtime · night")
       }
       HStack(alignment: .top, spacing: 24) {
-        Inner(content: printed, theme: .midnight, label: "inner · receipt · Midnight")
-        Inner(content: base(.bedtime), theme: .midnight, label: "inner · bedtime · Midnight")
+        Inner(content: at(shut, "night"), theme: .midnight, label: "inner · mailbox shut · Midnight, night")
+        Inner(content: at(asleep, "night"), theme: .midnight, label: "inner · she can't play · Midnight")
       }
     }, "\(dir)/spread.png")
   }

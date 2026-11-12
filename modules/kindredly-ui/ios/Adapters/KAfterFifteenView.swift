@@ -16,6 +16,8 @@ import ExpoUI
  - look: KWrenLookRecord (Adapters/KMePlanetView.swift): who she is; the pages set her mood and pose
  - thing: { isLine, tag, body, foot, keep, kept, keepStub, keptStub, isKept, keepHint }
  - strip: { canPlay, eyebrow, title, hint }
+ - sky: { sky0, sky1, land, forest, scrim, pillarInk, sun ("" none), moon, stars, night }: her game's
+        sky at this hour, for the window on a folding phone's right page
  - box: { line, sub, hint, pinned, slot, slotOpening, slotA11y, eyebrow, closed, back, countdown,
           pull, lift, pullA11y, liftA11y, shut }
  - receipt: { line, shop, stampLine, rows: [{ id, label, value, strong, unshared }], delivery: [same],
@@ -81,6 +83,35 @@ struct KAfterStripRecord: Record {
     s.title = title
     s.hint = hint
     return s
+  }
+}
+
+struct KAfterSkyRecord: Record {
+  @Field var sky0: String = "#BFE3F8"
+  @Field var sky1: String = "#E3F3FB"
+  @Field var land: String = "#9CD48C"
+  @Field var forest: String = "#3F8F52"
+  @Field var scrim: String = "#ADDBB5"
+  @Field var pillarInk: String = "#1F5C33"
+  /// "" for no sun
+  @Field var sun: String = "#FFD54A"
+  @Field var moon: Bool = false
+  @Field var stars: Bool = false
+  @Field var night: Bool = false
+
+  var sky: KAfterSky {
+    var k = KAfterSky()
+    k.sky0 = kFlightColor(sky0, "#BFE3F8")
+    k.sky1 = kFlightColor(sky1, "#E3F3FB")
+    k.land = kFlightColor(land, "#9CD48C")
+    k.forest = kFlightColor(forest, "#3F8F52")
+    k.scrim = kFlightColor(scrim, "#ADDBB5")
+    k.pillarInk = kFlightColor(pillarInk, "#1F5C33")
+    k.sun = sun.isEmpty ? nil : kFlightColor(sun, "#FFD54A")
+    k.moon = moon
+    k.stars = stars
+    k.night = night
+    return k
   }
 }
 
@@ -251,6 +282,7 @@ final class KAfterFifteenViewProps: KScreenProps {
   @Field var look: KWrenLookRecord = KWrenLookRecord()
   @Field var thing: KAfterThingRecord = KAfterThingRecord()
   @Field var strip: KAfterStripRecord = KAfterStripRecord()
+  @Field var sky: KAfterSkyRecord = KAfterSkyRecord()
   @Field var box: KAfterBoxRecord = KAfterBoxRecord()
   @Field var receipt: KAfterReceiptRecord = KAfterReceiptRecord()
   @Field var bed: KAfterBedRecord = KAfterBedRecord()
@@ -288,6 +320,7 @@ final class KAfterFifteenViewProps: KScreenProps {
       c.look = look.look
       c.thing = thing.thing
       c.strip = strip.strip
+      c.sky = sky.sky
       c.box = box.box
       c.receipt = receipt.receipt
       c.bed = bed.bed

@@ -126,6 +126,13 @@ ok("VoiceOver reads the rows and the small thing", rc.a11y.startsWith("Receipt. 
 eq("she can play", view().strip, { canPlay: true, eyebrow: "POND’S OFF THE CLOCK", title: "Fly a lap with Pond", hint: "Opens Free Flight" });
 eq("she can't: when she is back, and no lap", view({ canPlay: false }).strip, { canPlay: false, eyebrow: "", title: "POND IS BACK IN 16H 40M", hint: "" });
 
+/* ── her window's sky (a folding phone's right page): the game's hour ── */
+const skyAt = (h: number) => V.afterSky(new Date(2026, 10, 11, h, 5));
+eq("the window at noon is the day's sky, with the sun", [skyAt(12).sky0, skyAt(12).sun, skyAt(12).night], ["#BFE3F8", "#FFD54A", false]);
+eq("at 22:05 it is the night's: the moon, the stars, lilac pillars", [skyAt(22).moon, skyAt(22).stars, skyAt(22).sun, skyAt(22).pillarInk], [true, true, "", "#DAD6F2"]);
+eq("at 7 the morning's, at 18 the evening's", [skyAt(7).sky0, skyAt(18).sky0], ["#FBE3D6", "#F6C39A"]);
+eq("the page carries the sky of its own clock (15:20, the day)", view().sky, V.afterSky(now));
+
 /* ── bedtime ── */
 const bed = view({ today: today({ page: "bedtime" }) }).bed;
 eq("her lines", [bed.sayIdle, bed.sayFed, bed.sayFull, bed.sayPat, bed.sayNeedSnack, bed.sayNeedPat], ["“that’s 10. i’m wrecked.”", "“10 letters is hungry work. thanks.”", "“i’m full. honest.”", "“you wrote back to 2. proud of you.”", "“not yet. snack first.”", "“one pat. then lights.”"]);

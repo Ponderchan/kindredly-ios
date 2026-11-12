@@ -54,7 +54,8 @@ function FaceShot({ snap }: { snap: FaceSnapKey }) {
     if (!live.current || !ref.current) return;
     let uri: string | null = null;
     try {
-      uri = await captureRef(ref.current, { format: "png", quality: 1, result: "tmpfile" });
+      // straight from the layers, never redrawing the screen mid-animation (BirdSnapshots SHOT)
+      uri = await captureRef(ref.current, { format: "png", quality: 1, result: "tmpfile", useRenderInContext: true });
     } catch (e) {
       if (__DEV__) console.warn("[FaceSnapshots] capture failed:", snap, String((e as Error)?.message ?? e));
     }

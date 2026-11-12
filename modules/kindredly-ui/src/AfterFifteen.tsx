@@ -41,6 +41,9 @@ export type KAfterThing = {
 
 export type KAfterStrip = { canPlay: boolean; eyebrow: string; title: string; hint: string };
 
+/** the hour's sky as Free Flight draws it (screens/today/after-view afterSky); sun "" for none */
+export type KAfterSky = { sky0: string; sky1: string; land: string; forest: string; scrim: string; pillarInk: string; sun: string; moon: boolean; stars: boolean; night: boolean };
+
 export type KAfterBox = {
   line: string;
   /** "" when she has nothing to count */
@@ -118,6 +121,8 @@ export type KAfterFifteenViewProps = CommonViewModifierProps &
     look: KWrenLookData;
     thing: KAfterThing;
     strip: KAfterStrip;
+    /** her game's sky at this hour, for the window on a folding phone's right page */
+    sky: KAfterSky;
     box: KAfterBox;
     receipt: KAfterReceipt;
     bed: KAfterBed;

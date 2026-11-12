@@ -63,6 +63,24 @@ public struct KAfterStrip: Equatable, Sendable {
   public init() {}
 }
 
+/// The hour's sky her game is played under (Free Flight's PALETTE[daylight()]), for the window on
+/// a folding phone's right page (KAfterWindow). The defaults are the day's.
+public struct KAfterSky: Equatable, Sendable {
+  public var sky0 = Color(hex: "#BFE3F8")
+  public var sky1 = Color(hex: "#E3F3FB")
+  public var land = Color(hex: "#9CD48C")
+  public var forest = Color(hex: "#3F8F52")
+  /// the pillars' fill and their edge
+  public var scrim = Color(hex: "#ADDBB5")
+  public var pillarInk = Color(hex: "#1F5C33")
+  public var sun: Color? = Color(hex: "#FFD54A")
+  public var moon = false
+  public var stars = false
+  public var night = false
+
+  public init() {}
+}
+
 public struct KAfterBox: Equatable, Sendable {
   /// “that's 10. i counted twice.”
   public var line = ""
@@ -228,6 +246,8 @@ public struct KAfterContent: Equatable, Sendable {
   public var look = KWrenLook()
   public var thing = KAfterThing()
   public var strip = KAfterStrip()
+  /// her game's sky at this hour (the folding phone's window)
+  public var sky = KAfterSky()
   public var box = KAfterBox()
   public var receipt = KAfterReceipt()
   public var bed = KAfterBed()

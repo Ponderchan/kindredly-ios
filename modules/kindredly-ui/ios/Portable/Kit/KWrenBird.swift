@@ -401,7 +401,9 @@ enum KWrenRules {
     let hatch = look.stage == .hatch
     if hatch, let form = look.form {
       list = shapeHatchling(list, form)
-    } else if look.pose == .fly, !look.letter {
+    }
+    // the letter comes off whatever her shape (a hatchling flying off the clock carried one, 2026-11-13)
+    if look.pose == .fly, !look.letter {
       list = withoutLetter(list)
     }
     let bare = !look.outlined
