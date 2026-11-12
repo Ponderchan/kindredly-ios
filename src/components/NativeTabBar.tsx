@@ -248,8 +248,18 @@ export function useTabBarSpace(): number {
    taps until the Host shrinks. */
 const PANEL_OUT_MS = 480;
 
-/* PostFan's wait between pushing the composer and closing the grown bar under it */
-const CLOSE_AFTER_PUSH_MS = 420;
+/* The wait between pushing the composer and closing the grown bar under it: until the composer
+   has finished rising, and not a moment before.
+
+   It was 420 (PostFan's number), which lands in the MIDDLE of the rise, not after it: the push
+   takes a beat to start, so 420 after the tap is about 290 into a slide of about 500. Closing
+   the bar there is a second animation under the first (the glass shrinking, its dim and blur
+   fading, a full-screen Host on its way back to a strip), and the composer stopped a hundred
+   points short of the top for about half a second, then finished (owner, 2026-11-12: "出来的
+   composer会抖一一下 然后才完成出现"; measured frame by frame from a screen recording: the page's
+   top at 107pt at 293ms, still 55pt at 758ms, home at 830ms). At 800 the composer covers the
+   bar before it moves, so nobody sees it close and nothing competes with the rise. */
+const CLOSE_AFTER_PUSH_MS = 800;
 
 /** Whether this binary can draw the Swift bar: the KindredlyUI module AND
     its KTabBarView (a dev client built before this view existed has the

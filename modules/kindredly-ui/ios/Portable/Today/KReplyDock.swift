@@ -98,6 +98,8 @@ struct KReplyDock: View {
      letter itself is on the left page), no expand or collapse (there is nothing smaller to go
      back to), and the compact header's line saying who the words go to. `pageTop` is where the
      page starts (the letter's top). */
+  /// a folding phone's band, which the dim runs on under (see the scrim)
+  @ObservedObject private var fold = KFold.shared
   private let page: Bool
   private let pageTop: CGFloat
   /// with no software keyboard under it, the page stands this far off the screen's foot (level
@@ -172,6 +174,10 @@ struct KReplyDock: View {
     ZStack(alignment: .bottom) {
       // (the right page of a folding phone covers nothing: the letter is beside it, so no dim)
       scrimColor
+        // a folding phone's outer screen: the dim runs on under the system's clock to the edge
+        // (the tab bar that stands there has stepped out), or the page is dimmed beside a
+        // strip of bare page (found walking the simulator, 2026-11-12)
+        .padding(.trailing, page ? 0 : -fold.frame.band)
         .opacity(focused && !page ? 1 : 0.001)
         .animation(.easeOut(duration: 0.2), value: focused)
         .contentShape(Rectangle())
@@ -345,6 +351,8 @@ private struct KReplyBox: View {
   let noticeWarn: Bool
   let sendState: KSendState
   let expanded: Bool
+  /// a folding phone's band, which the sheet runs on under (see the background)
+  @ObservedObject private var fold = KFold.shared
   /// the right page of a folding phone (KReplyDock, THE RIGHT PAGE)
   var page = false
   let bottomPad: CGFloat
@@ -394,6 +402,9 @@ private struct KReplyBox: View {
       shape
         .fill(theme.sf)
         .shadow(color: shadowColor, radius: expanded ? 15 : 12, x: 0, y: expanded ? -10 : -8)
+        // a folding phone's outer screen: the box's sheet runs to the glass's right edge, under
+        // the band, as it runs edge to edge on a phone; what is in it keeps to the page
+        .padding(.trailing, page ? 0 : -fold.frame.band)
     }
     .accessibilityElement(children: .contain)
     .accessibilityAddTraits(expanded ? .isModal : [])

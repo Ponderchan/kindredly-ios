@@ -39,8 +39,9 @@ import SwiftUI
  the icon. A number, never a dot (owner, 2026-09-20); "9+" past nine, and hidden while its tab
  is selected, as the React Native bar's is (PostTabBar): the reader is already looking at it.
 
- THE + (G Prompt 3): a 46 ind disc with a white + 22 across at 2.6 and an ind glow; open, it
- turns 45 degrees into an x and the disc goes ink. The holder still passes the turn's curve.
+ THE + (G Prompt 3, then the owner's own on 2026-11-12: KGlassPlus): an ink disc with the + in
+ the page's colour; open, it turns 45 degrees into an x and the disc goes ind. The holder still
+ passes the turn's curve.
 
  THE BAR GROWS (the owner's P2, 2026-11-09: CLAUDE-CODE-PROMPTS-PLUS.md Prompt 2). Given a tray
  (the publish entry's two rows, KPublishTray in KPlusPanel.swift), the glass itself grows taller
@@ -124,6 +125,12 @@ public enum KTabBarMetrics {
   public static let height: CGFloat = 62
   /// in from the screen's left and right edges (G Prompt 1)
   public static let sideInset: CGFloat = 16
+  /* THE BAR IS NEVER LONGER THAN IT IS ON THE WIDEST PHONE (owner, 2026-11-12, on the iPhone
+     Duo: "这种长条的一定注意别弄这么长"). On a window wider than a phone's with the bar along the
+     bottom (the Duo's inner screen held upright, 669 across) it stood 637 long with its four
+     icons a hand apart; there it keeps to 430 in the middle. No phone's window is wide enough
+     for this to act (the widest, 440, gives the bar 408). */
+  public static let barMaxWidth: CGFloat = 430
 
   /*
    How far the bar's bottom edge sits above the screen's: 4 inside the safe area, never closer
@@ -146,18 +153,19 @@ public enum KTabBarMetrics {
 
   /* THE RAISED + (owner, 2026-11-12: "➕发布那里是不是也可以做一个向上凸的", with his old app's
      bar: a disc bigger than the bar's icons, standing proud of the bar in a round swell of the
-     bar's own material). The disc is 48 and sits 12 above the row's middle, so it stands 5 over
+     bar's own material). The disc is 44 and sits 14 above the row's middle, so it stands 5 over
      the bar's top edge (52 and 11 at first; the owner the same day: "黑圈稍微小一点点", with a
-     bigger, bolder +); the glass rises round it as a collar 6 wider than the disc, meeting the
+     bigger, bolder +, so 48 and 12; and that evening "发布的那个圈还是有点大", so 44, lifted 2
+     more to stand as proud as it did); the glass rises round it as a collar 6 wider than the disc, meeting the
      top edge in a 10pt hollow either side, so it is one outline and not a ring round a button.
      The bar's frame is `plusHeadroom` taller at the top to hold the swell; whoever sizes the
      Host adds the same (NativeTabBar.tsx PLUS_HEADROOM). While the bar is grown round its tray
      the top edge is far above the row, so the swell sinks flat and the disc comes down to the
      row's middle; both travel with the bar's growth. */
   public static let plusHeadroom: CGFloat = 12
-  static let plusRaisedSize: CGFloat = 48
-  static let plusSize: CGFloat = 46
-  static let plusRise: CGFloat = 12
+  static let plusRaisedSize: CGFloat = 44
+  static let plusSize: CGFloat = 44
+  static let plusRise: CGFloat = 14
   /// the + drawn on the disc: its frame (the arms are 14/24 of it, so 16.3 long) and its stroke.
   /// 22 and 2.6 until the owner asked for a bigger, bolder + (2026-11-12)
   static let plusMark: CGFloat = 28
@@ -190,8 +198,9 @@ public enum KTabBarMetrics {
   public static let railSlot: CGFloat = 62
   /// between the tabs' capsule and the +
   public static let railGap: CGFloat = 12
-  /// the + on the rail: on its own, so a little bigger than in the row
-  public static let railPlus: CGFloat = 54
+  /// the + on the rail: on its own, so a little bigger than in the row (54 at first; 50 with the
+  /// row's own going from 48 to 44)
+  public static let railPlus: CGFloat = 50
   /// the rail's right edge from the screen's: the 62 of the rail in the middle of the system's
   /// 84 band, under its clock
   public static let railEdge: CGFloat = 11
@@ -794,9 +803,11 @@ public struct KTabBar: View {
   // ── a tab ──
   private func tab(_ i: Int, _ item: KTabItem, on: Bool, tone: KGlassTone) -> some View {
     let count = on ? 0 : max(0, item.badge)
-    // the accent of a selected tab is postmark red (owner, 2026-11-12, with the mock he meant:
-    // "底部导航图标 红色我说的是这一套"); G1 had it in ind
-    return KTabIcon(glyph: item.glyph, on: on, lineColor: on ? theme.ink : tone.rest, accentColor: on ? KBrand.postRed : tone.rest, pick: pick, moves: on && !reduceMotion)
+    // The accent of a selected tab is ind, as in the App Store version (G1). It was postmark
+    // red for an afternoon (2026-11-12, after a mock); the owner, the same evening, having
+    // looked at both: "底部导航还是蓝色适合我们 类似线上的版本". Indigo is the colour of everything
+    // else that asks to be tapped here (Reply, YOUR TURN, the unread counts in the list).
+    return KTabIcon(glyph: item.glyph, on: on, lineColor: on ? theme.ink : tone.rest, accentColor: on ? theme.ind : tone.rest, pick: pick, moves: on && !reduceMotion)
       .animation(KMotion.tabTint, value: on)
       .frame(width: KTabBarMetrics.lensSize.width, height: KTabBarMetrics.lensSize.height)
       .overlay(alignment: .topTrailing) {
@@ -885,9 +896,9 @@ struct KOuterShadow<S: InsettableShape>: View {
 }
 
 /// The +: an ink disc with the + in the page's colour (KTabBarMetrics.plusMark, plusStroke), and a bright line along
-/// its top; open, it turns 45 degrees into an x and the disc goes postmark red with the x in
-/// white (owner, 2026-11-12: "➕ 咱们的蓝色 换成贴图三那样的黑色设计", his old app's bar: a black +
-/// that opens as a red x). G1 had an ind disc that went ink. On a dark theme ink is the light
+/// its top; open, it turns 45 degrees into an x and the disc goes ind with the x in white
+/// (owner, 2026-11-12: "➕ 咱们的蓝色 换成贴图三那样的黑色设计", then that evening "➕还是黑圈白➕
+/// 一点之后变成蓝底白x"; it opened postmark red in between). G1 had an ind disc that went ink. On a dark theme ink is the light
 /// colour, so the disc is light with a dark +, as the theme's other ink buttons are. turns false
 /// (the grown bar under Reduce Motion) keeps it still: the + fades out as an x, already turned,
 /// fades in.
@@ -896,7 +907,7 @@ struct KGlassPlus: View {
   let isOpen: Bool
   let turn: Animation
   var turns = true
-  /// the disc: 46 in the row, 52 raised
+  /// the disc: KTabBarMetrics.plusSize in the row, plusRaisedSize raised, railPlus on the rail
   var size: CGFloat = KTabBarMetrics.plusSize
 
   var body: some View {
@@ -908,16 +919,17 @@ struct KGlassPlus: View {
     // over ink, which draws the same blend; the mark from the page's colour to white likewise.
     ZStack {
       mark(theme.bg).animation(turn) { $0.opacity(turns || !isOpen ? 1 : 0) }
-      mark(Color.white).animation(turn) { $0.opacity(turns && isOpen ? 1 : 0) }
+      mark(openMark).animation(turn) { $0.opacity(turns && isOpen ? 1 : 0) }
       if !turns {
-        mark(Color.white).rotationEffect(.degrees(45)).animation(turn) { $0.opacity(isOpen ? 1 : 0) }
+        mark(openMark).rotationEffect(.degrees(45)).animation(turn) { $0.opacity(isOpen ? 1 : 0) }
       }
     }
       .frame(width: size, height: size)
       .background {
         ZStack {
           disc.fill(theme.ink)
-          disc.fill(KBrand.postRed).animation(turn) { $0.opacity(isOpen ? 1 : 0) }
+          // open: ind (owner, 2026-11-12 evening: "一点之后变成蓝底白x"; red for an afternoon)
+          disc.fill(theme.ind).animation(turn) { $0.opacity(isOpen ? 1 : 0) }
         }
       }
       .overlay(
@@ -930,6 +942,10 @@ struct KGlassPlus: View {
       .kSoftShadows([KSoftShadow(y: 6, blur: 16, spread: -6, color: Color.black.opacity(theme.isDark ? 0.55 : 0.32))], in: disc)
       .accessibilityHidden(true)
   }
+
+  /// the x on the open disc: white on ind; on the dark theme, whose ind is pale, the page's
+  /// colour (white on it is under 3:1)
+  private var openMark: Color { theme.isDark ? theme.bg : Color.white }
 
   private func mark(_ color: Color) -> some View {
     KPlusGlyph()
@@ -1211,13 +1227,15 @@ struct KTabBadge: View {
     Text(count > 9 ? "9+" : String(count))
       .font(.system(size: 11, weight: .bold))
       .monospacedDigit()
-      // postmark red with white digits in every theme (owner's mock, 2026-11-12); G1 had it in ind
-      .foregroundStyle(Color.white)
+      // ind, as in the App Store version and as the unread counts in the Kindreds list are
+      // (postmark red for an afternoon, 2026-11-12); on the dark theme's pale ind the digits
+      // are the page's colour
+      .foregroundStyle(theme.isDark ? theme.bg : Color.white)
       .lineLimit(1)
       .fixedSize()
       .padding(.horizontal, 5)
       .frame(minWidth: 18, minHeight: 18, maxHeight: 18)
-      .background(Capsule().fill(KBrand.postRed))
+      .background(Capsule().fill(theme.ind))
       .padding(2)
       .background(Capsule().fill(ring))
       .padding(-2)

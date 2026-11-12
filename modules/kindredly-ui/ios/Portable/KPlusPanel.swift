@@ -1173,6 +1173,8 @@ public struct KTabStage: View {
           onSelect: onSelect,
           onPlus: onPlus
         )
+        // never longer than on the widest phone (KTabBarMetrics.barMaxWidth)
+        .frame(maxWidth: rail ? nil : KTabBarMetrics.barMaxWidth)
         .padding(.horizontal, rail ? 0 : KTabBarMetrics.sideInset)
         // the rail: in the middle of the band, standing on the bottom safe area (the + lowest,
         // in the corner the thumb rests on), and never up into the system's clock
