@@ -428,13 +428,13 @@ enum KPublishMetrics {
   /// Midnight is a step lighter than soft2 (owner, 2026-10-21: "太暗了"): the list must read as a
   /// surface lifted off the sheet, not a darker hole in it.
   static func listFill(for theme: KTheme) -> Color {
-    theme.isDark ? Color(hex: "#322E5A") : theme.soft
+    theme.isDark ? Color(hex: "#26292E") : theme.soft
   }
 
-  /// The pop discs' face: lav2 in the light themes; in Midnight a lifted violet, since lav2 there
-  /// (#242150) sinks into the dimmed page (owner, 2026-10-21).
+  /// The pop discs' face: lav2 in the light themes; in Midnight a lifted grey, since lav2 there
+  /// sinks into the dimmed page (owner, 2026-10-21; neutral, not violet, since 2026-11-12).
   static func popFill(for theme: KTheme) -> Color {
-    theme.isDark ? Color(hex: "#3D3878") : theme.lav2
+    theme.isDark ? Color(hex: "#30343A") : theme.lav2
   }
 
   /// The pop discs' face: the pale wash of the accent (lav2), ringed in a 1pt hairline (sf in the

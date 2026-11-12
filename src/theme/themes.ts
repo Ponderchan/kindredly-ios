@@ -32,8 +32,40 @@ export type TokenName = "bg" | "sf" | "ink" | "ln" | "sub" | "mute" | "faint" | 
 
 export type ThemeTokens = { readonly name: string; readonly dark: boolean } & { readonly [K in TokenName]: string };
 
+/* THE DARK THEME'S COLOURS MUST BE THE BINARY'S (2026-11-12). Midnight went from a blue-violet
+   black to a neutral one (owner: "dark 模式看起来黑蓝色，为啥不和别的产品一样"). The Swift screens draw
+   from KTheme.swift, which is compiled into the binary; these React Native tokens travel with the
+   JS, which can reach an older binary over the air. So the binary says which Midnight it carries
+   (the KindredlyUI module's `themeRev` constant: 2 from the neutral one on, absent before), and
+   on an older binary the React Native screens keep the old colours too — never a black page
+   beside a navy one. No Swift module at all (Android, plain node): the table as it is. */
+export const NEUTRAL_DARK_REV = 2;
+/** Midnight as every binary before `themeRev` 2 draws it. */
+export const LEGACY_MIDNIGHT: ThemeTokens = {
+  name: "Midnight", dark: true,
+  bg: "#0F0E1C", sf: "#1A1830", ink: "#E8E5F6", ln: "#D4D0EA", sub: "#B9B5D0", mute: "#8F8BAA", faint: "#5E5A7C",
+  soft: "#1A1830", soft2: "#272443", line: "#2F2C4B", lav: "#2E2A66", lav2: "#242150", ind: "#8E89FF",
+};
+/** The binary's theme revision: null with no Swift module in this runtime, 1 for a module from before the constant. */
+export function binaryThemeRev(): number | null {
+  try {
+    const m = (globalThis as { expo?: { modules?: Record<string, { themeRev?: unknown } | undefined> } }).expo?.modules?.KindredlyUI;
+    if (!m) return null;
+    return typeof m.themeRev === "number" ? m.themeRev : 1;
+  } catch (e) {
+    console.log("[theme] could not ask the binary for its theme revision, using the table:", e);
+    return null;
+  }
+}
+/** true when the Swift screens of this binary still draw the old blue-violet Midnight */
+export const legacyDark = (rev: number | null): boolean => rev !== null && rev < NEUTRAL_DARK_REV;
+/** The four themes as this binary's Swift draws them. */
+export function themesFor(rev: number | null): Readonly<Record<ThemeKey, ThemeTokens>> {
+  return legacyDark(rev) ? { ...data.themes, midnight: LEGACY_MIDNIGHT } : data.themes;
+}
+
 /* typed against the JSON, so a theme that loses a token fails tsc */
-export const THEMES: Readonly<Record<ThemeKey, ThemeTokens>> = data.themes;
+export const THEMES: Readonly<Record<ThemeKey, ThemeTokens>> = themesFor(binaryThemeRev());
 export const THEME_KEYS = Object.keys(THEMES) as ThemeKey[];
 
 /** the themes that can stand for the day: Classic, Lavender, Paper */

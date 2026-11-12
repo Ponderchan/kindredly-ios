@@ -400,10 +400,10 @@ public struct KAfterPalette: Equatable, Sendable {
       p.windowBottom = Color(hex: "#1A1830")
       p.tape = Color(hex: "#F4D3CC").opacity(0.85)
       p.hint = Color(hex: "#FFB4A8")
-      p.sign = Color(hex: "#272443")
+      p.sign = theme.soft2
       p.signInk = theme.ink
       p.signMute = theme.mute
-      p.cardShadow = Color(hex: "#2F2C4B")
+      p.cardShadow = theme.line
       p.printer = Color(hex: "#4A4580")
       p.printerSlot = Color(hex: "#1A1830")
       p.paper = Color(hex: "#F4F2EA")
@@ -414,8 +414,8 @@ public struct KAfterPalette: Equatable, Sendable {
       p.nightBottom = Color(hex: "#1F2440")
       p.flap = Color(hex: "#DAD6F2")
       p.envelope = Color(hex: "#F4F2EA")
-      p.sleepCard = Color(hex: "#272443").opacity(0.95)
-      p.sleepKeep = Color(hex: "#3A3766")
+      p.sleepCard = theme.soft2.opacity(0.95)
+      p.sleepKeep = Color(hex: "#30343A")
       p.lockedFill = theme.soft2
       p.lockedIcon = theme.faint
       p.lockedInk = theme.sub

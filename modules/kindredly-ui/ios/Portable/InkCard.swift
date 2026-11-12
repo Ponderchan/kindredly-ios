@@ -562,7 +562,7 @@ struct KPaperFold: View {
  face the same rule gives a faint light hairline, which is what reads as an edge there), and a hard
  6/6 drop with no blur in the theme's depth colour. The depth is per theme here, not KObjectDepth's
  two values (the owner's numbers for the letter: Classic #C9C4F2, Lavender #B5AEEA on its lilac
- page, Paper #D3C29C on its cream, Midnight #3A3580); KObjectDepth stays as it is for the other
+ page, Paper #D3C29C on its cream, Midnight #2F3336: a neutral grey since 2026-11-12, #3A3580 before); KObjectDepth stays as it is for the other
  objects. Like box-shadow the drop takes no room: whoever places the sheet leaves the 6 clear, as
  they did for the old shadow. No layout changes with it: the content keeps the insets it had
  inside the 2.5 outline (InkCardVariant.contentInsets), so nothing inside a card moves.
@@ -584,8 +584,10 @@ public struct KLetterSheet: View {
     switch theme.key {
     case KTheme.lavender.key: return Color(hex: "#B5AEEA")
     case KTheme.paper.key: return Color(hex: "#D3C29C")
-    case KTheme.midnight.key: return Color(hex: "#3A3580")
-    default: return theme.isDark ? Color(hex: "#3A3580") : Color(hex: "#C9C4F2")
+    // the dark theme is neutral black since 2026-11-12 (owner: "为啥不和别的产品一样 类似 twitter"):
+    // the drop is the theme's own divider grey, where it was a violet (#3A3580)
+    case KTheme.midnight.key: return Color(hex: "#2F3336")
+    default: return theme.isDark ? Color(hex: "#2F3336") : Color(hex: "#C9C4F2")
     }
   }
 

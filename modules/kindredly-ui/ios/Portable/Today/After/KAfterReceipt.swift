@@ -212,7 +212,7 @@ struct KAfterReceiptView: View {
           .frame(width: keepW)
           .accessibilityHint(thing.isKept ? "" : thing.keepHint)
           .accessibilityAddTraits(thing.isKept ? .isSelected : [])
-          key(receipt.share, fill: palette.accent, ink: theme.isDark ? Color(hex: "#0F0E1C") : .white, action: share)
+          key(receipt.share, fill: palette.accent, ink: theme.isDark ? theme.bg : .white, action: share)
         }
       }
       .frame(height: 50)

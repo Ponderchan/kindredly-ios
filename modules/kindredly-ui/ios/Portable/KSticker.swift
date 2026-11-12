@@ -220,14 +220,15 @@ public extension View {
  OBJECT DEPTH (owner's rule B, 2026-10-26). Controls are flat. A thing in the story (the Writing
  Aura card, an envelope, a letter preview, the First Class ticket) keeps its depth, but with no
  ink edge: only a hard shadow in a deep tint of the page purple, #C9C4F2 at 6/6 in the light
- themes and #3A3580 in Midnight. A small object takes a smaller offset (6 × its scale). Put it
+ themes and #2F3336 in Midnight (a neutral grey since 2026-11-12; a violet, #3A3580, before). A small object takes a smaller offset (6 × its scale). Put it
  after the face's own background. objectDepth in src/components/10a/StickerBox.tsx is the React
  Native twin; change them together.
  */
 public enum KObjectDepth {
   public static let offset: CGFloat = 6
   public static let light = Color(hex: "#C9C4F2")
-  public static let dark = Color(hex: "#3A3580")
+  /// neutral since 2026-11-12 (the dark theme lost its blue-violet cast); #3A3580 before
+  public static let dark = Color(hex: "#2F3336")
 
   public static func color(for theme: KTheme) -> Color {
     theme.isDark ? dark : light

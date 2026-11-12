@@ -78,7 +78,7 @@
           "imageWidth": 1,
           "resizeMode": "contain",
           "dark": {
-            "backgroundColor": "#0F0E1C",
+            "backgroundColor": "#000000",
             "image": "./assets/splash-ground.png",
             "imageWidth": 1,
             "resizeMode": "contain"

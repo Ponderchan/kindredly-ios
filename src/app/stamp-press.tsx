@@ -51,7 +51,7 @@ export default function StampPress() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: photo ? tk.bg : "#14122A" }}>
+    <View style={{ flex: 1, backgroundColor: photo ? tk.bg : tk.dark ? "#000000" : "#14122A" }}>
       {photo ? (
         <StampEditorSlot photo={photo} from={typeof from === "string" ? from : ""} onRetake={() => setPhoto(null)} onClose={close} />
       ) : (

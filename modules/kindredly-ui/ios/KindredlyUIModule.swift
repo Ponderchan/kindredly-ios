@@ -17,6 +17,12 @@ public class KindredlyUIModule: Module {
   public func definition() -> ModuleDefinition {
     Name("KindredlyUI")
 
+    // Which Midnight this binary's KTheme.swift carries: 2 = the neutral black (2026-11-12). JS
+    // reads it (src/theme/themes.ts binaryThemeRev) so its React Native screens use the same
+    // dark colours as the Swift ones; a binary from before this constant answers nothing, which
+    // JS reads as 1, the old blue-violet. Raise it whenever the dark tokens change again.
+    Constant("themeRev") { 2 }
+
     ExpoUIView(KInkCardView.self)
     // the 10a tab bar and its composer sheet, one Host for both (src/components/NativeTabBar.tsx)
     ExpoUIView(KTabBarView.self)

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { View, type StyleProp, type ViewStyle } from "react-native";
 import { stickerPressOffset } from "./kit";
+import { binaryThemeRev, legacyDark } from "../../theme/themes";
 
 /* THE STICKER MATERIAL, IN REACT NATIVE (10a).
    ────────────────────────────────────────────────────────────────────────
@@ -77,7 +78,9 @@ export function StickerBox({
    #3A3580 in Midnight. A small object takes a smaller offset (6 × its scale).
    Spread it into a StickerBox: <StickerBox fill radius {...objectDepth(tk)}>.
    KObjectDepth in KSticker.swift is the SwiftUI twin; change them together. */
-export const OBJECT_DEPTH = { light: "#C9C4F2", dark: "#3A3580", offset: 6 } as const;
+// dark: a neutral grey since 2026-11-12 (the dark theme lost its blue-violet cast); the violet
+// #3A3580 before, and still on a binary whose Swift draws the old Midnight (theme/themes legacyDark)
+export const OBJECT_DEPTH = { light: "#C9C4F2", dark: legacyDark(binaryThemeRev()) ? "#3A3580" : "#2F3336", offset: 6 } as const;
 
 export function objectDepth(tk: { dark: boolean }, offset: number = OBJECT_DEPTH.offset): { stroke: null; shadow: string; offset: number } {
   return { stroke: null, shadow: tk.dark ? OBJECT_DEPTH.dark : OBJECT_DEPTH.light, offset };

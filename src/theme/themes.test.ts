@@ -92,4 +92,21 @@ ok("brand colours are #RRGGBB", Object.values(BRAND).every((v) => HEX.test(v)));
 ok("mood pairs are fill + ink", Object.values(MOOD10A).every((p) => p.length === 2 && p.every((v) => HEX.test(v))));
 
 console.log(fail ? `\n${fail} failed` : "\nall passed");
+/* ── the dark theme follows the binary (2026-11-12: Midnight became a neutral black) ── */
+{
+  const T = await import("./themes.ts");
+  ok("plain node has no Swift module: the table as it is", T.binaryThemeRev() === null && T.THEMES.midnight.bg === "#000000");
+  ok("a binary with the neutral Midnight (themeRev 2) gets the table's", T.themesFor(2).midnight.bg === "#000000" && T.themesFor(2).midnight.sf === "#16181C" && !T.legacyDark(2));
+  ok("a binary from before the constant (read as 1) keeps the old blue-violet Midnight", T.legacyDark(1) && T.themesFor(1).midnight.bg === "#0F0E1C" && T.themesFor(1).midnight.sf === "#1A1830" && T.themesFor(1).midnight.lav === "#2E2A66");
+  ok("only Midnight differs on an older binary", (["classic", "lavender", "paper"] as const).every((k) => T.themesFor(1)[k] === T.themesFor(2)[k]));
+  ok("the old Midnight carries every token and is still dark", T.LEGACY_MIDNIGHT.dark === true && ["bg", "sf", "ink", "ln", "sub", "mute", "faint", "soft", "soft2", "line", "lav", "lav2", "ind"].every((k) => /^#[0-9A-F]{6}$/.test((T.LEGACY_MIDNIGHT as unknown as Record<string, string>)[k])));
+  ok("the neutral Midnight has no colour in its greys", ["bg", "sf", "soft", "soft2", "line"].every((k) => { const h = (T.THEMES.midnight as unknown as Record<string, string>)[k]; const [r, g, b] = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); return Math.max(r, g, b) - Math.min(r, g, b) <= 8; }));
+  // the module answering through the JSI global, as expo's requireOptionalNativeModule reads it
+  (globalThis as unknown as { expo?: unknown }).expo = { modules: { KindredlyUI: {} } };
+  ok("a module with no themeRev constant reads as 1", T.binaryThemeRev() === 1);
+  (globalThis as unknown as { expo?: unknown }).expo = { modules: { KindredlyUI: { themeRev: 2 } } };
+  ok("a module that says 2 reads as 2", T.binaryThemeRev() === 2);
+  delete (globalThis as unknown as { expo?: unknown }).expo;
+}
+
 process.exit(fail ? 1 : 0);
