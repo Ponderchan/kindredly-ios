@@ -56,21 +56,21 @@ import SwiftUI
  YOU, YOUR KINDREDS, AND STRANGERS COMING CLOSER (owner, 2026-11-12: "最中心应该是我头像的小缩略 …
  由小模糊慢慢变大的模糊到内环清晰小缩略", then "好 开工"). Given `me`, the picture is three kinds of
  people, told apart by shape alone:
-   · YOU, in the middle: your own face, round, 20 units across, no ring round it (the 10-unit ink
+   · YOU, in the middle: your own face, round, 22 units across, no ring round it (the 10-unit ink
      cell stays only for a holder that sends no face: the gallery);
-   · YOUR KINDREDS, on a home ring 28 units out, just inside the five rings: their real faces,
-     round and clear, 14 units, at most eight (TS picks who). They turn together, one slow
+   · YOUR KINDREDS, on a home ring just inside the five rings: their real faces, round and
+     clear, 15 units, at most eight (TS picks who). They turn together, one slow
      circuit every five minutes, evenly spaced, so two faces never slide over each other. Names
      are traded, so they are back on the orbit: this replaces B3's "they have left it";
    · STRANGERS, on the five rings and in the void: their frosted windows, rounded squares, SMALL
-     AND FAINT FAR OUT, LARGER AND SOLID CLOSE IN (7 units and 50% in the void, a unit and 10%
-     more per letter, 12 units and whole on the fifth ring). The window itself never sharpens:
+     AND FAINT FAR OUT, LARGER AND SOLID CLOSE IN (5 units and 50% in the void, 1.4 units and
+     10% more per letter, 12 units and whole on the fifth ring). The window itself never sharpens:
      it is no photograph, and nobody's face is shown before names are traded; only its size and
      its strength say how near they are. The moment it clears is the trade, when the square
      becomes a round face one step further in.
- Sizes only ever grow on the way in (7 … 12, then 14, then you at 20). The five rings are 17
- units apart now (52 … 120, where they were 20 apart from 40) to make that room in the middle;
- the outermost ring and the void are where they were.
+ Sizes only ever grow on the way in (5 … 12, then 15, then you at 22). Where everything sits is
+ one value, KOrbitLayout.standard, with the reasoning beside it: lanes as wide as the faces
+ that ride them, narrower on the way out, on rings flattened to .70.
  A kindred with letters you have not read wears the same 1.5pt ind ring as a stranger whose turn
  it is, round instead of square. A tap on a kindred opens their room, as their row does.
 
@@ -133,54 +133,94 @@ public struct KOrbitKin: Identifiable, Equatable, Sendable {
   }
 }
 
+/// Where everyone sits and how large they are drawn, in the orbit's units (KOrbitGeometry.box).
+/// One value, so the drawing, the taps and a render check all read the same numbers.
+public struct KOrbitLayout: Equatable, Sendable {
+  /// ry / rx: how far the rings are flattened
+  public var squash: CGFloat
+  /// rx by THEIR letters: [0] someone who hasn't written back yet (outside every ring), [1] the
+  /// outermost ring … [5] the innermost
+  public var radii: [CGFloat]
+  /// a stranger's side by THEIR letters, 0 … 5
+  public var sides: [CGFloat]
+  /// how strongly a stranger is drawn by THEIR letters, 0 … 5
+  public var strengths: [Double]
+  /// your kindreds' home ring (rx) and their faces
+  public var kinRadius: CGFloat
+  public var kinSide: CGFloat
+  /// you, as your own round face
+  public var youFace: CGFloat
+
+  public init(squash: CGFloat, radii: [CGFloat], sides: [CGFloat], strengths: [Double], kinRadius: CGFloat, kinSide: CGFloat, youFace: CGFloat) {
+    self.squash = squash
+    self.radii = radii
+    self.sides = sides
+    self.strengths = strengths
+    self.kinRadius = kinRadius
+    self.kinSide = kinSide
+    self.youFace = youFace
+  }
+
+  private func at<T>(_ list: [T], _ letters: Int, else fallback: T) -> T {
+    list.isEmpty ? fallback : list[max(0, min(letters, list.count - 1))]
+  }
+
+  /// the ring of someone who has sent you `letters` (0: outside every ring)
+  public func radius(letters: Int) -> CGFloat { at(radii, letters, else: 120) }
+  /// a stranger's side in units: small far out, larger close in
+  public func side(letters: Int) -> CGFloat { at(sides, letters, else: 10) }
+  /// how strongly a stranger is drawn: faint far out, whole close in
+  public func strength(letters: Int) -> Double { at(strengths, letters, else: 1) }
+  /// the five rings that are drawn (outermost first)
+  public var rings: [CGFloat] { Array(radii.dropFirst()) }
+
+  /* THE STANDARD LAYOUT (owner, 2026-11-12: "你看着调整最合理的距离和大小"). Worked out from the
+     middle outwards along the vertical, where the flattened rings sit closest: each lane is as
+     wide as the face that rides it plus a gap, so the lanes get NARROWER on the way out as the
+     faces get smaller, and the whole stack ends exactly at the drawing's edge (100 units up).
+       you 22 across · kindreds 15 · strangers 12, 10.6, 9.2, 7.8, 6.4 on rings five to one, 5
+       for someone who hasn't written back: 1.4 units a ring, the innermost 2.4 times the
+       outermost (it was 1 unit a ring and 1.7 times: next-door rings looked the same size).
+     Vertical centres: kindreds 22, then 40, 54.8, 67.9, 79.4, 89.3, and 97.5 outside the rings
+     (edge-to-edge gaps of 3.5, 4.5, 3.5, 3.2, 3, 2.8, 2.5).
+     The rings are flattened to .70 (they were .78): the band is far wider than it is tall, and
+     the rounder rings left a fifth of it empty on each side while the faces crowded along the
+     rings. The radii below are the vertical centres over the squash. Eight kindreds fit their
+     ring with their turn rings on (a slot of 21 units for a face of 15 and two rings of 2.4).
+     Compared on design/kindreds-orbit/orbit-sheet.swift, with one, five and eight kindreds, in
+     Midnight and Classic. */
+  public static let standard = KOrbitLayout(
+    squash: 0.7,
+    radii: [139.3, 127.6, 113.4, 97, 78.3, 57.1],
+    sides: [5, 6.4, 7.8, 9.2, 10.6, 12],
+    strengths: [0.5, 0.6, 0.7, 0.8, 0.9, 1],
+    kinRadius: 31.4,
+    kinSide: 15,
+    youFace: 22
+  )
+}
+
 /// H's orbit, in its own units.
 public enum KOrbitGeometry {
   /// the SVG's viewBox
   public static let box = CGSize(width: 340, height: 200)
   /// how tall the drawing is laid out (H: height 212px)
   public static let height: CGFloat = 212
-  /// the five rings, 17 apart (20 from 40 until 2026-11-12: the middle now holds you and your kindreds)
-  public static let rings: [CGFloat] = [52, 69, 86, 103, 120]
-  public static let lane: CGFloat = 17
-  /// ry / rx
-  public static let squash: CGFloat = 0.78
-  /// outside every ring: someone who hasn't written back yet
-  public static let voidRadius: CGFloat = 134
   /// you, the centre cell (a holder that sends no face of yours)
   public static let you: CGFloat = 10
-  /// you, as your own round face
-  public static let youFace: CGFloat = 20
-  /// your kindreds' home ring, their faces, and the seconds they take to go round together
-  /// 28, not 30: with both wearing a turn ring, a kindred and a stranger on the fifth ring passing
-  /// over the top or the bottom (where the squash brings the rings closest) touched at 30
-  public static let kinRadius: CGFloat = 28
-  public static let kinSide: CGFloat = 14
+  /// the seconds your kindreds take to go round together
   public static let kinPeriod: Double = 300
   /// the room between cells, as a fraction of a cell
   public static let gapRatio: CGFloat = 0.32
   /// your turn round a window: a ring this wide (pt), this far clear of the window's edge
   public static let turnRing: CGFloat = 1.5
   public static let turnGap: CGFloat = 1
+  /// the same ring round a small window (under 9pt across): at full weight it was larger than
+  /// the window it rings
+  public static func turnRing(side: CGFloat) -> CGFloat { side < 9 ? 1 : turnRing }
   /// a member's edge (C2): this wide (pt), this far clear of the face's box
   public static let stampEdge: CGFloat = 1
   public static let stampGap: CGFloat = 1.5
-
-  /// the ring of someone who has sent you `letters`
-  public static func radius(letters: Int) -> CGFloat {
-    letters <= 0 ? voidRadius : 120 - CGFloat(min(letters, 5) - 1) * lane
-  }
-
-  /// a stranger's side in units: small far out, larger close in (7 in the void, 12 on the fifth
-  /// ring), and never more than its lane takes after the squash (17 x .78)
-  public static func faceSide(letters: Int) -> CGFloat {
-    7 + CGFloat(max(0, min(letters, 5)))
-  }
-
-  /// how strongly a stranger is drawn: faint far out, whole close in (.5 in the void, 1 on the
-  /// fifth ring; at .4 a pale window on Classic's white page was all but gone)
-  public static func presence(letters: Int) -> Double {
-    0.5 + 0.1 * Double(max(0, min(letters, 5)))
-  }
 
   /// how far outside a face a tap still counts as on it (pt): the faces are 7 to 15pt across
   public static let tapReach: CGFloat = 24
@@ -192,7 +232,7 @@ public enum KOrbitGeometry {
 
   /// Where a stranger's face is, in a drawing of `size`, at `date`: its box. `still` rests it at
   /// a0 (Reduce Motion). The drawing and the tap both ask here, so a tap lands on what is seen.
-  public static func faceBox(_ item: KOrbitItem, in size: CGSize, at date: Date, still: Bool) -> CGRect {
+  public static func faceBox(_ item: KOrbitItem, in size: CGSize, at date: Date, still: Bool, layout: KOrbitLayout = .standard) -> CGRect {
     let s = scale(in: size)
     let angle: Double
     if still {
@@ -201,16 +241,16 @@ public enum KOrbitGeometry {
       let phase = date.timeIntervalSince1970.truncatingRemainder(dividingBy: item.period) / item.period
       angle = item.a0 + item.dir * 2 * Double.pi * phase
     }
-    let r = radius(letters: item.ring)
+    let r = layout.radius(letters: item.ring)
     let x = size.width / 2 + r * s * CGFloat(cos(angle))
-    let y = size.height / 2 + r * squash * s * CGFloat(sin(angle))
-    let side = faceSide(letters: item.ring) * s
+    let y = size.height / 2 + r * layout.squash * s * CGFloat(sin(angle))
+    let side = layout.side(letters: item.ring) * s
     return CGRect(x: x - side / 2, y: y - side / 2, width: side, height: side)
   }
 
   /// Where a kindred's face is at `date`: its box. They all turn together (one period, one way),
   /// so the even spacing TS gave them holds; `still` rests them at a0 (Reduce Motion).
-  public static func kinBox(_ kin: KOrbitKin, in size: CGSize, at date: Date, still: Bool) -> CGRect {
+  public static func kinBox(_ kin: KOrbitKin, in size: CGSize, at date: Date, still: Bool, layout: KOrbitLayout = .standard) -> CGRect {
     let s = scale(in: size)
     let angle: Double
     if still {
@@ -219,20 +259,20 @@ public enum KOrbitGeometry {
       let phase = date.timeIntervalSince1970.truncatingRemainder(dividingBy: kinPeriod) / kinPeriod
       angle = kin.a0 + 2 * Double.pi * phase
     }
-    let x = size.width / 2 + kinRadius * s * CGFloat(cos(angle))
-    let y = size.height / 2 + kinRadius * squash * s * CGFloat(sin(angle))
-    let side = kinSide * s
+    let x = size.width / 2 + layout.kinRadius * s * CGFloat(cos(angle))
+    let y = size.height / 2 + layout.kinRadius * layout.squash * s * CGFloat(sin(angle))
+    let side = layout.kinSide * s
     return CGRect(x: x - side / 2, y: y - side / 2, width: side, height: side)
   }
 
   /// Whose face a tap at `point` is on: the nearest one whose box is within `tapReach` of it, or
   /// nil for empty sky. Of two equally near, the one drawn later (on top). Kindreds count as
   /// strangers do; you, in the middle, are not a way anywhere.
-  public static func hit(_ point: CGPoint, items: [KOrbitItem], kin: [KOrbitKin] = [], in size: CGSize, at date: Date, still: Bool) -> String? {
+  public static func hit(_ point: CGPoint, items: [KOrbitItem], kin: [KOrbitKin] = [], in size: CGSize, at date: Date, still: Bool, layout: KOrbitLayout = .standard) -> String? {
     guard scale(in: size) > 0 else { return nil }
     var best: (id: String, distance: CGFloat)?
-    let boxes: [(String, CGRect)] = items.map { ($0.id, faceBox($0, in: size, at: date, still: still)) }
-      + kin.map { ($0.id, kinBox($0, in: size, at: date, still: still)) }
+    let boxes: [(String, CGRect)] = items.map { ($0.id, faceBox($0, in: size, at: date, still: still, layout: layout)) }
+      + kin.map { ($0.id, kinBox($0, in: size, at: date, still: still, layout: layout)) }
     for (id, face) in boxes {
       let dx = max(face.minX - point.x, 0, point.x - face.maxX)
       let dy = max(face.minY - point.y, 0, point.y - face.maxY)
@@ -252,6 +292,7 @@ public struct KOrbit: View, Equatable {
   private let items: [KOrbitItem]
   private let me: KPersonFace?
   private let kin: [KOrbitKin]
+  private let layout: KOrbitLayout
   private let active: Bool
   private let ringsOnly: Bool
   private let onTap: ((String) -> Void)?
@@ -268,22 +309,24 @@ public struct KOrbit: View, Equatable {
   ///   - items: the strangers, in TS's order
   ///   - me: your own face for the middle; nil keeps the 10-unit ink cell
   ///   - kin: your kindreds on the home ring, in TS's order (at most eight)
+  ///   - layout: where everyone sits and how large (the standard one unless a check passes another)
   ///   - active: the drawing may move (the tab is focused and the orbit can be seen)
   ///   - ringsOnly: draw the dashed rings alone (the folded watermark): you and the faces fade out
   ///   - onTap: a face was tapped, with its id; nil and the drawing takes no taps. Not compared
   ///     (hand it a closure that stays good for the life of the screen)
-  public init(theme: KTheme, items: [KOrbitItem], me: KPersonFace? = nil, kin: [KOrbitKin] = [], active: Bool, ringsOnly: Bool = false, onTap: ((String) -> Void)? = nil) {
+  public init(theme: KTheme, items: [KOrbitItem], me: KPersonFace? = nil, kin: [KOrbitKin] = [], layout: KOrbitLayout = .standard, active: Bool, ringsOnly: Bool = false, onTap: ((String) -> Void)? = nil) {
     self.theme = theme
     self.items = items
     self.me = me
     self.kin = kin
+    self.layout = layout
     self.active = active
     self.ringsOnly = ringsOnly
     self.onTap = onTap
   }
 
   public static func == (a: KOrbit, b: KOrbit) -> Bool {
-    a.theme == b.theme && a.items == b.items && a.me == b.me && a.kin == b.kin && a.active == b.active && a.ringsOnly == b.ringsOnly
+    a.theme == b.theme && a.items == b.items && a.me == b.me && a.kin == b.kin && a.layout == b.layout && a.active == b.active && a.ringsOnly == b.ringsOnly
       && (a.onTap == nil) == (b.onTap == nil)
   }
 
@@ -323,7 +366,7 @@ public struct KOrbit: View, Equatable {
             .contentShape(Rectangle())
             .gesture(
               SpatialTapGesture().onEnded { tap in
-                if let id = KOrbitGeometry.hit(tap.location, items: items, kin: kin, in: geo.size, at: Date(), still: reduceMotion) {
+                if let id = KOrbitGeometry.hit(tap.location, items: items, kin: kin, in: geo.size, at: Date(), still: reduceMotion, layout: layout) {
                   onTap(id)
                 }
               }
@@ -344,7 +387,7 @@ public struct KOrbit: View, Equatable {
     if s > 0 {
       ZStack {
         ForEach(Array(kin.enumerated()), id: \.element.id) { order, k in
-          let box = KOrbitGeometry.kinBox(k, in: size, at: date, still: reduceMotion)
+          let box = KOrbitGeometry.kinBox(k, in: size, at: date, still: reduceMotion, layout: layout)
           let out = KOrbitGeometry.turnGap + KOrbitGeometry.turnRing / 2
           KFace(theme: theme, source: k.face.source(theme), size: box.width)
             .overlay {
@@ -358,7 +401,7 @@ public struct KOrbit: View, Equatable {
             .position(x: box.midX, y: box.midY)
         }
         if let me {
-          KFace(theme: theme, source: me.source(theme), size: KOrbitGeometry.youFace * s)
+          KFace(theme: theme, source: me.source(theme), size: layout.youFace * s)
             .position(x: size.width / 2, y: size.height / 2)
         }
       }
@@ -373,9 +416,9 @@ public struct KOrbit: View, Equatable {
     guard s > 0 else { return }
     let cx = size.width / 2
     let cy = size.height / 2
-    let squash = KOrbitGeometry.squash
+    let squash = layout.squash
     let ringStyle = StrokeStyle(lineWidth: 1.2, dash: [3, 4])
-    for r in KOrbitGeometry.rings {
+    for r in layout.rings {
       let rect = CGRect(x: cx - r * s, y: cy - r * squash * s, width: 2 * r * s, height: 2 * r * squash * s)
       gc.stroke(Path(ellipseIn: rect), with: .color(theme.ink.opacity(0.22)), style: ringStyle)
     }
@@ -396,13 +439,13 @@ public struct KOrbit: View, Equatable {
 
     // them
     for (order, item) in items.enumerated() {
-      let box = KOrbitGeometry.faceBox(item, in: size, at: date, still: reduceMotion)
+      let box = KOrbitGeometry.faceBox(item, in: size, at: date, still: reduceMotion, layout: layout)
       let side = box.width
       // the arrival fade needs the timeline; without it (Reduce Motion, off the tab, rings only) a face is simply there.
       // Then how near they are: faint in the void, whole on the fifth ring (KOrbitGeometry.presence)
       let arrived = running ? arrivals.opacity(item.id, order: order, at: date) : 1
       guard arrived > 0 else { continue }
-      let opacity = arrived * KOrbitGeometry.presence(letters: item.ring)
+      let opacity = arrived * layout.strength(letters: item.ring)
       if item.stamp {
         drawStampEdge(around: box, clearOfTurnRing: item.frost != nil && item.turn, opacity: opacity, context: gc)
       }
@@ -445,12 +488,13 @@ public struct KOrbit: View, Equatable {
       opacity: opacity
     )
     guard turn else { return }
-    let out = KOrbitGeometry.turnGap + KOrbitGeometry.turnRing / 2
+    let width = KOrbitGeometry.turnRing(side: box.width)
+    let out = KOrbitGeometry.turnGap + width / 2
     let ring = box.insetBy(dx: -out, dy: -out)
     gc.stroke(
       Path(roundedRect: ring, cornerRadius: frost.radius(side: box.width) + out, style: .circular),
       with: .color(theme.ind.opacity(ringOpacity)),
-      lineWidth: KOrbitGeometry.turnRing
+      lineWidth: width
     )
   }
 }
