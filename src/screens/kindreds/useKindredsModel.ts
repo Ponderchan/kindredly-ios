@@ -286,7 +286,7 @@ export function useKindredsModel(opts: { openInPlace?: KindredsOpenInPlace } = {
   );
 
   // the tab bar's number, from the count the title shows
-  useEffect(() => setWaiting(view.waiting), [view.waiting]);
+  useEffect(() => setWaiting(view.waiting, { demo: useDemo }), [view.waiting, useDemo]);
   // the app icon's number, from the real list (never the dev demo rows)
   useEffect(() => {
     if (!useDemo && answeredState) void syncAppBadge(threads);

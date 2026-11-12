@@ -55,7 +55,17 @@ export function onYou(threads: ThreadSummary[], ledger: Record<string, number>):
   return countOnYou(threads, ledger);
 }
 
-export function setWaiting(n: number) {
+/* DEV: while the Kindreds tab shows its demo rows (an account with no letters, data/demo), the
+   tab's number is theirs, as the title's is; the launch's and every realtime poke's count of the
+   real (empty) list used to take it back, so on a simulator the badge flipped between the two
+   (6, then 9+ with Wren's desk added, then 6 again). The list's own count says which it is. */
+let demoHeld = false;
+
+/** The correspondences on you. The Kindreds list passes `from` (whether its rows are the dev demo's);
+    the launch's and realtime's refresh pass nothing, and wait while the demo rows are on the page. */
+export function setWaiting(n: number, from?: { demo: boolean }) {
+  if (from) demoHeld = __DEV__ && from.demo;
+  else if (demoHeld) return;
   turn = n;
   publish();
 }

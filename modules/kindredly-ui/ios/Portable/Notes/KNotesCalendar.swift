@@ -133,10 +133,24 @@ struct KNotesCalendar: View {
   @ViewBuilder var body: some View {
     if page {
       if let month = driver.month {
-        panel(month)
-          .frame(maxWidth: 400)
-          .padding(.horizontal, 24)
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
+        /* THE MONTH AS THE PAGE (2026-11-12, walking the Duo: a phone-sized card in the middle of
+           the left page, a third of it empty above and below). It grows to the page: as wide as the
+           page allows (520 at most), its days taller to fill the height, never taller than a day is
+           wide by a quarter, with the cards' own mood face once there is room for it. Flat, on a
+           hairline: it is the page, not a sheet over one. Nothing new is said (the owner took the
+           counts and the footer off the month, 10-20). */
+        GeometryReader { geo in
+          let width = min(Self.pageMaxWidth, geo.size.width - 2 * Self.pageMargin)
+          let dayWidth = (width - 2 * 14 - 6 * 4) / 7
+          let rows = CGFloat(max(1, month.rows.count))
+          let room = geo.size.height - topInset - 2 * Self.pageMargin
+          let fill = ((room - Self.panelChrome) / rows - 4).rounded(.down)
+          let cell = min((dayWidth * 1.25).rounded(.down), max(Self.cellHeight, fill))
+          panel(month, cellHeight: cell)
+            .frame(width: max(0, width))
+            .frame(width: geo.size.width, height: geo.size.height)
+            .padding(.top, topInset / 2)
+        }
       } else {
         Color.clear
       }
@@ -144,6 +158,12 @@ struct KNotesCalendar: View {
       overlayBody
     }
   }
+
+  /// the month as the left page: its widest, its margin from the page's edges, and what the panel
+  /// takes besides its rows (the title row, the weekdays, the paddings and spacings between them)
+  static let pageMaxWidth: CGFloat = 520
+  static let pageMargin: CGFloat = 28
+  static let panelChrome: CGFloat = 16 + 44 + 12 + 16 + 12 + 14
 
   private var overlayBody: some View {
     ZStack(alignment: .top) {
@@ -176,7 +196,7 @@ struct KNotesCalendar: View {
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { titleFocused = true }
   }
 
-  private func panel(_ month: KNotesMonth) -> some View {
+  private func panel(_ month: KNotesMonth, cellHeight: CGFloat = KNotesCalendar.cellHeight) -> some View {
     VStack(spacing: 12) {
       HStack(alignment: .center, spacing: 0) {
         chevron(.chevronLeft, enabled: month.canPrev, label: strings.prevMonth) { actions.onCalendarMonth(-1) }
@@ -224,7 +244,7 @@ struct KNotesCalendar: View {
         ForEach(Array(month.rows.enumerated()), id: \.offset) { _, row in
           HStack(spacing: 4) {
             ForEach(0..<7, id: \.self) { i in
-              cell(i < row.count ? row[i] : nil)
+              cell(i < row.count ? row[i] : nil, height: cellHeight)
             }
           }
         }
@@ -234,17 +254,25 @@ struct KNotesCalendar: View {
     .padding(.horizontal, 14)
     .padding(.bottom, 14)
     .background {
-      // (owner, 10-20: no black edges) a plain card with a soft shadow
-      RoundedRectangle(cornerRadius: 22, style: .continuous)
-        .fill(theme.sf)
-        .shadow(color: .black.opacity(theme.isDark ? 0.4 : 0.12), radius: 18, y: 6)
+      // (owner, 10-20: no black edges) a plain card with a soft shadow over the dim; as the left
+      // page, flat on a hairline (owner, 11-12: no thick shadows on cards)
+      let shape = RoundedRectangle(cornerRadius: page ? 24 : 22, style: .continuous)
+      if page {
+        shape.fill(theme.sf).overlay(shape.strokeBorder(theme.line, lineWidth: 1))
+      } else {
+        shape
+          .fill(theme.sf)
+          .shadow(color: .black.opacity(theme.isDark ? 0.4 : 0.12), radius: 18, y: 6)
+      }
     }
     .dynamicTypeSize(...DynamicTypeSize.accessibility2)
   }
 
   @ViewBuilder
-  private func cell(_ day: KNotesDay?) -> some View {
+  private func cell(_ day: KNotesDay?, height: CGFloat) -> some View {
     let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+    // a tall day (the month as a page) has room for the cards' own face
+    let roomy = height >= 62
     if let day {
       let ink: Color = day.today ? theme.ind : (day.future ? theme.faint : theme.ink)
       let face = VStack(spacing: 4) {
@@ -257,14 +285,14 @@ struct KNotesCalendar: View {
         ZStack {
           if let group = day.group {
             // the cards' own face on its tint; a page dated ahead (a wrong clock) stays faded
-            KMoodChip(group: group, icon: day.icon, metrics: .compact)
+            KMoodChip(group: group, icon: day.icon, metrics: roomy ? .card : .compact)
               .opacity(day.future ? 0.4 : 1)
           }
         }
-        .frame(width: 28, height: 28)
+        .frame(width: roomy ? 36 : 28, height: roomy ? 36 : 28)
       }
       .frame(maxWidth: .infinity)
-      .frame(height: Self.cellHeight)
+      .frame(height: height)
       .overlay {
         if day.today { shape.strokeBorder(theme.ind, lineWidth: 2) } // today: the accent ring, never black (owner, 10-20)
       }
@@ -284,7 +312,7 @@ struct KNotesCalendar: View {
     } else {
       Color.clear
         .frame(maxWidth: .infinity)
-        .frame(height: Self.cellHeight)
+        .frame(height: height)
         .accessibilityHidden(true)
     }
   }

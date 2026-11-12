@@ -100,6 +100,8 @@ struct KLetterReaderScreen<InFlight: View>: View {
   static var headerInsets: EdgeInsets { EdgeInsets(top: 14, leading: 18, bottom: 12, trailing: 18) }
   /// the reader head's stamp (STAMP_LADDER.readerHead)
   static var stampWidth: CGFloat { KStampLadder.readerHead.w }
+  /// the letter's width on a page wider than any phone (KPhoneLength): about sixty characters a line
+  static var readingWidth: CGFloat { 600 }
   static var docketStyle: KTextStyle { .mono(11, .semibold, tracking: 0.08) }
   static var whenStyle: KTextStyle { .mono(11, .medium, tracking: 0.08) }
   static var nameStyle: KTextStyle { .system(17, .semibold) }
@@ -146,6 +148,9 @@ struct KLetterReaderScreen<InFlight: View>: View {
         letter
           // (the sheet is flat since 2026-11-12: no 6 kept clear for a drop, so it sits centred)
           .padding(.horizontal, 16)
+          // on a page wider than any phone (the iPhone Duo's inner screen) the letter keeps a
+          // reading width in the middle instead of 110 characters to a line; a phone is unchanged
+          .kPhoneLength(Self.readingWidth)
           .padding(.bottom, 28)
       }
       // a tap on the letter drops the keyboard (a React Native scroll view's own way)
@@ -357,6 +362,8 @@ struct KLetterReaderScreen<InFlight: View>: View {
       }
     }
     .padding(.horizontal, 12)
+    // under the letter, as wide as it (a phone: unchanged)
+    .kPhoneLength(Self.readingWidth)
     .padding(.top, 14)
     .padding(.bottom, kbUp ? 12 : max(bottomInset, 12) + 12)
     .onChange(of: content.sending) { _, now in
