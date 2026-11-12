@@ -1,7 +1,8 @@
 import { View } from "react-native";
 import { Stack } from "expo-router";
 import { useTheme } from "../../../lib/theme";
-import { useFoldFrame } from "../../../lib/fold";
+import { swiftReadsFold, useFoldFrame } from "../../../lib/fold";
+import { useNativeSurface } from "../../../lib/surfaces";
 
 /* THE ME TAB'S OWN STACK (10a step 5). Settings and Edit profile (and the
    pages under Settings: help, write to us, blocked) are pushed INSIDE the
@@ -33,14 +34,18 @@ export const unstable_settings = { initialRouteName: "index" };
 export default function MeStackLayout() {
   const { t: tk } = useTheme();
   const frame = useFoldFrame();
-  // the inner screen: the column; the index page keeps the whole scene (see above). The outer
-  // screen: Me's scene takes nothing (its sky runs to the edge), so its pushed pages keep out of
-  // the band themselves, as every other page there does
-  const column = frame.pages
-    ? { paddingLeft: frame.left, paddingRight: Math.max(0, frame.right - frame.band) }
-    : frame.duo
-      ? { paddingLeft: frame.left, paddingRight: frame.right }
-      : null;
+  /* only where Me's tab scene is the whole window ((tabs)/_layout: the Swift Me on a folding
+     phone, which reads the fold); otherwise the scene is already the column and padding here
+     would take it twice. The inner screen: the column (the scene took the band). The outer
+     screen: the scene takes nothing (the sky runs to the edge), so the pushed pages keep out of
+     the band themselves, as every other page there does. The index page keeps the whole scene. */
+  const meNative = useNativeSurface("me");
+  const wholeScene = frame.duo && meNative && swiftReadsFold();
+  const column = !wholeScene
+    ? null
+    : frame.pages
+      ? { paddingLeft: frame.left, paddingRight: Math.max(0, frame.right - frame.band) }
+      : { paddingLeft: frame.left, paddingRight: frame.right };
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: tk.bg, ...column } }}>
