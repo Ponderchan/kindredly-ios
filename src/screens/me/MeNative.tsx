@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useWindowDimensions } from "react-native";
 import { useIsFocused } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -16,6 +16,7 @@ import {
   type KMeProfile,
   type KMeReport,
   type KMeStamps,
+  type KMeStampsAction,
   type KMeStrings,
 } from "../../../modules/kindredly-ui/src/Me";
 import type { KKindredsFace } from "../../../modules/kindredly-ui/src/Kindreds";
@@ -290,6 +291,14 @@ export function MeNative({ model }: { model: MeModel }) {
   void _cs;
   const fcSent = useSameContent<KMeFcRollout>(fcRecord);
   const fcOpen = fc.open;
+  /* the cover's stamps tile ("cover"): a plus — none made yet — is the way to the stamp press, a
+     number opens the ones you made, and with neither it is the album (owner, 2026-11-12) */
+  const coverStamps = planet?.stampsEntry.count ?? "";
+  const onCard = collection.onCard;
+  const onStamps = useCallback(
+    (action: KMeStampsAction, id: string) => onCard(action === "cover" ? (coverStamps === "+" ? "make" : coverStamps ? "seeAll" : "album") : action, id),
+    [onCard, coverStamps],
+  );
   const rev = useRev(strings, profile, peekLetters, peekKindreds, looks, auraRec, report, stamps, firstClass, fcSent, planet);
 
   // a free reader's First Class look and "All looks →": the First Class segment, shown as its
@@ -357,7 +366,7 @@ export function MeNative({ model }: { model: MeModel }) {
         onAuraShare={act.auraShare}
         onReport={act.report}
         onStampsEmpty={act.stampsEmpty}
-        onStamps={collection.onCard}
+        onStamps={onStamps}
         onFirstClass={act.firstClass}
         fc={fcSent}
         onFcOpen={fcOpen}

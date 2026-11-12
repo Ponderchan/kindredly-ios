@@ -86,18 +86,23 @@ struct KMeCover: View {
       .padding(.bottom, 10)
       .opacity(fade)
     }
-    .overlay(alignment: .topLeading) {
-      if !planet.hint.isEmpty {
-        Text(planet.hint)
-          .kText(.mono(9.5, .semibold, tracking: 0.14))
-          .foregroundStyle(palette.ink)
-          .opacity(turned ? 0 : 0.6 * fade)
-          .animation(.easeOut(duration: 0.4), value: turned)
-          .padding(.leading, 16)
-          .padding(.top, topInset + 8)
-          .allowsHitTesting(false)
-          .accessibilityHidden(true)
-      }
+    .overlay(alignment: .top) {
+      /* No words on the cover (owner, 2026-11-12: "不要 drag to spin 文案，就让用户去探索 … 最多就是
+         苹果的那种上下箭头"). The only hint is an arrow, and only while the page is being pulled:
+         it comes in with the pull and pops when letting go would open the planet page.
+         WHERE: over her head with a gap, never on it. She stands on top of the planet, about 11pt
+         under the status bar at rest, and goes down by about 0.29 of the pull as the scene grows
+         (measured on a recording, 2026-11-12: the first build drew the arrow on her head like a
+         pair of feelers). So the arrow rides about 12pt above her, and stays unseen for the first 40pt of
+         the pull, while that place is still behind the clock or the island. */
+      let p = min(1, max(0, (pull - 40) / (KMeCoverMetrics.open - 40)))
+      KLineIcon(.chevronDown, size: 20, lineWidth: 2.6, color: palette.ink)
+        .opacity(Double(p) * 0.85)
+        .scaleEffect(p >= 1 ? 1.3 : 0.8 + 0.2 * p, anchor: .top)
+        .animation(.spring(response: 0.25, dampingFraction: 0.6), value: p >= 1)
+        .padding(.top, topInset - 19 + pull * 0.29)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
     .clipped()
     .accessibilityElement(children: .contain)

@@ -376,6 +376,24 @@ text and the prototype disagree, the prototype wins unless this text says "chang
   - Not built: counting across everyone ("what is popular"). What each courier wears is on
     the account already, so it is one function and a schedule on the server writing the
     `shelf.*` rows; it needs the owner's word and his SQL.
+- 2026-11-12 — **the cover says nothing, and its two tiles count real things** (owner, after
+  build 42 on his phone: "不要 drag to spin 文案，就让用户去探索，下拉星球出来，上滑回到 default me
+  tab，最多就是那种苹果的那种上下 v 箭头；星球里 my letters 还需要么，track 那里不是有了吗"; then
+  "邮票是自制的，没有的话后面就是 + 号，有了就显示数字；邮筒就是信的合集").
+  - **no words on the cover**: the hint line is gone. While you pull down, one small chevron
+    fades in under the status bar and grows; past the line (96pt) it springs a little, with the
+    haptic that was there. Nothing shows at rest (`KMeCover`).
+  - **the planet page goes back by pulling up**: past its end by 84pt and let go, and it closes
+    (`KPlanetPage`: onScrollGeometryChange / onScrollPhaseChange, a light haptic at the line, a
+    small up-chevron at the foot that darkens as you pull). The back chevron stays. Its hint
+    line ("DRAG TO SPIN · PINCH TO ZOOM") is gone, and so is the **My letters row**: TRACK on a
+    slip already leads to the letter and the list.
+  - **the stamps tile** counts the stamps you made yourself (`f.stamps.made`, notes left out):
+    the number, or a "+" when there are none (VoiceOver: "Make one"). It still opens the album,
+    whose own door is the stamp press.
+  - **the postbox** counts your letters from 1 up and shows nothing at 0 (never a "0", which
+    reads as a fault on a new account).
+  `planet-model buildCover(f, stamps, fmt, madeN)`, tested.
 - Next: the rest of phase 7 on the simulator (the drag's feel, the five states in motion, the
   planet page's pager), then a phone.
 

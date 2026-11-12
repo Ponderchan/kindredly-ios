@@ -185,10 +185,15 @@ eq("a look the shelf doesn't hold this week: nothing", shelfTap("skin:plush", ba
 
   /* the cover: its two ways in, you under it, the report's tile */
   eq("the letters way in is the header's own number", v.lettersEntry, { count: "14", a11y: "14 letters", hint: "opens letters" });
-  eq("no stamps counted yet: the stamps way in has no number", v.stampsEntry.count, "");
   const tile = { label: "STAMPS", title: "", caption: "7 USED", fan: [], make: false, a11y: "", hint: "opens the album" };
-  const c7 = buildCover(cover, tile, mf);
-  eq("the stamps way in takes its number from the tile's count", [c7.stampsEntry.count, c7.stampsEntry.a11y, c7.stampsEntry.hint], ["7", "me.seg.stamps, 7", "opens the album"]);
+  const c0 = buildCover(cover, { ...tile, make: true }, mf);
+  eq("no stamp of your own yet, the press open to you: the stamps way in shows a plus", [c0.stampsEntry.count, c0.stampsEntry.a11y], ["+", "me.seg.stamps, cs2.me.makeOne"]);
+  const closed = buildCover(cover, tile, mf);
+  eq("no press on this build: no plus to promise, nothing shown", [closed.stampsEntry.count, closed.stampsEntry.a11y], ["", "me.seg.stamps"]);
+  const c7 = buildCover(cover, tile, mf, 3);
+  eq("the stamps way in counts the stamps you made, not the ones you used", [c7.stampsEntry.count, c7.stampsEntry.a11y, c7.stampsEntry.hint], ["3", "me.seg.stamps, 3", "opens the album"]);
+  eq("no letters yet: the postbox shows no number", buildCover({ ...cover, letters: { count: "0", unit: "letters", a11y: "0 letters", hint: "" } }, tile, mf).lettersEntry.count, "");
+  eq("letters not counted yet: no number either", buildCover({ ...cover, letters: { count: "–", unit: "letters", a11y: "letters", hint: "" } }, tile, mf).lettersEntry.count, "");
   eq("you: his mark, the sign as its emoji and its name", [v.me.mark, v.me.sign, v.me.signName, v.me.signA11y], ["he", "♏️", "zd.scorpio", "pr.he, zd.scorpio"]);
   eq("two numbers: kindreds as the header words them, then notes", v.me.stats.map((x) => `${x.key}:${x.count}:${x.unit}`), ["kindreds:2:kindreds", "notes:9:notes"]);
   eq("notes not counted yet: a dash, never a zero", buildCover({ ...cover, notes: null }, tile, mf).me.stats[1].count, "–");

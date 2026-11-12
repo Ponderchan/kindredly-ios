@@ -829,7 +829,9 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
       case let .stamp(id): to.onPlanetTap("stamp", id)
       }
     }
-    a.onStamps = { to.onStamps("album", "") }
+    // "cover": TS leads it by what the tile shows (a plus → the stamp press, a number → the ones
+    // you made, nothing → the album)
+    a.onStamps = { to.onStamps("cover", "") }
     a.onLetters = { to.onSeeAll() }
     return a
   }

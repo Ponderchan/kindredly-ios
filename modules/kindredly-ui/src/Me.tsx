@@ -167,7 +167,9 @@ export type KMeStamps = {
 
 /** What the Stamps card reports: the blank stamp, First Class from the 3/3 card, See all, the
     album, a stamp tapped, the ready bar's "Write with it". */
-export type KMeStampsAction = "make" | "fullCta" | "seeAll" | "album" | "stamp" | "ready";
+/** "cover" is the cover's stamps tile (the planet Me): TS decides where it leads from what the tile
+    shows — the press for a plus, the ones you made for a number, else the album */
+export type KMeStampsAction = "make" | "fullCta" | "seeAll" | "album" | "stamp" | "ready" | "cover";
 
 export type KMeFirstClass = {
   eyebrow: string;

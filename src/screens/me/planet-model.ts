@@ -538,15 +538,24 @@ export type CoverFormat = MePlanetFormat & {
 };
 
 /** The cover's two ways in, you under it, and where the report stands. */
-export function buildCover(f: CoverFacts, stamps: StampsTileVM, fmt: CoverFormat): CoverVM {
+/* THE COVER'S TWO NUMBERS (owner on build 42, 2026-11-12: "数字也要对上").
+   - Stamps: the stamps you MADE yourself. None yet: a plus, the way to make one (the tile then
+     opens the stamp press); else how many (the tile opens the ones you made). Where the press is
+     not open to this reader (stamps.make false) there is no plus to promise: nothing is shown,
+     and the tile opens the album. (It used to read the number out of the Stamps tile's caption,
+     which counts the stamps you have used on letters.)
+   - The postbox: your letters. A number once there is one; with none, nothing — a 0 beside a
+     postbox only says it is empty. */
+export function buildCover(f: CoverFacts, stamps: StampsTileVM, fmt: CoverFormat, madeN = 0): CoverVM {
   const { t, upper } = fmt;
-  const used = (stamps.caption.match(/\d+/) ?? [""])[0];
+  const made = madeN > 0 ? String(madeN) : stamps.make ? "+" : "";
+  const letters = /^[1-9]/.test(f.letters.count) ? f.letters.count : "";
   const signName = f.sign ? t(`zd.${f.sign}`) : "";
   const markWord = f.mark === "she" ? t("pr.she") : f.mark === "he" ? t("pr.he") : "";
   const door = f.door;
   return {
-    stampsEntry: { count: used, a11y: [t("me.seg.stamps"), used].filter(Boolean).join(", "), hint: stamps.hint },
-    lettersEntry: { count: f.letters.count, a11y: f.letters.a11y, hint: f.letters.hint },
+    stampsEntry: { count: made, a11y: [t("me.seg.stamps"), madeN > 0 ? made : stamps.make ? t("cs2.me.makeOne") : ""].filter(Boolean).join(", "), hint: stamps.hint },
+    lettersEntry: { count: letters, a11y: f.letters.a11y, hint: f.letters.hint },
     me: {
       mark: f.mark ?? "",
       sign: f.sign ? (SIGN_EMOJI[f.sign] ?? "") : "",
@@ -613,7 +622,8 @@ export function buildMePlanet(f: MePlanetFacts, fmt: CoverFormat): MePlanetVM {
   const stamps = buildStampsTile(f.stamps, fmt);
   const chip = c.playing ? c.dayOffTag : c.chip;
   return {
-    ...buildCover(f.cover, stamps, fmt),
+    // the stamps you made yourself (a made stamp with a note is one still being checked, or refused)
+    ...buildCover(f.cover, stamps, fmt, f.stamps.made.filter((m) => !m.note).length),
     her: buildHerBadge(c.name, chip, f.stage, f.cover.day, fmt),
     state: planetWrenState(f.where, f.dayOff),
     napping: planetNapping(f.where),

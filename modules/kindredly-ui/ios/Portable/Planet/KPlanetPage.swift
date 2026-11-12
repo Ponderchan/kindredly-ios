@@ -152,6 +152,11 @@ public struct KPlanetScreen: View {
   /// the letters are still arriving), and whether the reader has since picked one: then it is theirs
   @State private var followed: String?
   @State private var chosen = false
+  /// how far the page is pulled up past its end, and whether letting go now goes back to Me
+  @State private var pullUp: CGFloat = 0
+  @State private var armedUp = false
+  /// how far past the end the page has to be pulled to go back
+  private static let backPull: CGFloat = 84
 
   /// - Parameters:
   ///   - topInset: the status bar's height (the sky runs under it)
@@ -201,9 +206,39 @@ public struct KPlanetScreen: View {
             .padding(.top, 12)
           track(width: geo.size.width)
         }
-        .padding(.bottom, bottomInset + 20)
+        .padding(.bottom, bottomInset + 44)
       }
       .scrollIndicators(.hidden)
+      /* PULLED DOWN ON ME, THE PLANET CAME OUT; PULLED UP HERE, ME COMES BACK (owner, 2026-11-12:
+         "下拉星球出来，上滑回到 default me tab"). The page always bounces; past its end by
+         `backPull`, letting go goes back. A light tap at the line, and the arrow at the foot
+         pops. The chevron top left still goes back too (VoiceOver has no pull). */
+      .scrollBounceBehavior(.always)
+      .onScrollGeometryChange(for: CGFloat.self) { g in
+        let end = max(0, g.contentSize.height + g.contentInsets.top + g.contentInsets.bottom - g.containerSize.height)
+        return g.contentOffset.y + g.contentInsets.top - end
+      } action: { _, y in
+        let v = max(0, (y * 2).rounded() / 2)
+        if v != pullUp { pullUp = v }
+        let now = v >= Self.backPull
+        if now != armedUp { armedUp = now }
+      }
+      .onScrollPhaseChange { old, new in
+        if old == .interacting, new != .interacting, armedUp { actions.onBack() }
+      }
+      .sensoryFeedback(.impact(weight: .light), trigger: armedUp) { _, now in now }
+      .overlay(alignment: .bottom) {
+        // the one hint: an arrow at the foot, quiet at rest
+        let p = min(1, pullUp / Self.backPull)
+        KLineIcon(.chevronDown, size: 20, lineWidth: 2.6, color: palette.ink)
+          .rotationEffect(.degrees(180))
+          .opacity(0.4 + 0.5 * Double(p))
+          .scaleEffect(armedUp ? 1.3 : 1)
+          .animation(.spring(response: 0.25, dampingFraction: 0.6), value: armedUp)
+          .padding(.bottom, bottomInset + 10 + pullUp * 0.4)
+          .allowsHitTesting(false)
+          .accessibilityHidden(true)
+      }
     }
     .background { palette.scrim.ignoresSafeArea() }
     .ignoresSafeArea(.keyboard)
@@ -267,7 +302,8 @@ public struct KPlanetScreen: View {
           }
         }
       }
-      KPlanetMyLettersRow(title: content.myLetters, count: content.myLettersCount, palette: palette) { actions.onMyLetters() }
+      // no "My letters" row (owner, 2026-11-12: "track 那里不是有了吗"): the slips are the letters
+      // here, and the postbox on Me's cover is the door to the list
     }
     .padding(.top, 10)
   }
@@ -356,23 +392,7 @@ struct KPlanetPageScene: View {
       }
       .padding(.leading, 8)
       .padding(.top, topInset)
-      if !content.hint.isEmpty {
-        // at the scene's foot, level with the zoom keys: under the chip it ran into her when she
-        // sits on top of the planet
-        Text(content.hint)
-          .kText(.mono(9.5, .semibold, tracking: 0.14))
-          .foregroundStyle(palette.ink)
-          .lineLimit(1)
-          .minimumScaleFactor(0.7)
-          .opacity(turned ? 0 : 0.6)
-          .animation(.easeOut(duration: 0.4), value: turned)
-          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-          .padding(.leading, 18)
-          .padding(.trailing, 110)
-          .padding(.bottom, 23)
-          .allowsHitTesting(false)
-          .accessibilityHidden(true)
-      }
+      // no "drag to spin · pinch to zoom" (owner, 2026-11-12: let people find it); the two keys stay
       HStack(spacing: 8) {
         zoomKey("−", label: content.zoomOut) { probe.zoom(by: 1 / 1.35) }
         zoomKey("+", label: content.zoomIn) { probe.zoom(by: 1.35) }
