@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, type RefObject } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { View, useWindowDimensions } from "react-native";
 import { KIsland, useKCommands, useRev, type KInsets, type KScreenHandle, type KThemeKey, type KWrenPictureData, type LetterFontKey } from "../../../modules/kindredly-ui";
 import {
@@ -28,7 +28,13 @@ import "../../data/strings-a11y-compose";
 import "../../data/strings-step5-notes";
 import "../../data/strings-note-compose";
 import "../../data/strings-audit-notes";
-import type { JournalEntry } from "../../lib/journal";
+import { loadJournal, type JournalEntry } from "../../lib/journal";
+import { firstWeekday, weekdayLetters } from "../../lib/format";
+import { swiftReadsFold, useFoldFrame } from "../../lib/fold";
+import { demoJournal } from "../../data/demo";
+import type { KNotesMonthRecord } from "../../../modules/kindredly-ui/src/Notes";
+import { buildMonth, ymOf } from "../notes/notes-model";
+import { notesFormat } from "../notes/useNotesModel";
 import { cardsOn, chosenFaceOf, openGroupFor, panelGroups, sealAction } from "./note-compose-model";
 import { useNoteComposeState, type NoteComposeState } from "./useNoteComposeState";
 
@@ -98,13 +104,22 @@ export function NoteComposeNative({
   // the words TS holds, for a view that (re)attaches
   const latest = useRef(text);
   latest.current = text;
+  // a folding phone's inner screen: this month goes to the left page (useMonthPage)
+  const frame = useFoldFrame();
+  const page = useMonthPage(!!frame.pages && swiftReadsFold(), state.mood);
+  const monthNow = useRef(page.month);
+  monthNow.current = page.month;
   const commands = useKCommands<KNoteComposeCommands>(viewRef, {
     blurOnUnmount: true,
     onViewAttach: () => {
       commands.send("setText", { target: "body", value: latest.current });
+      if (monthNow.current) commands.send("month", monthNow.current);
       slot.resend();
     },
   });
+  useEffect(() => {
+    if (page.month) commands.send("month", page.month);
+  }, [commands, page.month]);
 
   // the voice slot: which pieces Swift draws (once), and what they show
   const pieces = useVoicePieces();
@@ -244,6 +259,7 @@ export function NoteComposeNative({
         busy={state.busy}
         sealed={state.sealed}
         needsMood={seal === "askMood"}
+        weekdays={page.weekdays}
         act={act}
         recUri={recUri}
         recDur={state.dur}
@@ -305,6 +321,7 @@ type SurfaceProps = {
   busy: boolean;
   sealed: boolean;
   needsMood: boolean;
+  weekdays: string[];
   act: Act;
   recUri: string | null;
   recDur: number;
@@ -315,6 +332,67 @@ type SurfaceProps = {
   /** Wren drawn by Swift ("notewren"); null: the island */
   wren: KWrenPictureData | null;
 };
+
+/* THIS MONTH, FOR THE LEFT PAGE (iPhone Duo's inner screen; KNoteComposePage, THE SPREAD: "右页写，
+   左页是这个月"). Only there: on a phone nothing is read and nothing is sent. The pages are read
+   once as the composer opens (the same read Notes makes, with its sample pages in a development
+   build, so the simulator's month is the one Notes shows), and built into the record Notes
+   itself sends; the arrows are off (this is a look at the month, not a way through the
+   journal). Today's square takes the mood as it is picked, before the page is sealed. */
+function useMonthPage(on: boolean, mood: string | null | undefined): { month: KNotesMonthRecord | null; weekdays: string[] } {
+  const lang = useLang();
+  const [pages, setPages] = useState<JournalEntry[] | null>(null);
+  useEffect(() => {
+    if (!on) return;
+    let alive = true;
+    loadJournal().then(
+      (all) => {
+        if (alive) setPages(all);
+      },
+      (e) => {
+        // no pages read: the left page stays empty, the composer is untouched
+        if (__DEV__) console.warn("[note-compose] this month unread: no calendar beside the page", e);
+      },
+    );
+    return () => {
+      alive = false;
+    };
+  }, [on]);
+  const month = useMemo<KNotesMonthRecord | null>(() => {
+    if (!on || !pages) return null;
+    const now = new Date();
+    const all = __DEV__ ? [...pages, ...demoJournal({ store: false })] : pages;
+    const m = buildMonth(all, ymOf(now), now, firstWeekday(lang), notesFormat());
+    return {
+      key: m.key,
+      title: m.title,
+      lead: m.lead,
+      days: m.days.map((d) => {
+        // today's square: the mood on the page being written, once one is picked
+        const picked = d.today && mood ? mood : null;
+        const shown = picked ?? d.mood;
+        return {
+          n: d.n,
+          label: String(d.n),
+          group: (picked ? moodGroup(picked) : d.group) ?? "",
+          icon: shown ? moodArtKey(shown) : "",
+          targetId: "",
+          future: d.future,
+          today: d.today,
+          a11y: d.a11y,
+        };
+      }),
+      counts: m.counts.map(String),
+      footer: m.footer,
+      footerA11y: m.footerA11y,
+      legendA11y: m.legendA11y,
+      canPrev: false,
+      canNext: false,
+    };
+  }, [on, pages, lang, mood]);
+  const weekdays = useMemo(() => (on ? weekdayLetters(firstWeekday(lang), { locale: localeTag() }) : []), [on, lang]);
+  return { month, weekdays };
+}
 
 /* The Host, the view and its islands, redrawn only when a prop changes (every prop is kept by
    content or is a primitive; act and the ref are made once). */
@@ -344,6 +422,7 @@ const NoteSurface = memo(function NoteSurface(p: SurfaceProps) {
         busy={p.busy}
         sealed={p.sealed}
         needsMood={p.needsMood}
+        weekdays={p.weekdays}
         onClose={act.close}
         onTextChange={act.textChange}
         onFieldFocus={act.fieldFocus}

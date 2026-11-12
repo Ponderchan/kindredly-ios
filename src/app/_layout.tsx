@@ -20,7 +20,7 @@ import { WrenSkinProvider } from "../lib/wren-skin";
 import { ThemeProvider, useP, useTheme } from "../lib/theme";
 import { WrenStageProvider } from "../lib/wren-stage";
 import { loadLang } from "../lib/i18n";
-import { startSurfaces } from "../lib/surfaces";
+import { startSurfaces, useNativeSurface } from "../lib/surfaces";
 import { isPronounId, readYourPronoun } from "../lib/pronouns";
 import { setMoodPronoun } from "../data/moods";
 import { useLang } from "../lib/i18n";
@@ -28,7 +28,7 @@ import { nativeSetTextScript } from "../../modules/kindredly-ui";
 import "../data/strings"; // registers every surface's catalog
 
 import { P } from "../theme/post";
-import { shareFoldFrame, useFoldFrame } from "../lib/fold";
+import { shareFoldFrame, swiftReadsFold, useFoldFrame } from "../lib/fold";
 import { FOLD_TOP_AIR } from "../lib/fold-frame";
 import { fetchThreadMessages, readThreadDetailCache } from "../lib/db";
 
@@ -313,6 +313,14 @@ function ThemedStack() {
   const pad = useMemo(() => (frame.duo ? { paddingLeft: frame.left, paddingRight: frame.right } : null), [frame.duo, frame.left, frame.right]);
   const launchGround = useMemo(() => ({ contentStyle: { backgroundColor: launchInks(dark, tk).bg, ...pad } }), [dark, tk, pad]);
   const whole = useMemo(() => ({ backgroundColor: tk.bg }), [tk.bg]);
+  /* TWO PAGES ON THE INNER SCREEN (step 2, "写字的地方"): a page whose Swift view lays the two
+     pages out itself is the window less the system's band, not the column. Only where that
+     Swift view is what draws (its switch on, in a binary that reads the fold); the React Native
+     fallback keeps the column. */
+  const spreadPage = useMemo(() => ({ contentStyle: { backgroundColor: tk.bg, paddingRight: frame.band } }), [tk.bg, frame.band]);
+  const twoPages = !!frame.pages && swiftReadsFold();
+  const readerSpread = useNativeSurface("reader") && twoPages;
+  const noteSpread = useNativeSurface("journalentry") && twoPages;
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
       <SafeAreaInsetsContext.Provider value={insets}>
@@ -334,7 +342,7 @@ function ThemedStack() {
             words are never lost to a stray swipe (owner). */}
         <Stack.Screen name="compose" options={{ animation: "slide_from_bottom", gestureEnabled: false }} />
         {/* a page to yourself rises the same way */}
-        <Stack.Screen name="journal-entry" options={{ animation: "slide_from_bottom" }} />
+        <Stack.Screen name="journal-entry" options={{ animation: "slide_from_bottom", ...(noteSpread ? spreadPage : null) }} />
         <Stack.Screen name="journal-pick" options={{ animation: "slide_from_bottom" }} />
         <Stack.Screen name="paywall" options={{ presentation: "modal" }} />
         {/* STAMP PRESS: the camera and then the edit page cover everything, the tab bar too; the ×
@@ -347,7 +355,7 @@ function ThemedStack() {
         <Stack.Screen name="make-face" options={{ presentation: "transparentModal", animation: "fade", gestureEnabled: false, contentStyle: { backgroundColor: "transparent" } }} />
         {/* the reader fills the screen — the letter opens where you are,
             it doesn't slide in from the side or pop up as a card */}
-        <Stack.Screen name="thread/[id]" options={{ animation: "fade", animationDuration: 260 }} />
+        <Stack.Screen name="thread/[id]" options={{ animation: "fade", animationDuration: 260, ...(readerSpread ? spreadPage : null) }} />
         {/* the two pages that still paint their own ground (see above) */}
         <Stack.Screen name="courier" options={{ contentStyle: { backgroundColor: pal.penWash, ...pad } }} />
         <Stack.Screen name="aura-card" options={{ contentStyle: { backgroundColor: dark ? tk.bg : P.penWash, ...pad } }} />

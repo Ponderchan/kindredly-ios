@@ -1,4 +1,5 @@
 import { requireNativeView } from "expo";
+import type { KNotesMonthRecord } from "./Notes";
 import { forwardRef, useMemo, type ReactNode, type Ref } from "react";
 import type { CommonViewModifierProps } from "@expo/ui/swift-ui";
 import { createViewModifierEventListener } from "@expo/ui/swift-ui/modifiers";
@@ -64,6 +65,8 @@ export type KNoteComposeCommands = Omit<KStandardCommands, "setText" | "focus"> 
   focus: { target: "body" };
   /** the voice slot: what Swift draws itself of the recorder and the take (VoicePieces.tsx) */
   recorder: KVoiceSlotCommand;
+  /** a folding phone's inner screen: this month, for the left page (the Notes tab's own record) */
+  month: KNotesMonthRecord;
 };
 
 export type KNoteComposeViewProps = CommonViewModifierProps &
@@ -85,6 +88,8 @@ export type KNoteComposeViewProps = CommonViewModifierProps &
     busy: boolean;
     sealed: boolean;
     needsMood: boolean;
+    /** the calendar's weekday letters, for a folding phone's left page; none on a phone */
+    weekdays?: string[];
     onClose?: () => void;
     onTextChange?: (text: string) => void;
     onFieldFocus?: (focused: boolean) => void;

@@ -1478,6 +1478,8 @@ public struct KReaderScreen: View {
   @State private var expanded = false
   @State private var focused = false
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  /// a folding phone's inner screen: their letter on the left page, your reply on the right
+  @ObservedObject private var fold = KFold.shared
 
   public init(theme: KTheme, content: KReaderContent, topInset: CGFloat, bottomInset: CGFloat, driver: KReaderDriver, actions: KReaderActions) {
     self.theme = theme
@@ -1489,9 +1491,135 @@ public struct KReaderScreen: View {
   }
 
   public var body: some View {
-    VStack(spacing: 0) {
-      theme.bg.frame(height: topInset)
-      KBackBar(theme: theme, title: content.title, backLabel: content.backLabel, onBack: actions.onBack)
+    Group {
+      if fold.frame.twoPages {
+        spread
+      } else {
+        VStack(spacing: 0) {
+          theme.bg.frame(height: topInset)
+          KBackBar(theme: theme, title: content.title, backLabel: content.backLabel, onBack: actions.onBack)
+          letters
+          dock
+        }
+      }
+    }
+    .background(theme.bg.ignoresSafeArea())
+    .onChange(of: content.earlier.isEmpty) { _, none in
+      if none { expanded = false }
+    }
+  }
+
+  /* THE SPREAD (iPhone Duo's inner screen; the canvas's "Kindreds 里回复 · 笔友": "左页是对方的
+     信，右页是你的回信"; owner, 2026-11-12: "逐个做吧"). On a phone the reply bar sits under the
+     letter, and the keyboard squeezes the letter down to a couple of lines. Open, the letter
+     keeps the whole left page (the bar that goes back, the letter, and the letters before it
+     when they are unfolded, scrolling on their own), and the right page is a sheet to write
+     back on: the line that says where the words go, the field from the sheet's top to its foot,
+     the emoji key and the send key at the foot. The same field, the same controller, the same
+     send as the bar: only where it is drawn. The Host is the window less the system's band
+     (app/_layout: thread/[id]); with the reply closed (nobody to send to) the right page says
+     so, and offline it is empty. */
+  private var spread: some View {
+    let f = fold.frame
+    return HStack(alignment: .top, spacing: 0) {
+      VStack(spacing: 0) {
+        theme.bg.frame(height: topInset)
+        KBackBar(theme: theme, title: content.title, backLabel: content.backLabel, onBack: actions.onBack)
+        letters
+      }
+      .frame(width: f.crease)
+      replyPage
+        .padding(.leading, Self.pageGap)
+        .padding(.trailing, 16)
+        .padding(.top, topInset + Self.pageTop)
+        .padding(.bottom, focused ? 10 : max(16, bottomInset))
+        .frame(width: max(0, f.rightEnd - f.crease))
+      Spacer(minLength: 0)
+    }
+  }
+
+  /// the right page starts this far from the crease, and level with the letter's top (the bar
+  /// and the list's 8; measured on the simulator)
+  private static let pageGap: CGFloat = 6
+  private static let pageTop: CGFloat = 60
+
+  @ViewBuilder
+  private var replyPage: some View {
+    let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
+    if !content.closed.isEmpty {
+      // nobody home: the letters stay readable; there is no one to send to
+      Text(content.closed)
+        .kText(.system(13))
+        .foregroundStyle(theme.mute)
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: 320)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    } else if content.composer {
+      VStack(alignment: .leading, spacing: 0) {
+        if !driver.hint.isEmpty {
+          Text(driver.hint)
+            .kText(.monoMetaWide)
+            .foregroundStyle(driver.hintAlarm ? KBrand.postRed : theme.sub)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
+            .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+            .padding(.bottom, 12)
+        }
+        KComposerField(
+          theme: theme,
+          controller: driver.reply,
+          placeholder: content.placeholder,
+          size: 17,
+          // what is typed here is a letter: the reader's Letter font
+          content: true,
+          // the page is the field: it scrolls inside once the words pass its foot
+          maxLines: 400,
+          // a pen-pal letter leaves by the send key; Return is a new line (owner, 2026-10-19)
+          returnSends: false,
+          onChange: { actions.onText($0) },
+          onSubmit: { actions.onSend($0) },
+          onFocus: { now in
+            if focused != now { focused = now }
+            actions.onFocus(now)
+          },
+          onEscape: {
+            guard focused else { return false }
+            driver.reply.blur()
+            return true
+          }
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        HStack(spacing: 0) {
+          KEmojiKey(theme: theme, controller: driver.reply, label: content.emojiLabel)
+          Spacer(minLength: 0)
+          KReplySendCircle(theme: theme, state: driver.canSend ? .enabled : .disabled, label: content.sendLabel) {
+            actions.onSend(driver.reply.text)
+          }
+        }
+        .padding(.top, 8)
+      }
+      .padding(EdgeInsets(top: 18, leading: 20, bottom: 14, trailing: 16))
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+      .background {
+        shape
+          .fill(theme.sf)
+          .overlay(shape.strokeBorder(focused ? theme.ind : theme.line, lineWidth: 1))
+          .animation(.easeOut(duration: 0.2), value: focused)
+      }
+      // a tap anywhere on the page starts the reply (the field is the page)
+      .contentShape(shape)
+      .onTapGesture {
+        if !driver.reply.isFocused { driver.reply.focus() }
+      }
+      .dynamicTypeSize(...DynamicTypeSize.accessibility3)
+    } else {
+      Color.clear
+    }
+  }
+
+  /// the letter and, unfolded, the letters before it: one scroll
+  private var letters: some View {
       ScrollView(.vertical) {
         // lazy: a long thread's earlier letters (hundreds) are only built as they scroll in
         LazyVStack(alignment: .leading, spacing: 0) {
@@ -1518,12 +1646,6 @@ public struct KReaderScreen: View {
       }
       .scrollIndicators(.hidden)
       .scrollDismissesKeyboard(.interactively)
-      dock
-    }
-    .background(theme.bg.ignoresSafeArea())
-    .onChange(of: content.earlier.isEmpty) { _, none in
-      if none { expanded = false }
-    }
   }
 
   private var offline: some View {

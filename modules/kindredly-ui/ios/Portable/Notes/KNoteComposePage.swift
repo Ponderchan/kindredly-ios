@@ -287,6 +287,11 @@ public struct KNoteComposePage<Wren: View, Recorder: View>: View {
   private let actions: KNoteComposeActions
   private let wren: Wren
   private let recorder: Recorder
+  /// a folding phone's inner screen: this month, on the left page (THE SPREAD, below); nil for
+  /// a holder that has none to show
+  private let calendar: KNotesDriver?
+  private let weekdays: [String]
+  @ObservedObject private var fold = KFold.shared
 
   @State private var keptHeight: CGFloat = 0
   @State private var fullHeight: CGFloat = 0
@@ -301,6 +306,8 @@ public struct KNoteComposePage<Wren: View, Recorder: View>: View {
     bottomInset: CGFloat,
     driver: KNoteComposeDriver,
     actions: KNoteComposeActions,
+    calendar: KNotesDriver? = nil,
+    weekdays: [String] = [],
     @ViewBuilder wren: () -> Wren,
     @ViewBuilder recorder: () -> Recorder
   ) {
@@ -310,6 +317,8 @@ public struct KNoteComposePage<Wren: View, Recorder: View>: View {
     self.bottomInset = bottomInset
     self.driver = driver
     self.actions = actions
+    self.calendar = calendar
+    self.weekdays = weekdays
     self.wren = wren()
     self.recorder = recorder()
   }
@@ -333,7 +342,38 @@ public struct KNoteComposePage<Wren: View, Recorder: View>: View {
     reduceMotion ? .easeOut(duration: 0.15) : .easeOut(duration: 0.3)
   }
 
+  /* THE SPREAD (iPhone Duo's inner screen; the canvas's "写日记": "右页写，左页是这个月"; owner,
+     2026-11-12: "逐个做吧"). A note is written to yourself, so what lies beside it is your own
+     days: the left page is this month's mood calendar (the one Notes draws, as its page: no dim,
+     nothing to close), today's square taking the mood as it is picked, and the right page is
+     the composer exactly as on a phone, the keyboard and its panels under it. The month comes
+     from TS by the `month` command (NoteComposeNative, only on this screen); until it has
+     arrived, and wherever there is none, the page is the one column it always was. The Host is
+     the window less the system's band (app/_layout: journal-entry). */
   public var body: some View {
+    if fold.frame.twoPages, let calendar {
+      HStack(alignment: .top, spacing: 0) {
+        KNotesCalendar(theme: theme, strings: calendarStrings, topInset: topInset, driver: calendar, actions: KNotesActions(), page: true)
+          .frame(width: fold.frame.crease)
+          .frame(maxHeight: .infinity)
+        pageBody
+          .frame(width: max(0, fold.frame.rightEnd - fold.frame.crease))
+        Spacer(minLength: 0)
+      }
+      .background { theme.bg.ignoresSafeArea() }
+    } else {
+      pageBody
+    }
+  }
+
+  /// the calendar's own words here: only the weekday letters (it is not stepped or closed)
+  private var calendarStrings: KNotesStrings {
+    var s = KNotesStrings()
+    s.weekdays = weekdays
+    return s
+  }
+
+  private var pageBody: some View {
     VStack(spacing: 0) {
       header
         .padding(.top, topInset + 12)

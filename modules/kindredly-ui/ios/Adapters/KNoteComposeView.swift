@@ -135,6 +135,8 @@ final class KNoteComposeViewProps: KScreenProps {
   @Field var busy: Bool = false
   @Field var sealed: Bool = false
   @Field var needsMood: Bool = false
+  /// the calendar's weekday letters, for a folding phone's left page ([] on a phone)
+  @Field var weekdays: [String] = []
   /// batch 3 ("notewren"; Adapters/KLastIslandsView.swift): her content snapshot at 30, drawn
   /// still in place of the "wren" island while `on`
   @Field var wren: KWrenPictureRecord = KWrenPictureRecord()
@@ -155,6 +157,9 @@ final class KNoteComposeViewProps: KScreenProps {
 
   /// The field: as long-lived as the view, like `commands`.
   let driver = KNoteComposeDriver()
+  /// A folding phone's inner screen: this month, for the left page (the `month` command, as the
+  /// Notes tab's is; KNoteComposePage, THE SPREAD). Nothing is sent on a phone.
+  let calendar = KNotesDriver()
   /// The voice slot's state, from the `recorder` command (as long-lived as the view).
   let voiceSlot = KVoiceSlotModel()
 
@@ -182,6 +187,8 @@ final class KNoteComposeViewProps: KScreenProps {
   /// One command from the bus (see the list at the top of the file).
   func handle(_ name: String, _ args: [String: Any]) {
     switch name {
+    case "month":
+      calendar.setMonth(KNotesViewProps.month(args))
     case KCommandName.setText:
       driver.body.setText(args.kString("value") ?? "")
     case KCommandName.focus:
@@ -250,7 +257,9 @@ struct KNoteComposeView: ExpoSwiftUI.View {
       topInset: props.insets.top,
       bottomInset: props.insets.bottom,
       driver: props.driver,
-      actions: props.actions
+      actions: props.actions,
+      calendar: props.calendar,
+      weekdays: props.weekdays
     ) {
       if props.wren.on {
         // NoteComposeNative's island: 30, still and content
