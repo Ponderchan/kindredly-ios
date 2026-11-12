@@ -9,7 +9,9 @@ import { deskDay } from "./day";
  * words, and the rule: reply to twenty people and it means nothing.
  *
  * So the day has a shape now:
- *   · FIFTEEN letters on the desk, rotated daily — tomorrow is different
+ *   · TEN letters on the desk, rotated daily — tomorrow is different (fifteen
+ *     until 2026-11-12: the median reader opened four a day and only one
+ *     reader-day in eleven reached fifteen, and the owner found fifteen too many)
  *   · FIVE letters in flight — see the in-flight note below; scarcity is
  *     what makes a reply a decision, and an answer is what buys the next
  *   · replies INSIDE a correspondence are never counted, ever. The paywall
@@ -25,13 +27,13 @@ import { deskDay } from "./day";
  * suspend).
  */
 
-export const DAY_LETTERS = 15;
+export const DAY_LETTERS = 10;
 
 /** the desk's day — turns at the hour she's back, see lib/day */
 export const dayKey = (): string => deskDay();
 
 /* FNV-1a — a stable per-day shuffle, not randomness. The same reader sees
-   the same fifteen all day (no re-roll by re-opening), and different ones
+   the same ten all day (no re-roll by re-opening), and different ones
    tomorrow. Seeded with the letter id and the day only: matching, not the
    shuffle, is what personalises the desk. */
 const fnv = (s: string): number => {

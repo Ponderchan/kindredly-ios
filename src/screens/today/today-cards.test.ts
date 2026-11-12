@@ -90,9 +90,9 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   ok("keepDesk: a filtered page shorter than a page still can't say a letter is gone", ids(M.keepDesk(cur, short, false, fresh)) === "a,b,c,d");
   ok("keepDesk frozen: a filtered page prunes nothing", M.keepDesk(cur, short, false, fresh, true) === cur);
   const many = Array.from({ length: 20 }, (_, i) => L({ id: "n" + i }));
-  ok("keepDesk: new letters join at the end, up to the fifteen", M.keepDesk(cur, fullPage, false, many).length === 15);
+  ok("keepDesk: new letters join at the end, up to the ten", M.keepDesk(cur, fullPage, false, many).length === 10);
   const big = Array.from({ length: 16 }, (_, i) => L({ id: "k" + i }));
-  ok("keepDesk: a desk already past fifteen isn't cut", M.keepDesk(big, fullPage, false, many).length === 16);
+  ok("keepDesk: a desk already past ten isn't cut", M.keepDesk(big, fullPage, false, many).length === 16);
   ok("keepDesk frozen: nothing joins, even with room", ids(M.keepDesk(cur, fullPage, false, many, true)) === "a,b,c");
   ok("keepDesk frozen: a withdrawn letter still leaves (whole pool)", ids(M.keepDesk(cur, short, true, fresh, true)) === "a,c");
   ok("keepDesk frozen: nothing pruned keeps the same array", M.keepDesk(cur, fullPage, false, many, true) === cur);
@@ -281,7 +281,7 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   ok("deal: nothing swaps under the thumb", M.unpassed(dd, ["p1"])[0].id === "p2");
   ok("deal: a fresh desk is just the deal", ids(M.dealDesk([], [], dealt)) === "d1,p2,d2");
   const many = Array.from({ length: 30 }, (_, i) => L({ id: "m" + i }));
-  ok("deal: up to the fifteen", M.dealDesk(cur, [], many).length === 15);
+  ok("deal: up to the ten", M.dealDesk(cur, [], many).length === 10);
   ok("deal: passed in pass order", ids(M.dealDesk(cur, ["p3", "p1"], [])) === "p3,p1,p2");
 }
 

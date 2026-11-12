@@ -28,7 +28,7 @@ import "../../data/strings-today3d"; // pub.popLetter / pub.popNote, bag.opens
          seal presses on, LET IT TRAVEL — and the letter is gone
      3 · the courier carries it over three strangers' desks, each desk its
          owner's frosted window (identity, 1.0.5: no mosaic, no number)
-     4 · your own desk: fifteen letters, read one by one; when the last is
+     4 · your own desk: ten letters, read one by one; when the last is
          read, THAT'S ALL FOR TODAY and tomorrow's bag drops in (Today 3d ×
          25b, which retired the counter's shutter)
      5 · the title
@@ -488,12 +488,12 @@ function DeskTile({ u, cx, seed, you = false, dropAt, tilt = 0 }: { u: number; c
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   4 · DESK — fifteen letters land; read, each goes quiet; the count runs
+   4 · DESK — ten letters land; read, each goes quiet; the count runs
    down, and with the last one it's all for today: the desk clears and
    tomorrow's bag drops in
    ════════════════════════════════════════════════════════════════════════ */
 
-const DAY = 15; // lib/ration DAY_LETTERS; the desk below is laid out for exactly five by three
+const DAY = 10; // lib/ration DAY_LETTERS; the desk below is laid out for exactly five by two
 const READ_T0 = 1000;
 const READ_EVERY = 105;
 const SHUT_T = READ_T0 + (DAY - 1) * READ_EVERY + 80;
@@ -515,7 +515,7 @@ const Desk = memo(function Desk({ s }: { s: number }) {
         <LeftLabel u={u} />
         <View style={{ position: "absolute", left: 0, right: 0, top: 15 * u, height: 1, backgroundColor: P.ink12 }} />
         {Array.from({ length: DAY }, (_, i) => (
-          <DeskEnv key={i} u={u} i={i} w={EWd} x={left0 + (i % 5) * (EWd + GX)} y={19 * u + Math.floor(i / 5) * (EHd + GY)} />
+          <DeskEnv key={i} u={u} i={i} w={EWd} x={left0 + (i % 5) * (EWd + GX)} y={19 * u + (EHd + GY) / 2 + Math.floor(i / 5) * (EHd + GY)} />
         ))}
         <TomorrowBag u={u} w={inner} h={PH - 4} />
       </View>
@@ -588,7 +588,7 @@ function BagEnvelope({ u, x, y, turn, w, at }: { u: number; x: number; y: number
   );
 }
 
-/** "15 LEFT TODAY", counting down as they're read; THAT'S ALL FOR TODAY once the last one is */
+/** "10 LEFT TODAY", counting down as they're read; THAT'S ALL FOR TODAY once the last one is */
 function LeftLabel({ u }: { u: number }) {
   const n = useCount(DAY, 0, READ_EVERY, READ_T0);
   const done = useAfter(SHUT_T);

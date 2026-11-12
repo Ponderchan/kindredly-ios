@@ -407,7 +407,7 @@ export function loadMode(rec: DayRecord, placeholder: boolean): LoadMode {
 /**
  * A reload lands on a desk already in use: every letter the server still
  * has stays where it is, and (unless the desk is frozen) the day's new ones
- * join at the end, up to the fifteen. `all` is one page of the newest
+ * join at the end, up to the ten. `all` is one page of the newest
  * letters; when it is full, a letter missing from it may simply have aged
  * past it, so only the server's whole pool (`whole`: fetchPoolPage, read
  * from the page as sent, never from its length here — the page is filtered

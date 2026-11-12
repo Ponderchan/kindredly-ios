@@ -264,7 +264,7 @@ function within<T>(p: Promise<T>, ms: number): Promise<T | typeof TIMED_OUT> {
   });
 }
 
-/** A day's deal from a pool and the matcher's answer: matched first, then the server's newest-first, rationed to the fifteen. */
+/** A day's deal from a pool and the matcher's answer: matched first, then the server's newest-first, rationed to the ten. */
 function scoredDeal(base: readonly PoolLetter[], m: Matched): PoolLetter[] {
   const seen = new Set(base.map((l) => l.id));
   const scored = [...base, ...m.theirs.filter((l) => !seen.has(l.id))].map((l) => ({ ...l, close: l.author ? m.score.get(l.author) : undefined }));
