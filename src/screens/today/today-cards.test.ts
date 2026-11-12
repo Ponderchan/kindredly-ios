@@ -175,6 +175,24 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   ok("bring back: a reply clears nothing it doesn't own (the undo stays for another letter)", M.canBringBack(replied));
   const repliedSame = M.answerLetter({ ...r0, undo: "a", passed: ["a"] }, "a");
   ok("bring back: after that letter was answered, it is blocked", !M.canBringBack(repliedSame) && M.bringBack(repliedSame) === repliedSame);
+
+  /* a letter asked for by name from the Kindreds tab (lib/answer-request): to the front, un-passed */
+  {
+    const f0 = recOf();
+    const fIds = f0.desk.map((l) => l.id);
+    const fLast = fIds[fIds.length - 1];
+    const fronted = M.frontLetter(f0, fLast);
+    ok("front: the letter asked for is the first on the desk; the others keep their order", fronted.desk.map((l) => l.id).join() === [fLast, ...fIds.slice(0, -1)].join());
+    ok("front: nothing else moves (passed, answered, undo, the done moment)", fronted.passed === f0.passed && fronted.answered === f0.answered && fronted.undo === f0.undo && fronted.doneAt === f0.doneAt);
+    ok("front: already first and not passed: the same record back", M.frontLetter(f0, fIds[0]) === f0);
+    ok("front: not on the desk (answered, taken back): the same record back", M.frontLetter(f0, "nobody") === f0 && M.frontLetter(M.answerLetter(f0, fLast), fLast).desk.every((l) => l.id !== fLast));
+    const wasPassed = M.passLetter(M.passLetter(f0, fIds[0]), fIds[1]);
+    const back = M.frontLetter({ ...wasPassed, doneAt: 5 }, fIds[1]);
+    ok("front: a passed letter is un-passed, and its Undo goes with it", back.desk[0].id === fIds[1] && back.passed.join() === fIds[0] && back.undo === null);
+    ok("front: bringing a passed letter back opens a done desk again", back.doneAt === null);
+    ok("front: the first unpassed letter is then the one asked for", M.unpassed(back.desk, back.passed)[0].id === fIds[1]);
+    ok("front: another letter's Undo is left alone", M.frontLetter(M.passLetter(f0, fIds[0]), fLast).undo === fIds[0]);
+  }
   ok("answer: a passed letter moves from passed to answered (never counted twice)", repliedSame.passed.length === 0 && repliedSame.answered.join() === "a");
 
   const last = M.passLetter(M.passLetter(r0, "a"), "b");

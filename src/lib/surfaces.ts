@@ -454,6 +454,12 @@ export const NATIVE_DEFAULTS: Record<string, boolean> = {
      and a binary without the views (b41) keeps the old pages whatever this says. */
   meplanet: true,
   afterfifteen: true,
+  /* catch a line (owner, 2026-11-12: "按2d的做"): the empty Kindreds tab with today's first lines
+     drifting over the orbit (screens/kindreds/catch-model). Not a view of its own: KKindredsEmptyView
+     draws it when it is sent slips, so it also needs "kindredsempty" on and a binary whose view takes
+     them. A false row in app_surfaces ('kindredscatch', the version or '*', false) puts the page back
+     as it was with no build. */
+  kindredscatch: true,
 };
 
 /** the nine step-5 surface keys, Me 4a's two, the reader, the Notes composer, the ceremony, the aura pages, the courier page, the onboarding, the last Me pages, a kindred's page, Wren's room, the five small pages and three Notes pages (the `surface` prop of NativeSurface) */

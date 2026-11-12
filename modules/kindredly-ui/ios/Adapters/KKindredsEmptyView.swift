@@ -14,7 +14,12 @@ import ExpoUI
  - strings { title, status, you, heading, body, rule, cta, picks }
  - desk { name, tag, newLabel, unread, badge, ago, line, a11y, bird { uri, key, kind } }
  - bird { uri, key, kind }  (her at the edge of the sky)
- Events: onKeWrite {} · onKeDesk {}
+ - slips [{ id, line, wash, cardWash, edge, tagFill, who, topic, body, a11y, spoken }]  catch a line: today's
+   first lines (screens/kindreds/catch-model), at most six; [] is the page as it was. `who` is
+   Today's own record (KTodayWhoRecord: name, sign, face, mask, frost); its mark is never read
+ - strings also { catchTitle, catchSub, letGo, writeBack }
+ - active: the tab is on show (the slips drift only then)
+ Events: onKeWrite {} · onKeDesk {} · onKeAnswer { letterId } (WRITE BACK on an opened letter)
 
  This file imports ExpoUI, whose public Button, Text and Image would make bare names ambiguous, so
  nothing of that kind is written here.
@@ -29,6 +34,43 @@ struct KKindredsEmptyStringsRecord: Record {
   @Field var rule: String = ""
   @Field var cta: String = ""
   @Field var picks: String = ""
+  @Field var catchTitle: String = ""
+  @Field var catchSub: String = ""
+  @Field var letGo: String = ""
+  @Field var writeBack: String = ""
+}
+
+struct KCatchSlipRecord: Record {
+  @Field var id: String = ""
+  @Field var line: String = ""
+  @Field var wash: String = ""
+  @Field var cardWash: String = ""
+  @Field var edge: String = ""
+  @Field var tagFill: String = ""
+  @Field var who: KTodayWhoRecord = KTodayWhoRecord()
+  @Field var topic: String = ""
+  @Field var body: String = ""
+  @Field var a11y: String = ""
+  @Field var spoken: String = ""
+
+  var slip: KCatchSlip {
+    var s = KCatchSlip()
+    s.id = id
+    s.line = line
+    s.wash = wash
+    s.cardWash = cardWash
+    s.edge = edge
+    s.tagFill = tagFill
+    // a stranger's she/he mark stays with kindreds: whatever arrives, it is not drawn here
+    var w = who.who
+    w.mark = nil
+    s.who = w
+    s.topic = topic
+    s.body = body
+    s.a11y = a11y
+    s.spoken = spoken
+    return s
+  }
 }
 
 struct KKindredsEmptyDeskRecord: Record {
@@ -47,9 +89,12 @@ final class KKindredsEmptyViewProps: KScreenProps {
   @Field var strings: KKindredsEmptyStringsRecord = KKindredsEmptyStringsRecord()
   @Field var desk: KKindredsEmptyDeskRecord = KKindredsEmptyDeskRecord()
   @Field var bird: KImageRefRecord = KImageRefRecord()
+  @Field var slips: [KCatchSlipRecord] = []
+  @Field var active: Bool = true
 
   var onKeWrite = EventDispatcher()
   var onKeDesk = EventDispatcher()
+  var onKeAnswer = EventDispatcher()
 
   var content: KKindredsEmptyContent {
     var c = KKindredsEmptyContent()
@@ -75,6 +120,12 @@ final class KKindredsEmptyViewProps: KScreenProps {
     c.desk = d
     c.top = insets.top
     c.tabBarRoom = insets.tabBarRoom
+    c.slips = slips.filter { !$0.id.isEmpty && !$0.line.isEmpty }.map(\.slip)
+    c.catchTitle = strings.catchTitle
+    c.catchSub = strings.catchSub
+    c.letGo = strings.letGo
+    c.writeBack = strings.writeBack
+    c.active = active
     return c
   }
 }
@@ -87,7 +138,8 @@ struct KKindredsEmptyView: ExpoSwiftUI.View {
       theme: props.kTheme,
       content: props.content,
       onWrite: { props.onKeWrite([:]) },
-      onDesk: { props.onKeDesk([:]) }
+      onDesk: { props.onKeDesk([:]) },
+      onAnswer: { props.onKeAnswer(["letterId": $0]) }
     )
     .kScreenEnvironment(props)
   }

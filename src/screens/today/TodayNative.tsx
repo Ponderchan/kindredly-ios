@@ -133,6 +133,9 @@ function useSame<T>(value: T): T {
 
 type Nav = { addListener?: (type: string, cb: () => void) => () => void; isFocused?: () => boolean };
 
+/** how long a letter asked for from the Kindreds tab may still open its reply (see the effect below) */
+const ASK_FRESH_MS = 8000;
+
 export function TodayNative({ model }: { model: TodayModel }) {
   const { key: theme } = useTheme();
   const letterFont = useLetterFont();
@@ -176,6 +179,25 @@ export function TodayNative({ model }: { model: TodayModel }) {
       sendSerial: view.answeredSerial,
     });
   }, [r.letterId, r.state.sendState, notice, r.state.hintWarn, r.preview, view.sending, view.answeredSerial, commands]);
+
+  /* a letter asked for from the Kindreds tab ("Write back" on a line of it; lib/answer-request): the
+     model has brought it to the front, and once it is the card on screen its reply opens, as REPLY
+     does (the field takes the keyboard; Swift's own reply mode follows the focus). A beat first, so
+     the tab has changed and the card has settled. Once per request, and only while it is fresh
+     (ASK_FRESH_MS): a request this page never got to (her birthday letter was up, the desk was
+     remounted later) must not open the keyboard out of nowhere. */
+  const ask = view.answerAsk;
+  const answeredAsk = useRef(0);
+  const currentId = view.current?.id ?? "";
+  useEffect(() => {
+    if (!ask || ask.serial === answeredAsk.current || Date.now() - ask.at > ASK_FRESH_MS) return;
+    if (view.phase !== "reading" || currentId !== ask.id) return;
+    const tm = setTimeout(() => {
+      answeredAsk.current = ask.serial;
+      commands.send("focus", { target: "reply" });
+    }, 420);
+    return () => clearTimeout(tm);
+  }, [ask, view.phase, currentId, commands]);
 
   // the one voice player's transitions (never per tick: Swift runs the bars itself)
   const playback = model.voice.state;

@@ -224,6 +224,26 @@ export function bringBack(rec: DayRecord): DayRecord {
 }
 
 /**
+ * A letter asked for by name (the Kindreds tab's "Write back" on a line of it, lib/answer-request):
+ * it comes to the front of the desk and, if it had been passed, is un-passed, so it is the card
+ * on screen. A desk that was done is open again, as after bringBack. A letter that is not on
+ * the desk any more (answered, taken back, its writer blocked) changes nothing.
+ */
+export function frontLetter(rec: DayRecord, id: string): DayRecord {
+  const letter = rec.desk.find((l) => l.id === id);
+  if (!letter) return rec;
+  const passed = rec.passed.includes(id);
+  if (!passed && rec.desk[0]?.id === id) return rec;
+  return {
+    ...rec,
+    desk: [letter, ...rec.desk.filter((l) => l.id !== id)],
+    passed: passed ? rec.passed.filter((p) => p !== id) : rec.passed,
+    undo: rec.undo === id ? null : rec.undo,
+    doneAt: passed ? null : rec.doneAt,
+  };
+}
+
+/**
  * A reply went: the letter leaves the desk and is counted as answered. A
  * letter that had been passed moves from passed to answered, so it is never
  * counted twice on her letter.

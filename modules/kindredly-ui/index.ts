@@ -4,7 +4,7 @@
 
    Step 5 exports every one of its screen views here once (batch 0a), so no screen slice edits
    this file: each slice rewrites its own src/<Screen>.tsx and keeps the export names. */
-export { hasKindredlyStampArt, isKindredlyUIAvailable, isKindredlyUIViewAvailable } from "./src/available";
+export { hasKindredlyStampArt, isKindredlyUIAvailable, isKindredlyUIViewAvailable, kindredlyUIViewHasProp } from "./src/available";
 export { InkCardHost, KInkCard, type InkCardHostProps, type KInkCardProps } from "./src/InkCard";
 export { KGalleryHost, type KGalleryHostProps } from "./src/Gallery";
 export { KTabBar, type KTabBarCard, type KTabBarProps, type KTabBarTab, type KTabGlyph } from "./src/TabBar";
@@ -473,7 +473,7 @@ export {
 
 // batch 3: slice 3 (2026-11-09), each behind its own switch, off by default: the empty Kindreds tab
 // ("kindredsempty"), the wardrobe slip's sheet ("wardrobesheet") and the Plush moment ("plush")
-export { KKindredsEmptyView, type KKindredsEmptyDesk, type KKindredsEmptyStrings, type KKindredsEmptyViewProps } from "./src/KindredsEmpty";
+export { KKindredsEmptyView, type KCatchSlip, type KKindredsEmptyDesk, type KKindredsEmptyStrings, type KKindredsEmptyViewProps } from "./src/KindredsEmpty";
 export { KWardrobeSheetView, type KWardrobeSheetStrings, type KWardrobeSheetViewProps, type KWardrobeTile } from "./src/WardrobeSheet";
 export { KPlushView, type KPlushStrings, type KPlushViewProps } from "./src/Plush";
 

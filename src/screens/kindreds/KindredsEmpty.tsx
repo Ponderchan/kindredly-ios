@@ -1,6 +1,7 @@
+import { useMemo } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useIsFocused, useRouter } from "expo-router";
 import { MONO, PFM } from "../../theme/post";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { t, useLang } from "../../lib/i18n";
@@ -16,7 +17,13 @@ import { WrenBird } from "../../components/WrenBird";
 import { WrenDeskRow, useWrenDesk } from "../../components/WrenDesk";
 import { badgeCount } from "../../components/10a/kit";
 import { NativeSurface, SurfaceHost } from "../../components/NativeSurface";
-import { KKindredsEmptyView } from "../../../modules/kindredly-ui";
+import { KKindredsEmptyView, kindredlyUIViewHasProp, type KCatchSlip } from "../../../modules/kindredly-ui";
+import { useNativeSurface } from "../../lib/surfaces";
+import { requestAnswer } from "../../lib/answer-request";
+import { useCatchDesk } from "./useCatchDesk";
+import type { CatchSlip } from "./catch-model";
+// kc.title, kc.sub, kc.letGo (catch a line)
+import "../../data/strings-catch";
 
 /* NOBODY YET — the Kindreds tab before the first correspondence (and for a
    guest with no session). It stays React Native in 10a (spec-kindreds): no
@@ -41,7 +48,15 @@ import { KKindredsEmptyView } from "../../../modules/kindredly-ui";
    Native page (KindredsEmptyRN), exactly as it was. NativeSurface in live mode, as the list: a
    flip reaches a running app, but only while the tab isn't on show. The same props, so the tab
    and the dev page don't move; the words, her desk (useWrenDesk) and where each tap goes stay
-   here. */
+   here.
+
+   CATCH A LINE (owner, 2026-11-12: "按2d的做"; the "kindredscatch" switch, on). The Swift page
+   with today's first lines drifting over the orbit (useCatchDesk → catch-model): tap one, read
+   the letter, WRITE BACK. Write back asks Today for that letter (lib/answer-request) and goes to
+   the Today tab, where its reply opens: one place answers a stranger, with the day's ration and
+   the guest sheet as they are. Swift only (the React Native page is unchanged), and only on a
+   binary whose view takes `slips`; with the switch off, no desk for today, or an older binary,
+   the page is exactly what it was. */
 export function KindredsEmpty({ onWrite }: { onWrite: () => void }) {
   return (
     <NativeSurface
@@ -66,6 +81,10 @@ function KindredsEmptyNative({ onWrite }: { onWrite: () => void }) {
   const { unread, lastLine, lastAt } = useWrenDesk();
   const official = useBirdImageRef("official");
   const curious = useBirdImageRef("curious40");
+  const focused = useIsFocused();
+  const catchOn = useNativeSurface("kindredscatch") && kindredlyUIViewHasProp("KKindredsEmptyView", "slips");
+  const caught = useCatchDesk();
+  const slips = useMemo(() => (catchOn ? caught.map(nativeSlip) : NO_SLIPS), [catchOn, caught]);
   // WrenDeskRow on its own: the time since her last post, the line, VoiceOver's label
   const ago = lastAt ? sinceShort(lastAt) : "";
   const line = lastLine ?? t("wo.row.sub");
@@ -84,6 +103,10 @@ function KindredsEmptyNative({ onWrite }: { onWrite: () => void }) {
           rule: t("kindreds.empty.rule"),
           cta: t("kindreds.empty.cta"),
           picks: t("kindreds.empty.picks", { wren: wren.toUpperCase() }),
+          catchTitle: t("kc.title"),
+          catchSub: t("kc.sub"),
+          letGo: t("kc.letGo"),
+          writeBack: t("kd.reply"),
         }}
         desk={{
           name: OFFICIAL_NAME,
@@ -97,11 +120,45 @@ function KindredsEmptyNative({ onWrite }: { onWrite: () => void }) {
           bird: official,
         }}
         bird={curious}
+        slips={slips}
+        active={focused}
         onWrite={onWrite}
         onDesk={() => router.push(`/room/${WREN_ROOM}`)}
+        onAnswer={(letterId) => {
+          // Today brings the letter to the front and opens its reply (lib/answer-request)
+          requestAnswer(letterId);
+          router.navigate("/letters");
+        }}
       />
     </SurfaceHost>
   );
+}
+
+const NO_SLIPS: KCatchSlip[] = [];
+
+/** A slip as the Swift view takes it: the writer's name, sign and face (a deleted account never
+    drifts, so the veil is only the type's floor); the she/he mark is not sent. */
+function nativeSlip(sl: CatchSlip): KCatchSlip {
+  const face = sl.who.face;
+  return {
+    id: sl.id,
+    line: sl.line,
+    wash: sl.wash,
+    cardWash: sl.cardWash,
+    edge: sl.edge,
+    tagFill: sl.tagFill,
+    who: {
+      name: sl.who.name,
+      sign: sl.who.sign,
+      face: face.kind === "veil" ? "tile" : face.kind,
+      mask: face.kind === "mosaic" ? face.mask : 0,
+      frost: face.kind === "frost" ? face.spec : null,
+    },
+    topic: sl.topic,
+    body: sl.body,
+    a11y: sl.a11y,
+    spoken: sl.spoken,
+  };
 }
 
 /** The React Native page (the "kindredsempty" switch's fallback), exactly as it was. */

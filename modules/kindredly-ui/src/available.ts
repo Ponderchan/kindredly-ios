@@ -36,6 +36,34 @@ export function isKindredlyUIViewAvailable(viewName: string): boolean {
   return there;
 }
 
+/* Whether one view of this binary takes one particular prop. Views grow: a page gains a prop that
+   changes what it draws (KKindredsEmptyView's `slips`, 2026-11-12), and JavaScript, which travels
+   over the air, reaches binaries from before it. A prop a view doesn't declare is dropped without
+   a word, so the caller would believe it had drawn something it hadn't; this asks expo's
+   getViewConfig, whose validAttributes are the props the Swift view declares. false for a view the
+   binary doesn't have, on Android, and when the call fails.
+
+   Asked once per view and prop and remembered: a binary can't gain a prop while it runs. */
+const viewProps = new Map<string, boolean>();
+
+export function kindredlyUIViewHasProp(viewName: string, prop: string): boolean {
+  const key = viewName + "." + prop;
+  const known = viewProps.get(key);
+  if (known !== undefined) return known;
+  let there = false;
+  if (isKindredlyUIViewAvailable(viewName)) {
+    try {
+      const expo = (globalThis as { expo?: ExpoGlobal }).expo;
+      const config = expo?.getViewConfig?.("KindredlyUI", viewName) as { validAttributes?: Record<string, unknown> } | null | undefined;
+      there = config?.validAttributes?.[prop] != null;
+    } catch (e) {
+      console.log(`[kindredly-ui] could not ask whether ${viewName} takes ${prop}, assuming it doesn't:`, e);
+    }
+  }
+  viewProps.set(key, there);
+  return there;
+}
+
 /* Whether this binary's Swift has the DRAWING of one official stamp (owner's audit, 2026-11-10: the
    birthday stamp). The stamps are drawn from a table compiled into the binary (ios/Portable/Kit/
    KStampArtData.swift), so a stamp added after a binary shipped is, on that binary, an empty frame.

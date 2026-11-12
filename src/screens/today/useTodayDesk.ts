@@ -5,13 +5,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { KScreenHandle } from "../../../modules/kindredly-ui";
 import type { KTodayCardAction } from "../../../modules/kindredly-ui/src/Today";
 import { useTheme } from "../../lib/theme";
-import { getLang, hasString, needsTranslating, sourceTag, t, useLang } from "../../lib/i18n";
+import { getLang, needsTranslating, sourceTag, t, useLang } from "../../lib/i18n";
 import { guessLatin } from "../../lib/lang-guess";
-import { clockTime, fmt as clock, penPalName, postNo, postmark } from "../../lib/format";
-import { useWhoBook } from "../../lib/who";
-import { getStamp, sname } from "../../data/stamps";
-import { isCustomStampId, keepStampFlow, lookOf, reportStampFlow, tagOf, useCustomStamps } from "../../lib/custom-stamps";
-import { stickerName } from "../../lib/sticker-copy";
+import { keepStampFlow, reportStampFlow } from "../../lib/custom-stamps";
 import { POOL_CACHE_KEY, fetchMatches, fetchPool, fetchPoolPage, fetchThreads, lastWriteFail, markLetterRead, replyToLetter, type PoolLetter, type ThreadSummary } from "../../lib/db";
 import type { WriteFail } from "../../lib/thread-detail-core";
 import type { Signal } from "../../lib/today-signal";
@@ -29,6 +25,8 @@ import { DAY_LETTERS, MAX_IN_FLIGHT, inFlight, rationPool, type FlightThread } f
 import { deskDay, isNightHour } from "../../lib/day";
 import { endDayClosed, startDayClosed } from "../../lib/activities";
 import { onYou } from "../../lib/waiting";
+import { subscribeAnswerRequest, takeAnswerRequest } from "../../lib/answer-request";
+import { useTodayFormat } from "./useTodayFormat";
 import { readRoomSeen } from "../../lib/room-seen";
 import { useWrenStage, wrenStageDirty } from "../../lib/wren-stage";
 import { useWrenName } from "../../lib/wren-name";
@@ -709,6 +707,10 @@ export type TodayView = {
   draftEpoch: number;
   /** the last send press answered (Swift's dock waits for it) */
   answeredSerial: number;
+  /** a desk letter another tab asked to answer (lib/answer-request; the Kindreds tab's empty page): it has
+      been brought to the front, and the renderer opens its reply once it is the card on screen. The serial
+      moves with each request, so the same letter can be asked for twice. null until one is. */
+  answerAsk: { id: string; serial: number; at: number } | null;
   /** the letter in the unfolded reader, or null */
   readerId: string | null;
   /** the "to" of the reader's fly-by: the pen pal's number ("NO.7273") */
@@ -1128,45 +1130,9 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   voiceUrlRef.current = voiceUrl;
 
   /* ── the cards ── */
-  /* who wrote each letter (lib/who): switch off, the number and the mosaic exactly as before;
-     on, the courier name the reader's list gives them, the frost, and the ♀/♂ and star sign of
-     the writers on the desk, asked once and drawn when they land */
-  const authors = useMemo(() => feed.map((l) => l.author), [feed]);
-  const who = useWhoBook({ uids: authors });
-  /* the photo stamps on the desk ("c:<uuid>", lib/custom-stamps): resolved before the cards are
-     built, and the cards rebuilt when they land (the lookup changes) */
-  const customStamp = useCustomStamps(useMemo(() => feed.map((l) => l.stamp), [feed]));
-  const fmt = useMemo<C.TodayFormat>(
-    () => ({
-      t,
-      has: hasString,
-      postmark: (iso) => postmark(iso),
-      postNo: (uid) => postNo(uid),
-      penPal: (uid, o) => penPalName(uid, { upper: o.upper, compact: o.compact }),
-      who,
-      clock: (s) => clock(s),
-      clockHour: (h) => {
-        const d = new Date();
-        d.setHours(h, 0, 0, 0);
-        return clockTime(d);
-      },
-      stampTime: (ms) => `${postmark(ms)} · ${clockTime(ms)}`,
-      stamp: (id) => {
-        if (isCustomStampId(id)) {
-          const info = customStamp(id);
-          if (!info) return null;
-          const topic = tagOf(info);
-          return { color: info.hex, name: topic, spoken: topic && lookOf(info) !== "frame" ? t("cs2.use.a11yStamp", { topic }) : t("cs2.use.a11yBlank") };
-        }
-        const st = getStamp(id);
-        return st ? { color: st.color, name: sname(st.name) } : null;
-      },
-      stickerName,
-    }),
-    // lang: the words and the dates follow the reader's language
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [lang, who, customStamp],
-  );
+  /* who wrote each letter, the dates and the stamps' names (useTodayFormat: the same format the
+     Kindreds tab's drifting lines are built with, so a line caught there is this card) */
+  const { fmt, who } = useTodayFormat(feed);
   const bringBackNow = C.canBringBack(rec) && phase === "reading";
   const cards = useMemo(
     () =>
@@ -1257,6 +1223,28 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
      (undoOpen): a newer pass owns the undo, the letter left the desk, the
      day turned, or the desk is done (her letter's ⋯ carries it there). */
   const [undoOffer, setUndoOffer] = useState<C.UndoOffer | null>(null);
+
+  /* A LETTER ASKED FOR BY NAME, FROM THE KINDREDS TAB (owner, 2026-11-12; lib/answer-request). The
+     lines drifting over that tab's empty page are the first lines of the letters on THIS desk, and
+     "Write back" there asks for one of them. Once the day is loaded it is brought to the front (un-
+     passed if it had been passed: C.frontLetter) and the view says so (`answerAsk`); the renderer
+     opens the reply when it is the card on screen. A letter that has left the desk meanwhile
+     (answered, taken back) is simply not there to ask for: nothing happens. */
+  const [answerAsk, setAnswerAsk] = useState<{ id: string; serial: number; at: number } | null>(null);
+  const askSerial = useRef(0);
+  const takeAsk = useCallback(() => {
+    if (!sourceRef.current.loaded) return; // the saved day first: there is no desk to bring it to the front of yet
+    const id = takeAnswerRequest();
+    if (!id || !recRef.current.desk.some((l) => l.id === id)) return;
+    update((r) => C.frontLetter(r, id));
+    setUndoOffer(null);
+    askSerial.current += 1;
+    setAnswerAsk({ id, serial: askSerial.current, at: Date.now() });
+  }, [update]);
+  useEffect(() => subscribeAnswerRequest(takeAsk), [takeAsk]);
+  useEffect(() => {
+    takeAsk();
+  }, [takeAsk, source.loaded]);
   useEffect(() => {
     if (!undoOffer) return;
     const timer = setTimeout(() => setUndoOffer((o) => (o === undoOffer ? null : o)), Math.max(0, undoOffer.until - Date.now()));
@@ -1673,6 +1661,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     titleLocked: rec.passed.length > 0 || phase === "done",
     canBringBack: bringBackNow,
     undo: undoId,
+    answerAsk,
     arrival,
     freshUnfold: arrivalOpen,
     reply: { letterId: current?.id ?? "", draft, preview: C.draftPreview(draft), state: replyNow },
