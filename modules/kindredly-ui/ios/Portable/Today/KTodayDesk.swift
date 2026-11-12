@@ -380,7 +380,7 @@ public struct KTodayDesk: View {
     let bandX = crease ?? 0
     let bandW = crease.map { W - $0 } ?? W
     return ZStack(alignment: .topLeading) {
-      // 1. the page and its faint radial ground (the glass needs something behind it)
+      // 1. the page's ground: the page colour, flat (the radial wash went on 2026-11-12)
       KTodayGround(theme: theme)
         .frame(width: W)
         .frame(maxHeight: .infinity)

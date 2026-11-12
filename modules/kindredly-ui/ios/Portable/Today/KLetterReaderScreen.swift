@@ -14,9 +14,9 @@ import SwiftUI
                                                 18 in, 14 from the top, 12 under
    ╭────────────────────────────────────╮       the letter sheet, as on the desk card (InkCard
    │ [face] Sunday Kite ♀ ♊      [stamp] │       .today, letter: sf, a 1pt edge in its ink at 11%,
-   │        SEP.23                       │       corners 28, a hard 6/6 drop in the theme's depth,
+   │        SEP.23                       │       corners 28, flat (no drop since 2026-11-12),
    │                                     │       no black frame since 2026-11-09), 16 from the
-   │                                     │       sides, the drop's 6 kept clear
+   │                                     │       sides
    │ Dear stranger, …                    │
    │                                     │       the letter in the reader's Letter font at 19/31
    │ WRITTEN 3D AGO                      │       in ink; the written line mono 500 10 at .06em in
@@ -144,9 +144,7 @@ struct KLetterReaderScreen<InFlight: View>: View {
       header
       ScrollView(.vertical, showsIndicators: false) {
         letter
-          // the depth's 6 hangs outside the panel
-          .padding(.trailing, InkCardVariant.today.shadowOffset)
-          .padding(.bottom, InkCardVariant.today.shadowOffset)
+          // (the sheet is flat since 2026-11-12: no 6 kept clear for a drop, so it sits centred)
           .padding(.horizontal, 16)
           .padding(.bottom, 28)
       }

@@ -26,7 +26,7 @@ import SwiftUI
    WREN IS BACK IN                          8H 06M     the foot, the countdown in ind
 
  The material is the letter sheet the desk's cards are on (KLetterSheet, owner 2026-11-09: no black
- frame; sf, a 1pt edge in its ink at 11%, corners of 24, a hard 6/6 drop in the theme's depth),
+ frame; sf, a 1pt edge in its ink at 11%, corners of 24, flat: no drop since 2026-11-12),
  padded 0 18 12 inside where the 2.5 outline was, so nothing inside moved when it went. The bag
  takes whatever height is left (margins 14 above, 56 at the sides, 8 below), never less than the
  design's 120: it is the done state's main object, so

@@ -8,7 +8,7 @@ import SwiftUI
  reader writes back, the chat composers' A1, owner 2026-10-18: replyCardHeight, room for the
  keyboard and the reply box, 272 in the prototype). On the letter sheet (KLetterSheet, owner
  2026-11-09: the black frame is gone, rule B as on the Aura card): sf, a 1pt edge in the face's ink
- at 11%, corners of 24, a hard 6/6 drop with no blur in the theme's depth colour; the content keeps
+ at 11%, corners of 24, and flat (the hard 6/6 lavender drop went on 2026-11-12); the content keeps
  the InkCard .me's insets (16 inside where the 2.5 outline was), so nothing inside moved:
 
  - the docket row, 10 apart:
@@ -208,8 +208,8 @@ struct KLetterCard: View, Equatable {
     let paper = card.paper
     // one column on every paper (contract §4.1), inset by the paper's edge and its 16 (border-box):
     // on Plain that is the 2.5 + 16 the InkCard .me gave it, so nothing inside moved when the
-    // outline went. The sheet is the letter's (KPaperSurface letter: rule B, no black frame); the
-    // base theme goes to it, for the depth's colour and the sticky note's fold (the page colour)
+    // outline went. The sheet is the letter's (KPaperSurface letter: flat, no black frame); the
+    // base theme goes to it, for the sticky note's fold (the page colour)
     VStack(alignment: .leading, spacing: 0) {
       content
     }

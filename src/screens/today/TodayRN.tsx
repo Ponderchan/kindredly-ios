@@ -30,12 +30,12 @@ import Animated, {
   type SharedValue,
   type WithTimingConfig,
 } from "react-native-reanimated";
-import Svg, { Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import Svg, { Path, Rect } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { MONO, PFM, letterFitLines, letterFitSize } from "../../theme/post";
-import { BRAND, THEMES, type ThemeKey } from "../../theme/themes";
+import { BRAND } from "../../theme/themes";
 import { useLetterFamily, useLetterFont, useTheme } from "../../lib/theme";
 import { t, useLang } from "../../lib/i18n";
 import { useScreenInsets, useTabBarAway } from "../../lib/screen-insets";
@@ -441,7 +441,7 @@ type Nav = { addListener?: (type: string, cb: () => void) => () => void; isFocus
 
 export function TodayRN({ model }: { model: TodayModel }) {
   useLang();
-  const { t: tk, dark, key: themeKey } = useTheme();
+  const { t: tk, dark } = useTheme();
   const { view, act } = model;
   /* her birthday letter (owner's audit, 2026-11-10) is the Swift desk's: this fallback has no card
      for it and says so, so the model never offers it here and the desk stays exactly as it was
@@ -793,7 +793,6 @@ export function TodayRN({ model }: { model: TodayModel }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }} onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
-      <Ground w={W} h={H} color={groundBase(themeKey)} />
 
       {/* the card slot: placed by its top, so while writing back it shrinks from its foot */}
       <Animated.View style={[{ position: "absolute", left: 16, right: 16, top: geo.cardTop }, slotHeight, slotStyle]}>
@@ -949,31 +948,8 @@ export function TodayRN({ model }: { model: TodayModel }) {
   );
 }
 
-/* ── the page's ground: a faint radial wash at the bottom, so the glass reads ── */
-
-/** the ground's centre colour, as KTodayGround.base: the design's #DCD9F3 on
-    Classic (Lavender's lav; Classic's lav2 is half as deep against white
-    and the glass vanished on it), the theme's own lav elsewhere */
-function groundBase(key: ThemeKey): string {
-  return key === "classic" ? THEMES.lavender.lav : THEMES[key].lav;
-}
-
-function Ground({ w, h, color }: { w: number; h: number; color: string }) {
-  return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <Svg width={w} height={h}>
-        <Defs>
-          <RadialGradient id="todayGround" cx={w / 2} cy={h} rx={1.2 * w} ry={0.6 * h} fx={w / 2} fy={h} gradientUnits="userSpaceOnUse">
-            <Stop offset="0" stopColor={color} stopOpacity={1} />
-            <Stop offset="0.45" stopColor={color} stopOpacity={0.35} />
-            <Stop offset="1" stopColor={color} stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Rect x={0} y={0} width={w} height={h} fill="url(#todayGround)" />
-      </Svg>
-    </View>
-  );
-}
+/* ── the page's ground: the page colour and nothing else. The faint radial wash that stood here
+   (Lavender's lav at the bottom centre) went on 2026-11-12, with KTodayGround's (owner: "去掉吧") ── */
 
 /* ── the title: the main tabs' page title (System 700 22, leading), as Notes,
    Kindreds and Me; it no longer shrinks into a centred postmark with the

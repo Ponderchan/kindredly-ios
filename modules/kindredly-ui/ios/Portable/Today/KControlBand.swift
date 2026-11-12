@@ -48,7 +48,7 @@ import SwiftUI
  - done (flow.bandShown false): the buttons and their labels fade and drop 12;
  - not enabled (loading, offline): the buttons at .4 with no touches.
  Taps are also refused while a card is moving (deck.animating: no re-entry) and while typing.
- The page's faint radial ground (KTodayGround, below) stays: the desk puts it behind everything.
+ The page's ground (KTodayGround, below) is flat since 2026-11-12: the desk puts it behind everything.
  */
 
 /// The band's geometry, in band-local points: origin at the band's top left, W the Host's width.
@@ -517,57 +517,26 @@ private struct KBandDiscStyle: ButtonStyle {
 }
 
 /*
- THE RADIAL GROUND (Prompt 3): without it the glass reads as nothing on white. The design's
- "radial-gradient(120% 60% at 50% 100%, #DCD9F3 0%, #F3F1FA 45%, #fff 100%)": the ground colour at
- the bottom centre, .35 of it at 45% (over white that is the design's #F3F1FA), nothing at the
- edge, over bg. The design's #DCD9F3 is no Classic token (Classic's lav2, #EEEDFB, is half as deep
- against white, and the glass vanished on it): it is Lavender's lav, so Classic takes exactly that,
- and every other theme its own lav (Lavender's is the same colour; Paper's the warm one; Midnight's
- stands off its page about as far as the design's stands off white). The ellipse has radii
- 1.2W × 0.6H about the bottom centre: a 2.4W × 1.2H rectangle centred on (W/2, H) with an
- elliptical gradient out to half of it, clipped to the frame. The desk puts it behind everything,
- in the Host's full frame; it draws bg itself, so it can stand in for the page colour.
+ THE PAGE'S GROUND: the page colour and nothing else.
+
+ It was a radial wash (Prompt 3: Lavender's lav at the bottom centre, fading out by 60% of the
+ height), there so the glass discs had something behind them. The owner took it out twice on
+ 2026-11-12: first on the iPhone Duo, where the system's band cut it off square and it read as a
+ purple block ("紫色的底哪里来的"), then everywhere ("去掉吧"): the page is one flat colour from
+ the title to the tab bar. The discs keep their own rim and soft shadow, which is what they are
+ read by on the letter itself on the Duo's inner screen. The desk still puts this behind
+ everything, in the Host's full frame, so it stands in for the page colour.
  */
 struct KTodayGround: View {
   let theme: KTheme
-  /* ON A FOLDING PHONE THE GROUND IS FLAT (owner, 2026-11-12, at the lavender under Next and
-     Reply on the Duo's inner screen: "紫色的底哪里来的"). The glow fades out towards the edges of
-     a phone's screen; in a column on a wider one (or beside the system's band) it is cut off
-     square and reads as a purple block. So there it is the page's colour and nothing else. */
-  @ObservedObject private var fold = KFold.shared
 
   init(theme: KTheme) {
     self.theme = theme
   }
 
-  /// the colour at the ground's centre: the design's #DCD9F3 on Classic, the theme's lav elsewhere
-  static func base(_ theme: KTheme) -> Color {
-    theme.key == KTheme.classic.key ? KTheme.lavender.lav : theme.lav
-  }
-
   var body: some View {
-    let base = Self.base(theme)
-    GeometryReader { geo in
-      let w = geo.size.width, h = geo.size.height
-      Rectangle()
-        .fill(EllipticalGradient(
-          stops: [
-            .init(color: base, location: 0),
-            .init(color: base.opacity(0.35), location: 0.45),
-            .init(color: base.opacity(0), location: 1),
-          ],
-          center: .center,
-          startRadiusFraction: 0,
-          endRadiusFraction: 0.5
-        ))
-        .frame(width: 2.4 * w, height: 1.2 * h)
-        .position(x: w / 2, y: h)
-        // a folding phone: no glow (see above)
-        .opacity(fold.frame.duo ? 0 : 1)
-    }
-    .background(theme.bg)
-    .clipped()
-    .allowsHitTesting(false)
-    .accessibilityHidden(true)
+    theme.bg
+      .allowsHitTesting(false)
+      .accessibilityHidden(true)
   }
 }

@@ -96,7 +96,7 @@ public struct InkCard<Content: View>: View {
   private let soft: Bool
   /// no outline: rule B's object depth instead of the ink shadow (the Aura card, owner 2026-10-26)
   private let object: Bool
-  /// the Today letter's sheet (KLetterSheet, owner 2026-11-09): a 1pt edge and the theme's depth
+  /// the Today letter's sheet (KLetterSheet, owner 2026-11-09): a 1pt edge, flat since 2026-11-12
   /// instead of the outline and the ink shadow, at the variant's corners and the same insets
   private let letter: Bool
   private let content: Content
@@ -555,41 +555,30 @@ struct KPaperFold: View {
 }
 
 /*
- THE LETTER SHEET (owner, 2026-11-09: the Today letter loses its black frame). The letter you read
- is an object in the story, so it takes rule B (KObjectDepth, the Aura card's look) instead of the
- InkCard's ink outline and black hard shadow: the face in sf, a 1pt edge in the face's own slightly
- darker tone (its ink at 11%: on white that is the ink at the brief's 10–12%; on Midnight's dark
- face the same rule gives a faint light hairline, which is what reads as an edge there), and a hard
- 6/6 drop with no blur in the theme's depth colour. The depth is per theme here, not KObjectDepth's
- two values (the owner's numbers for the letter: Classic #C9C4F2, Lavender #B5AEEA on its lilac
- page, Paper #D3C29C on its cream, Midnight #2F3336: a neutral grey since 2026-11-12, #3A3580 before); KObjectDepth stays as it is for the other
- objects. Like box-shadow the drop takes no room: whoever places the sheet leaves the 6 clear, as
- they did for the old shadow. No layout changes with it: the content keeps the insets it had
- inside the 2.5 outline (InkCardVariant.contentInsets), so nothing inside a card moves.
+ THE LETTER SHEET: the letter you read, on every place the Today letter is drawn.
+
+ Two steps, both the owner's:
+ - 2026-11-09: the black frame went (the InkCard's ink outline and black hard shadow). The face in
+   sf, a 1pt edge in the face's own slightly darker tone (its ink at 11%: on white that is the ink
+   at the brief's 10–12%; on Midnight's dark face the same rule gives a faint light hairline, which
+   is what reads as an edge there), and a hard 6/6 drop in a per-theme lavender (rule B).
+ - 2026-11-12: THE DROP WENT TOO ("去掉吧", at the lavender edge showing right of and under the
+   card; the same day he had asked for no purple shadows and no raised edges on the iPhone Duo).
+   The sheet is now flat: the face and its 1pt edge, nothing behind it, in every theme. Rule B's
+   hard shadow stays on the other objects (KObjectDepth); only the letter lost it.
+
+ No layout changes with either: the content keeps the insets it had inside the 2.5 outline
+ (InkCardVariant.contentInsets), so nothing inside a card moves. Nothing leaves room for a drop
+ any more (the unfolded letter gave its 6 back).
 
  Every place the Today letter is drawn uses it, so reading looks the same everywhere: the desk
- card on Plain (and, through KPaperSurface(letter: true), on every paper), the loading and offline
- card in its slot, Wren's letter when the day is done, and the unfolded letter (KLetterReaderScreen).
+ card on Plain (through KPaperSurface(letter: true)), the loading and offline card in its slot,
+ Wren's letter when the day is done, and the unfolded letter (KLetterReaderScreen).
  */
 public struct KLetterSheet: View {
   /// the edge: 1pt, drawn inside the face, in the face's ink at this opacity
   public static let edgeWidth: CGFloat = 1
   public static let edgeOpacity: Double = 0.11
-  /// the hard drop, right and down
-  public static let depthOffset: CGFloat = 6
-
-  /// The letter's depth in `theme` (always the base theme: a paper's own colours never change it).
-  /// A theme this table doesn't know takes Classic's, or Midnight's when it is dark.
-  public static func depth(for theme: KTheme) -> Color {
-    switch theme.key {
-    case KTheme.lavender.key: return Color(hex: "#B5AEEA")
-    case KTheme.paper.key: return Color(hex: "#D3C29C")
-    // the dark theme is neutral black since 2026-11-12 (owner: "为啥不和别的产品一样 类似 twitter"):
-    // the drop is the theme's own divider grey, where it was a violet (#3A3580)
-    case KTheme.midnight.key: return Color(hex: "#2F3336")
-    default: return theme.isDark ? Color(hex: "#2F3336") : Color(hex: "#C9C4F2")
-    }
-  }
 
   /// the edge's colour on a face whose words are drawn in `ink`
   public static func edge(ink: Color) -> Color { ink.opacity(edgeOpacity) }
@@ -605,14 +594,10 @@ public struct KLetterSheet: View {
 
   public var body: some View {
     let shape = RoundedRectangle(cornerRadius: radius, style: .circular)
-    // back to front: the drop, the face, the edge (inside the face, as a CSS border is)
+    // the face, and the edge inside it (as a CSS border is); nothing behind
     ZStack {
       shape.fill(theme.sf)
       shape.strokeBorder(Self.edge(ink: theme.ink), lineWidth: Self.edgeWidth)
-    }
-    .background {
-      shape.fill(Self.depth(for: theme))
-        .offset(x: Self.depthOffset, y: Self.depthOffset)
     }
     .allowsHitTesting(false)
     .accessibilityHidden(true)
@@ -697,11 +682,8 @@ public struct KPaperSurface: View {
       }
     }
     .background {
-      if letter {
-        // the theme's hard depth in the sheet's outline, its teeth included
-        silhouette(shape: shape, color: KLetterSheet.depth(for: theme))
-          .offset(x: KLetterSheet.depthOffset, y: KLetterSheet.depthOffset)
-      } else if !mini, let s = paper.shadow {
+      // (a letter never reaches here: only Plain takes the letter frame, and Plain is KLetterSheet)
+      if !letter, !mini, let s = paper.shadow {
         Color.clear.kSoftShadows([s.soft], in: shape)
       }
     }
