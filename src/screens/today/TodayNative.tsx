@@ -17,6 +17,9 @@ import {
 import { SurfaceHost } from "../../components/NativeSurface";
 import { useLetterFont, useTheme } from "../../lib/theme";
 import { useScreenInsets, useTabBarAway } from "../../lib/screen-insets";
+import { useCornerKey } from "../../lib/corner-key";
+import { t } from "../../lib/i18n";
+import { useFoldFrame } from "../../lib/fold";
 import { playbackCommandArgs } from "../../lib/voice-playback";
 import { useIdentityOn } from "../../lib/identity";
 import { keepStampFlow, reportStampFlow } from "../../lib/custom-stamps";
@@ -157,6 +160,13 @@ export function TodayNative({ model }: { model: TodayModel }) {
     // a new or remounted view starts with an empty field: TS is where the words survive
     onViewAttach: () => commands.send("setText", { target: "reply", value: draftFor(boundRef.current) }),
   });
+
+  /* a folding phone's inner screen: while writing back the tab bar has stepped out of the band,
+     and the only way out of the reply was a tap on the letter. The band's corner, where the +
+     stood, holds a ✕ that puts the reply away (lib/corner-key; found walking the simulator). The
+     outer screen keeps the phone's way: a tap on the dimmed page. */
+  const twoPages = !!useFoldFrame().pages;
+  useCornerKey(replying && twoPages ? { kind: "close", label: t("wren.trackClose"), onPress: () => commands.send("blur", {}) } : null);
 
   // the field takes the bound letter's draft when the letter on screen changes, or the reader closes (it may have written in it)
   useEffect(() => {

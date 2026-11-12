@@ -9,6 +9,7 @@ import { SignUpSheet } from "../components/SignUpSheet";
 import { useTheme } from "../lib/theme";
 import { useAuth } from "../lib/auth";
 import { swiftReadsFold, useFoldFrame } from "../lib/fold";
+import { useCornerKey } from "../lib/corner-key";
 import { useNativeSurface } from "../lib/surfaces";
 import { useEntitlement } from "../lib/entitlement";
 import { useWrenName } from "../lib/wren-name";
@@ -65,6 +66,8 @@ export default function Compose() {
     tk,
   });
   const { act } = state;
+  // a folding phone: the band's corner key is this page's own guarded ✕ (lib/corner-key)
+  useCornerKey({ kind: "close", label: t("wren.trackClose"), onPress: act.close });
 
   const leaveActions: LeaveAction[] = [
     ...(state.leaveCanSave ? [{ label: t("cp.leave.draft"), kind: "primary" as const, onPress: act.saveAndLeave }] : []),

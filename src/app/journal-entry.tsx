@@ -6,6 +6,7 @@ import { usePreventRemove } from "expo-router/react-navigation";
 import { LeaveSheet, openLeaveSheet } from "../components/LeaveSheet";
 import Svg, { Path, Rect } from "react-native-svg";
 import { getLang, t, useLang } from "../lib/i18n";
+import { useCornerKey } from "../lib/corner-key";
 import { DEMO_TEXT, storeMode } from "../lib/dev-store";
 import { PFM } from "../theme/post";
 import { useP } from "../lib/theme";
@@ -117,6 +118,8 @@ export default function JournalEntryRoute() {
     else goBack();
   };
 
+  // a folding phone: the band's corner key is this page's ✕ (the leave guard above still asks)
+  useCornerKey({ kind: "close", label: t("wren.trackClose"), onPress: goBack });
   const native = () => <NoteComposeNative text={text} setText={setText} onDone={goBack} onClose={goBack} onState={setPage} viewRef={viewRef} editing={editing} />;
 
   // an edit is waiting for its page: the paper only

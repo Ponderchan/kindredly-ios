@@ -29,6 +29,7 @@ import "../data/strings"; // registers every surface's catalog
 
 import { P } from "../theme/post";
 import { shareFoldFrame, swiftReadsFold, useFoldFrame } from "../lib/fold";
+import { FoldCornerKey } from "../components/FoldCornerKey";
 import { FOLD_TOP_AIR } from "../lib/fold-frame";
 import { fetchThreadMessages, readThreadDetailCache } from "../lib/db";
 
@@ -361,6 +362,8 @@ function ThemedStack() {
         <Stack.Screen name="courier" options={{ contentStyle: { backgroundColor: pal.penWash, ...pad } }} />
         <Stack.Screen name="aura-card" options={{ contentStyle: { backgroundColor: dark ? tk.bg : P.penWash, ...pad } }} />
       </Stack>
+      {/* a folding phone: a pushed page's way out, in the band's foot corner (lib/corner-key) */}
+      <FoldCornerKey />
       </SafeAreaInsetsContext.Provider>
     </View>
   );
