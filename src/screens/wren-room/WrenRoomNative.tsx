@@ -71,13 +71,14 @@ type MediaSlot = { slot: string; media: WrenPostMedia };
 /** what a row's taps need: the guide or the release behind its card, its picture, its link, the question she guessed from */
 type RowTarget = { href: string | null; photo: string | null; link: string | null; question: string | null };
 
-export function WrenRoomNative() {
+export function WrenRoomNative({ onBack, paneWidth }: { /** held on the Kindreds tab's right page (a folding phone): back closes it there */ onBack?: () => void; /** …and the page's own width, where the window is wider than the room */ paneWidth?: number } = {}) {
   const lang = useLang();
   const router = useRouter();
   const { key: theme, t: tk } = useTheme();
   const letterFont = useLetterFont();
   const insets = useScreenInsets();
-  const { width } = useWindowDimensions();
+  const win = useWindowDimensions();
+  const width = paneWidth ?? win.width;
   const wren = useWrenName();
   const ref = useRef<KScreenHandle>(null);
   const reseed = useRef(() => {});
@@ -269,7 +270,7 @@ export function WrenRoomNative() {
   );
 
   const target = (key: string) => built.targets.get(key) ?? null;
-  const back = () => blurThen(() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds")), ref, { delayMs: 0 });
+  const back = () => blurThen(() => (onBack ? onBack() : router.canGoBack() ? router.back() : router.replace("/(tabs)/kindreds")), ref, { delayMs: 0 });
   const onCardCta = (key: string) => {
     const tg = target(key);
     if (tg?.href) blurThen(() => router.push(tg.href as never), ref, { delayMs: 0 });

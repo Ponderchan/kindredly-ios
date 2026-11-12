@@ -5,6 +5,7 @@ import { isKindredlyUIViewAvailable } from "../../../modules/kindredly-ui";
 import { swiftReadsFold, useFoldFrame } from "../../lib/fold";
 import { useNativeSurface } from "../../lib/surfaces";
 import { LettersNative, RoomNative } from "../../screens/chat/ConversationNative";
+import { WrenRoomNative } from "../../screens/wren-room/WrenRoomNative";
 import { useTheme } from "../../lib/theme";
 import { t } from "../../lib/i18n";
 import { NativeSurface } from "../../components/NativeSurface";
@@ -48,21 +49,22 @@ export default function KindredsTab() {
      Open, the list keeps the left page (as on a phone: the orbit folded into its band, the eye
      still opens it) and the row's conversation is held here on the right page, its own header
      and composer in it; another row swaps it, its back closes it, and the tab bar never leaves.
-     Only where every piece is the Swift one (the list, and the room or the letters), on a
-     binary that reads the fold; anything else pushes as before. Wren's room still pushes.
+     Only where every piece is the Swift one (the list, and the room, the letters or Wren's
+     own room), on a binary that reads the fold; anything else pushes as before.
      Folding the phone with one open carries it on, full screen, on the outer one. */
   const frame = useFoldFrame();
   const listNative = useNativeSurface("kindreds");
   const roomNative = useNativeSurface("room");
   const chatNative = useNativeSurface("chat");
   const twoPages = !!frame.pages && listNative && swiftReadsFold() && isKindredlyUIViewAvailable("KConversationView");
-  const [pane, setPane] = useState<{ id: string; revealed: boolean } | null>(null);
-  const can = useRef({ twoPages, roomNative, chatNative });
-  can.current = { twoPages, roomNative, chatNative };
+  const wrenNative = useNativeSurface("wrenroom") && isKindredlyUIViewAvailable("KWrenRoomView");
+  const [pane, setPane] = useState<{ id: string; revealed: boolean; wren?: boolean } | null>(null);
+  const can = useRef({ twoPages, roomNative, chatNative, wrenNative });
+  can.current = { twoPages, roomNative, chatNative, wrenNative };
   const model = useKindredsModel({
     openInPlace: (th) => {
       const c = can.current;
-      if (!c.twoPages || !(th.revealed ? c.roomNative : c.chatNative)) return false;
+      if (!c.twoPages || !(th.wren ? c.wrenNative : th.revealed ? c.roomNative : c.chatNative)) return false;
       setPane(th);
       return true;
     },
@@ -74,7 +76,7 @@ export default function KindredsTab() {
      it stayed a column in the middle of the inner screen). Once the reader has left that screen
      themself, nothing is carried. */
   const pathname = usePathname();
-  const carried = useRef<{ id: string; revealed: boolean } | null>(null);
+  const carried = useRef<{ id: string; revealed: boolean; wren?: boolean } | null>(null);
   const hrefOf = (th: { id: string; revealed: boolean }) => (th.revealed ? `/room/${th.id}` : `/chat/${th.id}`);
   useEffect(() => {
     if (!twoPages && pane) {
@@ -116,7 +118,13 @@ export default function KindredsTab() {
           {open ? (
             // keyed by the thread: another row is another conversation, never the last one's state
             <View key={open.id} style={{ flex: 1 }}>
-              {open.revealed ? <RoomNative id={open.id} onBack={close} /> : <LettersNative id={open.id} onBack={close} />}
+              {open.wren ? (
+                <WrenRoomNative onBack={close} paneWidth={frame.pages ? frame.pages.rightEnd - frame.pages.crease : undefined} />
+              ) : open.revealed ? (
+                <RoomNative id={open.id} onBack={close} />
+              ) : (
+                <LettersNative id={open.id} onBack={close} />
+              )}
             </View>
           ) : null}
         </View>

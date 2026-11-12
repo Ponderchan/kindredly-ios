@@ -143,7 +143,7 @@ export function kindredsFormat(who?: WhoBook): KindredsFormat {
 
 /** A correspondence to open where the list is (a folding phone's inner screen): its thread, and
     whether names are traded (a room) or not yet (the letters). */
-export type KindredsOpenInPlace = (th: { id: string; revealed: boolean }) => boolean;
+export type KindredsOpenInPlace = (th: { id: string; revealed: boolean; /** Wren's own room */ wren?: boolean }) => boolean;
 
 export function useKindredsModel(opts: { openInPlace?: KindredsOpenInPlace } = {}): KindredsModel {
   const router = useRouter();
@@ -355,7 +355,10 @@ export function useKindredsModel(opts: { openInPlace?: KindredsOpenInPlace } = {
         const run = menu[key as MenuKey];
         if (th && run) run(th);
       },
-      openWren: () => router.push(`/room/${WREN_ROOM}`),
+      openWren: () => {
+        if (inPlace.current?.({ id: WREN_ROOM, revealed: true, wren: true })) return;
+        router.push(`/room/${WREN_ROOM}`);
+      },
       openFold: () => setTab("penpals"),
       openFoldFace: (id) => {
         const th = find(id);
