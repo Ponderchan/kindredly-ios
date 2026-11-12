@@ -134,11 +134,22 @@ public struct KTodayGeometry: Equatable, Sendable {
   /// THE SPREAD: the longest a line of the letter runs across the open sheet
   public static let spreadMeasure: CGFloat = 640
 
+  /// a letter keeps this far off a bend that runs across the page (`bend`, below)
+  public static let bendGap: CGFloat = 14
+
   /// `floating` (THE SPREAD, on KTodayDesk): the sheet runs down to the foot and the control
   /// band floats over its bottom edge instead of standing under it.
-  public init(hostHeight: CGFloat, safeTop: CGFloat, tabBarRoom: CGFloat, floating: Bool = false) {
+  /// `bend` (a folding phone held upright and half-folded, like a small laptop: the crease runs
+  /// across the page at this height): the sheet ends above the bend and the control band
+  /// stands in the middle of what is left under it, so nothing to read lies on the bend.
+  public init(hostHeight: CGFloat, safeTop: CGFloat, tabBarRoom: CGFloat, floating: Bool = false, bend: CGFloat? = nil) {
     cardTop = safeTop + Self.band + Self.contentTop
-    if floating {
+    // (shorter than a card usually is: the upper half is what there is; never under the reply's floor)
+    if let bend, bend - cardTop - Self.bendGap >= Self.replyCardMin {
+      cardHeight = (bend - cardTop - Self.bendGap).rounded()
+      let foot = hostHeight - (tabBarRoom + Self.controlLift)
+      controlTop = (bend + max(Self.bendGap, (foot - bend - Self.controlHeight) / 2)).rounded()
+    } else if floating {
       cardHeight = max(Self.cardMin, (hostHeight - cardTop - (tabBarRoom + Self.controlLift)).rounded())
       controlTop = cardTop + cardHeight - Self.controlHeight - Self.floatLift
     } else {
@@ -220,6 +231,25 @@ public struct KTodayDesk: View {
      in the right page with it. On a phone, and on the Duo's outer screen, none of this runs:
      `crease(in:)` is nil and every number is what it was. */
   @ObservedObject private var fold = KFold.shared
+
+  /* THE UNFOLD (owner, 2026-11-12, on the walk's list: "逐个做了"; the canvas's "打开手机就是拆信").
+     When the phone comes flat open on Today, the sheet doesn't just get wider: its right half
+     swings over from the left page, about the crease, and lands on the right one, the way a
+     folded letter is opened. Half a second, once per opening; never while replying, never with
+     Reduce Motion, and not when the app is simply started with the phone already open.
+     `flatSettled` is the last flat-open state the desk has caught up with: a pass where the
+     window is flat open and this is still false draws the first frame of the unfold (the right
+     half covered), so the open sheet never shows for a frame before the flap starts. */
+  @State private var flatSettled = false
+  @State private var flatArmed = false
+  /// 0: the flap lies on the left page; 0.5: it stands on the crease; 1: it has landed
+  @State private var unfold: Double = 1
+  /// the flap is in the air (from the first frame until it has landed)
+  @State private var flapUp = false
+  /// the landed flap, fading off the words under it
+  @State private var flapFade: Double = 0
+  /// the window is flat open: two pages, the hinge all the way
+  private var flatOpen: Bool { fold.frame.twoPages && !fold.frame.half }
 
   /// the crease's x in a Host `width` wide, when the window is two pages and the Host spans it
   private func crease(in width: CGFloat) -> CGFloat? {
@@ -315,7 +345,9 @@ public struct KTodayDesk: View {
       GeometryReader { geo in
         let W = geo.size.width
         let split = crease(in: W)
-        let geometry = KTodayGeometry(hostHeight: geo.size.height, safeTop: topInset, tabBarRoom: tabBarRoom, floating: split != nil)
+        // held upright and half-folded (a laptop's posture): the bend runs across the middle
+        let bend: CGFloat? = fold.frame.duo && fold.frame.half && fold.frame.posture == "tall" ? (geo.size.height / 2).rounded() : nil
+        let geometry = KTodayGeometry(hostHeight: geo.size.height, safeTop: topInset, tabBarRoom: tabBarRoom, floating: split != nil, bend: bend)
         desk(width: W, geometry: geometry, card: cardHeight(geometry, hostHeight: geo.size.height, spread: split != nil), crease: split)
           .frame(width: W, height: geo.size.height, alignment: .topLeading)
           .onChange(of: geo.size.height, initial: true) { _, height in
@@ -346,6 +378,41 @@ public struct KTodayDesk: View {
       .padding(.trailing, fold.frame.twoPages ? KTodayGeometry.gutter : 0)
     }
     .background { theme.bg.ignoresSafeArea() }
+    // THE UNFOLD: armed once the desk is up (a start with the phone already open plays nothing)
+    .onAppear {
+      flatSettled = flatOpen
+      flatArmed = true
+    }
+    .onChange(of: flatOpen) { _, flat in
+      guard flat else {
+        flatSettled = false
+        flapUp = false
+        unfold = 1
+        flapFade = 0
+        return
+      }
+      guard flatArmed, !stage.open, !reduceMotion else {
+        flatSettled = true
+        flapUp = false
+        unfold = 1
+        return
+      }
+      // up off the left page, then down onto the right one; then the flap fades off the words
+      unfold = 0
+      flapFade = 1
+      flapUp = true
+      flatSettled = true
+      withAnimation(.easeIn(duration: 0.22)) { unfold = 0.5 }
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+        guard flatOpen, flapUp else { return }
+        withAnimation(.spring(duration: 0.4, bounce: 0.16)) { unfold = 1 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.42) {
+          guard flapUp else { return }
+          flapUp = false
+          withAnimation(.easeOut(duration: 0.2)) { flapFade = 0 }
+        }
+      }
+    }
     // who is this: the Help page's answer, in an iOS sheet over the desk
     .sheet(item: $who) { asked in
       KWhoSheet(theme: theme, labels: content.labels, onClose: { who = nil }) { [actions] in
@@ -379,6 +446,10 @@ public struct KTodayDesk: View {
        and NEXT, Wren and REPLY stand in the middle of the right page instead of over the
        sheet's foot. Flat open it is the sheet across both pages, as before. */
     let apart = crease != nil && fold.frame.half && !stage.open
+    // THE UNFOLD: flat open, and the desk hasn't caught up with it yet (or the flap is in the air)
+    let unfolding = crease != nil && !stage.open && !reduceMotion && flatArmed && flatOpen && (!flatSettled || flapUp)
+    // (a pass the desk hasn't caught up with is the unfold's first frame: the flap on the left page)
+    let unfoldNow = flatSettled ? unfold : 0
     let slotWidth: CGFloat = {
       guard let crease else { return max(0, W - 2 * KTodayGeometry.gutter) }
       return stage.open || apart ? max(0, crease - KTodayGeometry.gutter - KTodayGeometry.pageGap) : max(0, W - 2 * KTodayGeometry.gutter)
@@ -418,12 +489,55 @@ public struct KTodayDesk: View {
       // the keyboard's own length, so the card and the bar move together; a short ease under
       // Reduce Motion (a change of size, not a slide)
       .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.bandSlide, value: slotHeight)
-      .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.bandSlide, value: slotWidth)
+      // (the width follows the reply; a change of the fold is the unfold's, below, not a slide)
+      .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.bandSlide, value: stage.open)
+      // THE UNFOLD: until the flap has landed only the left page's half of the sheet shows
+      .mask {
+        HStack(spacing: 0) {
+          Rectangle().frame(width: unfolding ? max(0, (crease ?? W) - KTodayGeometry.gutter) : nil)
+          if unfolding { Color.clear }
+        }
+      }
       // the + panel: the card steps back a little
       .scaleEffect(plus == .sheet ? 0.98 : plus == .pop ? 0.97 : 1)
       .offset(y: plus == .sheet ? -10 : 0)
       .animation(reduceMotion ? KTodayMotion.reduced : KTodayMotion.stepBack, value: plus)
       .offset(x: KTodayGeometry.gutter, y: g.cardTop)
+
+      // 2b. THE UNFOLD's flap: the sheet's right half, as blank paper, swinging about the crease.
+      // Two pieces, both always there so each one's turn is animated: its back, lifting off the
+      // left page until it stands on the crease (edge on, so it is not seen), then its front,
+      // coming down from the crease onto the right page.
+      if let crease, unfolding || flapFade > 0 {
+        let leftW = max(0, crease - KTodayGeometry.gutter)
+        let rightW = max(0, slotWidth - leftW)
+        let corner = InkCardVariant.me.cornerRadius
+        let lift = min(unfoldNow, 0.5) * 2          // 0 → 1 over the first half
+        let fall = max(0, unfoldNow - 0.5) * 2      // 0 → 1 over the second
+        let back = UnevenRoundedRectangle(topLeadingRadius: corner, bottomLeadingRadius: corner, bottomTrailingRadius: 0, topTrailingRadius: 0, style: .circular)
+        let front = UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: 0, bottomTrailingRadius: corner, topTrailingRadius: corner, style: .circular)
+        ZStack(alignment: .topLeading) {
+          back
+            .fill(theme.sf)
+            .overlay(back.strokeBorder(KLetterSheet.edge(ink: theme.ink), lineWidth: KLetterSheet.edgeWidth))
+            // the paper's back is a shade down while it is lifted
+            .overlay(back.fill(theme.ink.opacity(0.04 + 0.06 * lift)))
+            .frame(width: leftW, height: slotHeight)
+            .rotation3DEffect(.degrees(90 * lift), axis: (x: 0, y: 1, z: 0), anchor: .trailing, perspective: 0.18)
+            .opacity(unfolding ? 1 : 0)
+            .offset(x: KTodayGeometry.gutter, y: g.cardTop)
+          front
+            .fill(theme.sf)
+            .overlay(front.strokeBorder(KLetterSheet.edge(ink: theme.ink), lineWidth: KLetterSheet.edgeWidth))
+            .overlay(front.fill(theme.ink.opacity(0.08 * (1 - fall))))
+            .frame(width: rightW, height: slotHeight)
+            .rotation3DEffect(.degrees(-90 * (1 - fall)), axis: (x: 0, y: 1, z: 0), anchor: .leading, perspective: 0.18)
+            .opacity(unfolding ? 1 : flapFade)
+            .offset(x: crease, y: g.cardTop)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+      }
 
       // 3. the status bar's strip and the plate, over the card (a card pulled up goes under it)
       VStack(spacing: 0) {
@@ -446,7 +560,8 @@ public struct KTodayDesk: View {
         desk: content.desk,
         deskAt: content.deskAt,
         enabled: content.phase == .reading || content.phase == .done,
-        hidden: content.hideBand || plus != .closed,
+        // (THE UNFOLD: the three come in once the sheet has landed under them)
+        hidden: content.hideBand || plus != .closed || unfolding,
         deck: deck,
         flow: flow,
         onNext: { [deck] in deck.requestNext() },

@@ -772,6 +772,9 @@ struct KCardVoiceBlock: View {
   let labels: KTodayLabels
   @ObservedObject var voice: KTodayVoice
   let onToggle: () -> Void
+  /// THE SPREAD: the player keeps a letter's measure across the open sheet (found walking the
+  /// simulator: its bars ran the whole width of both pages, each a wide slab)
+  @Environment(\.kCardSpread) private var spread
 
   var body: some View {
     let mine = voice.key == card.id
@@ -805,7 +808,9 @@ struct KCardVoiceBlock: View {
           .padding(.top, 16)
       }
     }
-    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    // (the measure's 640 is for the words; a player that long is all bar, so a phone's length)
+    .frame(maxWidth: spread == nil ? nil : 420, alignment: .leading)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: spread == nil ? .leading : .center)
     .clipped()
   }
 }

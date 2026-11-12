@@ -29,6 +29,8 @@ public struct KAfterScreen: View {
   let actions: KAfterActions
   /// false only for the check sheets: ImageRenderer draws nothing inside a ScrollView
   var scrolls = true
+  /// a folding phone's inner screen: the card on the left page, her game's door on the right
+  @ObservedObject private var fold = KFold.shared
 
   public init(theme: KTheme, content: KAfterContent, topInset: CGFloat = 0, bottomInset: CGFloat = 0, actions: KAfterActions = KAfterActions()) {
     self.theme = theme
@@ -45,21 +47,57 @@ public struct KAfterScreen: View {
 
   public var body: some View {
     let palette = KAfterPalette.of(theme)
-    VStack(spacing: 0) {
-      title
-      VStack(spacing: Self.gap) {
-        card(palette)
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
-        KAfterStripView(theme: theme, palette: palette, strip: content.strip, look: content.look, onPlay: actions.onPlay)
+    Group {
+      if fold.frame.twoPages {
+        spread(palette)
+      } else {
+        VStack(spacing: 0) {
+          title
+          VStack(spacing: Self.gap) {
+            card(palette)
+              .frame(maxWidth: .infinity, maxHeight: .infinity)
+            KAfterStripView(theme: theme, palette: palette, strip: content.strip, look: content.look, onPlay: actions.onPlay)
+          }
+          .overlay(alignment: .bottom) { undo }
+          .padding(.horizontal, Self.gutter)
+        }
       }
-      .overlay(alignment: .bottom) { undo }
-      .padding(.horizontal, Self.gutter)
     }
     .padding(.top, topInset)
     .padding(.bottom, bottomInset + 12)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(theme.bg.ignoresSafeArea())
     .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+  }
+
+  /* THE SPREAD (iPhone Duo's inner screen; found walking the simulator, 2026-11-12: across the
+     whole inner screen the mailbox stood 835 wide and the strip under it was one long bar, and
+     the receipt's key would have run as long). The day's card keeps the left page, at about
+     the width it has on a phone, under the title; her game has the right page: the same button
+     as the strip (the same words, the same tap), drawn as a door in the page's middle, never
+     longer than on a phone, with Undo over it while it is offered. */
+  private func spread(_ palette: KAfterPalette) -> some View {
+    let f = fold.frame
+    return HStack(alignment: .top, spacing: 0) {
+      VStack(spacing: 0) {
+        title
+        card(palette)
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
+          .padding(.leading, Self.gutter)
+          .padding(.trailing, Self.gutter / 2)
+      }
+      .frame(width: f.crease)
+      VStack(spacing: 14) {
+        Spacer(minLength: 0)
+        undo
+        KAfterDoor(theme: theme, palette: palette, strip: content.strip, look: content.look, onPlay: actions.onPlay)
+          .frame(maxWidth: 360)
+        Spacer(minLength: 0)
+      }
+      .padding(.horizontal, Self.gutter)
+      .frame(width: max(0, f.rightEnd - f.crease))
+      Spacer(minLength: 0)
+    }
   }
 
   /// "Today", as the desk's header draws it once locked: its 22 semibold at 17/22, raised 9
@@ -103,7 +141,8 @@ public struct KAfterScreen: View {
       }
       .buttonStyle(.plain)
       .accessibilityHint(content.undoHint)
-      .padding(.bottom, 62)
+      // (over the strip on a phone; on the spread it stands in the door's own column)
+      .padding(.bottom, fold.frame.twoPages ? 0 : 62)
       .transition(.opacity)
     }
   }
@@ -171,6 +210,76 @@ struct KAfterStripView: View {
     .padding(.leading, 10)
     .padding(.trailing, 8)
     .frame(minHeight: 52)
+    .background(LinearGradient(colors: [palette.stripTop, palette.stripBottom], startPoint: .top, endPoint: .bottom), in: shape)
+    .contentShape(shape)
+  }
+}
+
+/// Her game's door, on the right page of a folding phone's inner screen (KAfterScreen, THE
+/// SPREAD): the strip's own pieces and its one tap, set as a card: her, flying, over the two
+/// lines, and the play disc. Not playable (she is asleep): the same card, her perched, no disc.
+struct KAfterDoor: View {
+  let theme: KTheme
+  let palette: KAfterPalette
+  let strip: KAfterStrip
+  let look: KWrenLook
+  let onPlay: () -> Void
+
+  var body: some View {
+    if strip.canPlay {
+      Button(action: onPlay) { card }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint(strip.hint)
+    } else {
+      card.accessibilityElement(children: .combine)
+    }
+  }
+
+  private var flying: KWrenLook {
+    var l = look
+    l.pose = strip.canPlay ? .fly : .perch
+    l.mood = strip.canPlay ? .happy : .sleepy
+    l.letter = false
+    return l
+  }
+
+  private var card: some View {
+    let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
+    return VStack(spacing: 0) {
+      KWrenBird(flying, size: 84)
+        .padding(.top, 26)
+      if !strip.eyebrow.isEmpty {
+        Text(strip.eyebrow)
+          .kText(.mono(10, .medium, tracking: 0.14))
+          .foregroundStyle(palette.stripLabel)
+          .lineLimit(1)
+          .minimumScaleFactor(0.7)
+          .padding(.top, 16)
+      }
+      Text(strip.title)
+        .kText(.system(19, .semibold))
+        .foregroundStyle(palette.stripInk)
+        .lineLimit(2)
+        .multilineTextAlignment(.center)
+        .minimumScaleFactor(0.7)
+        .padding(.top, 4)
+      if strip.canPlay {
+        ZStack {
+          Circle().fill(palette.lime)
+          KAfterPlayGlyph()
+            .fill(palette.limeInk)
+            .frame(width: 16, height: 19)
+            .offset(x: 1.5)
+        }
+        .frame(width: 52, height: 52)
+        .padding(.top, 18)
+        .accessibilityHidden(true)
+      }
+    }
+    .padding(.horizontal, 20)
+    .padding(.bottom, 26)
+    .frame(maxWidth: .infinity)
     .background(LinearGradient(colors: [palette.stripTop, palette.stripBottom], startPoint: .top, endPoint: .bottom), in: shape)
     .contentShape(shape)
   }
