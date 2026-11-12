@@ -66,9 +66,22 @@ function tidy(s: FoldState): FoldState {
   };
 }
 
+/* DEV ONLY: the hinge as a dev link says (app/dev/fold: kindredly:///dev/fold?hinge=partly), laid
+   over what the system reports on a folding phone, so a posture the simulator's window can't
+   reach from a script (half-folded and upright, a small laptop) can be walked anyway. Never set in
+   a release; on a phone that doesn't fold it changes nothing. */
+let devHinge: FoldState["hinge"] | null = null;
+let lastRaw: FoldState | null = null;
+export function setDevHinge(hinge: FoldState["hinge"] | null): void {
+  if (!__DEV__) return;
+  devHinge = hinge;
+  if (lastRaw) take(lastRaw);
+}
+
 function take(raw: FoldState | null | undefined): void {
   if (!raw || typeof raw.hinge !== "string") return;
-  const next = tidy(raw);
+  lastRaw = raw;
+  const next = tidy(__DEV__ && devHinge && raw.hinge !== "none" ? { ...raw, hinge: devHinge } : raw);
   if (JSON.stringify(next) === JSON.stringify(state)) return;
   state = next;
   if (__DEV__) console.log("[fold]", JSON.stringify(next));

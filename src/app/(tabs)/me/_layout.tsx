@@ -1,6 +1,7 @@
 import { View } from "react-native";
 import { Stack } from "expo-router";
 import { useTheme } from "../../../lib/theme";
+import { useFoldFrame } from "../../../lib/fold";
 
 /* THE ME TAB'S OWN STACK (10a step 5). Settings and Edit profile (and the
    pages under Settings: help, write to us, blocked) are pushed INSIDE the
@@ -18,15 +19,26 @@ import { useTheme } from "../../../lib/theme";
    back goes to Me rather than nowhere (critic).
 
    Every page arrives on the theme's ground (contentStyle tk.bg, read at
-   render), so a push never slides in on another colour. */
+   render), so a push never slides in on another colour.
+
+   ON A FOLDING PHONE (iPhone Duo, 2026-11-12). Me's own page is the whole window less the band
+   ((tabs)/_layout's spreadScene: its sky runs edge to edge and its two pages lay themselves
+   out). The pages pushed in here — Settings, Edit profile and the rest — are one column, and on
+   the inner screen they stood 870 wide (the First Class card and the five looks stretched across
+   the screen). They keep to the column every pushed page keeps (lib/fold-frame: no wider than
+   560, in the middle of what the band leaves); the tab's scene has already taken the band, so the
+   right side gives back what that took. On the outer screen and on a phone this is nothing. */
 export const unstable_settings = { initialRouteName: "index" };
 
 export default function MeStackLayout() {
   const { t: tk } = useTheme();
+  const frame = useFoldFrame();
+  // the inner screen: the column; the index page keeps the whole scene (see above)
+  const column = frame.pages ? { paddingLeft: frame.left, paddingRight: Math.max(0, frame.right - frame.band) } : null;
   return (
     <View style={{ flex: 1, backgroundColor: tk.bg }}>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: tk.bg } }}>
-        <Stack.Screen name="index" />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: tk.bg, ...column } }}>
+        <Stack.Screen name="index" options={{ contentStyle: { backgroundColor: tk.bg } }} />
       </Stack>
     </View>
   );

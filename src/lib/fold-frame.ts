@@ -92,3 +92,12 @@ export function foldFrame(fold: FoldState, window: { width: number; height: numb
 
   return { duo: true, posture, half, left, right, band, bandTop, rail: band >= RAIL_MIN_BAND, width, height, pages };
 }
+
+/** a page's last row keeps this far off a bend that runs across the screen (Swift KTodayGeometry.bendGap) */
+export const BEND_GAP = 14;
+
+/** The inner screen held upright and half-folded, like a small laptop: the bend runs across the
+    middle, the upper half is the screen to read and the lower half is where the keyboard comes up. */
+export function isLaptop(frame: FoldFrame): boolean {
+  return frame.duo && frame.half && frame.posture === "tall";
+}

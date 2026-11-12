@@ -2,6 +2,7 @@ import { useLocalSearchParams } from "expo-router";
 import { NativeSurface } from "../../components/NativeSurface";
 import { ReaderScreen } from "../../screens/chat/ReaderScreen";
 import { ReaderNative } from "../../screens/chat/ReaderNative";
+import { DeckInsets } from "../../components/DeckInsets";
 
 /* THE ONE-LETTER READER — one letter of a correspondence, full page
    (10a step 5). One switch, two renderers on one model
@@ -14,7 +15,17 @@ import { ReaderNative } from "../../screens/chat/ReaderNative";
 
    ?m=<message id | "opening"> names the letter to read (the chat and the
    room send it); ?i=<index> is kept for links made before ?m=. */
+/* on a small laptop the page ends at the bend: its foot keeps the bend's gap, not the home
+   indicator's inset (components/DeckInsets) */
 export default function ThreadRoute() {
+  return (
+    <DeckInsets>
+      <ThreadRoutePage />
+    </DeckInsets>
+  );
+}
+
+function ThreadRoutePage() {
   const { id, m, i } = useLocalSearchParams<{ id: string; m?: string; i?: string }>();
   return <NativeSurface surface="reader" view="KReaderView" mode="mount" native={() => <ReaderNative id={id} m={m} i={i} />} fallback={() => <ReaderScreen id={id} m={m} i={i} />} />;
 }

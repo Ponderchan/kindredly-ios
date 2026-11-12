@@ -18,6 +18,7 @@ import { useComposeState, type ComposeParams } from "../screens/compose/useCompo
 import { ComposeNative } from "../screens/compose/ComposeNative";
 import { ComposeRN } from "../screens/compose/ComposeRN";
 import "../data/strings-step5-compose";
+import { DeckInsets } from "../components/DeckInsets";
 
 /* WRITING TO A STRANGER (10a step 5). A full page that rises from the
    bottom (the root stack: slide_from_bottom, and no edge swipe — the
@@ -47,7 +48,17 @@ import "../data/strings-step5-compose";
    stamp "c:<uuid>" from the album's Write with it), morning (the courier's
    morning words), demo (store mode). morning has no in-app caller and is
    kept for deep links. */
+/* on a small laptop the page ends at the bend: its foot keeps the bend's gap, not the home
+   indicator's inset (components/DeckInsets) */
 export default function Compose() {
+  return (
+    <DeckInsets>
+      <ComposePage />
+    </DeckInsets>
+  );
+}
+
+function ComposePage() {
   const params = useLocalSearchParams<ComposeParams>();
   const { t: tk } = useTheme();
   const { premium, settled } = useEntitlement();

@@ -19,6 +19,7 @@ import { CloseGlyph } from "../components/10a/BackChevron";
 import type { KScreenHandle } from "../../modules/kindredly-ui";
 import { NativeSurface } from "../components/NativeSurface";
 import { NoteComposeNative } from "../screens/journal-entry/NoteComposeNative";
+import { DeckInsets } from "../components/DeckInsets";
 
 /* The sealed room's desk — its own page again.
 
@@ -55,7 +56,17 @@ import { NoteComposeNative } from "../screens/journal-entry/NoteComposeNative";
 /** the native stack's own length for a page rising or falling (react-native-screens' default) */
 const SLIDE_MS = 500;
 
+/* on a small laptop the page ends at the bend: its foot keeps the bend's gap, not the home
+   indicator's inset (components/DeckInsets) */
 export default function JournalEntryRoute() {
+  return (
+    <DeckInsets>
+      <JournalEntryRoutePage />
+    </DeckInsets>
+  );
+}
+
+function JournalEntryRoutePage() {
   useLang();
   const P = useP();
   const router = useRouter();

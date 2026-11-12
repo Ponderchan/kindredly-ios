@@ -2,6 +2,7 @@ import { useLocalSearchParams } from "expo-router";
 import { NativeSurface } from "../../components/NativeSurface";
 import { RoomNative } from "../../screens/chat/ConversationNative";
 import { RoomRN } from "../../screens/chat/RoomRN";
+import { DeckInsets } from "../../components/DeckInsets";
 
 /* THE ROOM — where you are once you know each other (10a step 5).
    ────────────────────────────────────────────────────────────────────────
@@ -15,7 +16,17 @@ import { RoomRN } from "../../screens/chat/RoomRN";
 
    Dev: ?expired=1 / ?closing=1 on a demo room show the expired door or
    the closing line without waiting a month. */
+/* on a small laptop the page ends at the bend: its foot keeps the bend's gap, not the home
+   indicator's inset (components/DeckInsets) */
 export default function RoomRoute() {
+  return (
+    <DeckInsets>
+      <RoomRoutePage />
+    </DeckInsets>
+  );
+}
+
+function RoomRoutePage() {
   const { id, expired, closing } = useLocalSearchParams<{ id: string; expired?: string; closing?: string }>();
   return (
     <NativeSurface

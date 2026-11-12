@@ -30,7 +30,7 @@ import "../data/strings"; // registers every surface's catalog
 import { P } from "../theme/post";
 import { shareFoldFrame, swiftReadsFold, useFoldFrame } from "../lib/fold";
 import { FoldCornerKey } from "../components/FoldCornerKey";
-import { FOLD_TOP_AIR } from "../lib/fold-frame";
+import { FOLD_TOP_AIR, isLaptop } from "../lib/fold-frame";
 import { fetchThreadMessages, readThreadDetailCache } from "../lib/db";
 
 SplashScreen.preventAutoHideAsync();
@@ -320,6 +320,16 @@ function ThemedStack() {
      fallback keeps the column. */
   const spreadPage = useMemo(() => ({ contentStyle: { backgroundColor: tk.bg, paddingRight: frame.band } }), [tk.bg, frame.band]);
   const twoPages = !!frame.pages && swiftReadsFold();
+  /* A SMALL LAPTOP (the inner screen upright and half-folded): the writing and reading pages keep
+     to the upper half, so no line lies on the bend and the lower half is where the keyboard comes
+     up (their Swift views measure the keyboard's overlap with themselves, which is then none).
+     Today does its own (KTodayDesk's bend). The lower half is the page's ground. */
+  const laptop = isLaptop(frame);
+  const deckPage = useMemo(
+    () => ({ contentStyle: { backgroundColor: tk.bg, ...pad, paddingBottom: Math.round(frame.height / 2) } }),
+    [tk.bg, pad, frame.height],
+  );
+  const deck = laptop ? deckPage : null;
   const readerSpread = useNativeSurface("reader") && twoPages;
   const noteSpread = useNativeSurface("journalentry") && twoPages;
   const composeSpread = useNativeSurface("compose") && twoPages;
@@ -342,7 +352,7 @@ function ThemedStack() {
         {/* WRITING TO A STRANGER rises from the bottom (10a), and the edge
             swipe can't take it away: the guarded ✕ is its one way out, so
             words are never lost to a stray swipe (owner). */}
-        <Stack.Screen name="compose" options={{ animation: "slide_from_bottom", gestureEnabled: false, ...(composeSpread ? spreadPage : null) }} />
+        <Stack.Screen name="compose" options={{ animation: "slide_from_bottom", gestureEnabled: false, ...(composeSpread ? spreadPage : deck) }} />
         {/* a page to yourself rises the same way — except from the photo roll (?via=roll), which has
             already risen: there the page fades in over it where it stands, one sheet changing what
             it holds rather than a second one rising (owner, 2026-11-12: "重复跳了两次页面的感觉");
@@ -351,7 +361,7 @@ function ThemedStack() {
           name="journal-entry"
           options={({ route }) => ({
             ...((route.params as { via?: string } | undefined)?.via === "roll" ? { animation: "fade" as const, animationDuration: FROM_ROLL_MS } : { animation: "slide_from_bottom" as const }),
-            ...(noteSpread ? spreadPage : null),
+            ...(noteSpread ? spreadPage : deck),
           })}
         />
         <Stack.Screen name="journal-pick" options={{ animation: "slide_from_bottom" }} />
@@ -366,7 +376,11 @@ function ThemedStack() {
         <Stack.Screen name="make-face" options={{ presentation: "transparentModal", animation: "fade", gestureEnabled: false, contentStyle: { backgroundColor: "transparent" } }} />
         {/* the reader fills the screen — the letter opens where you are,
             it doesn't slide in from the side or pop up as a card */}
-        <Stack.Screen name="thread/[id]" options={{ animation: "fade", animationDuration: 260, ...(readerSpread ? spreadPage : null) }} />
+        <Stack.Screen name="thread/[id]" options={{ animation: "fade", animationDuration: 260, ...(readerSpread ? spreadPage : deck) }} />
+        {/* a conversation, and Wren's own room: the small laptop's upper half too (see `deck`) */}
+        <Stack.Screen name="chat/[id]" options={deck ?? {}} />
+        <Stack.Screen name="room/[id]" options={deck ?? {}} />
+        <Stack.Screen name="room/wren" options={deck ?? {}} />
         {/* the two pages that still paint their own ground (see above) */}
         <Stack.Screen name="courier" options={{ contentStyle: { backgroundColor: pal.penWash, ...pad } }} />
         <Stack.Screen name="aura-card" options={{ contentStyle: { backgroundColor: dark ? tk.bg : P.penWash, ...pad } }} />

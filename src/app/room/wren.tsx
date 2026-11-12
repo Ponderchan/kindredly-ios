@@ -50,6 +50,7 @@ import { BackChevron } from "../../components/10a/BackChevron";
 import { NativeSurface } from "../../components/NativeSurface";
 import { WrenRoomNative } from "../../screens/wren-room/WrenRoomNative";
 import { FIRST_CHIPS, buildWrenStream, guideSlugOf, wrenItemKey, wrenSpeaker, type WrenRoomItem, type WrenSpeakerWords } from "../../screens/wren-room/wren-room-model";
+import { DeckInsets } from "../../components/DeckInsets";
 
 /* WREN'S DESK — the one room everybody has.
    ────────────────────────────────────────────────────────────────────────
@@ -99,7 +100,17 @@ type Item = WrenRoomItem;
    KWrenRoomView), with the React Native room below as the remote switch's
    fallback ("wrenroom" in app_surfaces, NativeSurface in mount mode; off by
    default until it has been checked on the simulator). */
+/* on a small laptop the page ends at the bend: its foot keeps the bend's gap, not the home
+   indicator's inset (components/DeckInsets) */
 export default function WrenDeskRoute() {
+  return (
+    <DeckInsets>
+      <WrenDeskRoutePage />
+    </DeckInsets>
+  );
+}
+
+function WrenDeskRoutePage() {
   const T = useTheme().t;
   return (
     <View style={{ flex: 1, backgroundColor: T.bg }}>
