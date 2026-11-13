@@ -27,21 +27,29 @@ export const seenToday = (c: LocalCounters): number => (c.seenDay === deskDay() 
 export const repliedToday = (c: LocalCounters): number => (c.repliedDay === deskDay() ? c.repliedToday ?? 0 : 0);
 
 export async function bump(key: "seen" | "replied" | "translated" | "courierVisits", by = 1): Promise<void> {
-  const c = await getCounters();
-  c[key] += by;
-  const day = deskDay(); // the desk's day, not the calendar's — see lib/day
-  if (key === "seen") {
-    // the day's own count, for the courier's "3 letters went past your desk today"
-    c.seenToday = (c.seenDay === day ? c.seenToday ?? 0 : 0) + by;
-    c.seenDay = day;
-  }
-  if (key === "replied") {
-    // and the day's replies, for her slip on the closed counter
-    c.repliedToday = (c.repliedDay === day ? c.repliedToday ?? 0 : 0) + by;
-    c.repliedDay = day;
-  }
   try {
-    await scoped.setItem(KEY, JSON.stringify(c));
+    // a queued read-decide-write (scoped.update): two bumps at once both count
+    await scoped.update(KEY, (raw) => {
+      let c: LocalCounters = { ...EMPTY_COUNTERS };
+      try {
+        c = raw ? { ...EMPTY_COUNTERS, ...(JSON.parse(raw) as Partial<LocalCounters>) } : { ...EMPTY_COUNTERS };
+      } catch {
+        c = { ...EMPTY_COUNTERS };
+      }
+      c[key] += by;
+      const day = deskDay(); // the desk's day, not the calendar's — see lib/day
+      if (key === "seen") {
+        // the day's own count, for the courier's "3 letters went past your desk today"
+        c.seenToday = (c.seenDay === day ? c.seenToday ?? 0 : 0) + by;
+        c.seenDay = day;
+      }
+      if (key === "replied") {
+        // and the day's replies, for her slip on the closed counter
+        c.repliedToday = (c.repliedDay === day ? c.repliedToday ?? 0 : 0) + by;
+        c.repliedDay = day;
+      }
+      return { next: JSON.stringify(c), result: undefined };
+    });
   } catch {
     /* a counter is not worth an error */
   }

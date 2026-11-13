@@ -32,6 +32,7 @@ import { customStampNow } from "../../lib/custom-stamps";
 import { useWrenName } from "../../lib/wren-name";
 import { alertFail } from "../../lib/fail";
 import { scoped as AsyncStorage } from "../../lib/scoped-store";
+import { parseOr } from "../../lib/scoped-update-core";
 import { useSlow } from "../../components/ui";
 import { sheetWords } from "../../components/sheet-chrome";
 import type { LightboxPhoto } from "../../components/PhotoLightbox";
@@ -226,14 +227,22 @@ export function useCorrespondentRead(detail: ThreadDetail | null): Correspondent
 /* one introduction per thread, ever — the ceremony is a moment, not a recurring screen */
 const SEEN_KEY = "kindredly_introductions";
 export async function introduceOnce(threadId: string, show: () => void): Promise<void> {
+  /* a queued read-decide-write on the account's key (scoped.update): two rooms recording their
+     introduction in the same moment used to read the same list, and the later write dropped the
+     other's thread, so its ceremony played again next time (owner, 2026-11-13) */
+  let fresh = true;
   try {
-    const seen: string[] = JSON.parse((await AsyncStorage.getItem(SEEN_KEY)) || "[]");
-    if (seen.includes(threadId)) return;
-    await AsyncStorage.setItem(SEEN_KEY, JSON.stringify([...seen, threadId]));
-  } catch {
+    fresh = await AsyncStorage.update(SEEN_KEY, (raw) => {
+      const list = parseOr<unknown>(raw, []);
+      const seen = Array.isArray(list) ? (list as string[]) : [];
+      if (seen.includes(threadId)) return { result: false };
+      return { next: JSON.stringify([...seen, threadId]), result: true };
+    });
+  } catch (e) {
     /* if the ledger is unreadable, showing twice beats never showing */
+    console.warn("[room] the introductions ledger wasn't read:", e);
   }
-  show();
+  if (fresh) show();
 }
 
 /**

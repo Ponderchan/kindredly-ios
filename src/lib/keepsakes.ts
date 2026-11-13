@@ -277,8 +277,16 @@ export async function unseen(shelf: Minted[]): Promise<Set<string>> {
 
 export async function markSeen(ids: string[]): Promise<void> {
   try {
-    const seen: string[] = JSON.parse((await AsyncStorage.getItem(SEEN) as string) || "[]");
-    await AsyncStorage.setItem(SEEN, JSON.stringify([...new Set([...seen, ...ids])].slice(-200)));
+    // a queued read-decide-write (scoped.update): marks made together no longer drop each other
+    await AsyncStorage.update(SEEN, (raw) => {
+      let seen: string[] = [];
+      try {
+        seen = raw ? (JSON.parse(raw) as string[]) : [];
+      } catch {
+        seen = [];
+      }
+      return { next: JSON.stringify([...new Set([...seen, ...ids])].slice(-200)), result: undefined };
+    });
   } catch {
     /* the marker just shows again */
   }

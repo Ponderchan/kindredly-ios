@@ -23,11 +23,18 @@ export async function readNoticesSeen(threadId: string): Promise<string[]> {
 
 export async function markNoticeSeen(threadId: string, noticeId: string): Promise<void> {
   try {
-    const l = JSON.parse((await AsyncStorage.getItem(KEY)) || "{}") as Ledger;
-    const cur = l[threadId] || [];
-    if (cur.includes(noticeId)) return;
-    l[threadId] = [...cur, noticeId].slice(-40);
-    await AsyncStorage.setItem(KEY, JSON.stringify(l));
+    // a queued read-decide-write (scoped.update): marks made together no longer drop each other
+    await AsyncStorage.update(KEY, (raw) => {
+      let l: Ledger = {};
+      try {
+        l = raw ? (JSON.parse(raw) as Ledger) : {};
+      } catch {
+        l = {};
+      }
+      const cur = l[threadId] || [];
+      if (cur.includes(noticeId)) return { result: undefined };
+      return { next: JSON.stringify({ ...l, [threadId]: [...cur, noticeId].slice(-40) }), result: undefined };
+    });
   } catch {
     /* it will be shown once more; the smaller failure */
   }

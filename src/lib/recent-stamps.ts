@@ -20,11 +20,21 @@ export async function readRecentStamps(): Promise<string[]> {
 
 export async function noteStampUsed(id: string): Promise<string[]> {
   if (!official(id)) return readRecentStamps();
-  const next = [id, ...(await readRecentStamps()).filter((x) => x !== id)].slice(0, KEEP);
   try {
-    await AsyncStorage.setItem(KEY, JSON.stringify(next));
+    // a queued read-decide-write (scoped.update): two picks in a row keep both
+    return await AsyncStorage.update(KEY, (raw) => {
+      let l: unknown = [];
+      try {
+        l = raw ? JSON.parse(raw) : [];
+      } catch {
+        l = [];
+      }
+      const cur = Array.isArray(l) ? l.filter(official) : [];
+      const next = [id, ...cur.filter((x) => x !== id)].slice(0, KEEP);
+      return { next: JSON.stringify(next), result: next };
+    });
   } catch {
     /* the row is a convenience */
+    return readRecentStamps();
   }
-  return next;
 }

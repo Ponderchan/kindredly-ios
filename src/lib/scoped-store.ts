@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { makeUpdater, type Change } from "./scoped-update-core";
 
 /* DEVICE STATE FINALLY KNOWS WHOSE IT IS.
    ────────────────────────────────────────────────────────────────────────
@@ -49,8 +50,15 @@ export function scopedTo(owner: string) {
   return {
     getItem: (key: string): Promise<string | null> => AsyncStorage.getItem(`${key}::${owner}`),
     setItem: (key: string, value: string): Promise<void> => AsyncStorage.setItem(`${key}::${owner}`, value),
+    /** a read-decide-write on this owner's key, queued behind any other on it */
+    update: <T>(key: string, change: (raw: string | null) => Change<T>): Promise<T> => updater(`${key}::${owner}`, change),
   };
 }
+
+/* every read-decide-write on a scoped key goes through one queue per key (scoped-update-core):
+   two changes in flight at once used to read the same old value, and the later write threw the
+   earlier one's addition away (owner, 2026-11-13: "Meet Mist." again after a sign-in) */
+const updater = makeUpdater(AsyncStorage);
 
 export function setStorageUser(uid: string | null): void {
   const was = ns;
@@ -74,6 +82,14 @@ export const scoped = {
   },
   async removeItem(key: string): Promise<void> {
     return AsyncStorage.removeItem(await scopedKey(key));
+  },
+  /** A read-decide-write on one key: queued behind any other change to it, and all of it on the
+      account that was current when it was asked, so a change begun before a sign-in can't read
+      the guest's value and write it over the account's. `change` gets the stored text (null for
+      none) and says what to write (`next`; undefined writes nothing) and what to return. */
+  async update<T>(key: string, change: (raw: string | null) => Change<T>): Promise<T> {
+    const owner = await storageOwner();
+    return updater(`${key}::${owner}`, change);
   },
 };
 

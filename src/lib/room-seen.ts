@@ -1,4 +1,5 @@
 import { scoped as AsyncStorage } from "./scoped-store";
+import { parseOr } from "./scoped-update-core";
 
 /* WHAT YOU HAVE READ OF THEM — per correspondence, on this phone.
    ────────────────────────────────────────────────────────────────────────
@@ -20,15 +21,27 @@ export async function readRoomSeen(): Promise<Ledger> {
   }
 }
 
+/* Every mark is a queued read-decide-write on the account's key (scoped.update): a room, her desk
+   and a thread's detail marking in the same moment used to read the same ledger, and the later
+   write threw the others' marks away (owner, 2026-11-13: Wren's posts all unread again after a
+   sign-in). */
+const ledgerOf = (raw: string | null): Ledger => {
+  const o = parseOr<unknown>(raw, {});
+  return o && typeof o === "object" && !Array.isArray(o) ? { ...(o as Ledger) } : {};
+};
+
 export async function markRoomSeen(threadId: string, theirs: number): Promise<void> {
   try {
-    const l = await readRoomSeen();
-    if (l[threadId] === theirs) return;
-    l[threadId] = theirs;
-    await AsyncStorage.setItem(KEY, JSON.stringify(l));
-    void import("./app-badge").then((m) => m.syncAppBadge());
-  } catch {
+    const changed = await AsyncStorage.update(KEY, (raw) => {
+      const l = ledgerOf(raw);
+      if (l[threadId] === theirs) return { result: false };
+      l[threadId] = theirs;
+      return { next: JSON.stringify(l), result: true };
+    });
+    if (changed) void import("./app-badge").then((m) => m.syncAppBadge());
+  } catch (e) {
     /* a missed mark shows one badge too many, once */
+    console.warn("[room-seen] a room wasn't marked seen:", e);
   }
 }
 
@@ -39,12 +52,15 @@ export async function markRoomSeen(threadId: string, theirs: number): Promise<vo
 export async function markRoomUnread(threadId: string, theirs: number): Promise<void> {
   if (theirs < 1) return;
   try {
-    const l = await readRoomSeen();
-    l[threadId] = theirs - 1;
-    await AsyncStorage.setItem(KEY, JSON.stringify(l));
+    await AsyncStorage.update(KEY, (raw) => {
+      const l = ledgerOf(raw);
+      l[threadId] = theirs - 1;
+      return { next: JSON.stringify(l), result: undefined };
+    });
     void import("./app-badge").then((m) => m.syncAppBadge());
-  } catch {
+  } catch (e) {
     /* the row simply stays read */
+    console.warn("[room-seen] a room wasn't marked unread:", e);
   }
 }
 

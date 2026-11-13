@@ -117,13 +117,23 @@ const SEEN_REPLIES = "kindredly_seen_replies";
 async function countNewReplies(threads: Awaited<ReturnType<typeof fetchThreads>>): Promise<void> {
   if (!threads) return;
   try {
-    const seen: string[] = JSON.parse((await AsyncStorage.getItem(SEEN_REPLIES)) || "[]");
-    const have = new Set(seen);
-    const fresh = threads.filter((t) => t.theirs > 0 && !have.has(t.id));
+    /* a queued read-decide-write (scoped.update): two refreshes at once (launch and a realtime
+       poke) used to both find the same reply new and count it twice */
+    const fresh = await AsyncStorage.update(SEEN_REPLIES, (raw) => {
+      let seen: string[] = [];
+      try {
+        seen = raw ? (JSON.parse(raw) as string[]) : [];
+      } catch {
+        seen = [];
+      }
+      const have = new Set(seen);
+      const found = threads.filter((t) => t.theirs > 0 && !have.has(t.id));
+      if (!found.length) return { result: found };
+      return { next: JSON.stringify([...have, ...found.map((t) => t.id)].slice(-300)), result: found };
+    });
     if (!fresh.length) return;
     for (const t of fresh) track("reply_received", { theirs: t.theirs });
     armRatingAsk("reply"); // someone wrote back: a good moment to ask for a rating (lib/rating-ask)
-    await AsyncStorage.setItem(SEEN_REPLIES, JSON.stringify([...have, ...fresh.map((t) => t.id)].slice(-300)));
   } catch {
     /* a miscount is better than a crash on a background refresh */
   }

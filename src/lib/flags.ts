@@ -1,7 +1,17 @@
 import { scoped as AsyncStorage } from "./scoped-store";
+import { parseOr } from "./scoped-update-core";
 import { birthdayFlag, isBirthdayFlag } from "./birthday-core";
 
-/* Tiny local flag store for one-shot achievements (e.g. sent a voice letter). */
+/* Tiny local flag store for one-shot achievements (e.g. sent a voice letter).
+   Every change is a queued read-decide-write on the account's key (scoped.update, lib/
+   scoped-update-core): two flags set in the same moment used to read the same {} and the later
+   write dropped the earlier flag (owner, 2026-11-13: "Meet Mist." again after a sign-in). */
+
+type Flags = Record<string, boolean>;
+const flagsOf = (raw: string | null): Flags => {
+  const o = parseOr<unknown>(raw, {});
+  return o && typeof o === "object" && !Array.isArray(o) ? { ...(o as Flags) } : {};
+};
 
 const KEY = "kindredly_flags";
 /* the first arrival: onboarding sets these, Today reads them once */
@@ -27,23 +37,44 @@ export async function getFlags(): Promise<Record<string, boolean>> {
 
 export async function setFlag(name: string): Promise<void> {
   try {
-    const flags = await getFlags();
-    if (flags[name]) return;
-    flags[name] = true;
-    await AsyncStorage.setItem(KEY, JSON.stringify(flags));
-  } catch {
-    /* best-effort */
+    await AsyncStorage.update(KEY, (raw) => {
+      const flags = flagsOf(raw);
+      if (flags[name]) return { result: undefined };
+      flags[name] = true;
+      return { next: JSON.stringify(flags), result: undefined };
+    });
+  } catch (e) {
+    console.warn(`[flags] ${name} wasn't set:`, e);
+  }
+}
+
+/** Set a flag and say whether this call is the one that set it (false: it was already set, or the
+    store couldn't be written). For a moment that must show once: two screens asking together get
+    one true between them. */
+export async function claimFlag(name: string): Promise<boolean> {
+  try {
+    return await AsyncStorage.update(KEY, (raw) => {
+      const flags = flagsOf(raw);
+      if (flags[name]) return { result: false };
+      flags[name] = true;
+      return { next: JSON.stringify(flags), result: true };
+    });
+  } catch (e) {
+    console.warn(`[flags] ${name} wasn't claimed:`, e);
+    return false;
   }
 }
 
 export async function unsetFlag(name: string): Promise<void> {
   try {
-    const flags = await getFlags();
-    if (!flags[name]) return;
-    delete flags[name];
-    await AsyncStorage.setItem(KEY, JSON.stringify(flags));
-  } catch {
-    /* best-effort */
+    await AsyncStorage.update(KEY, (raw) => {
+      const flags = flagsOf(raw);
+      if (!flags[name]) return { result: undefined };
+      delete flags[name];
+      return { next: JSON.stringify(flags), result: undefined };
+    });
+  } catch (e) {
+    console.warn(`[flags] ${name} wasn't cleared:`, e);
   }
 }
 
@@ -72,18 +103,20 @@ export const unsealDay = (day: string): Promise<void> => unsetFlag(sealedFlag(da
 /** seal this desk day, and forget the days before it */
 export async function sealDay(day: string): Promise<void> {
   try {
-    const flags = await getFlags();
-    const key = sealedFlag(day);
-    let changed = !flags[key];
-    for (const k of Object.keys(flags)) {
-      if (k.startsWith(SEALED) && k !== key) {
-        delete flags[k];
-        changed = true;
+    await AsyncStorage.update(KEY, (raw) => {
+      const flags = flagsOf(raw);
+      const key = sealedFlag(day);
+      let changed = !flags[key];
+      for (const k of Object.keys(flags)) {
+        if (k.startsWith(SEALED) && k !== key) {
+          delete flags[k];
+          changed = true;
+        }
       }
-    }
-    if (!changed) return;
-    flags[key] = true;
-    await AsyncStorage.setItem(KEY, JSON.stringify(flags));
+      if (!changed) return { result: undefined };
+      flags[key] = true;
+      return { next: JSON.stringify(flags), result: undefined };
+    });
   } catch (e) {
     console.warn("[flags] seal day:", e);
   }
@@ -106,19 +139,21 @@ export async function birthdayLetterRead(year: number): Promise<boolean> {
 /** this year's birthday letter was passed (`read`), or brought back by Undo (`read` false) */
 export async function markBirthdayLetter(year: number, read: boolean): Promise<void> {
   try {
-    const flags = await getFlags();
-    const key = birthdayFlag(year);
-    let changed = !!flags[key] !== read;
-    for (const k of Object.keys(flags)) {
-      if (isBirthdayFlag(k) && k !== key) {
-        delete flags[k];
-        changed = true;
+    await AsyncStorage.update(KEY, (raw) => {
+      const flags = flagsOf(raw);
+      const key = birthdayFlag(year);
+      let changed = !!flags[key] !== read;
+      for (const k of Object.keys(flags)) {
+        if (isBirthdayFlag(k) && k !== key) {
+          delete flags[k];
+          changed = true;
+        }
       }
-    }
-    if (!changed) return;
-    if (read) flags[key] = true;
-    else delete flags[key];
-    await AsyncStorage.setItem(KEY, JSON.stringify(flags));
+      if (!changed) return { result: undefined };
+      if (read) flags[key] = true;
+      else delete flags[key];
+      return { next: JSON.stringify(flags), result: undefined };
+    });
   } catch (e) {
     console.warn("[flags] birthday letter:", e);
   }

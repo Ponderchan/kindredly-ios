@@ -38,6 +38,9 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 ## Unreleased
 
+What the phone remembers is no longer lost when several screens write at once (owner, 2026-11-13, on his phone after signing out and in: "成了kindreds 的对话 每次…总是要播放一下成为kindreds 哪个动画", "wren 的消息显示xx 点进去还是那些老的", and on the simulator "meet mist 又跳出来了") [JS: can go over the air]
+- "Meet Mist." (your first kindred's gift), a kindred's introduction, the count of Wren's posts you have seen, a room's letters you have read, the notices you have seen and other small things the phone keeps for you are each one record, changed by reading it, adding to it and writing it back. Two screens doing that in the same moment (most often right after a sign-in, when every screen opens together) both read the same old record, and the second write threw the first one's addition away: seen on the simulator as "Meet Mist." coming back on the next visit to Me. Every such change now waits its turn and stays on the account it began on, so a change begun before a sign-in can't read the guest's record and write it over the account's. "Meet Mist." also can't show on Kindreds and Me at once any more: the first to claim it shows it.
+
 The app icon is Wren (owner, 2026-11-13, after the COO asked for the blue of the top social apps: "那就1了") [binary]
 - The icon is Wren peeking up from the lower left of a cobalt tile: white, with her wing, a butter-yellow belly and a coral beak. In iOS's dark home screen she sits on a night navy; in the tinted one her body, belly, wing and beak stay apart in one colour. (It was the abstract orbit mark; the yellow-tile Wren of 2026-11-12 on branch `wren-icon` never shipped and is replaced by this one.)
 

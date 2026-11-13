@@ -6,7 +6,7 @@ import { PFM } from "../theme/post";
 import { scrimColor, useTheme } from "../lib/theme";
 import { WrenBird } from "./WrenBird";
 import { useWrenSkinControl } from "../lib/wren-skin";
-import { getFlags, setFlag } from "../lib/flags";
+import { claimFlag } from "../lib/flags";
 import { useBirdImageRef } from "../lib/bird-images";
 import { NativeSurface, SurfaceHost } from "./NativeSurface";
 import { rgbaParts } from "./shared-sheets-model";
@@ -47,10 +47,12 @@ export function PlushCelebration({ kindreds }: { kindreds: number }) {
   useEffect(() => {
     let alive = true;
     if (kindreds < 1) return;
-    getFlags().then((f) => {
-      if (!alive || f[FLAG]) return;
-      void setFlag(FLAG);
-      setShow(true);
+    /* claimed, not read-then-set: Kindreds and Me both mount this, and right after a sign-in both
+       asked at once, both found no flag and both showed it; and the flag, written in the same
+       moment as another one, could be lost, so it showed again on the next visit (owner,
+       2026-11-13: "点到me tab 那个meet mist 又跳出拉了"). One claim wins (lib/flags claimFlag). */
+    void claimFlag(FLAG).then((won) => {
+      if (alive && won) setShow(true);
     });
     return () => {
       alive = false;
