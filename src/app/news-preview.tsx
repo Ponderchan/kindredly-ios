@@ -1,7 +1,7 @@
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { NewsCard, newsReelOf } from "../components/news-reel";
+import { NewsCard, newsNeeds, newsReelOf, newsReelUngated } from "../components/news-reel";
 import { ReelSquare } from "../components/ReelSquare";
 import { P, PF, PFM } from "../theme/post";
 
@@ -17,11 +17,23 @@ export default function NewsPreview() {
         <Text style={{ ...PFM.monoSemi, fontSize: 10.5, letterSpacing: 1.3, color: P.pen, marginBottom: 6 }}>WREN</Text>
         <Text style={{ fontFamily: PF.letter, fontSize: 16, lineHeight: 24, color: P.ink }}>news-preview · {id}</Text>
         <View style={{ marginTop: 4 }}>
+          {/* a release whose card needs switches (1.0.9: the planet, the end-of-day pages) says
+              what they are here; with one off the room shows the post's words only, and this page
+              still plays the reel so it can be checked */}
+          {newsNeeds(id).length > 0 && (
+            <Text style={{ ...PFM.monoSemi, fontSize: 10.5, color: P.ink60, marginBottom: 6 }}>
+              {newsNeeds(id).map((n) => `${n.key} ${n.on ? "on" : "OFF"}`).join(" · ")}
+            </Text>
+          )}
           {scene ? (() => {
-            const r = newsReelOf(id);
+            const r = newsReelOf(id) ?? newsReelUngated(id);
             const one = r && r.scenes.find((x) => x.key === scene);
             return one ? <ReelSquare reel={{ bg: r!.bg, scenes: [one] }} label={scene} /> : null;
-          })() : <NewsCard id={id} label={`news ${id}`} />}
+          })() : newsReelOf(id) || !newsReelUngated(id) ? (
+            <NewsCard id={id} label={`news ${id}`} />
+          ) : (
+            <ReelSquare reel={newsReelUngated(id)!} label={`news ${id}`} />
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

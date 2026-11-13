@@ -6,6 +6,8 @@ import { useP, useTheme } from "../../lib/theme";
 import { t, useLang } from "../../lib/i18n";
 import { PF } from "../../theme/post";
 import { reel as v105 } from "./v1-0-5";
+import { reel as v109 } from "./v1-0-9";
+import { nativeOn } from "../../lib/surfaces";
 
 /* WHAT'S NEW, PLAYED WHERE IT'S SAID (owner, 2026-10-13: "1.0.4的时候一起发").
    A desk post can point at a release's reel with the link
@@ -27,17 +29,38 @@ import { reel as v105 } from "./v1-0-5";
    reel, its title, one paragraph, and a button to the thing it shows first */
 type News = { reel: Reel; title: string; body: string; cta: string; href: string };
 const V105: News = { reel: v105, title: "nw105.card.title", body: "nw105.card.body", cta: "nw105.card.cta", href: "/stamp-press" };
+/* 1.0.9 plays v1-0-9, one night (owner, 2026-11-13: an ad, not a list): the day ending in
+   bedtime, her planet's lamps, the new icon. Its button opens her planet (/planet, which hands
+   over to her page where the planet is off). The reel shows the planet and the end-of-day pages,
+   so it is offered only while both switches are on (`needs`); with either off, the post shows
+   its words only, as on a build without the reel. */
+const V109: News = { reel: v109, title: "nw109.card.title", body: "nw109.card.body", cta: "nw109.card.cta", href: "/planet" };
 const NEWS: Record<string, News> = {
   "1.0.5": V105,
   "1.0.6": V105,
+  "1.0.9": V109,
+};
+const NEEDS: Record<string, readonly string[]> = {
+  "1.0.9": ["meplanet", "afterfifteen"],
 };
 
-export const newsReelOf = (id: string): Reel | null => NEWS[id]?.reel ?? null;
+/** the release's card, if this build ships it and what it shows is switched on here */
+const newsOf = (id: string): News | null => {
+  const n = NEWS[id];
+  if (!n) return null;
+  return (NEEDS[id] ?? []).every(nativeOn) ? n : null;
+};
+
+export const newsReelOf = (id: string): Reel | null => newsOf(id)?.reel ?? null;
+
+/** dev (news-preview): the release's reel whatever its switches say, and what they say */
+export const newsReelUngated = (id: string): Reel | null => NEWS[id]?.reel ?? null;
+export const newsNeeds = (id: string): { key: string; on: boolean }[] => (NEEDS[id] ?? []).map((key) => ({ key, on: nativeOn(key) }));
 
 /** A release's card as the Swift room draws it (screens/wren-room/WrenRoomNative): its words'
     keys and where its button goes, or null for a reel this build doesn't ship. */
 export const newsCardOf = (id: string): Omit<News, "reel"> | null => {
-  const n = NEWS[id];
+  const n = newsOf(id);
   return n ? { title: n.title, body: n.body, cta: n.cta, href: n.href } : null;
 };
 
@@ -52,7 +75,7 @@ export function NewsCard({ id, label }: { id: string; label: string }) {
   const P = useP();
   const T = useTheme().t;
   const router = useRouter();
-  const news = NEWS[id];
+  const news = newsOf(id);
   if (!news) return null;
   // the guide card's frame, sizes and type, so a release reads as one of the guides (GuideCard)
   return (

@@ -26,6 +26,10 @@ import { useLetterFont, useTheme } from "../lib/theme";
    square with no card has none (0 / 0). The light themes draw no edge:
    there the square sits on a light card as it always has.
 
+   A reel that asks for `cut` (its scenes are one shot, each starting on the last one's frame)
+   swaps scenes with no fade in: the new one is there at once and the old one fades out over it
+   in 120 ms, so a frame the new one hasn't drawn yet can never show the ground.
+
    IN SWIFT (batch 3, behind the "reels" switch, off by default): a reel the
    Swift player draws (guide-reel/swift-reels) is drawn by SwiftUI in a Host
    the square's size (KReelView, Portable/Reels KReelSquare: the same scenes,
@@ -45,7 +49,8 @@ export function ReelSquare({ reel, label, max = 360, corners = GUIDE_CORNERS }: 
   const swift = useReelSpecs(asks, focused).get("reel");
   useEffect(() => {
     if (!focused || !w || swift) return; // Swift keeps its own time
-    const id = setTimeout(() => setI((n) => (n + 1) % reel.scenes.length), scene.ms);
+    // a reel of one scene (news-preview's &scene=) starts that scene over, as a longer reel wraps
+    const id = setTimeout(() => (reel.scenes.length > 1 ? setI((n) => (n + 1) % reel.scenes.length) : setRun((r) => r + 1)), scene.ms);
     return () => clearTimeout(id);
   }, [i, run, focused, w, scene.ms, reel.scenes.length, swift]);
   const restart = () => {
@@ -68,7 +73,7 @@ export function ReelSquare({ reel, label, max = 360, corners = GUIDE_CORNERS }: 
     <View onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width)}>
       {s > 0 && (
         <Pressable onPress={restart} accessibilityRole="button" accessibilityLabel={label} style={{ width: s, height: s, backgroundColor: reel.bg, overflow: "hidden" }}>
-          <Animated.View key={`${scene.key}-${run}-${i}`} entering={FadeIn.duration(260)} exiting={FadeOut.duration(200)} style={{ position: "absolute", left: 0, top: 0, width: s, height: s }}>
+          <Animated.View key={`${scene.key}-${run}-${i}`} entering={reel.cut ? undefined : FadeIn.duration(260)} exiting={reel.cut ? FadeOut.duration(120) : FadeOut.duration(200)} style={{ position: "absolute", left: 0, top: 0, width: s, height: s }}>
             {scene.render(s)}
           </Animated.View>
           {dark && <View pointerEvents="none" style={{ position: "absolute", left: 0, top: 0, width: s, height: s, borderWidth: 1, borderColor: EDGE, borderTopLeftRadius: corners.top, borderTopRightRadius: corners.top, borderBottomLeftRadius: corners.bottom, borderBottomRightRadius: corners.bottom }} />}

@@ -23,6 +23,9 @@ export type Reel = {
   /** the square's ground */
   bg: string;
   scenes: Scene[];
+  /** scenes follow on without a cross-fade: each one's first frame is the last one's (the 1.0.9
+      reel is one night across its scenes), so a fade would only dip the picture in between */
+  cut?: boolean;
 };
 
 /* A REEL IS A LIGHT PICTURE IN EVERY THEME — the static P, white cards on
