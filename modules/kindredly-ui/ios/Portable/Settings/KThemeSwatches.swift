@@ -82,6 +82,9 @@ public struct KThemeSwatches: View {
   /// at the accessibility sizes: two to a row, the phone at most this wide
   private static let largeColumns = Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: 2)
   private static let largePhone: CGFloat = 110
+  /// the little phone's widest at the usual sizes (owner, 2026-11-13: "appearance 和 font 那里能不能
+  /// 小点 太大了夸张"): it used to fill its fifth of the row, about 66 wide and 88 tall on a phone
+  private static let phone: CGFloat = 50
 
   private var large: Bool { typeSize.isAccessibilitySize }
 
@@ -102,7 +105,7 @@ public struct KThemeSwatches: View {
         swatchPhone(option.key)
           .aspectRatio(3.0 / 4.0, contentMode: .fit)
           .kSelectableTile(theme: theme, selected: selected, cornerRadius: 12)
-          .frame(maxWidth: large ? Self.largePhone : .infinity)
+          .frame(maxWidth: large ? Self.largePhone : Self.phone)
         Text(option.label)
           .kText(.swatchLabel)
           .foregroundStyle(selected ? theme.ind : theme.sub)

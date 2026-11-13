@@ -98,7 +98,8 @@ public struct KFilterChip: View {
       .overlay(Capsule().strokeBorder(selected ? theme.lavUnderInd : theme.line, lineWidth: Self.border))
       .contentShape(Capsule())
     }
-    .buttonStyle(KFadePressStyle())
+    // the tab bar's press, as the keys beside it have (KGlassKeys; owner, 2026-11-13)
+    .buttonStyle(KSwellPressStyle(theme: theme))
     .animation(.easeInOut(duration: 0.25), value: selected)
     .accessibilityLabel(a11yLabel)
     .accessibilityAddTraits(selected ? .isSelected : [])

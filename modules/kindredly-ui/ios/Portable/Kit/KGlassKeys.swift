@@ -18,9 +18,11 @@ import SwiftUI
    row that is shorter passes its own `side` (Kindreds' chips are 40ish).
  · The icon is an SF Symbol at 17, medium: the system's own drawing at the weight a toolbar uses,
    in the theme's ink. A key may carry words (`wide`: Me's Edit), its lens then a capsule.
- · Under a finger the tab bar's lens swells behind the icon (36 → 46, a bright bubble with the
-   bar's ring and shadow, standing a little past the capsule's edge, the bar's .22s overshoot) and
-   the icon grows 8%; it lets go as the finger lifts. A tap too quick to see still shows it for
+ · Under a finger a lens swells behind the icon as the tab bar's does (36 → 46, standing a little
+   past the capsule's edge, the bar's .22s overshoot) and the icon grows 8%; it lets go as the
+   finger lifts. On the white face the lens is a breath of ink (a white bubble on a white key read
+   as nothing pressed); on a dark face it is the bar's bright lens with its ring and shadow. A chip
+   (Kindreds' filters) takes the same swell (KSwellPressStyle). A tap too quick to see still shows it for
    0.16s. A key that is on (the calendar while open, the orbit while open) keeps a lens tinted with
    the theme's indigo, its icon in indigo.
  · Reduce Motion: no swell and no growth, the lens fades in and out.
@@ -58,14 +60,24 @@ struct KGlassKeyTone {
   /// a key that is on: its lens and its icon
   let onFill: Color
   let onInk: Color
+  /// the lens under a finger: a breath of ink on the white face (a white lens on a white key read
+  /// as nothing pressed: owner, 2026-11-13, "kindreds 顶部的那些咋没有下面底导航点击的效果"); on a
+  /// dark face the bar's own bright lens
+  let press: Color
+  /// its ring (none on the white face: the tint is the lens)
+  let pressRing: Color
 
   static func of(_ theme: KTheme) -> KGlassKeyTone {
-    KGlassKeyTone(
-      glass: KGlassTone.of(theme),
+    let glass = KGlassTone.of(theme)
+    let ink = Color(.sRGB, red: 30 / 255, green: 27 / 255, blue: 53 / 255, opacity: 1)
+    return KGlassKeyTone(
+      glass: glass,
       fill: theme.sf,
       edge: theme.line,
       onFill: theme.ind.opacity(theme.isDark ? 0.26 : 0.13),
-      onInk: theme.ind
+      onInk: theme.ind,
+      press: theme.isDark ? glass.lensPressed : ink.opacity(0.08),
+      pressRing: theme.isDark ? glass.lensRing : Color.clear
     )
   }
 }
@@ -188,16 +200,16 @@ private struct KGlassKeyBody<Label: View>: View {
         // the lens: a capsule inside the key (round on a square key); under a finger the tab bar's
         // lens, a bright bubble with its ring and its shadow
         Capsule()
-          .fill(shown ? (theme.isDark ? tone.glass.lensPressed : Color.white) : tone.onFill)
-          .overlay(Capsule().strokeBorder(shown ? tone.glass.lensRing : Color.clear, lineWidth: 0.5))
-          // a bright line along the lens's top edge, as the bar's lens has
+          .fill(shown ? tone.press : tone.onFill)
+          .overlay(Capsule().strokeBorder(shown ? tone.pressRing : Color.clear, lineWidth: 0.5))
+          // a bright line along the lens's top edge, as the bar's lens has (the dark face's)
           .overlay(
             Capsule().strokeBorder(
-              LinearGradient(colors: [shown ? tone.glass.lensRing : Color.clear, Color.clear], startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.3)),
+              LinearGradient(colors: [shown ? tone.pressRing : Color.clear, Color.clear], startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.3)),
               lineWidth: 1
             )
           )
-          .background { KOuterShadow(shadows: shown ? tone.glass.lensShadow : [], shape: Capsule()) }
+          .background { KOuterShadow(shadows: shown && theme.isDark ? tone.glass.lensShadow : [], shape: Capsule()) }
           .padding(KGlassKeyMetrics.lensInset)
           .scaleEffect(swell ? (wide ? KGlassKeyMetrics.swellWide : KGlassKeyMetrics.swell) : (lit || reduceMotion ? 1 : 0.7))
           .opacity(lit ? 1 : 0)
@@ -218,6 +230,54 @@ private struct KGlassKeyBody<Label: View>: View {
         } else {
           let held = Date().timeIntervalSince(downAt ?? .distantPast)
           let rest = max(0, KGlassKeyMetrics.minPress - held)
+          let id = pressId
+          if rest == 0 {
+            shown = false
+          } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + rest) {
+              if pressId == id { shown = false }
+            }
+          }
+        }
+      }
+  }
+}
+
+/// A capsule control's press, as the keys' and the tab bar's: it swells a little (6%, the bar's
+/// .22s overshoot) under a breath of ink, and lets go as the finger lifts; a quick tap still shows
+/// it for 0.16s. Reduce Motion: the tint alone. For a chip that is a whole capsule (Kindreds'
+/// filters), where a lens inside it would have no room.
+struct KSwellPressStyle: ButtonStyle {
+  let theme: KTheme
+
+  func makeBody(configuration: Configuration) -> some View {
+    KSwellPressBody(label: configuration.label, pressed: configuration.isPressed, theme: theme)
+  }
+}
+
+private struct KSwellPressBody<Label: View>: View {
+  let label: Label
+  let pressed: Bool
+  let theme: KTheme
+
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @State private var shown = false
+  @State private var downAt: Date?
+  @State private var pressId = 0
+
+  var body: some View {
+    let tone = KGlassKeyTone.of(theme)
+    label
+      .overlay(Capsule().fill(tone.press).opacity(shown ? 1 : 0).allowsHitTesting(false))
+      .scaleEffect(shown && !reduceMotion ? 1.06 : 1)
+      .animation(reduceMotion ? .easeOut(duration: 0.15) : KMotion.lensPress, value: shown)
+      .onChange(of: pressed, initial: false) { _, down in
+        if down {
+          pressId += 1
+          downAt = Date()
+          shown = true
+        } else {
+          let rest = max(0, KGlassKeyMetrics.minPress - Date().timeIntervalSince(downAt ?? .distantPast))
           let id = pressId
           if rest == 0 {
             shown = false

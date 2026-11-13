@@ -21,6 +21,7 @@ import type { CardVM } from "./today-cards";
 import { readerClosesOnSend, readerDocketA11y, readerHint, readerPlaceholder, readerText } from "./letter-reader-model";
 import { nativeCard } from "./TodayNative";
 import type { TodayModel } from "./useTodayDesk";
+import "../../data/strings-today3d"; // rd.expandA11y, rd.collapseA11y: the reply box's words
 
 /* THE UNFOLDED LETTER IN SWIFTUI (the "letterreader" switch; LetterReader
    picks it inside its React Native page sheet). One Host that keeps the
@@ -105,6 +106,10 @@ export function LetterReaderNative({ model, letter, card }: { model: TodayModel;
       placeholder: readerPlaceholder(card, s.placeholder),
       send: s.send,
       emoji: s.emoji,
+      // the reply box is Today's (KReplyBox): its own words
+      expandA11y: t("rd.expandA11y"),
+      collapseA11y: t("rd.collapseA11y"),
+      voiceLetter: t("ld.voiceLetter"),
     }),
     // lang: the two reader words are t()'s
     // eslint-disable-next-line react-hooks/exhaustive-deps

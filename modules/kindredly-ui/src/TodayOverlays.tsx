@@ -35,6 +35,10 @@ const imageOf = (r: KImageRefProps | null | undefined): KImageRefProps => (r ? {
 export type KLetterReaderStrings = {
   /** FOLD BACK (the ✕ beside it is drawn) */
   foldBack: string;
+  /** the reply box (Today's, since binary 1.2.8): VoiceOver's expand / collapse, a voice letter's name */
+  expandA11y?: string;
+  collapseA11y?: string;
+  voiceLetter?: string;
   writeBack: string;
   /** the letter's own placeholder, else the desk's (letter-reader-model readerPlaceholder) */
   placeholder: string;

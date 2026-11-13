@@ -327,8 +327,9 @@ struct KReplyDock: View {
 }
 
 /// The box itself, compact or as the full page (see THE REPLY BOX above). Its own view so it reads
-/// the Dynamic Type size the dock caps (the field's lines are counted in it).
-private struct KReplyBox: View {
+/// the Dynamic Type size the dock caps (the field's lines are counted in it). The unfolded long
+/// letter writes back in it too (KLetterReaderScreen), so the reply looks the same from both.
+struct KReplyBox: View {
   static let compactCorner: CGFloat = 22
   static let fullCorner: CGFloat = 26
   /// the field's size before Dynamic Type: the box's, and the full page's

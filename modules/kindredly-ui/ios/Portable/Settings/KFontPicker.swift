@@ -4,9 +4,10 @@ import SwiftUI
 
 /*
  THE LETTER FONT PICKER (owner, 10a; styled after the swatches, H:99): the face letters are set in
- when you read them. Three tiles in three columns (four go two by two), 10 apart, each corners of 12, padding 10, on
- sf: the specimen ("Aa", from TS) at 24 in its own face (Newsreader, System — SF Pro —,
- EB Garamond or SF Mono — the system monospaced), on a 34 line so the tiles match, and under it the face's name in system 500 11. The names are proper nouns and
+ when you read them. Every face in one row (four since SF Mono; owner 2026-11-13: two by two was
+ "太大了夸张"), 8 apart, each corners of 12, padding 8 4, on
+ sf: the specimen ("Aa", from TS) at 20 in its own face (Newsreader, System — SF Pro —,
+ EB Garamond or SF Mono — the system monospaced), on a 28 line so the tiles match, and under it the face's name in system 500 11. The names are proper nouns and
  come in untranslated. The selected tile wears the swatches' selected look (KSelectableTile: 2pt
  ind border, 3pt lav halo) and its name turns ind. Each tile is one button; VoiceOver reads the
  face's name with the selected trait (the specimen is a picture of the face, not read).
@@ -55,9 +56,10 @@ public struct KFontPicker: View {
 
   @Environment(\.dynamicTypeSize) private var typeSize
 
-  /// three to a row, or two by two for four faces (SF Mono joined, 2026-10-20: 3 + 1 looked lopsided)
+  /// every face in one row (owner, 2026-11-13: "太大了夸张": two by two, each tile half the page
+  /// wide, was more than four faces need); up to four
   private var columns: [GridItem] {
-    Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top), count: options.count == 4 ? 2 : 3)
+    Array(repeating: GridItem(.flexible(), spacing: 8, alignment: .top), count: min(4, max(1, options.count)))
   }
 
   private var large: Bool { typeSize.isAccessibilitySize }
@@ -91,7 +93,7 @@ public struct KFontPicker: View {
           .foregroundStyle(theme.ink)
           .fixedSize()
           // every tile the same height, whatever the face's own line height
-          .frame(minHeight: large ? nil : 34)
+          .frame(minHeight: large ? nil : 28)
         Text(option.name)
           .kText(.swatchLabel)
           .foregroundStyle(selected ? theme.ind : theme.sub)
@@ -101,7 +103,8 @@ public struct KFontPicker: View {
           .frame(maxWidth: large ? .infinity : nil, alignment: .leading)
           .animation(.easeInOut(duration: 0.2), value: selected)
       }
-      .padding(10)
+      .padding(.vertical, large ? 10 : 8)
+      .padding(.horizontal, large ? 10 : 4)
       .frame(maxWidth: .infinity, alignment: large ? .leading : .center)
       .background(theme.sf)
       .kSelectableTile(theme: theme, selected: selected, cornerRadius: 12)
@@ -130,11 +133,11 @@ struct KFontSpecimen: View {
 private struct KFontSpecimenText: View {
   let face: KLetterFace
   let sample: String
-  @ScaledMetric(relativeTo: .title2) private var scaled: CGFloat = 24
+  @ScaledMetric(relativeTo: .title2) private var scaled: CGFloat = 20
 
   var body: some View {
     Text(sample)
-      .font(KType.letterFont(face, italic: false, size: 24, scaledSize: scaled, relativeTo: .title2))
+      .font(KType.letterFont(face, italic: false, size: 20, scaledSize: scaled, relativeTo: .title2))
       .lineLimit(1)
       .minimumScaleFactor(0.6)
   }

@@ -74,6 +74,11 @@ struct KLetterReaderContent: Equatable {
   var placeholder = ""
   var send = ""
   var emoji = ""
+  /// the reply box's words (KReplyBox, as Today's): VoiceOver's names for expand and collapse, and
+  /// a voice letter's name in the full page's quote
+  var expandA11y = ""
+  var collapseA11y = ""
+  var voiceLetter = ""
   /// a reply is in the air: the crossing takes the foot
   var sending = false
   /// the "inflight" switch on: the crossing as Swift draws it (KLetterInFlight); nil keeps the
@@ -118,8 +123,18 @@ struct KLetterReaderScreen<InFlight: View>: View {
   let stampActions: KLetterCardActions
   let inFlight: () -> InFlight
 
-  /// WRITE BACK was pressed: the bar is up (and stays mounted from then on)
+  /* WRITE BACK opens TODAY'S REPLY BOX (owner, 2026-11-13: "长信 点了write back 还是老的这个reply"):
+     the same KReplyBox the desk's REPLY raises (KReplyDock: "Replying to …", the field, emoji,
+     send, expand to a full page with the letter's opening quoted), instead of the older mono hint
+     over a pill. It stands over the page's foot, on the keyboard, and the foot keeps its height
+     clear so the letter scrolls above it; expanded it is the whole page under the ✕. One field,
+     kept in place both ways, so the words and the keyboard stay as they are. */
+  /// WRITE BACK was pressed: the box is up (and stays mounted from then on)
   @State private var writing = false
+  /// the box as the full page
+  @State private var expanded = false
+  /// the compact box's height, kept clear at the foot
+  @State private var boxHeight: CGFloat = 0
   /// the keyboard's overlap of this page
   @State private var keyboard: CGFloat = 0
 
@@ -142,25 +157,36 @@ struct KLetterReaderScreen<InFlight: View>: View {
   }
 
   var body: some View {
-    VStack(spacing: 0) {
-      header
-      ScrollView(.vertical, showsIndicators: false) {
-        letter
-          // (the sheet is flat since 2026-11-12: no 6 kept clear for a drop, so it sits centred)
-          .padding(.horizontal, 16)
-          // on a page wider than any phone (the iPhone Duo's inner screen) the letter keeps a
-          // reading width in the middle instead of 110 characters to a line; a phone is unchanged
-          .kPhoneLength(Self.readingWidth)
-          .padding(.bottom, 28)
+    ZStack(alignment: .bottom) {
+      VStack(spacing: 0) {
+        header
+        ScrollView(.vertical, showsIndicators: false) {
+          letter
+            // (the sheet is flat since 2026-11-12: no 6 kept clear for a drop, so it sits centred)
+            .padding(.horizontal, 16)
+            // on a page wider than any phone (the iPhone Duo's inner screen) the letter keeps a
+            // reading width in the middle instead of 110 characters to a line; a phone is unchanged
+            .kPhoneLength(Self.readingWidth)
+            .padding(.bottom, 28)
+        }
+        // a tap on the letter drops the keyboard (a React Native scroll view's own way)
+        .simultaneousGesture(TapGesture().onEnded {
+          if dock.reply.isFocused { dock.reply.blur() }
+        })
+        foot
       }
-      // a tap on the letter drops the keyboard (a React Native scroll view's own way)
-      .simultaneousGesture(TapGesture().onEnded {
-        if dock.reply.isFocused { dock.reply.blur() }
-      })
-      foot
+      if writing && !content.sending {
+        replyBox
+      }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background { theme.bg.ignoresSafeArea() }
+    .onChange(of: content.sending) { _, now in
+      // the crossing takes the foot: the field lets go first, and the box is compact next time
+      guard now else { return }
+      if dock.reply.isFocused { dock.reply.blur() }
+      expanded = false
+    }
     .background {
       // the keyboard's overlap: this reader extends under the keyboard, so its bottom inset is the
       // keyboard (the Host ignores every other safe area)
@@ -299,39 +325,77 @@ struct KLetterReaderScreen<InFlight: View>: View {
     }
   }
 
-  // ── the foot: WRITE BACK, the reply bar, or the crossing ──
-  private var foot: some View {
+  // ── the reply box (see WRITE BACK OPENS TODAY'S REPLY BOX) ──
+  private var replyLabels: KTodayLabels {
+    var l = KTodayLabels()
+    l.send = content.send
+    l.emoji = content.emoji
+    l.expandA11y = content.expandA11y
+    l.collapseA11y = content.collapseA11y
+    l.voiceLetter = content.voiceLetter
+    return l
+  }
+
+  private var replyBox: some View {
+    KReplyBox(
+      theme: theme,
+      labels: replyLabels,
+      card: content.card,
+      placeholder: content.placeholder,
+      notice: dock.hint,
+      noticeWarn: dock.hintWarn,
+      sendState: dock.sendState,
+      expanded: expanded,
+      // on the keyboard it sits right on it; with the keyboard down, over the home indicator
+      bottomPad: keyboard > 1 ? 0 : bottomInset,
+      controller: dock.reply,
+      onChange: { actions.onChange($0) },
+      onFocus: { _ in },
+      onEscape: {
+        guard dock.reply.isFocused else { return false }
+        dock.reply.blur()
+        return true
+      },
+      onSend: {
+        // nothing written yet: the key does nothing; a full pouch still goes to TS to say why
+        guard dock.sendState != .disabled else { return }
+        let words = dock.reply.text
+        dock.reply.blur()
+        expanded = false
+        actions.onSend(words)
+      },
+      onExpand: { withAnimation(KReplyDock.grow) { expanded = true } },
+      onCollapse: { withAnimation(KReplyDock.grow) { expanded = false } }
+    )
+    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+      guard !expanded else { return }
+      if abs(boxHeight - height) > 0.5 { boxHeight = height }
+    }
+    // the full page stops under the ✕
+    .padding(.top, expanded ? 8 : 0)
+    .kPhoneLength(Self.readingWidth)
+    .accessibilityElement(children: .contain)
+    .accessibilityAction(.escape) {
+      if dock.reply.isFocused { dock.reply.blur() }
+    }
+    .dynamicTypeSize(...DynamicTypeSize.accessibility3)
+  }
+
+  // ── the foot: WRITE BACK, the reply box's room, or the crossing ──
+  @ViewBuilder private var foot: some View {
+    if writing && !content.sending {
+      // the reply box stands here (the body's top layer): the room it takes, so the letter
+      // scrolls above it
+      Color.clear.frame(height: boxHeight)
+    } else {
+      footKeys
+    }
+  }
+
+  private var footKeys: some View {
     let kbUp = keyboard > 1
     return ZStack(alignment: .bottom) {
-      if writing {
-        KReplyBar(
-          theme: theme,
-          controller: dock.reply,
-          placeholder: content.placeholder,
-          hint: dock.hint,
-          hintWarn: dock.hintWarn,
-          // the bar opens with the keyboard, so its hint shows
-          showsHint: true,
-          sendState: dock.sendState,
-          sendLabel: content.send,
-          emojiLabel: content.emoji,
-          returnSends: false,
-          onChange: { actions.onChange($0) },
-          onEscape: {
-            guard dock.reply.isFocused else { return false }
-            dock.reply.blur()
-            return true
-          },
-          onSend: {
-            let words = dock.reply.text
-            dock.reply.blur()
-            actions.onSend(words)
-          }
-        )
-        .opacity(content.sending ? 0 : 1)
-        .allowsHitTesting(!content.sending)
-        .accessibilityHidden(content.sending)
-      } else if !content.sending {
+      if !content.sending {
         SwiftUI.Button {
           writing = true
           dock.reply.focus()
@@ -366,10 +430,6 @@ struct KLetterReaderScreen<InFlight: View>: View {
     .kPhoneLength(Self.readingWidth)
     .padding(.top, 14)
     .padding(.bottom, kbUp ? 12 : max(bottomInset, 12) + 12)
-    .onChange(of: content.sending) { _, now in
-      // the crossing takes the foot: the field lets go first
-      if now && dock.reply.isFocused { dock.reply.blur() }
-    }
   }
 }
 

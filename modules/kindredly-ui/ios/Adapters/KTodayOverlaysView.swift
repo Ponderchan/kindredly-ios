@@ -50,6 +50,11 @@ struct KLetterReaderStringsRecord: Record {
   @Field var placeholder: String = ""
   @Field var send: String = ""
   @Field var emoji: String = ""
+  /// the reply box's (KReplyBox, since 2026-11-13): expand / collapse for VoiceOver, a voice
+  /// letter's name in the quote; an older bundle sends none and the box goes without
+  @Field var expandA11y: String = ""
+  @Field var collapseA11y: String = ""
+  @Field var voiceLetter: String = ""
 }
 
 final class KLetterReaderViewProps: KScreenProps {
@@ -101,6 +106,9 @@ final class KLetterReaderViewProps: KScreenProps {
     c.placeholder = strings.placeholder
     c.send = strings.send
     c.emoji = strings.emoji
+    c.expandA11y = strings.expandA11y
+    c.collapseA11y = strings.collapseA11y
+    c.voiceLetter = strings.voiceLetter
     c.sending = sending
     c.inflight = inflight.on ? inflight.content : nil
     return c
