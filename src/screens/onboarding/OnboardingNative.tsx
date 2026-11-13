@@ -7,7 +7,7 @@ import { Host } from "@expo/ui/swift-ui";
 import { KIsland, KOnboardingView, useKCommands, useRev, type KObPieces, type KObAuth, type KObDob, type KObDoor, type KObEnvelope, type KObEvent, type KObFace, type KObHatch, type KObLetter, type KObMake, type KObName, type KObShell, type KObWord, type KOnboardingCommands, type KScreenHandle } from "../../../modules/kindredly-ui";
 import type { KComposeSection } from "../../../modules/kindredly-ui/src/Compose";
 import type { SurfaceHostLink } from "../../components/NativeSurface";
-import { LaunchFrame } from "../../components/LaunchAnimation";
+import { COBALT, LaunchFrame, launchEnvelope } from "../../components/LaunchAnimation";
 import { EGG_SHELLS } from "../../components/EggShell";
 import { FirstFlight, type FlightColors } from "../../components/FirstFlight";
 import { HATCH_READ_S, HatchStage, tokens } from "../../components/HatchStage";
@@ -84,8 +84,17 @@ import "../../data/strings-make-face";
 
 const CUE_COUNT = 18; // S07Letter's eighteen cues (ob.cue.1 … 18)
 const IDEAS = ["Pip", "Juno", "Otis", "Moth", "Bea", "Fen"].filter((n) => NAME_IDEAS.includes(n));
-const FLIGHT_COLORS: FlightColors = { ground: OB.shell, ink: OB.ink, sub: OB.inkSoft, faint: OB.inkSoft, card: OB.paper, accent: OB.blue };
-const HATCH_CHROME = { ink: OB.ink, accent: OB.blue, panel: OB.paper, line: OB.ink };
+/* THE RUN'S BLUE IS THIS BINARY'S (2026-11-13): where the launch is the cobalt icon's (launchEnvelope),
+   the Swift run's ground is cobalt too (KOb.blue), so the ground under it and round it is the same
+   cobalt. Under Post Blue it showed at the sides of the inner screen's column on the iPhone Duo, and
+   for a frame before the Host drew. Older binaries: Post Blue, as their Swift run is. */
+let runBlue: string | null = null;
+const obBlue = (): string => (runBlue ??= launchEnvelope() ? COBALT : OB.blue);
+// made once, so a render passes the same objects (the props don't change under the views)
+let flightColors: FlightColors | null = null;
+const FLIGHT_COLORS = (): FlightColors => (flightColors ??= { ground: OB.shell, ink: OB.ink, sub: OB.inkSoft, faint: OB.inkSoft, card: OB.paper, accent: obBlue() });
+let hatchChrome: { ink: string; accent: string; panel: string; line: string } | null = null;
+const HATCH_CHROME = () => (hatchChrome ??= { ink: OB.ink, accent: obBlue(), panel: OB.paper, line: OB.ink });
 /** the envelope FirstFlight carries out, on its 390-wide chart (S12Flight CARRY_W) */
 const CARRY_W = 152;
 const FACE_THEM = FACES.find((f) => f.pool === "f") ?? FACES[0];
@@ -1048,7 +1057,7 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
   const onEventStable = useCallback((e: KObEvent) => act.current(e), []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: ground === "blue" ? OB.blue : ground === "paper" ? OB.sheet : OB.shell, paddingLeft: frame.left, paddingRight: frame.right }}>
+    <View style={{ flex: 1, backgroundColor: ground === "blue" ? obBlue() : ground === "paper" ? OB.sheet : OB.shell, paddingLeft: frame.left, paddingRight: frame.right }}>
       <StatusBar style={ground === "shell" ? "dark" : "light"} animated />
       {/* the run's own pictures being captured, offscreen (ob-pieces useRunPictures) */}
       {pics.strip}
@@ -1123,7 +1132,7 @@ function ObNative({ run, host }: { run: ObRun; host: SurfaceHostLink }) {
             {flightSwift ? null : screen === "flight" ? (
               <FlightIsland props={props} stops={stops} her={her} courier={courier} form={read.form} onLanded={() => void landed()} />
             ) : screen === "knock" ? (
-              <FirstFlight still her={her} opener="" stops={[]} colors={FLIGHT_COLORS} onDone={() => {}} />
+              <FirstFlight still her={her} opener="" stops={[]} colors={FLIGHT_COLORS()} onDone={() => {}} />
             ) : null}
           </KIsland>
         </KOnboardingView>
@@ -1180,7 +1189,7 @@ function HatchIsland({
         celebrate={celebrate}
         burst="flood"
         onBurst={onBurst}
-        chrome={HATCH_CHROME}
+        chrome={HATCH_CHROME()}
         tapHelps
         onBorn={onBorn}
         onWord={onWord}
@@ -1221,7 +1230,7 @@ function FlightIsland({
       mark={(EGG_SHELLS[draft.shell] ?? EGG_SHELLS[0]).mark}
       skin="sticker"
       accessory="none"
-      colors={FLIGHT_COLORS}
+      colors={FLIGHT_COLORS()}
       head={<FlightHead her={her} />}
       envelope={
         <EnvelopeFront
