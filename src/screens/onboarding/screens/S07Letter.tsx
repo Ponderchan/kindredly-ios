@@ -4,7 +4,8 @@ import Animated, { Easing, runOnJS, useAnimatedStyle, useDerivedValue, useReduce
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Svg, { Path } from "react-native-svg";
-import { Lightbulb } from "lucide-react-native";
+// the one icon's own file: the package's index pulls every Lucide icon into the bundle (1.2 MB)
+import Lightbulb from "lucide-react-native/icons/lightbulb";
 import { localeTag } from "../../../lib/format";
 import { getLang, t } from "../../../lib/i18n";
 import { screenNow } from "../../../lib/wren";
