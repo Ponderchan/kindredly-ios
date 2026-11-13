@@ -6,7 +6,7 @@ import { fmt as fmtDuration, firstWeekday, localeTag, monthTitle, noteDay, time2
 import { MOOD_GROUP_IDS, MOOD_GROUPS, moodLabel, type MoodGroup } from "../../data/moods";
 import { demoJournal } from "../../data/demo";
 import { DEMO_TEXT, storeMode } from "../../lib/dev-store";
-import { hiddenDemoIds, loadJournal, type JournalEntry } from "../../lib/journal";
+import { hiddenDemoIds, loadJournal, onJournalChange, type JournalEntry } from "../../lib/journal";
 import { onStorageUserChange } from "../../lib/scoped-store";
 import { leaveMood, leaveSpark } from "../../lib/journal-handoff";
 import { scoped } from "../../lib/scoped-store";
@@ -285,6 +285,8 @@ export function useNotesModel(opts: { demo?: NotesDemo; forceEmpty?: boolean } =
   /* a sign-in or sign-out while Notes is up (or mounted in the same moment) re-reads the pages
      from the account they now belong to (2026-11-09: the guest's empty journal stayed on screen) */
   useEffect(() => onStorageUserChange(() => void refresh()), [refresh]);
+  // the guest's pages arriving in the account (lib/journal takeGuestJournal) show without a revisit
+  useEffect(() => onJournalChange(() => void refresh()), [refresh]);
 
   /* ── today, re-read on focus and when the app comes back ── */
   const [now, setNow] = useState(() => Date.now());

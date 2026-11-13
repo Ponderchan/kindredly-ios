@@ -3,6 +3,7 @@ import { Directory, File, Paths } from "expo-file-system";
 import type { MoodId } from "../data/moods";
 import { editedPage, filesDropped, type PageEdit } from "./journal-edit";
 import { markWrote } from "./aura-fresh";
+import { mergeJournals, parseJournal } from "./journal-merge";
 
 /* Journal is LOCAL-ONLY: entries in AsyncStorage, media files copied into the
    app's document directory ("Sealed on this device" — literally). Only an
@@ -394,45 +395,66 @@ export async function handOverJournal(fromUid: string): Promise<void> {
   const to = scopedTo("anon");
   const mine = await from.getItem(KEY);
   if (!mine) return;
-  const parse = (raw: string | null): unknown[] | null => {
-    if (!raw) return [];
-    try {
-      const v: unknown = JSON.parse(raw);
-      return Array.isArray(v) ? v : null;
-    } catch {
-      return null;
-    }
-  };
   const keep = async (raw: string) => {
     const prev = await to.getItem(RESCUE_KEY);
-    const kept = prev ? (parse(prev) ?? [prev]) : []; // an unreadable rescue list is kept whole too
+    const kept = prev ? (parseJournal(prev) ?? [prev]) : []; // an unreadable rescue list is kept whole too
     await to.setItem(RESCUE_KEY, JSON.stringify([...kept, { at: new Date().toISOString(), raw }]));
   };
-  const a = parse(mine);
-  const b = parse(await to.getItem(KEY));
+  const a = parseJournal(mine);
+  const b = parseJournal(await to.getItem(KEY));
   if (a === null || b === null) {
     await keep(mine);
     console.warn("[journal] hand-over: a side didn't parse; the deleted account's journal is kept in the guest rescue list");
     return;
   }
-  const idOf = (e: unknown) => (e && typeof e === "object" && typeof (e as { id?: unknown }).id === "string" ? (e as { id: string }).id : null);
-  const when = (e: unknown) => {
-    const d = e && typeof e === "object" ? Date.parse(String((e as { date?: unknown }).date)) : NaN;
-    return isNaN(d) ? 0 : d;
-  };
-  const seen = new Set<string>();
-  const merged = [...a, ...b].filter((e) => {
-    const id = idOf(e);
-    if (!id) return true;
-    if (seen.has(id)) return false;
-    seen.add(id);
-    return true;
-  });
-  merged.sort((x, y) => when(y) - when(x));
+  // the deleted account's pages first, as before (lib/journal-merge)
+  const merged = mergeJournals(a, b);
   await to.setItem(KEY, JSON.stringify(merged));
   await to.setItem(COUNT_KEY, String(merged.length));
   const rescued = await from.getItem(RESCUE_KEY);
   if (rescued) await keep(rescued);
+}
+
+/* THE GUEST'S PAGES GO WITH THEM INTO THEIR ACCOUNT (owner, TestFlight b43, 2026-11-13: pages
+   written as the guest "Sol" were gone once he signed in to his own account; "日记那个 退出去 再登录
+   还是没了"). An account that already exists adopts nothing of a guest's (lib/auth: the guest's
+   courier and answers are never laid over it), and the guest's journal was left behind with the
+   rest; worse, when the guest WAS adopted, scoped-store adoptGuestBucket copies a key only where
+   the account has none and then deletes the guest's, so a guest's pages beside an account's own
+   were deleted. A journal belongs to the person holding the phone, so it is the exception: every
+   time a real account is the one signed in (each sign-in and each cold start, lib/auth), the
+   guest's pages are merged into its journal (lib/journal-merge: every page of both, the account's
+   copy where both have one) and the guest's journal is left empty. Nothing is merged across two
+   real accounts, and nothing is touched when either side can't be read as it is (a failed read,
+   a blob that isn't a list, storage that lost a journal it had): both stay as they were. Returns
+   how many pages came over. */
+export async function takeGuestJournal(uid: string): Promise<number> {
+  if (!uid || uid === "anon" || readFailed) return 0;
+  const guest = scopedTo("anon");
+  const mine = scopedTo(uid);
+  const g = await readStored(guest);
+  if (g.unreadable !== undefined || g.vanished || g.pages.length === 0) return 0;
+  const a = await readStored(mine);
+  if (a.unreadable !== undefined || a.vanished) return 0;
+  const merged = mergeJournals(a.pages, g.pages);
+  await mine.setItem(KEY, JSON.stringify(merged));
+  await mine.setItem(COUNT_KEY, String(merged.length));
+  // only once the account holds them: the guest's journal is emptied (its count first, so it never
+  // reads as a journal storage lost)
+  await guest.setItem(COUNT_KEY, "0");
+  await guest.setItem(KEY, "[]");
+  markWrote();
+  journalChanges.forEach((f) => f());
+  return merged.length - a.pages.length;
+}
+
+const journalChanges = new Set<() => void>();
+/** Called when pages arrive from outside the screens (takeGuestJournal); returns the unsubscribe. */
+export function onJournalChange(f: () => void): () => void {
+  journalChanges.add(f);
+  return () => {
+    journalChanges.delete(f);
+  };
 }
 
 /** split an entry into candidate sentences to drift. */

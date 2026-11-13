@@ -177,6 +177,10 @@ export async function claimLegacyKeys(uid: string): Promise<void> {
 export async function adoptGuestBucket(uid: string): Promise<void> {
   try {
     for (const k of OWNED_KEYS) {
+      /* the journal is lib/journal takeGuestJournal's (merged page by page, run first): a key copied
+         only where the account has none and then deleted here threw away a guest's pages beside the
+         account's own (TestFlight b43, 2026-11-13) */
+      if (k.startsWith("kindredly_journal")) continue;
       const anon = await AsyncStorage.getItem(`${k}::anon`);
       if (anon === null) continue;
       if ((await AsyncStorage.getItem(`${k}::${uid}`)) === null) {

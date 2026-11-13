@@ -12,7 +12,7 @@ import { adoptGuestBucket, claimLegacyKeys, scopedTo, setStorageUser, storageOwn
 import { applyPatch, fillGaps, hasAnswers, ownerOf, parseLocal, syncPayload, visibleProfile } from "./profile-local-core";
 import { clearAvatarPhoto } from "./avatar-photo";
 import { clearAppBadge } from "./app-badge";
-import { handOverJournal } from "./journal";
+import { handOverJournal, takeGuestJournal } from "./journal";
 import { forgetThisDevice } from "./notify";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as WebBrowser from "expo-web-browser";
@@ -346,6 +346,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let anon: Record<string, any> = {};
       if (owner !== "anon") {
         await claimLegacyKeys(owner); // one-time: see scoped-store.claimLegacyKeys
+        /* the guest's journal pages come into the account first, whatever is adopted below (lib/journal
+           takeGuestJournal: the journal is the person's, not the guest's; owner, TestFlight b43). Before
+           adoptGuestBucket, which would delete a guest's journal beside the account's own. */
+        try {
+          const came = await takeGuestJournal(owner);
+          if (came > 0) console.log(`[auth] ${came} journal page(s) the guest wrote came into the account`);
+        } catch (e) {
+          console.warn("[auth] the guest's journal stayed where it was (it will be tried again):", e);
+        }
         /* SIGNING IN MID-APP ADOPTS THE GHOST, it doesn't start over.
            ────────────────────────────────────────────────────────────────
            Someone who chose "Just looking" walks the whole console — pen name, birthday, face,

@@ -32,6 +32,10 @@ import { decideEvening, type EveningShow } from "./notes-model";
    Nothing about any page is read or sent. */
 
 const FLAG = "ev_ask_answered";
+/* THE RECEIPT GOES BY ITSELF (owner, TestFlight b43, 2026-11-13: "点yes 9 那东西一直在 不消失"): after
+   a yes the slim "on" row says so for this long, then leaves; the switch is Settings' evening row,
+   as the card's foot says. */
+const RECEIPT_MS = 2500;
 
 export type EveningAsk = {
   /** what shows: nothing, the card, or the slim off row */
@@ -53,6 +57,13 @@ export function useEveningAsk(pages: number, opts: { enabled: boolean; wren: str
   const [state, setState] = useState<EveningShow>("none");
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
+  const receipt = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (receipt.current) clearTimeout(receipt.current);
+    },
+    [],
+  );
   const wren = useRef(opts.wren);
   wren.current = opts.wren;
   const { enabled } = opts;
@@ -86,8 +97,9 @@ export function useEveningAsk(pages: number, opts: { enabled: boolean; wren: str
   }, [pages, enabled]);
 
   /* THE "ON" ROW IS A RECEIPT, NOT A FIXTURE (owner, 2026-11-10: "I tapped OK and it's still
-     there"). It shows in the visit where the reader said yes, with its Turn Off, and goes when
-     Notes loses focus; from then on the switch is Settings' "evening" row (settings-model). */
+     there"). It shows for RECEIPT_MS after the yes (2026-11-13: it stayed until Notes lost focus,
+     and that read as "it never goes"), or until Notes loses focus if that comes first; from then on
+     the switch is Settings' "evening" row (settings-model). */
   useFocusEffect(useCallback(() => () => setState((s) => (s === "on" ? "none" : s)), []));
 
   const hold = (on: boolean) => {
@@ -149,6 +161,8 @@ export function useEveningAsk(pages: number, opts: { enabled: boolean; wren: str
       return;
     }
     setState("on");
+    if (receipt.current) clearTimeout(receipt.current);
+    receipt.current = setTimeout(() => setState((s) => (s === "on" ? "none" : s)), RECEIPT_MS);
     void (async () => {
       try {
         if (!(await getNotifyOn())) await setNotifyOn(true);

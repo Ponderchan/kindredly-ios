@@ -30,6 +30,10 @@ Sim = can be checked on a simulator; Phone = only a real iPhone shows it.
 - [ ] Me: the Writing Aura tile has its picture as the page opens (after a cold launch too); a new account shows the
       drawing, never a grey panel.
 - [ ] Notes, first page: the caret is before "what made it so?".
+- [ ] Diary as a guest, then sign in to an existing account: the guest's pages are in the account's Notes, beside its
+      own; sign out and back in: all still there. (On the owner's phone: the guest Sol's pages appear in Pond's Notes
+      at the first signed-in launch of this code.)
+- [ ] "Yes, at 9": the "on" line leaves by itself after about 2.5 s; Settings shows the evening switch.
 - [ ] The tab bar and Next/Reply are the system glass: on a white Today in daylight the bar shows as a pale pane; in
       Dark, Lavender and Paper too; Next and Reply are 58 and their labels clear of the bar.
 
