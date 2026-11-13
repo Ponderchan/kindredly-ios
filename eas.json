@@ -30,7 +30,9 @@
         "EXPO_PUBLIC_API_BASE": "https://kindredly.io"
       },
       "channel": "production",
-      "image": "macos-tahoe-26.6-xcode-27.2"
+      "ios": {
+        "image": "macos-tahoe-26.6-xcode-27.2"
+      }
     }
   },
   "submit": {
