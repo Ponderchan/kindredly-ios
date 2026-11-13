@@ -29,7 +29,8 @@
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_bJM4pydUeVPY1CWuifk7Yw_CqclSzVj",
         "EXPO_PUBLIC_API_BASE": "https://kindredly.io"
       },
-      "channel": "production"
+      "channel": "production",
+      "image": "macos-tahoe-26.6-xcode-27.2"
     }
   },
   "submit": {
