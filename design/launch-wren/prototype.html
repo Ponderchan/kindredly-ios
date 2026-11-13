@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wren Launch</title>
+<style>
+  :root {
+    --cobalt: #2F5BF6;
+    --page: #EEF1FA;
+    --ink: #1B1F3A;
+    --mute: #6B7090;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --page: #0E1020; --ink: #EEF0FA; --mute: #9AA0BE; }
+  }
+  :root[data-theme="dark"] { --page: #0E1020; --ink: #EEF0FA; --mute: #9AA0BE; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 28px 16px 40px;
+  }
+  h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  p.note { margin: 0; max-width: 46ch; text-align: center; color: var(--mute); font-size: 13px; }
+  .row { display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; }
+  .phone {
+    width: 300px; aspect-ratio: 393 / 852; border-radius: 46px; overflow: hidden; position: relative;
+    background: var(--cobalt); box-shadow: 0 0 0 10px #101219, 0 18px 50px rgba(10, 14, 40, .28);
+  }
+  .phone svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .label { text-align: center; font: 600 11px/1 ui-monospace, "SF Mono", monospace; letter-spacing: .08em; color: var(--mute); margin-top: 14px; text-transform: uppercase; }
+  .controls { display: flex; gap: 8px; }
+  button {
+    font: 600 13px/1 -apple-system, system-ui, sans-serif; color: var(--ink); background: transparent;
+    border: 1.5px solid color-mix(in srgb, var(--ink) 18%, transparent); border-radius: 999px; padding: 10px 16px; cursor: pointer;
+  }
+  button:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }
+  .t { font: 500 11px/1 ui-monospace, "SF Mono", monospace; color: var(--mute); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <h1>Launch: Wren peeks out of the letter</h1>
+  <p class="note">The native splash is the icon's plain cobalt; the letter comes down onto it. The full play is the first open and after an update; every other open plays from the flap.</p>
+  <div class="row">
+    <div><div class="phone" id="p-full"></div><div class="label">full · 2.0 s</div></div>
+    <div><div class="phone" id="p-short"></div><div class="label">short · from the flap</div></div>
+  </div>
+  <div class="controls">
+    <button id="again">Play again</button>
+    <button id="slow">Slow ×4</button>
+  </div>
+  <div class="t" id="clock">0.00 s</div>
+
+<script src="launch-frame.js"></script>
+<script>
+const { frame, PAPERS } = window.LaunchFrame;
+const players = [
+  { el: document.getElementById("p-full"), from: 0 },
+  { el: document.getElementById("p-short"), from: 0.56 },
+];
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let speed = 1, start = performance.now();
+const clockEl = document.getElementById("clock");
+function tick(now) {
+  const el = (now - start) / 1000 / speed;
+  for (const p of players) p.el.innerHTML = frame(reduce ? 1.85 : Math.min(p.from + el, 1.85), PAPERS.white, p.from);
+  const t = Math.min(el, 2.0);
+  clockEl.textContent = t.toFixed(2) + " s" + (speed > 1 ? "  (×1/4)" : "");
+  if (el > 2.9) start = now;
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+document.getElementById("again").onclick = () => { start = performance.now(); };
+document.getElementById("slow").onclick = (e) => { speed = speed === 1 ? 4 : 1; e.target.textContent = speed === 1 ? "Slow ×4" : "Normal speed"; start = performance.now(); };
+</script>
+</body>
+</html>

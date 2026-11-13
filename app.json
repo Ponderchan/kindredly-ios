@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "scheme": "kindredly",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#5B55FF",
+    "backgroundColor": "#2F5BF6",
     "ios": {
       "bundleIdentifier": "io.kindredly.app",
       "usesAppleSignIn": true,
@@ -73,7 +73,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#5B55FF",
+          "backgroundColor": "#2F5BF6",
           "image": "./assets/splash-ground.png",
           "imageWidth": 1,
           "resizeMode": "contain",

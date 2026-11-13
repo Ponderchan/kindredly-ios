@@ -62,8 +62,16 @@ public struct KLaunchInks: Sendable {
   public static let day = KLaunchInks(bg: KOb.blue, ink: .white, word: .white, mute: .white)
 }
 
+/// What the launch draws: the hatching mark (to 1.0.8), or Wren peeking out of a letter (the
+/// cobalt icon's launch, 2026-11-13; TS asks for it on a binary that has it).
+public enum KLaunchArt: String, Sendable {
+  case mark
+  case envelope
+}
+
 public struct KLaunchContent {
   public var mode: KLaunchMode
+  public var art: KLaunchArt = .mark
   /// when the clock started (TS's Date.now() as it mounted the view)
   public var startAt: Date
   public var inks: KLaunchInks
@@ -218,9 +226,18 @@ public struct KLaunch: View {
   public var body: some View {
     GeometryReader { geo in
       let G = KObLaunchGeometry(sw: geo.size.width, sh: geo.size.height)
+      let E = KLaunchEnvelopeGeometry(sw: geo.size.width, sh: geo.size.height)
       ZStack(alignment: .topLeading) {
         content.inks.bg
-        if content.mode == .frame || resting {
+        if content.art == .envelope {
+          if content.mode == .frame || resting {
+            envelopeScene(KLaunchEnvelopePose.at(content.mode, elapsed: .infinity), E)
+          } else {
+            TimelineView(.animation) { tl in
+              envelopeScene(KLaunchEnvelopePose.at(content.mode, elapsed: tl.date.timeIntervalSince(content.startAt)), E)
+            }
+          }
+        } else if content.mode == .frame || resting {
           scene(KLaunchPose.at(content.mode, elapsed: .infinity), G)
         } else {
           TimelineView(.animation) { tl in
@@ -235,12 +252,37 @@ public struct KLaunch: View {
     .task(id: content.startAt) {
       resting = false
       guard content.mode != .frame else { return }
-      let left = KLaunchClock.runs(content.mode) - Date().timeIntervalSince(content.startAt)
+      let runs = content.art == .envelope ? KLaunchEnvelopeClock.runs(content.mode) : KLaunchClock.runs(content.mode)
+      let left = runs - Date().timeIntervalSince(content.startAt)
       if left > 0 {
         try? await Task.sleep(for: .seconds(left + 0.05))
       }
       if !Task.isCancelled { resting = true }
     }
+  }
+
+  /// Wren peeking out of the letter, the word and the tag (see "The envelope" below)
+  private func envelopeScene(_ p: KLaunchEnvelopePose, _ E: KLaunchEnvelopeGeometry) -> some View {
+    ZStack(alignment: .topLeading) {
+      KLaunchEnvelopeArt(pose: p)
+        .scaleEffect(p.scale, anchor: UnitPoint(x: KLaunchEnvelopeArt.artCentre.x / KLaunchEnvelopeArt.box.width, y: (KLaunchEnvelopeArt.pad.y + 80) / KLaunchEnvelopeArt.box.height))
+        .opacity(p.whole)
+        .offset(x: E.envelope.minX - KLaunchEnvelopeArt.pad.x, y: E.envelope.minY - KLaunchEnvelopeArt.pad.y + p.drop)
+      if content.showWord {
+        KLaunchWordmark(color: content.inks.word)
+          .frame(maxWidth: .infinity)
+          .opacity(p.word)
+          .offset(y: E.wordTop + 10 * (1 - p.word))
+      }
+      if content.showTag {
+        KLaunchTagLines(tag: content.tag, sub: content.sub, mute: content.inks.mute, ink: content.inks.ink)
+          .padding(.horizontal, 24)
+          .frame(maxWidth: .infinity)
+          .opacity(p.tag)
+          .offset(y: E.tagTop + 8 * (1 - p.tag))
+      }
+    }
+    .allowsHitTesting(false)
   }
 
   private func scene(_ p: KLaunchPose, _ G: KObLaunchGeometry) -> some View {
@@ -404,5 +446,289 @@ struct KLaunchTagLines: View {
         .padding(.top, 10)
     }
     .accessibilityHidden(true)
+  }
+}
+
+// MARK: - The envelope (2026-11-13)
+
+/*
+ WREN PEEKS OUT OF THE LETTER (owner, 2026-11-13: the app icon is the cobalt Wren now, "启动动画也需要
+ 一个与之对应的创意启动页"; of the first prototype "挺好的", then of its white letter round a white Wren
+ "太白了 … 和wren撞色" and "不要牛皮纸 不行就蓝鸟 peek 白信封"). The icon's Wren peeks up over its
+ tile's edge; here she peeks out of a letter. Drawn on the icon's cobalt, number for number as the
+ prototype draws it (design/launch-wren/launch-frame.js, its frames the reference):
+
+   t   0.00  the splash's cobalt; a white letter comes down onto it, flap closed (to 0.22)
+       0.22  two little hops on its foot, something inside (to 0.56)
+       0.56  the flap opens up behind (to 0.82), its inside a pale blue
+       0.78  Wren rises out of it with an overshoot (to 1.10), eyes shut; she squashes 5% as she
+             settles (1.00–1.26) and opens her eyes at 1.02
+       1.22  she looks at you (the glints move, to 1.42); a butter ✦ pops by her head (1.30–1.52,
+             spinning in from −40°); one blink 1.44–1.56
+       1.28  "kindredly" rises in (to 1.64); the tag and its line (1.42–1.78)
+       1.85  the end: the piece rests on its last frame until the session is known
+ `short` (every other open) plays from 0.56, the closed letter coming up out of the splash in a
+ blink (0.14 s) as the flap starts to open; `still` is the last frame fading in. The native splash
+ is the plain cobalt (no picture), so nothing has to line up with it. She is Wren as the official art
+ colours her (indigo, a deeper wing, a cream belly, a pink beak) with the icon's shapes, so her blue
+ stands against the letter's white; the open flap is tall enough that her whole head is against
+ it, never against the cobalt.
+
+ The letter is 244 × 160 on every phone, centred on the screen. The onboarding's doorstep starts
+ from these pixels (KObLaunchGeometry; the letter flies to slide 1's stamp corner, KObDoorstep).
+ */
+
+/// The envelope's clock (seconds): the piece's end, the skip, and where `short` starts.
+enum KLaunchEnvelopeClock {
+  static let end = 1.85
+  static let skipFrom = 1.22
+  static let shortFrom = 0.56
+
+  static func runs(_ mode: KLaunchMode) -> Double {
+    switch mode {
+    case .full: return end
+    case .short: return end - shortFrom
+    case .still: return KLaunchClock.veil
+    case .frame: return 0
+    }
+  }
+
+  static func eio(_ x: Double) -> Double {
+    x < 0.5 ? 4 * x * x * x : 1 - pow(-2 * x + 2, 3) / 2
+  }
+
+  /// a spring's overshoot, settling by x = 1 (`s` sets how far past)
+  static func backOut(_ x: Double, _ s: Double) -> Double {
+    1 + (s + 1) * pow(x - 1, 3) + s * pow(x - 1, 2)
+  }
+}
+
+/// The letter and Wren at one moment of the clock.
+struct KLaunchEnvelopePose {
+  var whole: Double = 1
+  /// the letter coming down onto the cobalt: its height above its place, and its size
+  var drop: Double = 0
+  var scale: Double = 1
+  /// the hops: up (points, negative) and the tilt on its foot (degrees)
+  var hopY: Double = 0
+  var hopR: Double = 0
+  /// the flap: 0 closed (down over the front) … 1 open (up behind)
+  var flap: Double = 1
+  /// Wren: 0 inside … 1 out (past 1 in the overshoot)
+  var rise: Double = 1
+  var squash: Double = 1
+  var eyesShut = false
+  var look: Double = 1
+  var star: Double = 1
+  var starSpin: Double = 0
+  var word: Double = 1
+  var tag: Double = 1
+
+  /// at rest, all of it out: the last frame (the doorstep's start, a stamp's picture)
+  static let rest = KLaunchEnvelopePose()
+
+  static func at(_ mode: KLaunchMode, elapsed raw: Double) -> KLaunchEnvelopePose {
+    typealias C = KLaunchEnvelopeClock
+    let seg = KLaunchClock.seg
+    let eo = KLaunchClock.eo
+    let elapsed = max(0, raw)
+    var p = KLaunchEnvelopePose()
+    let tt: Double
+    var veil = 1.0
+    switch mode {
+    case .full: tt = min(C.end, elapsed)
+    case .short: tt = C.shortFrom + min(C.end - C.shortFrom, elapsed)
+    case .still:
+      tt = C.end
+      veil = eo(min(1, elapsed / KLaunchClock.veil))
+    case .frame: tt = C.end
+    }
+    switch mode {
+    case .full:
+      // it comes down onto the splash's cobalt
+      let a = eo(seg(tt, 0, 0.22))
+      p.whole = a
+      p.drop = -22 * (1 - a)
+      p.scale = 0.94 + 0.06 * a
+    case .short:
+      // the closed letter comes up out of the splash in a blink
+      let a = eo(seg(tt, C.shortFrom, C.shortFrom + 0.14))
+      p.whole = a
+      p.scale = 0.97 + 0.03 * a
+    case .still, .frame:
+      p.whole = veil
+    }
+    let hp = seg(tt, 0.22, 0.56)
+    let hop = tt < 0.56 ? sin(hp * .pi * 2) * (1 - hp) : 0
+    p.hopY = -abs(hop) * 10
+    p.hopR = hop * 2.6
+    p.flap = C.eio(seg(tt, 0.56, 0.82))
+    let r = seg(tt, 0.78, 1.1)
+    p.rise = r <= 0 ? 0 : C.backOut(r, 2.0)
+    p.squash = 1 + sin(seg(tt, 1.0, 1.26) * .pi) * 0.05
+    p.eyesShut = (tt > 0.74 && tt < 1.02) || (tt > 1.44 && tt < 1.56)
+    p.look = eo(seg(tt, 1.22, 1.42))
+    let s = seg(tt, 1.3, 1.52)
+    p.star = s <= 0 ? 0 : C.backOut(s, 3)
+    p.starSpin = (1 - eo(s)) * -40
+    let still = mode == .still || mode == .frame
+    p.word = still ? veil : eo(seg(tt, 1.28, 1.64))
+    p.tag = still ? veil : eo(seg(tt, 1.42, 1.78))
+    return p
+  }
+}
+
+/// Where the launch's letter, word and tag stand on a screen `sw` × `sh`: the letter centred, at
+/// its one size (the native splash's picture is centred at its own size).
+struct KLaunchEnvelopeGeometry {
+  static let size = CGSize(width: 244, height: 160)
+  let envelope: CGRect
+  let wordTop: CGFloat
+  let tagTop: CGFloat
+
+  init(sw: CGFloat, sh: CGFloat) {
+    let s = Self.size
+    envelope = CGRect(x: ((sw - s.width) / 2).rounded(), y: ((sh - s.height) / 2).rounded(), width: s.width, height: s.height)
+    wordTop = envelope.maxY + 56
+    tagTop = envelope.maxY + 116
+  }
+}
+
+/// The letter with Wren in it, at a pose, drawn at `scale` of its own size. Its box reaches past
+/// the letter on every side (`pad`), so the open flap, the star, the shadow and a hop are never
+/// cut: place it with its letter's top-left at `pad` × scale inside.
+struct KLaunchEnvelopeArt: View {
+  let pose: KLaunchEnvelopePose
+  var scale: CGFloat = 1
+  /// the soft shadow under the letter, 0…1 (0 for a stamp's picture)
+  var shadow: Double = 1
+
+  /// the letter's top-left inside the box, and the box, in the letter's own points
+  static let pad = CGPoint(x: 12, y: 126)
+  static let box = CGSize(width: 268, height: 326)
+  /// the middle of the picture a stamp shows (the letter with its flap open), in the box
+  static let artCentre = CGPoint(x: 134, y: 150)
+  /// that picture's size: the letter and its open flap
+  static let artSize = CGSize(width: 244, height: 272)
+
+  static let body = KSVGPath.path("M40.5,110C40.5,68 72,40 110.5,40C142,40 159.5,64.5 159.5,92.5C163,127.5 142,159 100,159C65,159 40.5,141.5 40.5,110Z")
+  static let beak = KSVGPath.path("M127,83.5C139,84.5 150,88.5 158.5,93C160.6,94.1 160.6,96.4 158.5,97.5C150,102 139,105.5 127,106.5C123.5,99 123.5,91 127,83.5Z")
+  /// Wren as the official art colours her (~/Desktop/wren-official/no-outline), the letter's whites
+  /// and blues, the star's butter, the shadow's deep cobalt
+  static let wrenBody = Color(hex: "#5757EC")
+  static let wrenLow = Color(hex: "#4C4CDF")
+  static let wing = Color(hex: "#4646DB")
+  static let belly = Color(hex: "#F6E7C9")
+  static let beakTop = Color(hex: "#F7AFC1")
+  static let beakLow = Color(hex: "#EE8EA7")
+  static let eye = Color(hex: "#1E1B33")
+  static let inside = Color(hex: "#E8EDFF")
+  static let line = Color(hex: "#C9D3FF")
+  static let starInk = Color(hex: "#FFE08A")
+  static let lift = Color(hex: "#1636B8")
+  static let flapLength: CGFloat = 112
+
+  var body: some View {
+    Canvas { gc, _ in
+      var g = gc
+      g.scaleBy(x: scale, y: scale)
+      g.translateBy(x: Self.pad.x, y: Self.pad.y)
+      Self.draw(&g, pose, shadow: shadow)
+    }
+    .frame(width: Self.box.width * scale, height: Self.box.height * scale)
+    .allowsHitTesting(false)
+    .accessibilityHidden(true)
+  }
+
+  /// the whole picture in the letter's own points, its top-left at the origin
+  static func draw(_ g: inout GraphicsContext, _ p: KLaunchEnvelopePose, shadow: Double) {
+    let W = KLaunchEnvelopeGeometry.size.width, H = KLaunchEnvelopeGeometry.size.height, cx = W / 2
+    var e = g
+    // the hops: up, and a tilt about the letter's foot
+    e.translateBy(x: 0, y: p.hopY)
+    e.translateBy(x: cx, y: H)
+    e.rotate(by: .degrees(p.hopR))
+    e.translateBy(x: -cx, y: -H)
+
+    if shadow > 0 {
+      e.drawLayer { l in
+        l.addFilter(.blur(radius: 7))
+        l.fill(Path(ellipseIn: CGRect(x: cx - W * 0.4, y: H + 6, width: W * 0.8, height: 20)), with: .color(lift.opacity(0.3 * shadow)))
+      }
+    }
+    // the flap: its tip from down over the front (closed) to up behind (open)
+    let tip = flapLength - CGFloat(p.flap) * flapLength * 2
+    let bend: CGFloat = tip > 0 ? -6 : 6
+    var flap = Path()
+    flap.move(to: CGPoint(x: 2, y: 0))
+    flap.addLine(to: CGPoint(x: W - 2, y: 0))
+    flap.addQuadCurve(to: CGPoint(x: cx, y: tip), control: CGPoint(x: cx + 16, y: tip + bend))
+    flap.addQuadCurve(to: CGPoint(x: 2, y: 0), control: CGPoint(x: cx - 16, y: tip + bend))
+    flap.closeSubpath()
+    let front = p.flap < 0.5
+    let flapStroke = StrokeStyle(lineWidth: 1.3, lineJoin: .round)
+    if !front {
+      e.fill(flap, with: .color(inside))
+      e.stroke(flap, with: .color(line), style: flapStroke)
+    }
+    // Wren, rising from inside the letter (its front covers what is still in)
+    var w = e
+    let k = 1.12
+    let wrenY = 72 - p.rise * 78
+    w.translateBy(x: cx - 4, y: wrenY)
+    w.scaleBy(x: k / p.squash, y: k * p.squash)
+    w.translateBy(x: -100, y: -100)
+    w.fill(body, with: .linearGradient(Gradient(stops: [.init(color: wrenBody, location: 0), .init(color: wrenBody, location: 0.62), .init(color: wrenLow, location: 1)]), startPoint: CGPoint(x: 70.9, y: 46), endPoint: CGPoint(x: 113.4, y: 159)))
+    w.fill(Path(ellipseIn: CGRect(x: 96.5 - 36, y: 133 - 24, width: 72, height: 48)), with: .color(belly))
+    var wing = w
+    wing.translateBy(x: 149, y: 121)
+    wing.rotate(by: .degrees(-22))
+    wing.fill(Path(ellipseIn: CGRect(x: -15, y: -28.5, width: 30, height: 57)), with: .color(Self.wing))
+    eyeDraw(&w, at: CGPoint(x: 90, y: 76), r: 9.6, glint: CGPoint(x: 2.6 - p.look * 4.2, y: -2.8 + p.look * 0.6), gr: 2.6, shut: p.eyesShut)
+    eyeDraw(&w, at: CGPoint(x: 125.5, y: 70), r: 10.4, glint: CGPoint(x: 2.8 - p.look * 4.4, y: -3 + p.look * 0.6), gr: 2.8, shut: p.eyesShut)
+    w.fill(beak, with: .linearGradient(Gradient(colors: [beakTop, beakLow]), startPoint: CGPoint(x: 140, y: 83.5), endPoint: CGPoint(x: 140, y: 106.5)))
+    // the letter's front, its folds, and the flap while it is still down over it
+    let face = Path(roundedRect: CGRect(x: 0, y: 0, width: W, height: H), cornerRadius: 16, style: .circular)
+    e.fill(face, with: .color(.white))
+    var folds = Path()
+    folds.move(to: CGPoint(x: 10, y: H - 8))
+    folds.addLine(to: CGPoint(x: cx, y: H * 0.5))
+    folds.addLine(to: CGPoint(x: W - 10, y: H - 8))
+    e.stroke(folds, with: .color(line), style: StrokeStyle(lineWidth: 1.3, lineCap: .round, lineJoin: .round))
+    if front {
+      e.fill(flap, with: .color(.white))
+      e.stroke(flap, with: .color(line), style: flapStroke)
+    }
+    // the star by her head
+    if p.star > 0 {
+      var s = e
+      s.translateBy(x: cx + 78, y: -64)
+      s.rotate(by: .degrees(p.starSpin))
+      s.scaleBy(x: p.star, y: p.star)
+      s.fill(star(r: 14), with: .color(starInk))
+    }
+  }
+
+  private static func eyeDraw(_ g: inout GraphicsContext, at c: CGPoint, r: CGFloat, glint: CGPoint, gr: CGFloat, shut: Bool) {
+    var e = g
+    e.translateBy(x: c.x, y: c.y)
+    e.scaleBy(x: 1, y: shut ? 0.12 : 1)
+    e.fill(Path(ellipseIn: CGRect(x: -r, y: -r, width: 2 * r, height: 2 * r)), with: .color(eye))
+    if !shut {
+      e.fill(Path(ellipseIn: CGRect(x: glint.x - gr, y: glint.y - gr, width: 2 * gr, height: 2 * gr)), with: .color(.white))
+    }
+  }
+
+  /// a four-point star, `r` to its points, its waist pulled in (the avatar's ✦)
+  static func star(r: CGFloat) -> Path {
+    let w = r * 0.3 * 0.35
+    var p = Path()
+    p.move(to: CGPoint(x: 0, y: -r))
+    p.addQuadCurve(to: CGPoint(x: r, y: 0), control: CGPoint(x: w, y: -w))
+    p.addQuadCurve(to: CGPoint(x: 0, y: r), control: CGPoint(x: w, y: w))
+    p.addQuadCurve(to: CGPoint(x: -r, y: 0), control: CGPoint(x: -w, y: w))
+    p.addQuadCurve(to: CGPoint(x: 0, y: -r), control: CGPoint(x: -w, y: -w))
+    p.closeSubpath()
+    return p
   }
 }

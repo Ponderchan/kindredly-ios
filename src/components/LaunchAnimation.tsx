@@ -10,7 +10,7 @@ import { PF, PFM } from "../theme/post";
 import { t } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
 import type { ThemeTokens } from "../theme/themes";
-import { isKindredlyUIViewAvailable, KLaunchView } from "../../modules/kindredly-ui";
+import { isKindredlyUIViewAvailable, kindredlyUIViewHasProp, KLaunchView } from "../../modules/kindredly-ui";
 import { nativeOn, surfacesReady, surfacesSettled } from "../lib/surfaces";
 import { NativeSurface, SurfaceHost } from "./NativeSurface";
 
@@ -112,18 +112,39 @@ import { NativeSurface, SurfaceHost } from "./NativeSurface";
 const GOLD = "#D8A63F";
 /** The app icon's blue (assets/icon.png), the native splash's and the launch's ground by day. */
 export const POST_BLUE = "#5B55FF";
+/** The cobalt app icon's ground (2026-11-13): the native splash's and the launch's by day on a
+    binary that draws Wren peeking out of the letter (launchEnvelope). */
+export const COBALT = "#2F5BF6";
 type Inks = { bg: string; ink: string; word: string; mute: string; night: boolean };
+
+/* WREN PEEKS OUT OF THE LETTER (owner, 2026-11-13: the icon is the cobalt Wren, "启动动画也需要一个
+   与之对应的创意启动页"; the letter white and Wren blue, "蓝鸟 peek 白信封"). A binary whose KLaunchView
+   takes `art` draws it (ios/Portable/Launch/KLaunch.swift, "The envelope") and has the cobalt native
+   splash, so on it the ground by day is cobalt whoever draws the piece; the SwiftUI piece plays
+   the envelope on its own clock (ENV_*). Every older binary: the hatching mark on Post Blue, as
+   before (its splash is Post Blue). Asked once: a binary can't gain a prop while it runs. */
+let envelopeKnown: boolean | null = null;
+export function launchEnvelope(): boolean {
+  if (envelopeKnown == null) envelopeKnown = isKindredlyUIViewAvailable("KLaunchView") && kindredlyUIViewHasProp("KLaunchView", "art");
+  return envelopeKnown;
+}
+const ENV_END = 1.85;
+const ENV_SKIP_FROM = 1.22;
+const ENV_SHORT_FROM = 0.56;
+/** Wren out of the letter, at the top of her overshoot: the light tap */
+const ENV_TAP_MS = 950;
+
 /* by day: the fixed set, whatever the light theme — white on the icon's blue,
    so the last frame is the icon itself (the lavender set was
    { bg #ECECFE, ink #3A34D6, word #1E1B35, mute #55506E }) */
-const DAY: Inks = { bg: POST_BLUE, ink: "#FFFFFF", word: "#FFFFFF", mute: "#FFFFFF", night: false };
+const dayInks = (): Inks => ({ bg: launchEnvelope() ? COBALT : POST_BLUE, ink: "#FFFFFF", word: "#FFFFFF", mute: "#FFFFFF", night: false });
 
 /** The launch's colours for a theme: the fixed day set in every light
     theme, Midnight's own tokens in Midnight (drafted, awaiting the owner —
     above). The entry route's stack ground (app/_layout) reads its bg from
     here too, so the two can't part. */
 export function launchInks(dark: boolean, tk: ThemeTokens): Inks {
-  return dark ? { bg: tk.bg, ink: tk.ink, word: tk.ink, mute: tk.sub, night: true } : DAY;
+  return dark ? { bg: tk.bg, ink: tk.ink, word: tk.ink, mute: tk.sub, night: true } : dayInks();
 }
 
 /* the mark, on its own 1024 grid (logos/c-mark.svg) */
@@ -301,21 +322,24 @@ function SwiftPiece({ mode, ready, onDone, inks }: { mode: Mode; ready: boolean;
   const { key: theme } = useTheme();
   const [startAt] = useState(() => Date.now());
   const [canLeave, setCanLeave] = useState(false);
+  // the envelope's clock where the binary draws it, the mark's otherwise
+  const [env] = useState(launchEnvelope);
   useEffect(() => {
     launchDrew = "swift";
-    const ms = mode === "full" ? END * 1000 : mode === "short" ? (END - SHORT_FROM) * 1000 : 600;
+    const end = env ? ENV_END : END;
+    const ms = mode === "full" ? end * 1000 : mode === "short" ? (end - (env ? ENV_SHORT_FROM : SHORT_FROM)) * 1000 : 600;
     const ids = [setTimeout(() => setCanLeave(true), ms)];
-    if (mode === "full") ids.push(setTimeout(crackTap, 980));
+    if (mode === "full") ids.push(setTimeout(crackTap, env ? ENV_TAP_MS : 980));
     return () => ids.forEach(clearTimeout);
-  }, [mode]);
+  }, [mode, env]);
   useLeave(canLeave, ready, onDone, mode);
   const skip = useCallback(() => {
-    if (mode === "full" && (Date.now() - startAt) / 1000 >= SKIP_FROM) setCanLeave(true);
-  }, [mode, startAt]);
+    if (mode === "full" && (Date.now() - startAt) / 1000 >= (env ? ENV_SKIP_FROM : SKIP_FROM)) setCanLeave(true);
+  }, [mode, startAt, env]);
   return (
     <View style={{ flex: 1, backgroundColor: inks.bg }}>
       <SurfaceHost>
-        <KLaunchView theme={theme} mode={mode} startAt={startAt} colors={launchColors(inks)} tag={t("launch.tag")} sub={t("launch.sub")} onTap={skip} />
+        <KLaunchView theme={theme} mode={mode} startAt={startAt} colors={launchColors(inks)} tag={t("launch.tag")} sub={t("launch.sub")} art={env ? "envelope" : undefined} onTap={skip} />
       </SurfaceHost>
     </View>
   );
@@ -529,7 +553,7 @@ export function LaunchFrame({ word = true, tag = true }: { word?: boolean; tag?:
            late, and this frame exists so that nothing blinks (the Doorstep's Reduce Motion
            veil mounts it at full opacity) — Swift covers it pixel for pixel, ground and all */
         <SurfaceHost pointerEvents="none" style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}>
-          <KLaunchView theme={theme} mode="frame" startAt={0} colors={launchColors(inks)} tag={t("launch.tag")} sub={t("launch.sub")} showWord={word} showTag={tag} />
+          <KLaunchView theme={theme} mode="frame" startAt={0} colors={launchColors(inks)} tag={t("launch.tag")} sub={t("launch.sub")} art={launchEnvelope() ? "envelope" : undefined} showWord={word} showTag={tag} />
         </SurfaceHost>
       )}
     </View>

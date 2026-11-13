@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, Text, View } from "react-native";
-import { LaunchAnimation, POST_BLUE } from "../components/LaunchAnimation";
+import { COBALT, LaunchAnimation, POST_BLUE, launchEnvelope } from "../components/LaunchAnimation";
 import { setDevSurfaceOverride, useNativeSurface } from "../lib/surfaces";
 import { PFM } from "../theme/post";
 
@@ -37,7 +37,7 @@ export default function LaunchPreview() {
     setRun((n) => n + 1);
   };
   return (
-    <View style={{ flex: 1, backgroundColor: POST_BLUE /* the splash's ground (was the lavender #ECECFE) */ }}>
+    <View style={{ flex: 1, backgroundColor: launchEnvelope() ? COBALT : POST_BLUE /* the splash's ground (was the lavender #ECECFE) */ }}>
       {!done && <LaunchAnimation key={`${mode}-${run}-${native ? "swift" : "rn"}`} force={mode} ready={ready} onDone={() => setDone(true)} />}
       <View style={{ position: "absolute", left: 16, right: 16, bottom: 40, flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         {(["full", "short", "still"] as const).map((x) => (

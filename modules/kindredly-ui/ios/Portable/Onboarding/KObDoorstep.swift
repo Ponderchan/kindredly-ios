@@ -183,7 +183,7 @@ struct KObDoorstep<RouteBird: View>: View {
   var body: some View {
     let langRoom = content.door.showLang ? KObDoorLayout.langRoom : 0
     let L = KObDoorLayout(sw: ctx.size.width, sh: ctx.size.height, top: ctx.top + langRoom, bottom: ctx.bottom)
-    let G = KObLaunchGeometry(sw: ctx.size.width, sh: ctx.size.height)
+    let G = KLaunchEnvelopeGeometry(sw: ctx.size.width, sh: ctx.size.height)
     // at rest and still (Reduce Motion, a still launch) nothing on the doorstep moves
     TimelineView(.animation(paused: still && seqDone && exStart == nil)) { tl in
       frame(L: L, G: G, now: tl.date)
@@ -258,7 +258,7 @@ struct KObDoorstep<RouteBird: View>: View {
   // MARK: the frame
 
   @ViewBuilder
-  private func frame(L: KObDoorLayout, G: KObLaunchGeometry, now: Date) -> some View {
+  private func frame(L: KObDoorLayout, G: KLaunchEnvelopeGeometry, now: Date) -> some View {
     let h = hc(now)
     let e = ex(now)
     let hero = KOb.heroRect(width: ctx.size.width, height: ctx.size.height, topInset: ctx.top, bottomInset: ctx.bottom).rect
@@ -365,7 +365,7 @@ struct KObDoorstep<RouteBird: View>: View {
     .accessibilityHidden(true)
   }
 
-  private func wordmark(L: KObDoorLayout, G: KObLaunchGeometry, h: Double, e: Double) -> some View {
+  private func wordmark(L: KObDoorLayout, G: KLaunchEnvelopeGeometry, h: Double, e: Double) -> some View {
     let g = KObEase.eo(KObEase.seg(h, 300, 700))
     let start = G.wordTop + KObDoorLayout.wordLine / 2
     let rest = L.wordTop + KObDoorLayout.wordLine * KObDoorLayout.wordScale / 2
@@ -515,14 +515,16 @@ struct KObDoorstep<RouteBird: View>: View {
     .frame(height: ctx.size.height, alignment: .bottom)
   }
 
-  /// the launch's mark flying to slide 1's stamp corner (frame 0: exactly where the launch left it)
-  private func traveller(L: KObDoorLayout, G: KObLaunchGeometry, h: Double) -> some View {
-    let M = G.mark.width
-    let c0 = CGPoint(x: G.mark.midX, y: G.mark.midY)
+  /// the launch's letter, Wren in it, flying to slide 1's stamp corner (frame 0: exactly where the
+  /// launch left it), the stamp's cobalt window growing behind it as it comes down onto the card
+  private func traveller(L: KObDoorLayout, G: KLaunchEnvelopeGeometry, h: Double) -> some View {
+    let A = KLaunchEnvelopeArt.self
+    let c0 = CGPoint(x: G.envelope.minX - A.pad.x + A.artCentre.x, y: G.envelope.minY - A.pad.y + A.artCentre.y)
     let sb = KObSlide1.stampBox(w: L.card.width, h: L.card.height)
     let c1 = L.cardToWindow(CGPoint(x: sb.midX, y: sb.midY))
     let ctrl = CGPoint(x: (c0.x + c1.x) / 2 - 56, y: min(c0.y, c1.y) - 6)
-    let s1 = sb.width / M
+    // the picture's width in the stamp's window (KObMarkStampArt)
+    let s1 = KObMarkStampArt.artWidth(sb.width) / A.artSize.width
     let p = KObEase.seg(h, KObLand.travelFrom, KObLand.thunk)
     let u = CGFloat(KObEase.eio(p))
     let v = 1 - u
@@ -530,19 +532,22 @@ struct KObDoorstep<RouteBird: View>: View {
     let y = v * v * c0.y + 2 * v * u * ctrl.y + u * u * c1.y
     let k = CGFloat(1 - pow(1 - p, 2.2))
     let plate = 0.9 + 0.1 * KObEase.eo(KObEase.seg(h, KObLand.windowFrom, KObLand.thunk))
+    // the window, in the picture's own points: the stamp's 0.8 × 1.0 of its width, round the picture
+    let win = CGSize(width: sb.width * 0.8 / s1, height: sb.width / s1)
+    let anchor = UnitPoint(x: A.artCentre.x / A.box.width, y: A.artCentre.y / A.box.height)
     return ZStack(alignment: .topLeading) {
       Rectangle()
         .fill(KOb.blue)
-        .frame(width: M * 0.8, height: M)
+        .frame(width: win.width, height: win.height)
         .scaleEffect(plate)
-        .offset(x: M * 0.1)
-      KObLaunchMark(size: M)
+        .offset(x: A.artCentre.x - win.width / 2, y: A.artCentre.y - win.height / 2)
+      KLaunchEnvelopeArt(pose: .rest, shadow: 1 - KObEase.eo(KObEase.seg(h, 0, 160)))
     }
-    .frame(width: M, height: M, alignment: .topLeading)
-    .rotationEffect(.degrees(KObDoorLayout.cardTilt * Double(u)))
-    .scaleEffect(1 + (s1 - 1) * k)
+    .frame(width: A.box.width, height: A.box.height, alignment: .topLeading)
+    .rotationEffect(.degrees(KObDoorLayout.cardTilt * Double(u)), anchor: anchor)
+    .scaleEffect(1 + (s1 - 1) * k, anchor: anchor)
     .opacity(h < KObLand.thunk ? 1 : 0)
-    .offset(x: x - M / 2, y: y - M / 2)
+    .offset(x: x - A.artCentre.x, y: y - A.artCentre.y)
     .allowsHitTesting(false)
     .accessibilityHidden(true)
   }
@@ -550,15 +555,15 @@ struct KObDoorstep<RouteBird: View>: View {
 
 /// The launch's still frame (LaunchFrame), for the Reduce Motion cross-fade.
 struct KObLaunchFrame: View {
-  let G: KObLaunchGeometry
+  let G: KLaunchEnvelopeGeometry
   let tag: String
   let sub: String
 
   var body: some View {
     ZStack(alignment: .topLeading) {
       KOb.blue
-      KObLaunchMark(size: G.mark.width)
-        .offset(x: G.mark.minX, y: G.mark.minY)
+      KLaunchEnvelopeArt(pose: .rest)
+        .offset(x: G.envelope.minX - KLaunchEnvelopeArt.pad.x, y: G.envelope.minY - KLaunchEnvelopeArt.pad.y)
       KObWordmark()
         .frame(maxWidth: .infinity)
         .offset(y: G.wordTop)
@@ -708,8 +713,9 @@ struct KObDocketDate: View {
 
 // MARK: slide 1: the letter, the stamp, the line
 
-/// The launch's mark as a stamp (s06-envelope-front MarkStampPaper / MarkStampArt): the v3 frame
-/// stretched round a Post Blue window holding the white mark, `width` × 1.2 width.
+/// The launch's picture as a stamp (s06-envelope-front MarkStampPaper / MarkStampArt): the v3 frame
+/// stretched round a cobalt window holding Wren peeking out of her letter (the launch's last frame;
+/// the white mark until 2026-11-13), `width` × 1.2 width.
 struct KObMarkStampPaper: View {
   let width: CGFloat
   static let frame: Path = {
@@ -733,13 +739,20 @@ struct KObMarkStampPaper: View {
 
 struct KObMarkStampArt: View {
   let width: CGFloat
+
+  /// the picture's width in a stamp `width` wide: its window is 0.8 of it
+  static func artWidth(_ width: CGFloat) -> CGFloat { width * 0.72 }
+
   var body: some View {
+    let A = KLaunchEnvelopeArt.self
+    let s = Self.artWidth(width) / A.artSize.width
     ZStack(alignment: .topLeading) {
       Rectangle().fill(KOb.blue)
         .frame(width: width * 0.8, height: width)
         .offset(x: width * 0.1, y: width * 0.1)
-      KObLaunchMark(size: width)
-        .offset(y: width * 0.1)
+      // centred in the window (its middle is the stamp's: 0.5, 0.6 of the width)
+      KLaunchEnvelopeArt(pose: .rest, scale: s, shadow: 0)
+        .offset(x: width * 0.5 - A.artCentre.x * s, y: width * 0.6 - A.artCentre.y * s)
     }
     .frame(width: width, height: width * 1.2, alignment: .topLeading)
     .accessibilityHidden(true)

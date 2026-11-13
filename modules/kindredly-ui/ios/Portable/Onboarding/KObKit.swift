@@ -30,7 +30,9 @@ import SwiftUI
 
 public enum KOb {
   /// the app icon's blue: the ground to 6, 8, and 9 up to the crack
-  static let blue = Color(hex: "#5B55FF")
+  /// the app icon's cobalt (2026-11-13; it was Post Blue #5B55FF, the old icon's): the native splash's,
+  /// the launch's and the onboarding's ground, so a cold start is one colour from the icon on
+  static let blue = Color(hex: "#2F5BF6")
   static let paper = Color(hex: "#FFFFFF")
   /// the letter sheet (7)
   static let sheet = Color(hex: "#FFFDF8")

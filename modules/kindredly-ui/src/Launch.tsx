@@ -32,6 +32,9 @@ export type KLaunchViewProps = CommonViewModifierProps &
     /** launch.tag and launch.sub, resolved */
     tag: string;
     sub: string;
+    /** "envelope": Wren peeking out of the letter, the cobalt icon's launch (2026-11-13). Only for a
+        binary that has it: kindredlyUIViewHasProp("KLaunchView", "art") */
+    art?: "envelope";
     /** LaunchFrame's word and tag (true while it plays) */
     showWord?: boolean;
     showTag?: boolean;

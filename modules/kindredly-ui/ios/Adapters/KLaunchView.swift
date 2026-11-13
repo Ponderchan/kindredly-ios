@@ -55,6 +55,9 @@ final class KLaunchViewProps: KScreenProps {
   @Field var sub: String = ""
   @Field var showWord: Bool = true
   @Field var showTag: Bool = true
+  /// "envelope": Wren peeking out of the letter (the cobalt icon's launch); anything else, the
+  /// mark. TS probes for this prop by name to know the binary has the envelope: keep the name
+  @Field var art: String = ""
 
   var onLaunchTap = EventDispatcher()
 
@@ -62,7 +65,7 @@ final class KLaunchViewProps: KScreenProps {
   let madeAt = Date()
 
   var content: KLaunchContent {
-    KLaunchContent(
+    var c = KLaunchContent(
       mode: KLaunchMode(rawValue: mode) ?? .frame,
       startAt: startAt > 0 ? Date(timeIntervalSince1970: startAt / 1000) : madeAt,
       inks: colors.inks,
@@ -71,6 +74,8 @@ final class KLaunchViewProps: KScreenProps {
       showWord: showWord,
       showTag: showTag
     )
+    c.art = art == "envelope" ? .envelope : .mark
+    return c
   }
 }
 
