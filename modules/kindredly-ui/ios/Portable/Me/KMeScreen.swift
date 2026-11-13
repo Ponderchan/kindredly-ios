@@ -60,7 +60,7 @@ import SwiftUI
  Every block stands off the page on the same soft shadow (KSoftLift); none has a colour of its
  own. The First Class forms by the day keep their places: the boarding pass and the sealed
  report over her card, the Post's letter on its top edge (left of the round button). While the
- pass or the sealed report is up, the report row and the card at the foot step aside; the
+ pass or the sealed report is up, the card at the foot steps aside (the two tiles stay); the
  pull-tab is not drawn on this page. The fit rule and the scroll requests are the same; a
  segment request does nothing.
  */
@@ -1074,7 +1074,9 @@ struct KMePlanetPage<AuraArt: View>: View {
 
   var body: some View {
     // one large First Class thing to a page: while the boarding pass or the sealed report is up,
-    // the report tile (the same report) and the card at the foot step aside
+    // the First Class card at the foot steps aside. The two writing tiles always stand side by side
+    // (owner, 2026-11-13, his phone's Me beside the simulator's, where the report tile had stepped
+    // aside for the sealed report and the aura tile took the row: "不应该是这样的设计么")
     let large = content.fc.form == "seat" || content.fc.form == "report"
     VStack(alignment: .leading, spacing: Self.gap) {
       if content.fc.form == "seat" {
@@ -1095,8 +1097,7 @@ struct KMePlanetPage<AuraArt: View>: View {
         KMeAuraTile(aura: content.aura, chip: planet.auraChip, hint: planet.auraHint, theme: theme, onTap: { actions.onAuraOpen() }) {
           auraArt
         }
-        // the sealed report above her card is this month's: no second door to it here
-        if content.report.show, content.fc.form != "report" {
+        if content.report.show {
           KMeReportTileView(report: content.report, tile: planet.reportTile, chip: planet.reportChip, theme: theme) { actions.onReport() }
         }
       }
