@@ -185,6 +185,8 @@ export function demoDeps({ reply, blocked, fed }: { reply: () => DemoReply; bloc
     birthdayRead: async () => false,
     birthdayMark: (year, read) => console.log(`[step5-today] her birthday letter of ${year}: ${read ? "passed (the app would remember it was read)" : "brought back by Undo"}; nothing kept`),
     openWrenRoom: () => away("In the app REPLY on her birthday letter opens her room (/room/wren)."),
+    // the dev desk sends nothing: her mail is the team's inbox
+    mailWren: async () => true,
     intercept: (action, letter) => {
       if (action === "report") {
         away("A report would go to the server with this letter's words. Nothing was sent.");

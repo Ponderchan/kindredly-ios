@@ -3,7 +3,8 @@ import { Alert } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { KScreenHandle } from "../../../modules/kindredly-ui";
-import type { KTodayCardAction } from "../../../modules/kindredly-ui/src/Today";
+import { todayRepliesToWren, type KTodayCardAction } from "../../../modules/kindredly-ui/src/Today";
+import { sendWrenMail } from "../../lib/wren-desk";
 import { useTheme } from "../../lib/theme";
 import { getLang, needsTranslating, sourceTag, t, useLang } from "../../lib/i18n";
 import { guessLatin } from "../../lib/lang-guess";
@@ -17,7 +18,7 @@ import { bump } from "../../lib/usage-counters";
 import { track } from "../../lib/track";
 import { screenNow, translate } from "../../lib/wren";
 import { ARRIVAL_AT_KEY, ARRIVAL_FRESH, ARRIVAL_SENT, birthdayLetterRead, getFlags, isSealed, markBirthdayLetter, sealDay, unsealDay, unsetFlag } from "../../lib/flags";
-import { birthdayLetter, calendarDay, isBirthday, sameCalendarDay } from "../../lib/birthday-core";
+import { birthdayLetter, calendarDay, isBirthday, sameCalendarDay, trustedBirthday } from "../../lib/birthday-core";
 import { onStorageUserChange } from "../../lib/scoped-store";
 import { useAuth } from "../../lib/auth";
 import { SEND_BEAT_MS } from "../../lib/net";
@@ -549,8 +550,10 @@ export type TodayDeps = {
   birthdayRead: (year: number) => Promise<boolean>;
   /** her birthday letter was passed (`read`), or brought back by Undo (not read): kept on the phone only */
   birthdayMark: (year: number, read: boolean) => void;
-  /** REPLY on her birthday letter: her room (/room/wren) */
+  /** REPLY on her birthday letter on a binary that can't write it on the desk: her room (/room/wren) */
   openWrenRoom: () => void;
+  /** a reply to her birthday letter written on the desk: to her mail, as her room sends it (lib/wren-desk) */
+  mailWren: (text: string) => Promise<true | "unauthorized" | "failed">;
   /** dev: a report or block that shouldn't reach the server; return true when handled */
   intercept?: (action: "report" | "block", letter: PoolLetter) => boolean;
   /** dev: pretend to be a guest (null: ask the session) */
@@ -594,6 +597,7 @@ export function useRealTodayDeps(): TodayDeps {
       birthdayRead: birthdayLetterRead,
       birthdayMark: (year, read) => void markBirthdayLetter(year, read),
       openWrenRoom: () => router.push("/room/wren"),
+      mailWren: (text) => sendWrenMail(text),
     }),
     [router],
   );
@@ -827,7 +831,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   const wren = useWrenName();
   const wrenRef = useRef(wren);
   wrenRef.current = wren;
-  const { isGuest: sessionGuest, profile } = useAuth();
+  const { isGuest: sessionGuest, profile, user } = useAuth();
   const plusOpen = usePlusSheetOpen();
   const { full } = useLocalSearchParams<{ full?: string }>();
   // dev: /letters?full=1 pretends the pouch is full, to see the sheet without five real letters out
@@ -891,7 +895,8 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
 
   /* ── her birthday letter: is it owed, and is it up (owner's audit, 2026-11-10; see the top) ── */
   // the birthday, as the phone holds it: the account's, or a guest's own answer. Never sent anywhere from here
-  const dob = typeof profile?.dob === "string" ? (profile.dob as string) : null;
+  // …never the wheel's own day, the account's first (birthday-core trustedBirthday: TestFlight b43's first letter)
+  const dob = trustedBirthday(typeof profile?.dob === "string" ? (profile.dob as string) : null, user?.created_at);
   /* THE DAY THE RULE READS is taken when the tab is opened and when the desk's
      day turns, never from the ticking clock: at midnight on the day, with a
      stranger's letter under the thumb (or a reply half typed), nothing moves;
@@ -936,13 +941,19 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   // which renderer is drawing: true can draw her letter, false can't (it never gets one), null hasn't said
   const [wrenHost, setWrenHost] = useState<boolean | null>(null);
   const letterOwed = birthdayLetter({ birthday, year, readYear });
+  /* SHE STEPS ASIDE FOR A WRITE BACK (TestFlight b43, 2026-11-13: Write back on a line caught in
+     Kindreds came to Today with her birthday letter in front, and the reply had nothing to bind to).
+     An answer request (takeAsk below) sets her letter aside while the asked letter is still on the
+     desk; once it is answered or passed, hers is in front again, still owed (nothing is marked read). */
+  const [wrenAside, setWrenAside] = useState<string | null>(null);
+  const asideNow = wrenAside != null && unpassed.some((l) => l.id === wrenAside);
   /* not decided yet (the phone hasn't said whether this year's was read, or
      no renderer has said it can draw it): the view says loading, so no
      stranger's letter comes on screen only to be pushed behind hers */
-  const wrenWait = wrenHost !== false && (letterOwed === "ask" || (letterOwed === "due" && wrenHost === null));
+  const wrenWait = !asideNow && wrenHost !== false && (letterOwed === "ask" || (letterOwed === "due" && wrenHost === null));
   /* up: owed, drawable, and the desk's first load is in (her counted line
      needs the desk; the loading card stands until then, as on any day) */
-  const wrenUp = letterOwed === "due" && wrenHost === true && phase !== "loading";
+  const wrenUp = !asideNow && letterOwed === "due" && wrenHost === true && phase !== "loading";
   /** her letter, or the wait for it, has the screen: none of the desk's letters is on it */
   const wrenFront = wrenWait || wrenUp;
   /** the phase the renderers draw: loading while waiting, reading while her letter is up (over a finished desk too) */
@@ -1188,10 +1199,16 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   /* she takes the letter: one more each time a reply leaves the phone (past
      the local screen), so the renderers fly Wren off the band with it */
   const [carry, setCarry] = useState(0);
-  const draft = current ? drafts[current.id] ?? "" : "";
+  /* WHAT THE REPLY BOX ANSWERS: the stranger's letter on screen, or her birthday letter when this binary
+     writes its reply on the desk (todayRepliesToWren; TestFlight b43: Reply on it jumped to her room) */
+  const wrenHere = todayRepliesToWren();
+  const replyId = current?.id ?? (wrenCard && wrenHere ? wrenCard.id : "");
+  const draft = replyId ? drafts[replyId] ?? "" : "";
   /** the send key and the hint for any letter's draft (the one on screen, or the reader's) */
   const replyFor = useCallback(
     (letterId: string): C.ReplyState => {
+      // her letter: a note to her mail takes no flight from the pouch
+      if (C.isWrenCardId(letterId)) return C.replyState({ text: draftsRef.current[letterId] ?? "", flights: 0, demo: false, forceFull: false, sending: sendingRef.current, slow }, t);
       const l = feedRef.current.find((x) => x.id === letterId);
       const isDemo = demoRef.current || !!l?.author?.startsWith("demo-");
       // slow: the send has outlasted a send, and the hint says the headwind
@@ -1201,7 +1218,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [forceFull, lang, drafts, flights, sending, slow],
   );
-  const replyNow = useMemo(() => (current ? replyFor(current.id) : C.replyState({ text: "", flights, demo, forceFull }, t)), [current, replyFor, flights, demo, forceFull]); // eslint-disable-line react-hooks/exhaustive-deps
+  const replyNow = useMemo(() => (replyId ? replyFor(replyId) : C.replyState({ text: "", flights, demo, forceFull }, t)), [replyId, replyFor, flights, demo, forceFull]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [flightFull, setFlightFull] = useState(false);
   const [needsAccount, setNeedsAccount] = useState(false);
@@ -1251,6 +1268,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     const id = takeAnswerRequest();
     if (!id || !recRef.current.desk.some((l) => l.id === id)) return;
     update((r) => C.frontLetter(r, id));
+    setWrenAside(id); // her birthday letter, if it is up, waits behind this one (above)
     setUndoOffer(null);
     askSerial.current += 1;
     setAnswerAsk({ id, serial: askSerial.current, at: Date.now() });
@@ -1319,8 +1337,60 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
   /* THE LETTER BEING ANSWERED IS PASSED IN, never read from the screen: a
      reply is always bound to its own letter, so it can never go to the
      wrong stranger. */
+  /* A REPLY TO HER BIRTHDAY LETTER, written on the desk (todayRepliesToWren): it goes to her mail, as
+     her room sends a note (useWrenRoom post), and then her letter is answered: this year's is read and it
+     leaves the desk, as an answered letter does. A guest is asked to sign up first; signing in sends it. */
+  const pendingWren = useRef(false);
+  const sendToWren = useCallback(
+    async (id: string, typed: string | undefined, serial: number) => {
+      const w = wrenNow.current;
+      if (id !== w.id || sendingRef.current) {
+        answer(serial);
+        return;
+      }
+      if (typed != null) changeDraft(id, typed);
+      const text = (typed ?? draftsRef.current[id] ?? "").trim();
+      const n = weightedCount(text);
+      if (n < REPLY_MIN || n > LETTER_MAX) {
+        answer(serial);
+        return;
+      }
+      if (isGuest()) {
+        answer(serial);
+        pendingWren.current = true;
+        openSignUpSheet(() => setNeedsAccount(true), viewRef);
+        return;
+      }
+      sendingRef.current = true;
+      setSending(true);
+      blurThen(() => {}, viewRef, { delayMs: 0 });
+      const beat = new Promise<void>((r) => setTimeout(r, SEND_BEAT_MS));
+      const r = await depsRef.current.mailWren(text);
+      await beat;
+      sendingRef.current = false;
+      setSending(false);
+      answer(serial);
+      if (r !== true) {
+        if (r === "unauthorized") {
+          pendingWren.current = true;
+          openSignUpSheet(() => setNeedsAccount(true), viewRef);
+        } else blurThen(() => alertFail(t("wo.fail.title"), t("wo.fail.body")), viewRef);
+        return; // the draft stays in the box
+      }
+      pendingWren.current = false;
+      changeDraft(id, "");
+      setToast(true);
+      setTimeout(() => setToast(false), 2200);
+      setReadYear(w.year);
+      depsRef.current.birthdayMark(w.year, true);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [answer, changeDraft, sessionGuest],
+  );
+
   const send = useCallback(
     async (letterId: string, typed?: string, serial = 0) => {
+      if (C.isWrenCardId(letterId)) return sendToWren(letterId, typed, serial);
       const to = feedRef.current.find((l) => l.id === letterId);
       if (!to || sendingRef.current) {
         answer(serial);
@@ -1403,7 +1473,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     },
     // forceFull, wren and the guest rule are read at the moment; the rest are refs
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [forceFull, wren, sessionGuest, answer, changeDraft, answered, dropped],
+    [forceFull, wren, sessionGuest, answer, changeDraft, answered, dropped, sendToWren],
   );
 
   /* ── report / block: always reachable ── */
@@ -1556,6 +1626,10 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
       signedIn: () => {
         setNeedsAccount(false);
         // the letter that raised the sheet, never whatever is on screen now
+        if (pendingWren.current) {
+          void send(wrenNow.current.id);
+          return;
+        }
         const to = pendingReply.current;
         if (to) void send(to.id);
       },
@@ -1678,7 +1752,7 @@ export function useTodayCore(source: TodaySource, deps: TodayDeps): TodayModel {
     answerAsk,
     arrival,
     freshUnfold: arrivalOpen,
-    reply: { letterId: current?.id ?? "", draft, preview: C.draftPreview(draft), state: replyNow },
+    reply: { letterId: replyId, draft, preview: C.draftPreview(draft), state: replyNow },
     sending,
     slow,
     toast,

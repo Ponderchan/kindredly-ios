@@ -95,6 +95,8 @@ const FRAME_LINES = 5;
 const COURIER_H = 236;
 /** the avatar island's side (KMeScreen.avatarIsland): the header scales it, never re-lays it out */
 const AVATAR = 72;
+/** The Aura tile's picture before the first read: the desk of rung 0, in lines (aura-ladder). */
+const UNREAD_ART = { sceneId: null, fidelity: "lines" } as const;
 
 export const nativeStrings = (v: MeView, m: Me4aView): KMeStrings => ({
   settingsLabel: v.settingsLabel,
@@ -325,9 +327,12 @@ export function MeNative({ model }: { model: MeModel }) {
   // the courier's card and the Aura card's picture in Swift, when their switches are on (null:
   // the island, as before); the card's loops run only while the tab is focused. With the planet
   // the old card never shows, and the Aura picture is the tile's (always on show, on the theme's surface)
-  const showsAura = onPlanet ? !!view.aura && !!aura : segment === 1 && !!view.aura && !!aura;
+  // Before the first read (a new account has no card kept yet) the tile draws the first rung's desk, in
+  // lines, never the grey slot (owner, TestFlight b43: "一开始纯灰色"); the read redraws it when it lands.
+  const read = !!view.aura && !!aura;
+  const showsAura = onPlanet ? true : segment === 1 && read;
   const courierCard = useCourierCardData(courier, { showing: !onPlanet && segment === 0, live: focused });
-  const auraArt = useAuraArtData(showsAura && view.aura ? view.aura.art : null, showsAura, { tile: onPlanet });
+  const auraArt = useAuraArtData(read && view.aura ? view.aura.art : onPlanet ? UNREAD_ART : null, showsAura, { tile: onPlanet });
   // your face in Swift, when "myavatar" is on (null: the island, as before); armed once Me is seen
   const myFace = useMyFace(avatar, focused);
 

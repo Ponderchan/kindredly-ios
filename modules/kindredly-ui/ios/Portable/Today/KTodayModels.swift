@@ -127,7 +127,8 @@ public struct KLetterCardModel: Identifiable, Equatable, Sendable {
   /// with her picture as the face (who.face .bird), her name and the date, her lines (`body`) and
   /// her sign-off (`sign`) fitted to the card, and no stamp, no ⋯ and no foot; the face and the
   /// name take no tap. A pass doesn't count against the day (no pendingLeft), and REPLY reports
-  /// the card action "wren" instead of opening the reply box (TS opens her room)
+  /// the card action "wren" instead of opening the reply box (TS opens her room), unless TS takes
+  /// the reply on the desk (KTodayContent.wrenReplyHere)
   public var wren = false
   /// her sign-off under her lines ("— Pip"); "" on every other card
   public var sign = ""
@@ -354,6 +355,11 @@ public struct KTodayContent: Equatable, Sendable {
   /// false (the page's record never answered), a done desk draws its old end at rest. A binary
   /// without it plays the old evening under the page's arrival, as before.
   public var pageAfter = false
+  /// REPLY ON HER BIRTHDAY LETTER WRITES HERE (TestFlight b43, 2026-11-13: Reply on it jumped to her
+  /// room). TS sets it when it can take the reply: REPLY opens the reply box over her card like any
+  /// other ("Replying to Pip"), and the send goes to TS as for any card. False (a TS before it), REPLY
+  /// reports the card action "wren" and TS opens her room, as before.
+  public var wrenReplyHere = false
   public var labels = KTodayLabels()
 
   public init() {}

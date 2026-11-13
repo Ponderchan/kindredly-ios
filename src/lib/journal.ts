@@ -2,6 +2,7 @@ import { scoped as AsyncStorage, scopedTo, storageOwner } from "./scoped-store";
 import { Directory, File, Paths } from "expo-file-system";
 import type { MoodId } from "../data/moods";
 import { editedPage, filesDropped, type PageEdit } from "./journal-edit";
+import { markWrote } from "./aura-fresh";
 
 /* Journal is LOCAL-ONLY: entries in AsyncStorage, media files copied into the
    app's document directory ("Sealed on this device" — literally). Only an
@@ -224,6 +225,7 @@ async function rewrite(change: (pages: unknown[]) => unknown[]): Promise<Journal
   if (unreadable !== undefined) await setAside(store, unreadable);
   const next = change(pages);
   await store.setItem(KEY, JSON.stringify(next));
+  markWrote(); // the aura reads the diary: its next look reads again (lib/aura-fresh)
   await noteCount(store, owner, next.length);
   return showAll(next);
 }

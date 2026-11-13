@@ -615,6 +615,8 @@ export type WrenCardVM = {
   ends: boolean;
   /** what VoiceOver reads for the whole card: "A letter from Pip. NOV.10. …the lines… — Pip" */
   a11yLabel: string;
+  /** "Replying to Pip": over the reply box when her letter is answered on the desk */
+  replyingTo: string;
 };
 
 /**
@@ -649,6 +651,7 @@ export function buildWrenCard(
     bodyLine: tier.line,
     ends,
     a11yLabel: [t("wl.a11y", { name }), when, ...lines, sign].filter(Boolean).map((part) => part.replace(/[.。]$/, "")).join(". "),
+    replyingTo: t("rd.replyingTo", { name }),
   };
 }
 

@@ -13,6 +13,7 @@ import {
   type KTodayWrenCard,
   type KTodayWrenLetter,
   todayDrawsWrenCard,
+  todayRepliesToWren,
 } from "../../../modules/kindredly-ui/src/Today";
 import { SurfaceHost } from "../../components/NativeSurface";
 import { useLetterFont, useTheme } from "../../lib/theme";
@@ -298,6 +299,8 @@ export function TodayNative({ model, pageAfter = false }: { model: TodayModel; p
     return () => wrenCardHost(null);
   }, [wrenCardHost]);
   const wc = view.wrenCard;
+  // Reply on her letter writes on the desk on a binary that can (the model binds the box to her card the same way)
+  const wrenReplyHere = todayRepliesToWren();
   // with the identity switch on the card draws the §9 header (her picture, her name, the date); off, the old docket line
   const wrenCard = useSame<KTodayWrenCard | null>(
     wc
@@ -313,6 +316,7 @@ export function TodayNative({ model, pageAfter = false }: { model: TodayModel; p
           ends: wc.ends,
           a11yLabel: wc.a11yLabel,
           bird: birds.delight ?? birds.idle,
+          replyingTo: wc.replyingTo,
         }
       : null,
   );
@@ -343,6 +347,7 @@ export function TodayNative({ model, pageAfter = false }: { model: TodayModel; p
           plus={view.plus}
           hideBand={view.hideBand}
           pageAfter={pageAfter}
+          wrenReplyHere={wrenReplyHere}
           wren={wren}
           undoId={view.undo}
           wrenCard={wrenCard}

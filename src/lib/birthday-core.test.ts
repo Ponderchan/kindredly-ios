@@ -7,7 +7,7 @@
      node src/lib/birthday-core.test.ts
    Every line prints ok/FAIL and the process exits non-zero if any fail. */
 
-import { birthdayFlag, birthdayLetter, birthdayOf, birthdayParts, calendarDay, isBirthday, isBirthdayFlag, isBirthdayOn, isLeapYear, sameCalendarDay } from "./birthday-core.ts";
+import { birthdayFlag, birthdayLetter, birthdayOf, birthdayParts, calendarDay, isBirthday, isBirthdayFlag, isBirthdayOn, isLeapYear, sameCalendarDay, trustedBirthday } from "./birthday-core.ts";
 
 let fails = 0;
 const ok = (name: string, cond: boolean) => {
@@ -101,6 +101,17 @@ ok("birthdayParts: null for none", birthdayParts(null) === null && birthdayParts
 /* the two askers agree on every real birthday */
 for (const [dob, y, m, d] of [["1991-11-10", 2026, 11, 10], ["1996-02-29", 2027, 2, 28], ["1996-02-29", 2028, 2, 29], ["1996-02-29", 2028, 2, 28], ["2000-01-01", 2027, 1, 2]] as const) {
   ok(`isBirthdayOn agrees with isBirthday: ${dob} on ${y}-${m}-${d}`, isBirthdayOn(dob, at(y, m, d)) === isBirthday(dob, day(y, m, d)));
+}
+
+// the wheel's own day (TestFlight b43): a birthday on the account's first day is not one
+{
+  const made = new Date(2026, 10, 13, 9, 30).toISOString(); // 13 November, local
+  ok("a birthday on the account's first day is the wheel's default, not a birthday", trustedBirthday("2001-11-13", made) === null);
+  ok("…and stays that in later years (the same rule, whatever the year)", trustedBirthday("1990-11-13", made) === null);
+  ok("another day passes through as it was", trustedBirthday("2001-06-14", made) === "2001-06-14");
+  ok("the day before the account's first day passes", trustedBirthday("2001-11-12", made) === "2001-11-12");
+  ok("no account time passes it through", trustedBirthday("2001-11-13", null) === "2001-11-13" && trustedBirthday("2001-11-13", "not a time") === "2001-11-13");
+  ok("no birthday is none", trustedBirthday(null, made) === null && trustedBirthday("", made) === null);
 }
 
 if (fails) {

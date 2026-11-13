@@ -1,4 +1,5 @@
-import { scoped as AsyncStorage } from "./scoped-store";
+import { onStorageUserChange, scoped as AsyncStorage, scopedTo, storageNs, storageOwner } from "./scoped-store";
+import { wroteSerial } from "./aura-fresh";
 import { hatch, type Archetype, type DimScore } from "./hatch-engine";
 import { loadJournal } from "./journal";
 import { signatureVector, voiceSignature } from "./signature";
@@ -292,12 +293,49 @@ export async function readUsedStamps(): Promise<UsedStamp[]> {
 const AURA_CACHE_KEY = "kindredly_aura_cache";
 export async function readAuraCache(): Promise<Aura | null> {
   try {
-    const raw = await AsyncStorage.getItem(AURA_CACHE_KEY);
-    return raw ? (JSON.parse(raw) as Aura) : null;
+    const ns = await storageOwner();
+    const raw = await scopedTo(ns).getItem(AURA_CACHE_KEY);
+    const a = raw ? (JSON.parse(raw) as Aura) : null;
+    // the kept card goes into memory too, for the next page's first frame (never over a full read)
+    if (a && ns === storageNs() && memory?.ns !== ns) memory = { ns, aura: a, readAt: 0, serial: -1 };
+    return a;
   } catch {
     return null;
   }
 }
+
+/* THE CARD IN MEMORY, AND HOW OFTEN IT IS READ (owner, 2026-11-13, TestFlight b43: Me's Aura
+   picture "加载半天，一开始纯灰色" — "别时时读了"). The kept card is taken into memory when the
+   app starts (prefetchAuraCard, once auth has said whose phone it is), so Me's first frame has the
+   picture instead of the grey slot. Every full read (myAura) lands here with the write count it
+   started at (lib/aura-fresh), and Me reads again only when that is no longer current: something
+   was written on this phone since, the read was offline (stale), it came from the kept card
+   only, or it is over AURA_FRESH_MS old (words written on the web). The aura page, the planet
+   page and the courier still read in full when they open; this is Me's look. */
+const AURA_FRESH_MS = 2 * 60 * 60 * 1000;
+let memory: { ns: string; aura: Aura; readAt: number; serial: number } | null = null;
+onStorageUserChange(() => {
+  memory = null;
+  prefetchAuraCard();
+});
+
+/** The last card this account read (in full or from the kept one), now, or null. */
+export function keptAura(): Aura | null {
+  const ns = storageNs();
+  return ns !== null && memory?.ns === ns ? memory.aura : null;
+}
+
+/** true = the card in memory is a full read from after the last write, under two hours old. */
+export function auraIsCurrent(now = Date.now()): boolean {
+  const m = keptAura() ? memory : null;
+  return !!m && !m.aura.stale && m.readAt > 0 && now - m.readAt < AURA_FRESH_MS && m.serial === wroteSerial();
+}
+
+/** Takes the kept card into memory (the root calls it at launch; again for each account). */
+export function prefetchAuraCard(): void {
+  void readAuraCache();
+}
+
 function saveAuraCache(a: Aura, key?: string): void {
   // the words themselves stay out of it: the card needs the read, not the corpus
   const light: Aura = { ...a, texts: [], pieceText: {} };
@@ -377,6 +415,15 @@ function wordsOf(pieces: readonly Piece[]): Pick<Aura, "texts" | "pieceText"> {
  * seats, not the history).
  */
 export async function myAura(firstLine?: string | null): Promise<Aura> {
+  const ns = storageNs();
+  const serial = wroteSerial();
+  const a = await readMyAura(firstLine);
+  // into memory for Me's next look (above): the write count it started at, so a letter sent while it read reads again
+  if (ns !== null && ns === storageNs()) memory = { ns, aura: a, readAt: a.stale ? 0 : Date.now(), serial };
+  return a;
+}
+
+async function readMyAura(firstLine?: string | null): Promise<Aura> {
   const fetched = await fetchMyWriting();
   const persist = !!fetched;
   const mine: MyWriting = fetched ?? NOTHING_WRITTEN;

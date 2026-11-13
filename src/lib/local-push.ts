@@ -9,6 +9,8 @@ import { POOL_CACHE_KEY } from "./db";
 import { WRITE_MS } from "./net";
 import { readBest, readWork } from "./free-flight";
 import { noteFed } from "./hunger";
+import { markWrote } from "./aura-fresh";
+import { trustedBirthday } from "./birthday-core";
 import { LOCAL_PUSH, POOL_KEYS, type LocalPool } from "../data/local-push-copy";
 import {
   ID_PREFIX,
@@ -397,13 +399,14 @@ const LOCAL_PROFILE_KEY = "kindredly_profile_local";
 
 /** the reader's birthday ("YYYY-MM-DD") for the birthday knock: the account's, else this phone's copy
     (a birthday just set, not yet on the account); null = none, or not readable (said, and the usual knock goes) */
-async function readBirthday(user: { user_metadata?: unknown } | null, errors: string[]): Promise<string | null> {
+async function readBirthday(user: { user_metadata?: unknown; created_at?: string } | null, errors: string[]): Promise<string | null> {
+  // never the wheel's own day, the account's first (birthday-core trustedBirthday)
   const meta = (user?.user_metadata as Record<string, unknown> | undefined)?.dob;
-  if (typeof meta === "string" && meta) return meta;
+  if (typeof meta === "string" && meta) return trustedBirthday(meta, user?.created_at);
   try {
     const raw = await scoped.getItem(LOCAL_PROFILE_KEY);
     const dob = raw ? (JSON.parse(raw) as Record<string, unknown> | null)?.dob : null;
-    return typeof dob === "string" && dob ? dob : null;
+    return typeof dob === "string" && dob ? trustedBirthday(dob, user?.created_at) : null;
   } catch (e) {
     errors.push(say("birthday read", e));
     return null;
@@ -467,7 +470,7 @@ async function runPlan(): Promise<void> {
     }
     /* signed out (not a guest — a guest has an anonymous session): the phone
        belongs to nobody now, so nothing of the last account keeps knocking */
-    let sessionUser: { user_metadata?: unknown } | null = null;
+    let sessionUser: { user_metadata?: unknown; created_at?: string } | null = null;
     if (supabase) {
       const { data, error } = await supabase.auth.getSession();
       if (error) {
@@ -568,6 +571,7 @@ function mutateState(change: (s: PlanState) => PlanState): Promise<void> {
 
 /** a Notes page was sealed, or a letter / reply went out: today's line stays quiet (and a letter feeds her: lib/hunger noteFed) */
 export async function noteWrote(kind: "notes" | "letter"): Promise<void> {
+  markWrote(); // Me's aura reads again on its next look (lib/aura-fresh)
   if (kind === "letter") noteFed();
   const day = dayOf(new Date());
   await mutateState((s) => (kind === "notes" ? { ...s, notesDay: day } : { ...s, letterDay: day }));

@@ -353,6 +353,7 @@ const recOf = (p: Partial<import("./today-cards").DayRecord> = {}) => ({ ...M.em
   ok("card: the switch-off docket line, the date and her name in capitals", card.postmark === "11/10 · PIP");
   ok("card: the body is the lines, one per line", card.body === "bd.hello\nbd.kept\nbd.cake\nbd.under.N(n=14)" && card.lines.length === 4);
   ok("card: signed with her whole name", card.sign === "bd.sign(name=Pip)");
+  ok("card: a reply on the desk says it goes to her", card.replyingTo === "rd.replyingTo(name=Pip)");
   ok("card: a letter's tier, never the telegram's 30pt", card.bodySize === 21 && card.bodyLine === 33);
   ok("card: not the end of the day while letters wait under it", card.ends === false);
   ok("card: VoiceOver hears who, when, the lines and the sign-off", card.a11yLabel === "wl.a11y(name=Pip). 11/10. bd.hello. bd.kept. bd.cake. bd.under.N(n=14). bd.sign(name=Pip)");

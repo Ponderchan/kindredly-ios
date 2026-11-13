@@ -56,6 +56,24 @@ export function birthdayOf(dob: string | null | undefined): { m: number; d: numb
   return { m, d };
 }
 
+/* THE WHEEL'S OWN DAY IS NOT A BIRTHDAY (TestFlight b43, 2026-11-13: a new account's first letter
+   on Today was "Happy birthday", not the courier's first flight). Onboarding's birthday wheels start
+   on today's date (KObAnswers), so someone who only turns the year keeps today's month and day: the
+   day the account was made. A birthday on the account's first day (local month and day) is taken as
+   that wheel, never as a birthday: no letter, no knock, no stamp, that day or on it in later years.
+   Someone really born on the day they joined goes without those; the date itself is kept (it still
+   gates 18+). Undo: hand the dob straight through again (useTodayDesk, local-push, birthday-stamp). */
+
+/** The birthday the day rules may read: `dob`, or null when its month and day are the account's
+    first day (`createdAt`, an ISO time, read on the local clock). No `createdAt` passes it through. */
+export function trustedBirthday(dob: string | null | undefined, createdAt: string | null | undefined): string | null {
+  if (typeof dob !== "string" || !dob) return null;
+  const b = birthdayOf(dob);
+  const made = createdAt ? new Date(createdAt) : null;
+  if (!b || !made || Number.isNaN(made.getTime())) return dob;
+  return b.m === made.getMonth() + 1 && b.d === made.getDate() ? null : dob;
+}
+
 /**
  * Whether `today` is this reader's birthday: the same month and day; a 29
  * February birthday counts on 28 February in a year without a 29th. No

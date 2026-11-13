@@ -124,6 +124,8 @@ export type KTodayWrenCard = {
   a11yLabel: string;
   /** her picture (a BirdSnapshots capture: she is never redrawn in Swift); null while none is captured yet */
   bird: KImageRefProps | null;
+  /** "Replying to Pip", over the reply box when the reply is written on the desk (wrenReplyHere) */
+  replyingTo?: string;
 };
 
 /** One letter of today's desk for Next's ring (today-cards DeskTick): Swift's band draws a tick per
@@ -283,6 +285,10 @@ export type KTodayViewProps = CommonViewModifierProps &
         of its own evening, the last card leaves and NEXT and REPLY fade. Back to false, a done desk draws the
         old end at rest. An older binary ignores it and plays the old evening under the page's arrival */
     pageAfter?: boolean;
+    /** REPLY on her birthday letter opens the reply box over it (TestFlight b43: it jumped to her room); the
+        send comes back as onReplySend with her card's id. Set it only when todayRepliesToWren() is true: an
+        older binary ignores it and reports the card action "wren" */
+    wrenReplyHere?: boolean;
     wren: KTodayWren;
     /** undo after Next (owner's audit, 2026-11-10): the letter just passed while its Undo capsule is up (TS
         counts the five seconds and every reason it goes early), "" otherwise. The capsule's tap is
@@ -404,6 +410,24 @@ export function todayDrawsWrenCard(): boolean {
     console.log("[kindredly-ui] could not ask KTodayView for wrenCard, her birthday letter stays off:", e);
   }
   drawsWrenCard = there;
+  return there;
+}
+
+let repliesToWren: boolean | undefined;
+/** Whether this binary's KTodayView opens the reply box over her birthday letter (the wrenReplyHere
+    prop: binaries after build 43). False: REPLY on it opens her room. Asked once. */
+export function todayRepliesToWren(): boolean {
+  if (repliesToWren !== undefined) return repliesToWren;
+  let there = false;
+  try {
+    if (requireOptionalNativeModule("KindredlyUI") != null) {
+      const expo = (globalThis as { expo?: ExpoGlobal }).expo;
+      there = expo?.getViewConfig?.("KindredlyUI", "KTodayView")?.validAttributes?.wrenReplyHere != null;
+    }
+  } catch (e) {
+    console.log("[kindredly-ui] could not ask KTodayView for wrenReplyHere, Reply on her letter opens her room:", e);
+  }
+  repliesToWren = there;
   return there;
 }
 

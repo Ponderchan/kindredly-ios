@@ -208,6 +208,8 @@ struct KTodayWrenCardRecord: Record {
   @Field var a11yLabel: String = ""
   /// her picture (an empty uri: none captured yet)
   @Field var bird: KImageRefRecord = KImageRefRecord()
+  /// "Replying to Pip", over the reply box when the reply is written here (wrenReplyHere)
+  @Field var replyingTo: String = ""
 
   /// The card as the desk draws it, or nil for none.
   var model: KLetterCardModel? {
@@ -225,6 +227,7 @@ struct KTodayWrenCardRecord: Record {
     m.bodyCenter = false
     m.endsDay = ends
     m.a11yLabel = a11yLabel
+    m.replyingTo = replyingTo
     return m
   }
 }
@@ -461,6 +464,9 @@ final class KTodayViewProps: KScreenProps {
   /// her birthday letter, standing before `cards` (an empty id: none). TS probes for this prop by
   /// name before offering the letter: keep the name
   @Field var wrenCard: KTodayWrenCardRecord = KTodayWrenCardRecord()
+  /// REPLY on her birthday letter opens the reply box here (KTodayContent.wrenReplyHere). TS probes
+  /// for this prop by name before it sets it: keep the name
+  @Field var wrenReplyHere: Bool = false
 
   var onTodayPass = EventDispatcher()
   var onTodayBringBack = EventDispatcher()
@@ -562,6 +568,7 @@ struct KTodayView: ExpoSwiftUI.View {
     content.plus = KTodayPlus(rawValue: props.plus) ?? .closed
     content.hideBand = props.hideBand
     content.pageAfter = props.pageAfter
+    content.wrenReplyHere = props.wrenReplyHere
     content.wren = props.wren.wren
     content.undoId = props.undoId
     return KTodayDesk(

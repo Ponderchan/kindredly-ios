@@ -11,7 +11,7 @@ import { useWrenSkinControl } from "../../lib/wren-skin";
 import { getAvatarPhoto } from "../../lib/avatar-photo";
 import { ACCESSORY_META, SKINS, bumpStageFloor, getStageFloor, loadHatchSkin, skinUnlocked, stageIndex, useHatchSkin, wrenStage } from "../../lib/wren-style";
 import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
-import { fetchMyWriting, myAura, readAuraCache, readUsedStamps, recordAuraSnapshot, type Aura, type UsedStamp, type WritingRow } from "../../lib/aura";
+import { auraIsCurrent, fetchMyWriting, keptAura, myAura, readAuraCache, readUsedStamps, recordAuraSnapshot, type Aura, type UsedStamp, type WritingRow } from "../../lib/aura";
 import { observeAuraLocks, replanLocal } from "../../lib/local-push";
 import { fetchThreads, readThreadsCache, threadsAge, type ThreadSummary } from "../../lib/db";
 import { fetchCarried, isDozing, recordStageDate, whereabouts, type WhereaboutsRead } from "../../lib/whereabouts";
@@ -242,7 +242,8 @@ export function useMeModel(): MeModel {
 
   const [stats, setStats] = useState<GrowthStats>(EMPTY_STATS);
   const [statsIn, setStatsIn] = useState(false);
-  const [aura, setAura] = useState<Aura | null>(null);
+  // the last card in memory (lib/aura prefetchAuraCard): the Aura tile has its picture in the first frame
+  const [aura, setAura] = useState<Aura | null>(() => keptAura());
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [threadsIn, setThreadsIn] = useState(false);
   /* Me 4a: your letters (the peek and its count; null until read) and the report's door */
@@ -410,17 +411,22 @@ export function useMeModel(): MeModel {
             return;
           }
           // the last read first, so the card is there when the tab is
-          const cached = await readAuraCache();
+          const cached = keptAura() ?? (await readAuraCache());
           if (alive && cached) setAura((cur) => cur ?? cached);
-          // the heaviest thing this tab does waits for the page and the transition
-          await new Promise<void>((r) => InteractionManager.runAfterInteractions(() => setTimeout(r, 250)));
-          if (!alive) return;
-          markWork("me:aura");
-          const a = await myAura(firstLine);
+          /* not read again while nothing new was written and the last full read is under two hours
+             old (lib/aura auraIsCurrent; owner, 2026-11-13: "别时时读了") */
+          const current = auraIsCurrent() ? keptAura() : null;
+          if (!current) {
+            // the heaviest thing this tab does waits for the page and the transition
+            await new Promise<void>((r) => InteractionManager.runAfterInteractions(() => setTimeout(r, 250)));
+            if (!alive) return;
+            markWork("me:aura");
+          }
+          const a = current ?? (await myAura(firstLine));
           if (!alive) return;
           setAura(a);
-          // a stale (offline) read is the kept one: shown, never recorded or announced
-          if (!a.stale) {
+          // a stale (offline) read is the kept one: shown, never recorded or announced; a current one was already
+          if (!current && !a.stale) {
             void recordAuraSnapshot(a);
             void observeAuraLocks(a.locked.map((d) => d.key), false); // a line that settled since the last look (lib/local-push)
           }

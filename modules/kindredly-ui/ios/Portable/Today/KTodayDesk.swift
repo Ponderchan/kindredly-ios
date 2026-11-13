@@ -96,8 +96,9 @@ import SwiftUI
    she was.
  - HER BIRTHDAY LETTER. On the reader's birthday TS puts a letter from their courier first in
    content.cards (KLetterCardModel.wren; KLetterCard draws it on the same sheet). The desk treats
-   it as the card on screen in every way but one: REPLY (the band's, and VoiceOver's "Write
-   back") doesn't open the reply box, it reports the card action "wren", and TS opens her room.
+   it as the card on screen in every way. REPLY (the band's, and VoiceOver's "Write back") opens
+   the reply box over it when TS takes that reply (content.wrenReplyHere: the send is TS's, to her
+   mail); without it REPLY reports the card action "wren", and TS opens her room.
  */
 
 // MARK: - Geometry
@@ -638,8 +639,8 @@ public struct KTodayDesk: View {
   /// REPLY and the card's "Write back": only for the card on screen, while it can be answered.
   private func reply(_ id: String) {
     guard id == deck.shownId, content.phase == .reading, deckEnabled else { return }
-    // her birthday letter: her room, never the reply box (there is no stranger to answer)
-    if shownCard?.wren == true {
+    // her birthday letter: the reply box when TS takes it here (wrenReplyHere), else her room
+    if shownCard?.wren == true, !content.wrenReplyHere {
       actions.onCardAction(id, "wren")
       return
     }

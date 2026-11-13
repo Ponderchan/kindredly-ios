@@ -19,6 +19,20 @@ Sim = can be checked on a simulator; Phone = only a real iPhone shows it.
       UIApplicationSceneManifest, supabase project id ≥1, `appl_` ≥1, review account ≥1, aps production, codesign.
 - [ ] The App Store description says ten letters a day, not fifteen.
 
+## After TestFlight build 43 (owner's feedback, 2026-11-13): test on the next build
+
+- [ ] New account, first day: Today opens on the courier's first flight, never "Happy birthday" (a birthday left on
+      today's month and day is not one; no birthday knock, no birthday stamp either).
+- [ ] On a real birthday (dev page BIRTHDAY on the simulator): Reply opens the box "Replying to Wren"; sending it takes
+      her letter off the desk; a guest is asked to sign up first.
+- [ ] Kindreds, empty page: catch a long line, Write back: Today shows that letter with the reply box, even on a
+      birthday; a long caught letter shows four lines and both buttons above the tab bar.
+- [ ] Me: the Writing Aura tile has its picture as the page opens (after a cold launch too); a new account shows the
+      drawing, never a grey panel.
+- [ ] Notes, first page: the caret is before "what made it so?".
+- [ ] The tab bar and Next/Reply are the system glass: on a white Today in daylight the bar shows as a pale pane; in
+      Dark, Lavender and Paper too; Next and Reply are 58 and their labels clear of the bar.
+
 ## Phone only
 
 - [ ] Sign in with Apple, Google and email; sign out and back in: "Meet Mist." does not come back, Wren's room isn't all

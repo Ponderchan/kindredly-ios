@@ -5,7 +5,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaInsetsContext, SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "../lib/auth";
-import { refreshFingerprint } from "../lib/aura";
+import { prefetchAuraCard, refreshFingerprint } from "../lib/aura";
 import { markWork, noteRoute, startStallProbe } from "../lib/stall-probe";
 import { registerForReplies } from "../lib/notify";
 import { ensurePushObject, lineKey, lineText, rememberMorningQuestion, replanLocal } from "../lib/local-push";
@@ -420,6 +420,8 @@ export default function RootLayout() {
     startSurfaces();
     // Wren's avatar resolved once, so Kindreds and her room never start on her old bird
     prefetchWrenAvatar();
+    // the last Aura card into memory (it waits for auth), so Me's tile opens with its picture
+    prefetchAuraCard();
   }, []);
 
   // the fonts are embedded (theme/post), so nothing waits on them

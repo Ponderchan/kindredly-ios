@@ -5,6 +5,7 @@ import { useAuth } from "./auth";
 import { readSurfaces, remoteSurfaces, subscribeSurfaces, surfacesReady } from "./surfaces";
 import { BIRTHDAY_STAMP, birthdayStampOffered } from "./birthday-stamp-core";
 import "../data/strings-audit-birthday"; // bd.stamp.* (the tray's marker and heading)
+import { trustedBirthday } from "./birthday-core";
 
 /* THE BIRTHDAY STAMP, FOR THE SCREENS (owner's audit, 2026-11-10).
    ────────────────────────────────────────────────────────────────────────
@@ -38,8 +39,9 @@ export function setDevBirthdayStamp(on: boolean): void {
 
 /** Is the birthday stamp on offer right now, for this reader? */
 export function useBirthdayStamp(): boolean {
-  const { profile } = useAuth();
-  const dob = typeof profile?.dob === "string" ? (profile.dob as string) : null;
+  const { profile, user } = useAuth();
+  // never the wheel's own day, the account's first (birthday-core trustedBirthday)
+  const dob = trustedBirthday(typeof profile?.dob === "string" ? (profile.dob as string) : null, user?.created_at);
   /* a screen can mount before the root layout has started lib/surfaces;
      the first to ask makes sure the phone's copy is read and a fresh one asked for */
   useEffect(() => {
