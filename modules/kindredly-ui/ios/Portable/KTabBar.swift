@@ -303,7 +303,12 @@ struct KGlassTone {
       )
     }
     return KGlassTone(
-      tint: Color.white.opacity(0.22),
+      /* frosted white (owner, 2026-11-13: "低导航 透明程度你看看有问题么"). At .22 the thin material's
+         own grey showed through: the bar read darker than a white page (245 against 252) and greyed
+         Lavender's and Paper's colour out, and the page's bottom fade means nothing ever scrolls
+         under it to be frosted. At .72 it is the white of Kindreds' keys on every light page, and
+         anything that does pass behind is still frosted. */
+      tint: Color.white.opacity(0.72),
       topFade: Color.white.opacity(0.55),
       ring: Color.white.opacity(0.85),
       topLine: Color.white.opacity(0.95),
