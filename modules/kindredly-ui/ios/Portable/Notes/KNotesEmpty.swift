@@ -159,13 +159,17 @@ struct KNotesEmpty: View {
             .fixedSize(horizontal: false, vertical: true)
           Spacer(minLength: 0)
         }
-        HStack(alignment: .center, spacing: 2) {
+        // the caret where typing would start, BEFORE the grey ask, as a text field's placeholder sits
+        // after its caret (owner, TestFlight b43, 2026-11-13: "光标要在 no need explain 前面"); centred
+        // on the first line (24.5 tall), the ask running on under it
+        HStack(alignment: .top, spacing: 2) {
+          KNotesCaret(color: theme.ind)
+            .padding(.top, (24.5 - 20) / 2)
           Text(ask)
             .kText(Self.ask)
             .foregroundStyle(theme.faint)
             .multilineTextAlignment(.leading)
             .fixedSize(horizontal: false, vertical: true)
-          KNotesCaret(color: theme.ind)
         }
       }
       .padding(EdgeInsets(top: 14, leading: 16, bottom: 16, trailing: 16))

@@ -201,7 +201,7 @@ public struct KKindredsEmpty: View {
       KCatchSky(theme: theme, width: max(0, width - 32), you: content.you, slips: content.slips, picked: picked, active: content.active) { pick($0) }
         // the slips are laid out at a fixed pitch in a sky of a fixed height (still with Reduce
         // Motion, drifting otherwise): their words stop growing at Large, so a four-line slip never
-        // covers the one under it or runs out of the sky. A caught slip opens its whole letter,
+        // covers the one under it or runs out of the sky. A caught slip opens its letter (four lines of it),
         // which grows as the reader asks.
         .dynamicTypeSize(...DynamicTypeSize.large)
       KKindredsEmptyDeskCard(theme: theme, desk: content.desk, onTap: onDesk)
@@ -707,7 +707,10 @@ struct KCatchLetter: View {
         .kText(.content(19, lineHeight: 27.0 / 19))
         .foregroundStyle(theme.ink)
         .multilineTextAlignment(.leading)
-        .lineLimit(8)
+        // four lines, then "…": a long letter caught here stood eight lines tall and pushed Let it go and
+        // Write back under the tab bar (owner, TestFlight b43, 2026-11-13). The whole letter is Today's,
+        // where Write back takes it
+        .lineLimit(4)
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 10)

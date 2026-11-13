@@ -280,6 +280,11 @@ struct KGlassTone {
   let rest: Color
   /// the count's ring
   let badgeRing: Color
+  /// iPhone's own glass (iOS 26 on): its tint, or nil for the system's as it is. On a white page the
+  /// system's light glass is white too (252 on 255, measured on the simulator 2026-11-13: the owner's
+  /// "白天看不到底导"), so the light themes tint it with a breath of ink and it reads as a pale grey
+  /// pane; the dark glass on a dark page needs none
+  let systemTint: Color?
 
   static func of(_ theme: KTheme) -> KGlassTone {
     let ink = Color(.sRGB, red: 30 / 255, green: 27 / 255, blue: 53 / 255, opacity: 1)
@@ -299,7 +304,8 @@ struct KGlassTone {
         lensRing: Color.white.opacity(0.22),
         lensShadow: [KSoftShadow(y: 3, blur: 10, spread: -4, color: Color.black.opacity(0.45))],
         rest: theme.mute,
-        badgeRing: theme.sf
+        badgeRing: theme.sf,
+        systemTint: nil
       )
     }
     return KGlassTone(
@@ -317,7 +323,8 @@ struct KGlassTone {
       lensRing: Color.white.opacity(0.95),
       lensShadow: [KSoftShadow(y: 3, blur: 10, spread: -4, color: ink.opacity(0.25))],
       rest: Color(hex: "#9C98B3"),
-      badgeRing: Color.white.opacity(0.95)
+      badgeRing: Color.white.opacity(0.95),
+      systemTint: ink.opacity(0.07)
     )
   }
 }
@@ -869,6 +876,21 @@ struct KGlassFace<S: InsettableShape>: View {
   let shape: S
 
   var body: some View {
+    if #available(iOS 26.0, *) {
+      // iPhone's own glass (owner, 2026-11-13, TestFlight b43, beside Apple's Developer app: "我咋感觉底导
+      // 的玻璃不一样的 … 白天看不到底导了", then "用iPhone系统的吧"): the system draws the body, the
+      // refraction and the rim; the caller's soft shadow outside stays, so the bar still lifts off a white page
+      Color.clear
+        .glassEffect(.regular.tint(tone.systemTint), in: shape)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    } else {
+      drawn
+    }
+  }
+
+  /// Our own glass, before iOS 26 (G Prompt 1)
+  private var drawn: some View {
     ZStack {
       Rectangle().fill(.ultraThinMaterial)
       Rectangle().fill(tone.tint)

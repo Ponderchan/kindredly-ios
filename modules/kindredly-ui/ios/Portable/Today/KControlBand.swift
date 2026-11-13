@@ -11,7 +11,7 @@ import SwiftUI
         Next                     Reply
 
  - One row, centred, gap 44: Next's disc, Wren, Reply's disc (26 + 44 + 20 = 90 from the middle
-   to each disc's centre). Discs of 52, both GLASS since 2026-11-09 (owner, proto8 "glass, as the
+   to each disc's centre). Discs of 58 (52 until 2026-11-13), both GLASS since 2026-11-09 (owner, proto8 "glass, as the
    tab bar"): the 10a tab bar's own material (KGlassFace with KGlassTone: the thin material, its
    white tint and top fade, the bright line along the top and the faint dark one along the bottom;
    in Midnight the bar's dark glass), clipped to the disc, and a soft drop outside it only
@@ -21,7 +21,7 @@ import SwiftUI
    / #272443). Since 2026-11-13 a pearl (owner, of mock ③ "珍珠玻璃"): a milky body, a specular
    across the top and a bright rim over the same glass (KBandDiscStyle), the drop closer.
  - No number on Next: the 10 a day are a ceiling, not a task. Instead a ring of ticks drawn ON
-   Next's edge (KDeskRing; the disc keeps its 52): one tick per letter on today's desk, from 12
+   Next's edge (KDeskRing; the disc keeps its size): one tick per letter on today's desk, from 12
    o'clock clockwise, a 2.5 round stroke, 4.5 between ticks (3 past eight letters; the round caps
    take 2.5 of each gap), coloured by how far the reader has got: not yet read #DDDAEE, read
    #B9B5F5, replied #3A34D6 (Midnight: white .16, #6F69D8, #8E89FF, the brief's values kept: on the
@@ -58,8 +58,12 @@ import SwiftUI
 enum KBandLayout {
   /// the band's height (KTodayGeometry.controlHeight)
   static let height: CGFloat = KTodayGeometry.controlHeight
-  /// Next's and Reply's discs
-  static let disc: CGFloat = 52
+  /// Next's and Reply's discs: 58 since 2026-11-13 (owner, TestFlight b43: "那两个圈能不能再稍微大点";
+  /// 52 before), in the same 68 band: see discRise
+  static let disc: CGFloat = 58
+  /// the discs grew by 6 without moving the band or the card: they rise 3 over the band's top, so
+  /// their centres stay where the 52s' were (26 down) and the labels sit only 3 lower
+  static let discRise: CGFloat = (disc - 52) / 2
   /// the label under each disc
   static let labelGap: CGFloat = 6
   /// the row's gap between a disc and Wren
@@ -69,11 +73,11 @@ enum KBandLayout {
   /// Wren's size in the window
   static let windowSize: CGFloat = 34
 
-  /// from the middle to a disc's centre: half Wren, the gap, half a disc (20 + 44 + 26)
+  /// from the middle to a disc's centre: half Wren, the gap, half a disc (20 + 44 + 29)
   static var reach: CGFloat { wrenSize / 2 + gap + disc / 2 }
-  /// Next's centre (106.5 at 393)
+  /// Next's centre (103.5 at 393)
   static func nextX(_ W: CGFloat) -> CGFloat { W / 2 - reach }
-  /// Reply's centre (286.5 at 393)
+  /// Reply's centre (289.5 at 393)
   static func replyX(_ W: CGFloat) -> CGFloat { W / 2 + reach }
 
   /// the window's frame top, band-local (its foot 2 above the band's: 2 down)
@@ -90,7 +94,7 @@ enum KBandLayout {
   /// Wren's centre on the ground, between the buttons on the discs' midline (B8: her foot 26 above
   /// the labels' foot; W/2, 26)
   static func spot(_ W: CGFloat) -> CGPoint {
-    CGPoint(x: W / 2, y: disc / 2)
+    CGPoint(x: W / 2, y: disc / 2 - discRise)
   }
 
   // ── her flight ──
@@ -243,6 +247,7 @@ struct KControlBand: View {
       .frame(width: column, alignment: .top)
       .offset(x: rx - column / 2)
     }
+    .offset(y: -KBandLayout.discRise)
     // loading or offline: at .4 until the desk is there
     .opacity(enabled ? 1 : 0.4)
     .animation(KTodayMotion.bandFade, value: enabled)
@@ -503,10 +508,33 @@ private struct KBandDiscStyle: ButtonStyle {
 
   func makeBody(configuration: Configuration) -> some View {
     let down = configuration.isPressed
-    let tone = KGlassTone.of(theme)
     let dark = theme.isDark
     let disc = Circle()
-    configuration.label
+    if #available(iOS 26.0, *) {
+      // iPhone's own glass, as the tab bar's (owner, 2026-11-13: "用iPhone系统的吧"): the system's body
+      // and rim, the lens under the finger, our drop outside so it lifts off a white page
+      configuration.label
+        .background {
+          ZStack {
+            Color.clear.glassEffect(.regular.tint(KGlassTone.of(theme).systemTint), in: disc)
+            disc.fill(KGlassTone.of(theme).lens).opacity(down ? 1 : 0)
+          }
+          .environment(\.colorScheme, dark ? .dark : .light)
+          .allowsHitTesting(false)
+        }
+        .background { KOuterShadow(shadows: Self.shadows(dark: dark), shape: disc) }
+        .scaleEffect(down ? 0.96 : 1)
+        .animation(down ? Self.press : Self.release, value: down)
+    } else {
+      pearl(configuration.label, down: down, dark: dark)
+    }
+  }
+
+  /// The pearl drawn by hand, before iOS 26 (mock ③)
+  private func pearl(_ label: Configuration.Label, down: Bool, dark: Bool) -> some View {
+    let tone = KGlassTone.of(theme)
+    let disc = Circle()
+    return label
       .background {
         ZStack {
           // the bar's own glass, drawn with the bar's capsule corners as it always was
