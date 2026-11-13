@@ -230,6 +230,8 @@ eq("a look the shelf doesn't hold this week: nothing", shelfTap("skin:plush", ba
   eq("the hint is drawn in capitals; Track is the courier page's word", [v.hint, v.track], ["PLANET.HINT.SPIN", "wren.trackShort"]);
   const off = buildMePlanet({ ...facts, dayOff: true, courier: { ...courier, playing: true, time: "DAY OFF", cta: "Play" } }, mf);
   eq("her day off: the chip says so, she isn't greyed, the button plays", [off.state, off.chip, off.look.wilt, off.cta], ["dayOff", "DAY OFF", false, "Play"]);
+  // her card's face is the one her page opens on (me-pieces cardMood: courier-model heroOf)
+  eq("her face: the one given, else content", [buildMePlanet({ ...facts, mood: "worry" }, mf).look.mood, v.look.mood], ["worry", "content"]);
 }
 
 /* ── the week ── */

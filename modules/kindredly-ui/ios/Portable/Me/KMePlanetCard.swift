@@ -318,8 +318,14 @@ public struct KMePlanetCard: View {
       badge
         .padding(.top, 4)
       if !card.her.journeyTitle.isEmpty, !card.her.stops.isEmpty {
-        KMeJourneyStrip(her: card.her, skin: look.skin, theme: theme)
-          .padding(.top, 12)
+        // her journey is on her page too: a tap goes there
+        SwiftUI.Button(action: { actions.onOpen() }) {
+          KMeJourneyStrip(her: card.her, skin: look.skin, theme: theme)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(KFadePressStyle())
+        .accessibilityAddTraits(.isButton)
+        .padding(.top, 12)
       }
       KMeFlightLogBlock(log: card.log, cta: card.cta, palette: card.planet.palette, theme: theme, live: card.planet.live) {
         actions.onOpen()
@@ -341,40 +347,88 @@ public struct KMePlanetCard: View {
 
   private var look: KWrenLook { card.planet.wren?.look ?? KWrenLook() }
 
-  // ── 1: her badge ── (a tap is Open: her page)
+  /* WHAT A TAP DOES ON HER CARD (owner, 2026-11-13: "什么逻辑 … 任何地方一点就到信使详情页了 还是只点
+     open … 这里的信使有表情同步么"). Above the hairline the card is one way into her page: her name
+     and badge, her journey, her flight log and its Open. She herself is not a door: a tap on her is
+     a poke, as on her page (KCourierScreen tap: the next of the same six faces for 1.4s, a little
+     hop, a light tap felt), so she answers where she stands. Under the hairline each look is its
+     own key (wear it, take it off). Her resting face is her page's own (TS cardMood: hunger's, else
+     a doze after five quiet days, else her whereabouts'), so the face on the card is the face her
+     page opens on. VoiceOver skips the poke and reads the badge as the way in. */
+  @State private var tapN = -1
+  @State private var said: KWrenMood?
+  @State private var sayToken = 0
+  @State private var hop = false
+  @State private var pokes = 0
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  /// her look with the face a poke gave her, while it lasts
+  private var face: KWrenLook {
+    var l = look
+    if let said { l.mood = said }
+    return l
+  }
+
+  private func poke() {
+    pokes += 1
+    tapN = (tapN + 1) % KCourierPerch.tapMoods.count
+    said = KWrenMood(rawValue: KCourierPerch.tapMoods[tapN])
+    sayToken += 1
+    let token = sayToken
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+      if sayToken == token { said = nil }
+    }
+    guard !reduceMotion else { return }
+    withAnimation(.spring(response: 0.18, dampingFraction: 0.5)) { hop = true }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
+      withAnimation(.spring(response: 0.3, dampingFraction: 0.45)) { hop = false }
+    }
+  }
+
+  // ── 1: her badge ── (her: a poke; the rest: her page)
   private var badge: some View {
-    SwiftUI.Button(action: { actions.onOpen() }) {
-      HStack(alignment: .center, spacing: 12) {
+    HStack(alignment: .center, spacing: 12) {
+      SwiftUI.Button(action: poke) {
         ZStack(alignment: .bottom) {
           Ellipse().fill(theme.soft2).frame(width: 100, height: 26)
-          KWrenBird(look, size: 92).offset(y: -9)
+          KWrenBird(face, size: 92).offset(y: -9 - (hop ? 12 : 0))
         }
         .frame(width: 108, height: 98)
-        VStack(alignment: .leading, spacing: 0) {
-          Text(card.her.name)
-            .kText(.system(28, .bold))
-            .foregroundStyle(theme.ink)
-            .lineLimit(1)
-            .minimumScaleFactor(0.6)
-          Text(card.chip)
-            .kText(.mono(10, .bold, tracking: 0.16))
-            .foregroundStyle(theme.isDark ? theme.sub : KMePlanetMetrics.green)
-            .lineLimit(1)
-            .padding(.top, 4)
-          HStack(spacing: 6) {
-            if !card.her.day.isEmpty { tag(card.her.day) }
-            if !card.her.tag.isEmpty { tag(card.her.tag) }
-          }
-          .padding(.top, 9)
-        }
-        Spacer(minLength: 0)
+        .contentShape(Rectangle())
       }
-      .contentShape(Rectangle())
+      // she answers by moving, so nothing fades under the finger (.plain dims her)
+      .buttonStyle(KAsIsButtonStyle())
+      .sensoryFeedback(.impact(weight: .light), trigger: pokes)
+      .accessibilityHidden(true)
+      SwiftUI.Button(action: { actions.onOpen() }) {
+        HStack(spacing: 0) {
+          VStack(alignment: .leading, spacing: 0) {
+            Text(card.her.name)
+              .kText(.system(28, .bold))
+              .foregroundStyle(theme.ink)
+              .lineLimit(1)
+              .minimumScaleFactor(0.6)
+            Text(card.chip)
+              .kText(.mono(10, .bold, tracking: 0.16))
+              .foregroundStyle(theme.isDark ? theme.sub : KMePlanetMetrics.green)
+              .lineLimit(1)
+              .padding(.top, 4)
+            HStack(spacing: 6) {
+              if !card.her.day.isEmpty { tag(card.her.day) }
+              if !card.her.tag.isEmpty { tag(card.her.tag) }
+            }
+            .padding(.top, 9)
+          }
+          Spacer(minLength: 0)
+        }
+        .frame(maxHeight: .infinity)
+        .contentShape(Rectangle())
+      }
+      .buttonStyle(KFadePressStyle())
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(card.a11y)
+      .accessibilityAddTraits(.isButton)
     }
-    .buttonStyle(KFadePressStyle())
-    .accessibilityElement(children: .ignore)
-    .accessibilityLabel(card.a11y)
-    .accessibilityAddTraits(.isButton)
   }
 
   private func tag(_ text: String) -> some View {
@@ -495,18 +549,25 @@ struct KMeFlightLogBlock: View {
           }
         }
         .frame(minHeight: 44)
-        VStack(alignment: .leading, spacing: 8) {
-          if !log.note.isEmpty {
-            Text(log.note)
-              .kText(.content(face.fitSize(14), lineHeight: 18.0 / 14.0))
-              .foregroundStyle(theme.ink)
-              .multilineTextAlignment(.leading)
-              .fixedSize(horizontal: false, vertical: true)
+        // her line and the rows: a tap opens her page, where the slip they come from is
+        SwiftUI.Button(action: onOpen) {
+          VStack(alignment: .leading, spacing: 8) {
+            if !log.note.isEmpty {
+              Text(log.note)
+                .kText(.content(face.fitSize(14), lineHeight: 18.0 / 14.0))
+                .foregroundStyle(theme.ink)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            rows
           }
-          rows
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .contentShape(Rectangle())
         }
+        .buttonStyle(KFadePressStyle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(log.a11y)
+        .accessibilityAddTraits(.isButton)
       }
     }
   }

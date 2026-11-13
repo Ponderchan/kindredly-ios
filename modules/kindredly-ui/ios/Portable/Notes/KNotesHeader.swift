@@ -6,9 +6,8 @@ import SwiftUI
  THE NOTES HEADER (10a, H:50 and H:337, the fused "shrink, then hide" variant) and the date chip
  that takes its place (H:111).
 
-   NOTES                                  [▤ Card] [▦]      74 tall at rest, title 22
-   NOTES                                     [▤] [▦]        48 tall by y≈43, title 15, the
-                                                            view label gone by y≈25
+   NOTES                                  ( ⌕  ▤  ▦ )      74 tall at rest, title 22
+   NOTES                                  ( ⌕  ▤  ▦ )      48 tall by y≈43, title 15
    (gone)       ( [☺] OCT 14 )                              hidden past 120 while scrolling down
 
  Shrink: height clamp(48, 74 − 0.6·y, 74); the title's size clamp(15, 22 − 0.22·y, 22), drawn at 22
@@ -32,14 +31,14 @@ import SwiftUI
  so a scroll frame redraws the header and the chip and nothing else. Dynamic Type is capped at
  .accessibility1 in both, so the 74pt header and the 40pt buttons hold their shape.
 
- The two buttons (owner 10-20: "有点小" beside the bold title): 40pt soft circles, their drawings
- ~20% bigger than the first 34pt keys, each inside a 44pt hit square (KNotesHeaderKey).
+ The keys (owner 2026-11-13, "想象你是苹果的设计水准"): one capsule of the tab bar's glass, 44 tall,
+ each key 44 square with an SF Symbol, a lens under the finger (KGlassKeys; THE THREE KEYS below).
 
- SEARCH (owner's audit, 2026-11-10: no way to find an old page). A third key of the same make, a
+ SEARCH (owner's audit, 2026-11-10: no way to find an old page). A third key in the capsule, a
  magnifier, sits before the two; a tap swaps the row for the system's search row and raises the
  keyboard:
 
-   NOTES                                [⌕] [▤] [▦]
+   NOTES                                 ( ⌕  ▤  ▦ )
    ( ⌕ search your pages            ⊗ )   Cancel     a rounded field on the theme's soft (corners
                                                      10, 36 tall), the magnifier and the ⊗ in mute
                                                      and faint, Cancel in ind at the system's 17
@@ -190,7 +189,8 @@ struct KNotesHeaderBar: View {
   var showsCalendar = true
   /// the keys the rail drew instead (KRailTools: a folding phone's band); left out of this row
   var taken: Set<String> = []
-  let recentGroups: [KMoodGroup]
+  /// the latest day's mood this month: the calendar key's header colour
+  var latestMood: KMoodGroup? = nil
   /// the empty state's header: the title and JUST YOU, never moving
   let empty: Bool
   /// the search row's words and whether it is up (KNotesSearch; no words: no search)
@@ -202,6 +202,10 @@ struct KNotesHeaderBar: View {
   let actions: KNotesActions
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  private var hasSearchKey: Bool { search.available && !taken.contains(KNotesTool.search) }
+  private var hasViewKey: Bool { !taken.contains(KNotesTool.view) }
+  private var hasCalendarKey: Bool { showsCalendar && !taken.contains(KNotesTool.calendar) }
 
   var body: some View {
     let y = empty ? 0 : max(0, chrome.offset)
@@ -225,21 +229,21 @@ struct KNotesHeaderBar: View {
             .kText(Self.justYou)
             .foregroundStyle(theme.sub)
             .lineLimit(1)
-        } else {
-          // 4 between the 44pt hit squares: the 40pt circles stand 8 apart
-          HStack(spacing: 4) {
-            if search.available && !taken.contains(KNotesTool.search) {
-              KNotesSearchButton(theme: theme, a11yName: search.button) {
+        } else if hasSearchKey || hasViewKey || hasCalendarKey {
+          // the keys share one glass capsule (KGlassKeys), as the tab bar's glass
+          KGlassGroup(theme: theme) {
+            if hasSearchKey {
+              KNotesSearchButton(theme: theme, a11yName: search.button, solo: false) {
                 actions.onSearch(true)
               }
             }
-            if !taken.contains(KNotesTool.view) {
-              KNotesViewButton(theme: theme, layout: layout, label: strings.viewLabel(layout), a11yName: strings.viewA11y, y: y) {
+            if hasViewKey {
+              KNotesViewButton(theme: theme, layout: layout, label: strings.viewLabel(layout), a11yName: strings.viewA11y, solo: false) {
                 actions.onCycleView()
               }
             }
-            if showsCalendar && !taken.contains(KNotesTool.calendar) {
-              KNotesCalendarButton(theme: theme, open: calendarOpen, groups: recentGroups, a11yName: strings.calendarA11y) {
+            if hasCalendarKey {
+              KNotesCalendarButton(theme: theme, open: calendarOpen, latest: latestMood, a11yName: strings.calendarA11y, solo: false) {
                 actions.onCalendarToggle(!calendarOpen)
               }
             }
@@ -280,29 +284,28 @@ enum KNotesTool {
   static let search = "notes.search"
 }
 
-/// The header buttons' shared size: a 40pt circle in a 44pt hit square that takes 44 of the row.
-enum KNotesHeaderKey {
-  static let circle: CGFloat = 40
-  static let hit: CGFloat = 44
-}
+/* THE THREE KEYS (owner, 2026-11-13: "感觉有点山寨 … 想象你是苹果的设计水准 做这两个按钮 … 点的时候
+   不能做出毛玻璃么 类似底导航那样的效果么"). They were three grey 40pt discs, each with a line
+   drawing of our own (stacked cards with a hard shadow, a calendar with three tiny mood squares in
+   it): three separate objects, three different hands. Now they are glass keys (KGlassKeys): in the
+   header one capsule of the tab bar's glass holds all three, SF Symbols at a toolbar's size and
+   weight, a lens swelling under the finger as the bar's does. The calendar key no longer carries
+   three tiny mood squares (at 3.6pt they read as noise): its header takes the latest day's mood
+   colour instead, as Calendar's icon wears its red. `solo`
+   (the default) is each key on its own glass disc: the copies the Duo's band draws (KNotesScreen
+   publishTools). */
 
-/// The search key (owner's audit, 2026-11-10): 40 round on the theme's soft like the two beside it,
-/// a magnifier in the same hand and stroke, icon only. A tap asks TS to open the search row.
+/// The search key (owner's audit, 2026-11-10): a magnifier. A tap asks TS to open the search row.
 struct KNotesSearchButton: View {
   let theme: KTheme
   let a11yName: String
+  var solo = true
   let action: () -> Void
 
   var body: some View {
-    SwiftUI.Button(action: action) {
-      KLineIcon(.noteSearch, size: 22, lineWidth: 2, color: theme.ink)
-        .frame(width: KNotesHeaderKey.circle, height: KNotesHeaderKey.circle)
-        .background(Circle().fill(theme.soft))
-        .frame(width: KNotesHeaderKey.hit, height: KNotesHeaderKey.hit)
-        .contentShape(Rectangle())
+    KGlassKey(theme: theme, solo: solo, a11yLabel: a11yName, action: action) {
+      KGlassSymbol("magnifyingglass")
     }
-    .buttonStyle(KFadePressStyle())
-    .accessibilityLabel(a11yName)
   }
 }
 
@@ -413,86 +416,82 @@ struct KNotesSearchRow: View {
   }
 }
 
-/// The view button: 40 round like the calendar beside it, the current view's icon only (owner,
-/// 2026-10-20: no word next to it). A tap cycles Card, Grid, List; the icon swaps with a quick
-/// blur-and-scale so the change reads. VoiceOver still hears the view's name as the value. `y` (the
-/// scroll) is kept for the header's call; the old label used it to collapse.
+extension KNoteLayout {
+  /// The view key's symbol: one family for the three (a column of cards, tiles, rows).
+  var symbol: String {
+    switch self {
+    case .card: return "rectangle.grid.1x2"
+    case .grid: return "square.grid.2x2"
+    case .list: return "list.bullet"
+    }
+  }
+}
+
+/// The view key: the current view's symbol only (owner, 2026-10-20: no word next to it). A tap
+/// cycles Card, Grid, List; the symbol changes with the system's own replace (the old one leaves
+/// downward as the new one drops in), and a selection tick is felt. VoiceOver hears the view's
+/// name as the value.
 struct KNotesViewButton: View {
   let theme: KTheme
   let layout: KNoteLayout
   let label: String
   let a11yName: String
-  let y: CGFloat
+  var solo = true
   let action: () -> Void
 
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
   var body: some View {
-    SwiftUI.Button(action: action) {
-      // the card drawing sits smaller in its square than grid's and list's: drawn at 25 it reads the
-      // same size beside their 22 (owner, 2026-10-20; ~20% up from 21/18 on 10-20 evening)
-      KLineIcon(layout.glyph, size: layout == .card ? 25 : 22, lineWidth: 2, color: theme.ink)
-        .frame(width: 25, height: 25)
-        .id(layout)
-        .transition(reduceMotion ? .opacity : .scale(scale: 0.6).combined(with: .opacity))
-        .frame(width: KNotesHeaderKey.circle, height: KNotesHeaderKey.circle)
-        // (owner, 10-20: no black rings) a soft round key, as iOS draws one
-        .background(Circle().fill(theme.soft))
-        .frame(width: KNotesHeaderKey.hit, height: KNotesHeaderKey.hit)
-        .contentShape(Rectangle())
-        .animation(.spring(duration: 0.28, bounce: 0.25), value: layout)
+    KGlassKey(theme: theme, solo: solo, a11yLabel: a11yName, a11yValue: label, action: action) {
+      KGlassSymbol(layout.symbol)
+        .contentTransition(.symbolEffect(.replace.downUp))
+        .animation(.smooth(duration: 0.3), value: layout)
     }
-    .buttonStyle(KFadePressStyle())
-    .accessibilityLabel(a11yName)
-    .accessibilityValue(label)
+    .sensoryFeedback(.selection, trigger: layout)
   }
 }
 
-/// The calendar button: 40 round, the calendar drawing with the month's three latest days in their
-/// groups' ink (empty slots in line) in one row inside the page, measured on the drawing's 24 grid
-/// so they scale with it (six in two rows, placed in points, spilled over the outline; the owner's
-/// card layouts draw three, 2026-10-18), lav while the overlay is open (H:50, H:181, H:347). On a dark
-/// theme the squares take their groups' pale fill instead: the button's face is dark there (sf, or
-/// lav while open), and Tired's and Low's inks (#3A34D6, #3B6E9B) sank into it like empty slots.
+/// The calendar key: the calendar symbol, its header in the colour of your latest day's mood this
+/// month (owner, 2026-11-13: "日历那个没带点色彩?"), as Calendar's own icon wears its red; ink with
+/// no page yet this month. While the calendar is open the key is on: a lens tinted with the theme's
+/// indigo, the whole symbol in indigo.
 struct KNotesCalendarButton: View {
   let theme: KTheme
   let open: Bool
-  let groups: [KMoodGroup]
+  /// the latest day's mood group this month (TS recentGroups, its newest); nil for none
+  var latest: KMoodGroup? = nil
   let a11yName: String
+  var solo = true
   let action: () -> Void
 
   var body: some View {
-    SwiftUI.Button(action: action) {
-      ZStack(alignment: .topLeading) {
-        KLineIcon(.noteCalendar, size: Self.size, lineWidth: 1.9, color: theme.ink)
-        // the drawing's own three slots on its 24 grid (x 5 / 10.2 / 15.4, y 13), filled with the moods
-        HStack(spacing: Self.gap * Self.unit) { square(0); square(1); square(2) }
-          .offset(x: 5 * Self.unit, y: 13 * Self.unit)
-      }
-      .frame(width: Self.size, height: Self.size)
-      .frame(width: KNotesHeaderKey.circle, height: KNotesHeaderKey.circle)
-      // (owner, 10-20: no black rings) soft, lav while the calendar is open
-      .background(Circle().fill(open ? theme.lav : theme.soft))
-      .frame(width: KNotesHeaderKey.hit, height: KNotesHeaderKey.hit)
-      .contentShape(Rectangle())
-      .animation(KMotion.notesCalendarFill, value: open)
+    KGlassKey(theme: theme, solo: solo, on: open, a11yLabel: a11yName, action: action) {
+      KCalendarSymbol(header: open ? nil : latest.map { headerInk($0) })
     }
-    .buttonStyle(KFadePressStyle())
-    .accessibilityLabel(a11yName)
-    .accessibilityAddTraits(open ? .isSelected : [])
+    .sensoryFeedback(.selection, trigger: open)
   }
 
-  /// the drawing's size (20 → 24 on 10-20: the owner found the key small), points per unit of its
-  /// 24 grid, and the squares' size and gap in units
-  private static let size: CGFloat = 24
-  private static let unit: CGFloat = size / 24
-  private static let square: CGFloat = 3.6
-  private static let gap: CGFloat = 1.6
+  /// the mood's ink on a light theme; on a dark one, halfway to its pale fill (the ink alone sinks
+  /// into the dark glass, the fill alone is as pale as the symbol's own light ink)
+  private func headerInk(_ g: KMoodGroup) -> Color {
+    theme.isDark ? g.mood.ink.mix(with: g.mood.fill, by: 0.5) : g.mood.ink
+  }
+}
 
-  private func square(_ i: Int) -> some View {
-    RoundedRectangle(cornerRadius: 1 * Self.unit, style: .circular)
-      .fill(i < groups.count ? (theme.isDark ? groups[i].mood.fill : groups[i].mood.ink) : theme.line)
-      .frame(width: Self.square * Self.unit, height: Self.square * Self.unit)
+/// The calendar symbol with its header (the top 29% of the drawing, the solid bar) in a colour of
+/// its own: the symbol is one layer, so the colour is a band masked by the symbol itself.
+struct KCalendarSymbol: View {
+  let header: Color?
+
+  var body: some View {
+    KGlassSymbol("calendar")
+      .overlay {
+        if let header {
+          GeometryReader { g in
+            Rectangle().fill(header).frame(height: g.size.height * 0.29)
+          }
+          .mask(KGlassSymbol("calendar"))
+          .allowsHitTesting(false)
+        }
+      }
   }
 }
 

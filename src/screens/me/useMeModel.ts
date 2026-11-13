@@ -14,7 +14,7 @@ import { EMPTY_STATS, collectGrowthStats } from "../../lib/stats";
 import { fetchMyWriting, myAura, readAuraCache, readUsedStamps, recordAuraSnapshot, type Aura, type UsedStamp, type WritingRow } from "../../lib/aura";
 import { observeAuraLocks, replanLocal } from "../../lib/local-push";
 import { fetchThreads, readThreadsCache, threadsAge, type ThreadSummary } from "../../lib/db";
-import { fetchCarried, recordStageDate, whereabouts, type WhereaboutsRead } from "../../lib/whereabouts";
+import { fetchCarried, isDozing, recordStageDate, whereabouts, type WhereaboutsRead } from "../../lib/whereabouts";
 import { hungerRead, type HungerRead } from "../../lib/hunger";
 import { isDayOff, noteWork, useFlightBest } from "../../lib/free-flight";
 import { flightLog, type LogEntry } from "../../lib/flight-log";
@@ -116,6 +116,9 @@ export type MeCourier = {
   stage: WrenStage;
   dayOff: boolean;
   best: number;
+  /** asleep at home after five quiet days (lib/whereabouts isDozing), as her page has her; the
+      card's face follows it (me-pieces cardMood). Absent (the dev pages): awake */
+  dozy?: boolean;
   /** the diary line both the card and VoiceOver read */
   entry: LogEntry;
 };
@@ -281,6 +284,8 @@ export function useMeModel(): MeModel {
   }, []);
   const [used, setUsed] = useState<UsedStamp[]>([]);
   const [shelf, setShelf] = useState<Minted[]>([]);
+  // her doze (five quiet days at home), read with her carried letters below
+  const [dozy, setDozy] = useState(false);
   const [fresh, setFresh] = useState<ReadonlySet<string>>(() => new Set());
   const [segment, setSegment] = useState(() => segmentIndex(session.segment));
   const [scrollSerial, setScrollSerial] = useState(0);
@@ -424,6 +429,7 @@ export function useMeModel(): MeModel {
           // her keepsakes, with the context her room mints them in (WrenHome)
           const [carried, journal] = await Promise.all([fetchCarried(), loadJournal().catch(() => [])]);
           if (!alive) return;
+          setDozy(isDozing(carried));
           const minted = await mint({ carried, threads: threadsRef.current, journal, commonWords: a.commonWords[0] ? [a.commonWords[0]] : [], joinedAt: user?.created_at ?? null });
           const f = await unseen(minted);
           if (!alive) return;
@@ -663,8 +669,8 @@ export function useMeModel(): MeModel {
   const courier = useMemo<MeCourier>(() => {
     // while the Post's letter waits, Wren's line on the card is about it
     const invite = fc.view.courierLine ? { ...entry, line: fc.view.courierLine, sub: fc.view.courierSub } : entry;
-    return { wren, where, threads, lastWrittenAt, hunger: fc.view.courierLine ? null : hunger, seenToday: seenTodayN, stage: stageNow, dayOff, best, entry: invite };
-  }, [wren, where, threads, lastWrittenAt, hunger, seenTodayN, stageNow, dayOff, best, entry, fc.view.courierLine, fc.view.courierSub]);
+    return { wren, where, threads, lastWrittenAt, hunger: fc.view.courierLine ? null : hunger, seenToday: seenTodayN, stage: stageNow, dayOff, best, entry: invite, dozy };
+  }, [wren, where, threads, lastWrittenAt, hunger, seenTodayN, stageNow, dayOff, best, entry, fc.view.courierLine, fc.view.courierSub, dozy]);
 
   /* her flight log on the planet's card (planet-log): the run she is on, your newest letter
      nobody has answered, and whether her own line still has to be said — the Post's letter,

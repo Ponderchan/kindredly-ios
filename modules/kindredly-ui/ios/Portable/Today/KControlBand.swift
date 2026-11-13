@@ -18,7 +18,8 @@ import SwiftUI
    (KOuterShadow: 0 6 16 ink .10 and a .5 hairline in ink .07; Midnight black .5), so the disc
    lifts off the page. The bar's 32-blur shadow is sized for a 62-tall capsule and would swallow a
    52 disc, hence the disc's own (the prototype's numbers). Before, they were flat gray 6 (#F2F1F6
-   / #272443).
+   / #272443). Since 2026-11-13 a pearl (owner, of mock ③ "珍珠玻璃"): a milky body, a specular
+   across the top and a bright rim over the same glass (KBandDiscStyle), the drop closer.
  - No number on Next: the 10 a day are a ceiling, not a task. Instead a ring of ticks drawn ON
    Next's edge (KDeskRing; the disc keeps its 52): one tick per letter on today's desk, from 12
    o'clock clockwise, a 2.5 round stroke, 4.5 between ticks (3 past eight letters; the round caps
@@ -474,16 +475,20 @@ private enum KBandGlyph: Shape {
 }
 
 /// A band disc: the tab bar's glass (KGlassFace in the theme's KGlassTone) clipped to the circle,
-/// its soft drop outside it; pressed, the bar lens's tint over the glass and .96 (80ms out),
-/// springing back over .25s on cubic-bezier(.3, 1.3, .5, 1).
+/// made a pearl (owner, 2026-11-13, of mock ③ "珍珠玻璃": "ok"): a milky body over the glass, a
+/// soft specular across its top, a bright rim with a faint dark one at its foot, and a close soft
+/// drop outside it only. On the white page the glass has nothing behind it to show, so this is
+/// what glass reads as there (as iOS's own on white): a pearl with a lit edge. Pressed, the bar
+/// lens's tint over the glass and .96 (80ms out), springing back over .25s on
+/// cubic-bezier(.3, 1.3, .5, 1).
 private struct KBandDiscStyle: ButtonStyle {
   let theme: KTheme
 
   static let press = Animation.easeOut(duration: 0.08)
   static let release = Animation.timingCurve(0.3, 1.3, 0.5, 1, duration: 0.25)
 
-  /// the disc's drop (the prototype's glass: 0 6 16 ink .10, and a .5 hairline in ink .07 so the
-  /// glass has an edge on a pale page); Midnight's in black, its edge the glass's own white ring
+  /// the disc's drop (mock ③: a .5 hairline in ink .07, 0 8 22 −8 ink .28 close under it, 0 1 3
+  /// ink .08); Midnight's in black, its edge the glass's own white ring
   static func shadows(dark: Bool) -> [KSoftShadow] {
     let ink = Color(.sRGB, red: 30 / 255, green: 27 / 255, blue: 53 / 255, opacity: 1)
     if dark {
@@ -491,26 +496,49 @@ private struct KBandDiscStyle: ButtonStyle {
     }
     return [
       KSoftShadow(y: 0, blur: 0, spread: 0.5, color: ink.opacity(0.07)),
-      KSoftShadow(y: 6, blur: 16, color: ink.opacity(0.10)),
+      KSoftShadow(y: 8, blur: 22, spread: -8, color: ink.opacity(0.28)),
+      KSoftShadow(y: 1, blur: 3, color: ink.opacity(0.08)),
     ]
   }
 
   func makeBody(configuration: Configuration) -> some View {
     let down = configuration.isPressed
     let tone = KGlassTone.of(theme)
+    let dark = theme.isDark
     let disc = Circle()
     configuration.label
       .background {
         ZStack {
           // the bar's own glass, drawn with the bar's capsule corners as it always was
           KGlassFace(tone: tone, shape: RoundedRectangle(cornerRadius: KTabBarMetrics.corner, style: .circular))
+          // the pearl's body: milk over the glass, a little thinner at the foot
+          disc.fill(LinearGradient(
+            colors: dark ? [Color.white.opacity(0.10), Color.white.opacity(0.03)] : [Color.white.opacity(0.62), Color(hex: "#F6F5FB").opacity(0.44)],
+            startPoint: .top, endPoint: .bottom))
+          // its specular: a soft oval of light across the top (on 64: 40 wide, 22 tall, 5 down)
+          GeometryReader { g in
+            Ellipse()
+              .fill(LinearGradient(colors: [Color.white.opacity(dark ? 0.20 : 0.85), Color.white.opacity(0)], startPoint: .top, endPoint: .bottom))
+              .frame(width: g.size.width * 0.625, height: g.size.height * 0.34)
+              .position(x: g.size.width / 2, y: g.size.height * (0.08 + 0.17))
+          }
           disc.fill(tone.lens).opacity(down ? 1 : 0)
         }
         .clipShape(disc)
+        // the rim: a bright line all round, brighter along the top, a faint dark one at the foot
+        .overlay(disc.strokeBorder(Color.white.opacity(dark ? 0.20 : 0.95), lineWidth: 0.5))
+        .overlay(
+          disc.strokeBorder(LinearGradient(colors: [Color.white.opacity(dark ? 0.30 : 1), Color.white.opacity(0)], startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.3)), lineWidth: 1.5)
+        )
+        .overlay(
+          disc.strokeBorder(LinearGradient(colors: [Color.clear, (dark ? Color.black.opacity(0.3) : tone.bottomLine)], startPoint: UnitPoint(x: 0.5, y: 0.7), endPoint: .bottom), lineWidth: 1.5)
+            .blur(radius: 1)
+        )
         // the material reads the theme's light or dark, as the tab bar's does
-        .environment(\.colorScheme, theme.isDark ? .dark : .light)
+        .environment(\.colorScheme, dark ? .dark : .light)
+        .allowsHitTesting(false)
       }
-      .background { KOuterShadow(shadows: Self.shadows(dark: theme.isDark), shape: disc) }
+      .background { KOuterShadow(shadows: Self.shadows(dark: dark), shape: disc) }
       .scaleEffect(down ? 0.96 : 1)
       .animation(down ? Self.press : Self.release, value: down)
   }

@@ -160,7 +160,8 @@ public struct KNotesContent: Equatable, Sendable {
   public var empty = false
   public var layout: KNoteLayout = .card
   public var calendarOpen = false
-  /// the calendar button's six squares (fewer leave the rest empty)
+  /// the month's latest days' moods, oldest to newest (TS recentGroups); since 2026-11-13 only the
+  /// newest is drawn, as the calendar key's header colour (it drew six small squares before)
   public var recentGroups: [KMoodGroup] = []
   /// her first-visit line; "" when it doesn't show
   public var wrenLine = ""
@@ -435,7 +436,7 @@ public struct KNotesScreen: View {
   private func toolsSignature(spread: Bool) -> String {
     let c = content
     return [
-      theme.key, String(describing: c.layout), c.calendarOpen ? "open" : "shut", String(describing: c.recentGroups),
+      theme.key, String(describing: c.layout), c.calendarOpen ? "open" : "shut", String(describing: c.recentGroups.last),
       c.strings.viewA11y, c.strings.viewLabel(c.layout), c.strings.calendarA11y, c.search.button,
       spread ? "spread" : "page", c.empty ? "empty" : "notes", c.search.on ? "searching" : "",
     ].joined(separator: "|")
@@ -453,14 +454,14 @@ public struct KNotesScreen: View {
     let actions = actions
     var tools: [KRailTool] = [
       KRailTool(KNotesTool.view) {
-        KNotesViewButton(theme: theme, layout: c.layout, label: c.strings.viewLabel(c.layout), a11yName: c.strings.viewA11y, y: 0) {
+        KNotesViewButton(theme: theme, layout: c.layout, label: c.strings.viewLabel(c.layout), a11yName: c.strings.viewA11y) {
           actions.onCycleView()
         }
       },
     ]
     if !spread {
       tools.append(KRailTool(KNotesTool.calendar) {
-        KNotesCalendarButton(theme: theme, open: c.calendarOpen, groups: c.recentGroups, a11yName: c.strings.calendarA11y) {
+        KNotesCalendarButton(theme: theme, open: c.calendarOpen, latest: c.recentGroups.last, a11yName: c.strings.calendarA11y) {
           actions.onCalendarToggle(!c.calendarOpen)
         }
       })
@@ -493,7 +494,7 @@ public struct KNotesScreen: View {
             calendarOpen: content.calendarOpen,
             showsCalendar: !spread,
             taken: railTools.taken(.notes),
-            recentGroups: content.recentGroups,
+            latestMood: content.recentGroups.last,
             empty: content.empty,
             search: content.search,
             searchField: driver.searchField,

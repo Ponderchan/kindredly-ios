@@ -15,7 +15,8 @@ import { AURA_ART_HAS } from "../../components/AuraCard";
 import { courierCardModel, daylight, type CourierCardModel } from "../../components/courier-card-model";
 import { auraArtPlan, nativeDeskPaint, scenePalette, type AuraArtPlan } from "../../components/aura-art-model";
 import { auraSlotPalette, type AuraCardVM, type SlotTokens } from "./me-model";
-import { buildMePlanet, type MePlanetVM, type PlanetStampsSource } from "./planet-model";
+import { buildMePlanet, type MePlanetVM, type PlanetMood, type PlanetStampsSource } from "./planet-model";
+import { heroOf } from "../courier/courier-model";
 import { useWrenStage } from "../../lib/wren-stage";
 import type { HatchlingForm } from "../../lib/hatchling-form";
 import type { MeCourier, MeModel } from "./useMeModel";
@@ -272,9 +273,17 @@ export function mePlanetOf(model: MeModel, stamps: PlanetStampsSource, hour?: nu
       stamps,
       stage: courier.stage,
       wilt: !!courier.hunger?.wilt,
+      mood: cardMood(courier),
     },
     { t, upper: (s) => s.toLocaleUpperCase(), wren: courier.wren, ago: (at) => agoLabel(at), notesUnit: notesUnit(), notesUnitOne: t("m4.unit.noteOne") },
   );
+}
+
+/** Her face on her card: the one her page opens on, by her page's own rule (courier-model heroOf),
+    so the two never show different faces (owner, 2026-11-13: "这里的信使有表情同步么"). */
+export function cardMood(courier: MeCourier): PlanetMood {
+  const hungry = courier.hunger ? { mood: courier.hunger.mood, line: courier.hunger.line, wilt: courier.hunger.wilt } : null;
+  return heroOf({ stage: courier.stage, hungry, dozy: !!courier.dozy, where: courier.where, whereMood: WHEREABOUTS_META[courier.where.state].mood }).mood;
 }
 
 /** "notes" for under a number: the Notes tab's own name, in small letters where the language
@@ -288,7 +297,7 @@ function notesUnit(): string {
 export function mePlanetData(vm: MePlanetVM, palette: CourierCardModel["palette"], own: { form: HatchlingForm | null; mark: string | null }, live: boolean): KMePlanetData {
   // the hatchling's proportions and her birthmark are hers at the hatch stage only (WrenBird)
   const hatch = vm.look.stage === "hatch";
-  const look: KWrenLookData = { skin: vm.look.skin, stage: vm.look.stage, accessory: vm.look.dress, wilt: vm.look.wilt, form: hatch ? own.form : null, mark: hatch ? own.mark : null };
+  const look: KWrenLookData = { skin: vm.look.skin, stage: vm.look.stage, mood: vm.look.mood, accessory: vm.look.dress, wilt: vm.look.wilt, form: hatch ? own.form : null, mark: hatch ? own.mark : null };
   return {
     on: true,
     live,

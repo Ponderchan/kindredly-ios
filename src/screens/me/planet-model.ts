@@ -612,13 +612,21 @@ export type MePlanetFacts = {
   /** what she looks like: the stage she is at, and whether hunger has greyed her */
   stage: PlanetStage;
   wilt: boolean;
+  /** her face on her page (courier-model heroOf: hunger's, else asleep at home after five quiet
+      days, else her whereabouts'), so her card shows the face her page opens on (owner,
+      2026-11-13: "这里的信使有表情同步么"); "content" when not given */
+  mood?: PlanetMood;
 };
+
+/** her faces, as components/WrenBird and Swift's KWrenMood name them */
+export type PlanetMood = "content" | "happy" | "listen" | "sleepy" | "curious" | "delight" | "think" | "wink" | "worry";
 
 export type MePlanetVM = {
   state: PlanetWrenState;
   napping: boolean;
-  /** an egg has no bird to fly: the planet draws the egg on top */
-  look: { skin: PlanetSkin; dress: PlanetDress; stage: PlanetStage; wilt: boolean };
+  /** an egg has no bird to fly: the planet draws the egg on top. `mood` is her card's face only:
+      the planet sets her face on the cover itself, by what she is doing there */
+  look: { skin: PlanetSkin; dress: PlanetDress; stage: PlanetStage; wilt: boolean; mood: PlanetMood };
   letters: PlanetLetterVM[];
   chip: string;
   hint: string;
@@ -649,7 +657,7 @@ export function buildMePlanet(f: MePlanetFacts, fmt: CoverFormat): MePlanetVM {
     state: planetWrenState(f.where, f.dayOff),
     napping: planetNapping(f.where),
     // on her day off she is drawn without hunger's grey, as the game's cover draws her
-    look: { skin: f.shelf.skin, dress: f.shelf.dress, stage: f.stage, wilt: f.wilt && !f.dayOff },
+    look: { skin: f.shelf.skin, dress: f.shelf.dress, stage: f.stage, wilt: f.wilt && !f.dayOff, mood: f.mood ?? "content" },
     letters: f.letters,
     chip,
     hint: fmt.upper(t("planet.hint.spin")),
