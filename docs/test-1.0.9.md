@@ -11,8 +11,10 @@ Sim = can be checked on a simulator; Phone = only a real iPhone shows it.
 - [x] The iOS 27 scene plugin is in app.json (`plugins/with-scene-lifecycle`).
 - [x] The cloud build uses Xcode 27.2 (`eas.json` production `image: macos-tahoe-26.6-xcode-27.2`). Build 42 was the
       iOS 26.5 SDK: on the Duo it would show in compatibility mode. The Duo's two screens edge to edge need 27.1+.
-- [ ] Owner: keep `meplanet` and `afterfifteen` ON by default for the release? (both ON now; a false row in
-      app_surfaces turns either off without a build)
+- [x] `meplanet` and `afterfifteen` stay ON by default for the release (owner, 2026-11-13: "默认开着吧"; a false row
+      in app_surfaces turns either off without a build).
+- [x] Ten letters a day (owner: "读信数字10确定了"): DAY_LETTERS = 10 builds the desk, and Next's ring draws one tick per
+      letter on it, so a full day is ten ticks (design/next-ring-ten.png); the lock screen's row is ten long.
 - [ ] After the build (Claude): unzip the ipa — version 1.2.8 / build, widget the same number, DTSDKName iphoneos27.2,
       UIApplicationSceneManifest, supabase project id ≥1, `appl_` ≥1, review account ≥1, aps production, codesign.
 - [ ] The App Store description says ten letters a day, not fifteen.
