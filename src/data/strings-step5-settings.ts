@@ -27,6 +27,8 @@ strings(
   {
     // Settings: the appearance group (theme swatches, Match system, the Letter font)
     "set.sec.appearance": "APPEARANCE",
+    // the Appearance row in Settings and its own page's title (owner, 2026-11-13)
+    "set.appearance": "Appearance",
     "set.matchSystem": "Match system",
     // {night} and {day} are the themes' own names (theme.*), so this line never names a theme
     // differently from its swatch
@@ -79,6 +81,7 @@ strings(
   /* ── es ── */
   {
     "set.sec.appearance": "APARIENCIA",
+    "set.appearance": "Apariencia",
     "set.matchSystem": "Igual que el sistema",
     "set.matchSystem.on": "{night} cuando oscurece · {day} de día",
     "set.matchSystem.off": "Siempre {theme}",
@@ -108,6 +111,7 @@ strings(
   /* ── pt ── */
   {
     "set.sec.appearance": "APARÊNCIA",
+    "set.appearance": "Aparência",
     "set.matchSystem": "Seguir o sistema",
     "set.matchSystem.on": "{night} ao escurecer · {day} de dia",
     "set.matchSystem.off": "Sempre {theme}",
@@ -137,6 +141,7 @@ strings(
   /* ── id ── */
   {
     "set.sec.appearance": "TAMPILAN",
+    "set.appearance": "Tampilan",
     "set.matchSystem": "Ikuti sistem",
     "set.matchSystem.on": "{night} saat gelap · {day} saat terang",
     "set.matchSystem.off": "Selalu {theme}",
@@ -166,6 +171,7 @@ strings(
   /* ── fr ── */
   {
     "set.sec.appearance": "APPARENCE",
+    "set.appearance": "Apparence",
     "set.matchSystem": "Suivre le système",
     "set.matchSystem.on": "{night} la nuit · {day} le jour",
     "set.matchSystem.off": "Toujours {theme}",
@@ -195,6 +201,7 @@ strings(
   /* ── de ── */
   {
     "set.sec.appearance": "ERSCHEINUNGSBILD",
+    "set.appearance": "Erscheinungsbild",
     "set.matchSystem": "Dem System folgen",
     "set.matchSystem.on": "{night} im Dunkeln · {day} bei Tag",
     "set.matchSystem.off": "Immer {theme}",
@@ -224,6 +231,7 @@ strings(
   /* ── it ── */
   {
     "set.sec.appearance": "ASPETTO",
+    "set.appearance": "Aspetto",
     "set.matchSystem": "Segui il sistema",
     "set.matchSystem.on": "{night} col buio · {day} di giorno",
     "set.matchSystem.off": "Sempre {theme}",
@@ -253,6 +261,7 @@ strings(
   /* ── ja ── */
   {
     "set.sec.appearance": "見た目",
+    "set.appearance": "見た目",
     "set.matchSystem": "システムに合わせる",
     "set.matchSystem.on": "夜は「{night}」 · 昼は「{day}」",
     "set.matchSystem.off": "いつも「{theme}」",
@@ -282,6 +291,7 @@ strings(
   /* ── ko ── */
   {
     "set.sec.appearance": "모양",
+    "set.appearance": "화면 모양",
     "set.matchSystem": "시스템 설정 따르기",
     "set.matchSystem.on": "어두울 땐 {night} · 밝을 땐 {day}",
     "set.matchSystem.off": "항상 {theme}",

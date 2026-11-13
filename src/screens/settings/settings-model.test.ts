@@ -282,6 +282,18 @@ const facts = (over: Partial<SettingsFacts> = {}): SettingsFacts => ({
   ok("the light themes' red is the old #B23838's neighbour", dangerInk("#1E1B35") === "#B03D3A");
 }
 
+/* APPEARANCE, ITS OWN PAGE (owner, 2026-11-13): one row on Settings where the binary draws the page */
+{
+  const inline = buildSettingsView(facts(), t);
+  ok("appearance: inline on Settings unless the binary draws its page", inline.appearance.inline && inline.groups[0].key === "account");
+  const own = buildSettingsView(facts({ appearancePage: true, previewDate: "NOV.13" }), t);
+  const row = own.groups[0].rows[0];
+  ok("appearance: its own page puts one row first, to /me/appearance", !own.appearance.inline && own.groups[0].key === "appearance" && own.groups[0].header === "" && row.key === "appearance" && ROW_ROUTES.appearance === "/me/appearance");
+  ok("appearance: the row says the appearance, by its swatch's name", row.label === "set.appearance" && row.value === "fc2.ap.system" && row.chevron);
+  ok("appearance: the sample letter is the pen name, today's postmark and the onboarding line", own.appearance.preview.date === "NOV.13" && own.appearance.preview.body === "ob2.doorstep.s1.head" && own.appearance.title === "set.appearance");
+  ok("appearance: the other groups keep their order behind it", own.groups.slice(1).map((g) => g.key).join(",") === inline.groups.map((g) => g.key).join(","));
+}
+
 if (fails) {
   console.log(`\n${fails} failed`);
   process.exit(1);

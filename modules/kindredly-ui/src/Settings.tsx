@@ -30,6 +30,11 @@ export type KSettingsStrings = {
   fontLabel: string;
   fontSub: string;
   footer: string;
+  /** the Appearance page: its title and its sample letter (a binary before it ignores them) */
+  appearanceTitle?: string;
+  previewName?: string;
+  previewDate?: string;
+  previewBody?: string;
 };
 
 /** The First Class card at the top: the 4a card Me draws (Swift KMeFirstClassCard; TS
@@ -88,6 +93,11 @@ export type KSettingsViewProps = CommonViewModifierProps &
     fonts: KSettingsFont[];
     selectedFont: string;
     groups: KSettingsGroup[];
+    /** "appearance": the same view draws Appearance as its own page. Probe for it with
+        kindredlyUIViewHasProp("KSettingsView", "page") before moving Appearance off Settings */
+    page?: "main" | "appearance";
+    /** the swatches and the fonts on the Settings page (false: the Appearance row stands for them) */
+    appearanceInline?: boolean;
     onBack?: () => void;
     onBanner?: () => void;
     onTheme?: (key: string) => void;

@@ -38,6 +38,10 @@ export const nativeStrings = (v: SettingsView): KSettingsStrings => ({
   fontLabel: v.appearance.fontLabel,
   fontSub: v.appearance.fontSub,
   footer: v.footer,
+  appearanceTitle: v.appearance.title,
+  previewName: v.appearance.preview.name,
+  previewDate: v.appearance.preview.date,
+  previewBody: v.appearance.preview.body,
 });
 
 export const nativeGroups = (v: SettingsView): KSettingsGroup[] =>
@@ -48,7 +52,8 @@ export const nativeGroups = (v: SettingsView): KSettingsGroup[] =>
     rows: g.rows.map((r) => ({ key: r.key, symbol: r.symbol, label: r.label, value: r.value, sub: r.sub, chevron: r.chevron, kind: r.kind, on: r.on, busy: r.busy })),
   }));
 
-export function SettingsNative({ model }: { model: SettingsModel }) {
+/** page "appearance": the same view, drawing Appearance as its own page (/me/appearance) */
+export function SettingsNative({ model, page = "main" }: { model: SettingsModel; page?: "main" | "appearance" }) {
   const { key: theme } = useTheme();
   const letterFont = useLetterFont();
   const insets = useScreenInsets();
@@ -76,9 +81,9 @@ export function SettingsNative({ model }: { model: SettingsModel }) {
       [view.banner, bird],
     ),
   );
-  const { selectedTheme, selectedFont } = view.appearance;
+  const { selectedTheme, selectedFont, inline } = view.appearance;
   // over every record AND the small values: Swift converts the whole page once per rev
-  const rev = useRev(strings, groups, swatches, fonts, banner, selectedTheme, selectedFont);
+  const rev = useRev(strings, groups, swatches, fonts, banner, selectedTheme, selectedFont, inline, page);
 
   return (
     <SurfaceHost>
@@ -96,6 +101,8 @@ export function SettingsNative({ model }: { model: SettingsModel }) {
         fonts={fonts}
         selectedFont={selectedFont}
         groups={groups}
+        page={page}
+        appearanceInline={inline}
         onBack={act.back}
         onBanner={act.banner}
         onTheme={act.theme}

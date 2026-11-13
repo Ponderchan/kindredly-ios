@@ -50,6 +50,11 @@ struct KSettingsStringsRecord: Record {
   @Field var fontLabel: String = ""
   @Field var fontSub: String = ""
   @Field var footer: String = ""
+  /// the Appearance page: its title, and its sample letter (the pen name, today's postmark, a line)
+  @Field var appearanceTitle: String = ""
+  @Field var previewName: String = ""
+  @Field var previewDate: String = ""
+  @Field var previewBody: String = ""
 }
 
 /// The card at the top: Me's 4a First Class card (the same fields as KMeFirstClassRecord).
@@ -144,6 +149,11 @@ final class KSettingsViewProps: KScreenProps {
   @Field var fonts: [KSettingsFontRecord] = []
   @Field var selectedFont: String = ""
   @Field var groups: [KSettingsGroupRecord] = []
+  /// "main" (Settings) or "appearance" (its own page). TS probes for this prop by name before it
+  /// moves Appearance off the Settings page: keep the name
+  @Field var page: String = "main"
+  /// the swatches and the fonts drawn on the Settings page (false: the Appearance row instead)
+  @Field var appearanceInline: Bool = true
 
   var onSettingsBack = EventDispatcher()
   var onSettingsBanner = EventDispatcher()
@@ -191,7 +201,15 @@ final class KSettingsViewProps: KScreenProps {
         return KFontOption(key: f.key, name: f.name, sample: f.sample)
       }
       a.selectedFont = selectedFont
+      a.inline = appearanceInline
+      a.title = strings.appearanceTitle
+      var pv = KSettingsPreview()
+      pv.name = strings.previewName
+      pv.date = strings.previewDate
+      pv.body = strings.previewBody
+      a.preview = pv
       c.appearance = a
+      c.page = page == "appearance" ? "appearance" : "main"
       var seenGroups = Set<String>()
       c.groups = groups.enumerated().compactMap { i, g in
         let key = g.key.isEmpty ? "group\(i)" : g.key

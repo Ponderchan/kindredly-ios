@@ -202,6 +202,11 @@ class KScreenProps: UIBaseViewProps {
   /// "newsreader", the serif closest to what that phone chose.
   var letterFontKey: String {
     switch letterFont {
+    // (it had no case of its own and fell to "system", so Newsreader chosen in Settings drew
+    // every Swift letter in the system face: found on the Appearance page's preview, 2026-11-13)
+    case "newsreader": return "newsreader"
+    // a stored New York (retired 2026-10-20) reads as Newsreader, the serif it was closest to
+    case "newyork": return "newsreader"
     case "system": return "system"
     case "sfmono": return "sfmono"
     case "garamond": return Self.garamondEmbedded ? "garamond" : "newsreader"

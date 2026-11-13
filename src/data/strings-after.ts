@@ -37,7 +37,7 @@ import { strings } from "../lib/i18n";
                           in the language's quotation marks
      af.keep / kept       the capsule, capitals: keep it / it is kept (the ✦ stays)
      af.keepStub          the receipt's button for the same thing, after it is torn off
-     af.keep.hint         VoiceOver: where Keep puts it (the Lore shelf's own name: lore.title)
+     af.keep.hint         VoiceOver: where Keep puts it (with Things you kept: lore.head)
      af.lore.fact         the kept fact's heading on that shelf
      af.rc.say.*          the receipt: her line over the printer (day: how many; week: the week)
      af.rc.shop           the receipt's head: the shop's name
@@ -111,7 +111,7 @@ strings(
     "af.keep": "Keep",
     "af.kept": "Kept ✦",
     "af.keepStub": "Keep the stub",
-    "af.keep.hint": "Saves it to your Lore",
+    "af.keep.hint": "Keeps it with the things you kept",
     "af.lore.fact": "{name}’s fact, No. {n}",
 
     "af.rc.say.1": "“that’s one. there’s a little extra at the bottom.”",
@@ -186,7 +186,7 @@ strings(
     "af.keep": "Guardar",
     "af.kept": "Guardado ✦",
     "af.keepStub": "Guardar el talón",
-    "af.keep.hint": "Lo guarda en tu lore",
+    "af.keep.hint": "Lo guarda con lo que guardaste",
     "af.lore.fact": "Dato de {name}, n.º {n}",
     "af.rc.say.1": "“fue una. abajo va una cosita extra.”",
     "af.rc.say.N": "“fueron {n}. abajo va una cosita extra.”",
@@ -257,7 +257,7 @@ strings(
     "af.keep": "Guardar",
     "af.kept": "Guardado ✦",
     "af.keepStub": "Guardar o canhoto",
-    "af.keep.hint": "Guarda no seu Lore",
+    "af.keep.hint": "Guarda junto com o que você guardou",
     "af.lore.fact": "Curiosidade de {name}, nº {n}",
     "af.rc.say.1": "“foi uma. tem uma coisinha a mais lá embaixo.”",
     "af.rc.say.N": "“foram {n}. tem uma coisinha a mais lá embaixo.”",
@@ -328,7 +328,7 @@ strings(
     "af.keep": "Simpan",
     "af.kept": "Disimpan ✦",
     "af.keepStub": "Simpan sobekannya",
-    "af.keep.hint": "Menyimpannya ke Lore-mu",
+    "af.keep.hint": "Menyimpannya bersama yang sudah kamu simpan",
     "af.lore.fact": "Fakta {name}, No. {n}",
     "af.rc.say.1": "“ada satu. di bawah kuselipin bonus kecil.”",
     "af.rc.say.N": "“ada {n}. di bawah kuselipin bonus kecil.”",
@@ -399,7 +399,7 @@ strings(
     "af.keep": "Garder",
     "af.kept": "Gardé ✦",
     "af.keepStub": "Garder le talon",
-    "af.keep.hint": "L’ajoute à ta Chronique",
+    "af.keep.hint": "Le garde avec ce que tu as gardé",
     "af.lore.fact": "{name} raconte, n° {n}",
     "af.rc.say.1": "« une seule. il y a un petit plus en bas. »",
     "af.rc.say.N": "« {n} en tout. il y a un petit plus en bas. »",
@@ -470,7 +470,7 @@ strings(
     "af.keep": "Behalten",
     "af.kept": "Aufbewahrt ✦",
     "af.keepStub": "Abschnitt behalten",
-    "af.keep.hint": "Speichert es in deiner Chronik",
+    "af.keep.hint": "Legt es zu dem, was du behalten hast",
     "af.lore.fact": "Fakt von {name}, Nr. {n}",
     "af.rc.say.1": "„es war einer. unten gibt’s noch was dazu.“",
     "af.rc.say.N": "„es waren {n}. unten gibt’s noch was dazu.“",
@@ -541,7 +541,7 @@ strings(
     "af.keep": "Tieni",
     "af.kept": "Conservata ✦",
     "af.keepStub": "Tieni il talloncino",
-    "af.keep.hint": "Finisce nella tua Cronaca",
+    "af.keep.hint": "Lo mette con quello che hai tenuto",
     "af.lore.fact": "La curiosità di {name}, n. {n}",
     "af.rc.say.1": "«una sola. in fondo c’è una cosa in più.»",
     "af.rc.say.N": "«fanno {n}. in fondo c’è una cosa in più.»",
@@ -612,7 +612,7 @@ strings(
     "af.keep": "残す",
     "af.kept": "残した ✦",
     "af.keepStub": "おまけを残す",
-    "af.keep.hint": "「記録」に残します",
+    "af.keep.hint": "とっておいたものに加えます",
     "af.lore.fact": "{name}の豆知識 No.{n}",
     "af.rc.say.1": "「1通。いちばん下に、ちょっとおまけがあるよ」",
     "af.rc.say.N": "「{n}通。いちばん下に、ちょっとおまけがあるよ」",
@@ -683,7 +683,7 @@ strings(
     "af.keep": "간직하기",
     "af.kept": "간직했어요 ✦",
     "af.keepStub": "덤 간직하기",
-    "af.keep.hint": "기록에 간직해요",
+    "af.keep.hint": "간직한 것들에 넣어요",
     "af.lore.fact": "{name}의 토막 상식 {n}번",
     "af.rc.say.1": "“1통. 영수증 맨 밑에 덤 하나 있어.”",
     "af.rc.say.N": "“{n}통. 영수증 맨 밑에 덤 하나 있어.”",

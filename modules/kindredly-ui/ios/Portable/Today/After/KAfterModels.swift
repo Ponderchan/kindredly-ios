@@ -44,7 +44,7 @@ public struct KAfterThing: Equatable, Sendable {
   public var keepStub = ""
   public var keptStub = ""
   public var isKept = false
-  /// VoiceOver: what Keep does ("Saves it to Moments you kept")
+  /// VoiceOver: what Keep does ("Keeps it with the things you kept")
   public var keepHint = ""
 
   public init() {}

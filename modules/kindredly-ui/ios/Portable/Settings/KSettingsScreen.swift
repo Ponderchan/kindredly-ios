@@ -16,6 +16,24 @@ import SwiftUI
    ACCOUNT · THE QUIET · FIRST CLASS · HELP · SAFETY · the exits in red
                 KINDREDLY 1.0.5 · 1.3.0 (29) · MADE SLOWLY
 
+ APPEARANCE, ITS OWN PAGE (owner, 2026-11-13: "appearance 和front 不行合在一起 做个视频里的这种
+ 方案", of Telegram's and Grok's: one Appearance row in Settings, its own page with a live
+ preview over the choices). Where TS says so (content.appearance.inline false: the binary draws
+ the page and the row is in the groups), the swatches and the font tiles leave this page for one
+ row, and the same view with page "appearance" draws them under a preview:
+
+   ‹           Appearance
+   ┌───────────────────────────────────┐   one card: a letter as Today shows one, on the page's
+   │ ┌───────────────────────────────┐ │   colour, set in the theme and the Letter font chosen
+   │ │ ▢ Pen name        NOV.13      │ │   (it changes as they are tapped: the whole page is in
+   │ │ Say the thing you'd never post│ │   the theme, the body in the face)
+   │ └───────────────────────────────┘ │
+   │ [◩][▣][▣][▣][▣]                   │   the five swatches under it
+   └───────────────────────────────────┘
+   ┌ Font · Letters, notes and chats ──┐   the Letter font tiles in their own card
+   │ [Aa][Aa][Aa][Aa]                  │
+   └───────────────────────────────────┘
+
  LAYOUT. The Host ignores every safe area (the screen gets its insets as props), so the page
  draws its own strip under the status bar and the scroll view starts below it: rows scrolling
  up are clipped under the clock, never drawn over it (critic). One ScrollView over a VStack
@@ -115,6 +133,22 @@ public struct KSettingsAppearance: Equatable, Sendable {
   public var fontSub = ""
   public var fonts: [KFontOption] = []
   public var selectedFont = ""
+  /// drawn on the Settings page itself (false: its own page, reached by the Appearance row in
+  /// the groups; an older bundle sends nothing, so true)
+  public var inline = true
+  /// the page's title ("Appearance")
+  public var title = ""
+  /// the letter the page previews the choices on
+  public var preview = KSettingsPreview()
+
+  public init() {}
+}
+
+/// The Appearance page's sample letter: the reader's pen name, today's postmark, one line.
+public struct KSettingsPreview: Equatable, Sendable {
+  public var name = ""
+  public var date = ""
+  public var body = ""
 
   public init() {}
 }
@@ -134,6 +168,8 @@ public struct KSettingsContent: Equatable, Sendable {
   public var groups: [KSettingsGroupItem] = []
   /// KINDREDLY 1.0.5 · 1.3.0 (29) · MADE SLOWLY
   public var footer = ""
+  /// which page this view draws: the Settings page, or "appearance" (its own page)
+  public var page = "main"
 
   public init() {}
 }
@@ -184,34 +220,11 @@ public struct KSettingsScreen: View {
       // the status bar's strip: the page colour, and the scroll view clipped under it
       Color.clear.frame(height: topInset)
       ScrollView(.vertical) {
-        VStack(alignment: .leading, spacing: Self.gap) {
-          KBackBar(
-            theme: theme,
-            title: content.title,
-            backLabel: content.backLabel,
-            height: KBackBar<EmptyView>.scrollingHeight,
-            sticky: false,
-            onBack: { actions.onBack() }
-          )
-          .padding(.horizontal, -Self.gutter)
-          if !content.bannerHidden {
-            KMeFirstClassCard(card: content.banner) {
-              actions.onBanner()
-            }
-          }
-          KSettingsAppearanceGroup(theme: theme, appearance: content.appearance, actions: actions)
-          ForEach(content.groups) { group in
-            KSettingsGroupView(theme: theme, group: group, actions: actions)
-          }
-          Text(content.footer)
-            .kText(KTextStyle.mono(11, .medium, tracking: 0.06))
-            .foregroundStyle(theme.mute)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
-            // H:103: 16 above the footer
-            .padding(.top, 16 - Self.gap)
+        if content.page == "appearance" {
+          appearancePage
+        } else {
+          mainPage
         }
-        .padding(.horizontal, Self.gutter)
       }
       .scrollIndicators(.hidden)
       .contentMargins(.bottom, bottomInset, for: .scrollContent)
@@ -222,6 +235,143 @@ public struct KSettingsScreen: View {
     }
     .background { theme.bg.ignoresSafeArea() }
     .ignoresSafeArea(.keyboard)
+  }
+
+  /// Appearance on its own page: the preview and the swatches in one card, the fonts in another.
+  private var appearancePage: some View {
+    VStack(alignment: .leading, spacing: Self.gap) {
+      KBackBar(
+        theme: theme,
+        title: content.appearance.title,
+        backLabel: content.backLabel,
+        height: KBackBar<EmptyView>.scrollingHeight,
+        sticky: false,
+        onBack: { actions.onBack() }
+      )
+      .padding(.horizontal, -Self.gutter)
+      VStack(alignment: .leading, spacing: 14) {
+        KSettingsPreviewLetter(theme: theme, preview: content.appearance.preview)
+        KThemeSwatches(theme: theme, options: content.appearance.swatches, selectedKey: content.appearance.selectedTheme) { key in
+          actions.onTheme(key)
+        }
+      }
+      .padding(14)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background(RoundedRectangle(cornerRadius: 16, style: .circular).fill(theme.soft))
+      if !content.appearance.fonts.isEmpty {
+        KSettingsFontBlock(theme: theme, appearance: content.appearance, actions: actions)
+          .padding(.top, 14)
+          .padding(.horizontal, 14)
+          .padding(.bottom, 12)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .background(RoundedRectangle(cornerRadius: 16, style: .circular).fill(theme.soft))
+      }
+    }
+    .padding(.horizontal, Self.gutter)
+  }
+
+  private var mainPage: some View {
+    VStack(alignment: .leading, spacing: Self.gap) {
+      KBackBar(
+        theme: theme,
+        title: content.title,
+        backLabel: content.backLabel,
+        height: KBackBar<EmptyView>.scrollingHeight,
+        sticky: false,
+        onBack: { actions.onBack() }
+      )
+      .padding(.horizontal, -Self.gutter)
+      if !content.bannerHidden {
+        KMeFirstClassCard(card: content.banner) {
+          actions.onBanner()
+        }
+      }
+      if content.appearance.inline {
+        KSettingsAppearanceGroup(theme: theme, appearance: content.appearance, actions: actions)
+      }
+      ForEach(content.groups) { group in
+        KSettingsGroupView(theme: theme, group: group, actions: actions)
+      }
+      Text(content.footer)
+        .kText(KTextStyle.mono(11, .medium, tracking: 0.06))
+        .foregroundStyle(theme.mute)
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+        // H:103: 16 above the footer
+        .padding(.top, 16 - Self.gap)
+    }
+    .padding(.horizontal, Self.gutter)
+  }
+}
+
+/// The Appearance page's letter: Today's card in small, on the page's colour, so a swatch or a
+/// face tapped shows here at once (the theme is the whole page's; the body is in the Letter face).
+struct KSettingsPreviewLetter: View {
+  let theme: KTheme
+  let preview: KSettingsPreview
+
+  @Environment(\.kLetterFace) private var face
+  @ScaledMetric(relativeTo: .title3) private var bodySize: CGFloat = 22
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 14) {
+      HStack(spacing: 10) {
+        // the frosted face a stranger's letter wears
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .fill(LinearGradient(colors: [theme.lav2, theme.lav], startPoint: .topLeading, endPoint: .bottomTrailing))
+          .frame(width: 32, height: 32)
+        VStack(alignment: .leading, spacing: 1) {
+          Text(preview.name)
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(theme.ink)
+            .lineLimit(1)
+          Text(preview.date)
+            .kText(KTextStyle.mono(11, .medium, tracking: 0.06))
+            .foregroundStyle(theme.mute)
+        }
+        Spacer(minLength: 0)
+      }
+      Text(preview.body)
+        .font(KType.letterFont(face, italic: false, size: 22, scaledSize: bodySize, relativeTo: .title3))
+        .foregroundStyle(theme.ink)
+        .lineSpacing(4)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+    .padding(16)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(theme.sf))
+    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(theme.line, lineWidth: 1))
+    .padding(14)
+    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(theme.bg))
+    .accessibilityElement(children: .combine)
+  }
+}
+
+/// The Letter font's label, its line and its tiles (the inline group's lower half, and the
+/// Appearance page's second card).
+struct KSettingsFontBlock: View {
+  let theme: KTheme
+  let appearance: KSettingsAppearance
+  let actions: KSettingsActions
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      VStack(alignment: .leading, spacing: 4) {
+        Text(appearance.fontLabel)
+          .kText(.rowLabel)
+          .foregroundStyle(theme.ink)
+          .accessibilityAddTraits(.isHeader)
+        if !appearance.fontSub.isEmpty {
+          Text(appearance.fontSub)
+            .kText(.subtext)
+            .foregroundStyle(theme.mute)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+      }
+      KFontPicker(theme: theme, options: appearance.fonts, selectedKey: appearance.selectedFont) { key in
+        actions.onFont(key)
+      }
+    }
   }
 }
 
@@ -245,21 +395,7 @@ struct KSettingsAppearanceGroup: View {
         if !appearance.fonts.isEmpty {
           VStack(alignment: .leading, spacing: 12) {
             SoftDivider(theme: theme)
-            VStack(alignment: .leading, spacing: 4) {
-              Text(appearance.fontLabel)
-                .kText(.rowLabel)
-                .foregroundStyle(theme.ink)
-                .accessibilityAddTraits(.isHeader)
-              if !appearance.fontSub.isEmpty {
-                Text(appearance.fontSub)
-                  .kText(.subtext)
-                  .foregroundStyle(theme.mute)
-                  .fixedSize(horizontal: false, vertical: true)
-              }
-            }
-            KFontPicker(theme: theme, options: appearance.fonts, selectedKey: appearance.selectedFont) { key in
-              actions.onFont(key)
-            }
+            KSettingsFontBlock(theme: theme, appearance: appearance, actions: actions)
           }
         }
       }

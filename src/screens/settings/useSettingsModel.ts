@@ -40,7 +40,11 @@ import "../../data/strings-fc2"; // fc2.ap.*: System, Light, Dark
 import "../../data/strings-audit-notes"; // set.export*
 import "../../data/strings-book-screen"; // bk.set.sub
 import "../../data/strings-book-buy"; // bkb.restored (Restore purchases, when only the journal book came back)
+import "../../data/strings-onboarding2"; // ob2.doorstep.s1.head, the Appearance page's sample line
 import { exportablePages, shareJournalExport } from "../../lib/journal-export-file";
+import { kindredlyUIViewHasProp } from "../../../modules/kindredly-ui";
+import { useNativeSurface } from "../../lib/surfaces";
+import { postmark } from "../../lib/format";
 import { JOURNAL_BOOK_ROUTE, journalBookPageThere } from "../journal-book/available";
 
 /* SETTINGS' LOGIC, for both renderers (10a step 5). Everything settings.tsx
@@ -186,6 +190,10 @@ export function useSettingsModel(): SettingsModel {
   const exportingRef = useRef(false);
   /* the journal book: this binary makes it and has its page (asked once; a binary can't gain either while it runs) */
   const bookThere = useMemo(journalBookPageThere, []);
+  /* Appearance as its own page: the Swift Settings draws this page and this binary's view takes `page` */
+  const nativeSettings = useNativeSurface("settings");
+  const pageThere = useMemo(() => kindredlyUIViewHasProp("KSettingsView", "page"), []);
+  const appearancePage = nativeSettings && pageThere;
 
   useFocusEffect(
     useCallback(() => {
@@ -245,12 +253,14 @@ export function useSettingsModel(): SettingsModel {
           exporting,
           journalBook: bookThere,
           version,
+          appearancePage,
+          previewDate: postmark(Date.now()),
         },
         t,
       ),
     // lang: every word follows the reader's language
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [handle, dob, language, wren, appearance, letterFont, perm, notifyOn, knock, evening, premium, cofounderNo, trial, restoring, journalPages, exporting, bookThere, version, lang],
+    [handle, dob, language, wren, appearance, letterFont, perm, notifyOn, knock, evening, premium, cofounderNo, trial, restoring, journalPages, exporting, bookThere, version, lang, appearancePage],
   );
 
   /* EXPORT MY JOURNAL: write the words to one file, then the share sheet (see the top comment).

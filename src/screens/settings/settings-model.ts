@@ -17,7 +17,9 @@ import type { FirstClass4aVM } from "../me/me-model";
    - the First Class card (4a, the same card Me's First Class segment draws:
      me-model buildFirstClass4a, built by the hook; FC2 decision 4), straight
      to the paywall (settings_banner), the member state for members;
-   - APPEARANCE: five swatches — System, Light, Dark, Lavender, Paper (FC2
+   - APPEARANCE (where the binary draws it as its own page, facts.appearancePage: one row, "Appearance ›
+     Lavender", and the swatches and fonts below on /me/appearance under a sample letter;
+     owner, 2026-11-13, after Telegram's and Grok's): five swatches — System, Light, Dark, Lavender, Paper (FC2
      decision 5) — selected = the reader's APPEARANCE, not the theme in
      effect (System at night is System, not Dark); then the Letter font
      tiles, names never translated, Garamond only once GARAMOND_READY
@@ -58,6 +60,7 @@ export type TFn = (key: string, vars?: Record<string, string | number>) => strin
 /* ── the rows ───────────────────────────────────────────────────────────── */
 
 export type SettingsRowKey =
+  | "appearance"
   | "pen"
   | "age"
   | "language"
@@ -80,7 +83,7 @@ export type SettingsRowKey =
   | "signOut"
   | "deleteAccount";
 
-export type SettingsGroupKey = "account" | "quiet" | "firstClass" | "help" | "safety" | "exits";
+export type SettingsGroupKey = "appearance" | "account" | "quiet" | "firstClass" | "help" | "safety" | "exits";
 
 /** link: opens something (a chevron unless it shows a value) · toggle: a switch · display: shows a
     value, does nothing · danger: one of the two exits, in red */
@@ -136,6 +139,13 @@ export type AppearanceVM = {
   fontSub: string;
   fonts: FontVM[];
   selectedFont: string;
+  /** drawn on the Settings page (false: its own page, reached by the Appearance row, where the
+      binary draws that page: facts.appearancePage) */
+  inline: boolean;
+  /** the Appearance page's title */
+  title: string;
+  /** the Appearance page's sample letter: the pen name, today's postmark, one line */
+  preview: { name: string; date: string; body: string };
 };
 
 export type SettingsView = {
@@ -189,6 +199,12 @@ export type SettingsFacts = {
   /** this binary can make the journal book and has its page: the export row opens it */
   journalBook?: boolean;
   version: VersionFacts;
+  /** this binary draws Appearance as its own page (KSettingsView takes `page`) and the Swift
+      Settings draws this page: the swatches and the fonts leave Settings for one row (owner,
+      2026-11-13: "appearance 和front 不行合在一起 做个视频里的这种方案") */
+  appearancePage?: boolean;
+  /** today's postmark for the Appearance page's sample letter ("NOV.13") */
+  previewDate?: string;
 };
 
 export type VersionFacts = {
@@ -225,6 +241,7 @@ export const LETTER_FONT_SAMPLE = "Aa";
     floating bar stays); Moments you kept and Unsent letters are root routes other screens open
     too, and the paywall is a root modal. */
 export const SETTINGS_ROUTES = {
+  appearance: "/me/appearance",
   pen: "/me/edit-field?f=pen",
   wren: "/me/edit-field?f=courier",
   lore: "/lore",
@@ -248,6 +265,7 @@ export const SETTINGS_LINKS = {
 
 /** The rows that push a route, and where (the rest act in place). */
 export const ROW_ROUTES: Partial<Record<SettingsRowKey, string>> = {
+  appearance: SETTINGS_ROUTES.appearance,
   pen: SETTINGS_ROUTES.pen,
   wren: SETTINGS_ROUTES.wren,
   lore: SETTINGS_ROUTES.lore,
@@ -328,6 +346,12 @@ export function swatches(theme: ThemeFacts, t: TFn): SwatchVM[] {
     2026-10-20: the real System replaced New York). */
 export function fontTiles(choices: readonly string[], t?: TFn): FontVM[] {
   return choices.map((k) => ({ key: k, name: k === "system" && t ? t("set.font.system") : LETTER_FONT_NAMES[k] ?? k, sample: LETTER_FONT_SAMPLE }));
+}
+
+/** The Appearance row's value: the appearance, by the name its swatch wears ("Lavender"). The
+    face is left to the page ("System · System" read as a mistake when both were System). */
+export function appearanceValue(f: Pick<SettingsFacts, "theme">, t: TFn): string {
+  return APPEARANCE_LABEL_KEYS[f.theme.appearance] ? t(APPEARANCE_LABEL_KEYS[f.theme.appearance]) : f.theme.appearance;
 }
 
 /** The membership row's value: Cofounder No. 007, First Class, or Not yet. */
@@ -427,8 +451,15 @@ export function buildSettingsView(f: SettingsFacts, t: TFn): SettingsView {
       fontSub: t("set.letterFont.sub"),
       fonts: fontTiles(f.letterFont.choices, t),
       selectedFont: f.letterFont.selected,
+      inline: !f.appearancePage,
+      title: t("set.appearance"),
+      preview: { name: f.handle || t("set.you"), date: f.previewDate ?? "", body: t("ob2.doorstep.s1.head") },
     },
     groups: [
+      // Appearance on its own page: one row where the swatches and the fonts were
+      ...(f.appearancePage
+        ? [{ key: "appearance" as const, header: "", notice: null, rows: [row({ key: "appearance", symbol: "circle.lefthalf.filled", glyph: "pen", label: t("set.appearance"), value: appearanceValue(f, t) })] }]
+        : []),
       { key: "account", header: t("settings.account"), notice: null, rows: account },
       { key: "quiet", header: t("set.sec.quiet"), notice: quietNotice(f.perm, t), rows: quiet },
       { key: "firstClass", header: t("set.sec.firstClass"), notice: null, rows: firstClass },

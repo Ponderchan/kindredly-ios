@@ -37,23 +37,8 @@ export function SettingsRN({ model }: { model: SettingsModel }) {
 
         {!model.bannerHidden && <FirstClassCard card={view.banner} onPress={act.banner} />}
 
-        {/* APPEARANCE */}
-        <SoftSection header={a.header}>
-          <View style={{ paddingTop: 14, paddingHorizontal: 14, paddingBottom: 12, gap: 12 }}>
-            <SwatchesRN swatches={a.swatches} selected={a.selectedTheme} onPick={act.theme} />
-            {a.fonts.length > 0 && (
-              <View style={{ borderTopWidth: 1, borderTopColor: tk.line, paddingTop: 12, gap: 12 }}>
-                <View style={{ gap: 4 }}>
-                  <Text accessibilityRole="header" style={{ fontSize: 15, color: tk.ink }}>
-                    {a.fontLabel}
-                  </Text>
-                  {!!a.fontSub && <Text style={{ fontSize: 12, lineHeight: 16.8, color: tk.mute }}>{a.fontSub}</Text>}
-                </View>
-                <FontTilesRN fonts={a.fonts} selected={a.selectedFont} onPick={act.font} />
-              </View>
-            )}
-          </View>
-        </SoftSection>
+        {/* APPEARANCE (here unless it has its own page: then its row is in the groups) */}
+        {a.inline && <AppearanceBlockRN model={model} header={a.header} />}
 
         {view.groups.map((g) => (
           <SoftSection key={g.key} header={g.header}>
@@ -80,6 +65,52 @@ export function SettingsRN({ model }: { model: SettingsModel }) {
         ))}
 
         <Text style={{ ...PFM.monoMed, fontSize: MONO.title, letterSpacing: MONO.title * 0.06, color: tk.mute, textAlign: "center", marginTop: 4 }}>{view.footer}</Text>
+      </ScrollView>
+      <BottomFade />
+    </View>
+  );
+}
+
+/** The swatches and the Letter font, as one soft block (Settings' APPEARANCE). */
+function AppearanceBlockRN({ model, header }: { model: SettingsModel; header: string }) {
+  const { t: tk } = useTheme();
+  const { view, act } = model;
+  const a = view.appearance;
+  return (
+    <SoftSection header={header}>
+      <View style={{ paddingTop: 14, paddingHorizontal: 14, paddingBottom: 12, gap: 12 }}>
+        <SwatchesRN swatches={a.swatches} selected={a.selectedTheme} onPick={act.theme} />
+        {a.fonts.length > 0 && (
+          <View style={{ borderTopWidth: 1, borderTopColor: tk.line, paddingTop: 12, gap: 12 }}>
+            <View style={{ gap: 4 }}>
+              <Text accessibilityRole="header" style={{ fontSize: 15, color: tk.ink }}>
+                {a.fontLabel}
+              </Text>
+              {!!a.fontSub && <Text style={{ fontSize: 12, lineHeight: 16.8, color: tk.mute }}>{a.fontSub}</Text>}
+            </View>
+            <FontTilesRN fonts={a.fonts} selected={a.selectedFont} onPick={act.font} />
+          </View>
+        )}
+      </View>
+    </SoftSection>
+  );
+}
+
+/* APPEARANCE'S OWN PAGE in React Native: the remote switch's fallback for /me/appearance (the
+   Swift page draws a sample letter over the choices; this one draws the choices). */
+export function AppearanceRN({ model }: { model: SettingsModel }) {
+  const { t: tk } = useTheme();
+  const safe = useSafeAreaInsets();
+  const tabBar = useTabBarSpace();
+  const { view, act } = model;
+  return (
+    <View style={{ flex: 1, backgroundColor: tk.bg, paddingTop: safe.top }}>
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: Math.max(tabBar + 12, BOTTOM_FADE.height - 6), gap: 12 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <SecondaryHeader title={view.appearance.title} backLabel={view.backLabel} onBack={act.back} height={44} style={{ marginHorizontal: -16 }} />
+        <AppearanceBlockRN model={model} header="" />
       </ScrollView>
       <BottomFade />
     </View>
