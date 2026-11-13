@@ -23,11 +23,14 @@ import { dShort } from "../../lib/format";
 import { blurThen } from "../../lib/keyboard";
 import { useWrenName } from "../../lib/wren-name";
 import { useBirdImageRef } from "../../lib/bird-images";
-import { useSignedImageRefs } from "../../lib/images";
+import { useAssetImageRef, useSignedImageRefs } from "../../lib/images";
 import { OFFICIAL_NAME, postText, type WrenPostMedia } from "../../lib/wren-desk";
 import "../../data/strings-step5-kitrn"; // a11y.back
 import { FIRST_CHIPS, wrenItemKey, wrenRoomRows, type WrenSpeakerWords } from "./wren-room-model";
 import { useWrenRoom, type WrenRoomUi } from "./useWrenRoom";
+
+/** her avatar, the same picture Kindreds' list draws (assets/wren-avatar.png) */
+const WREN_AVATAR = require("../../../assets/wren-avatar.png");
 
 /* WREN'S ROOM IN SWIFTUI (2026-10-27): one Host (keeping the keyboard's
    safe area) holding KWrenRoomView, behind the "wrenroom" switch
@@ -85,6 +88,9 @@ export function WrenRoomNative({ onBack, paneWidth }: { /** held on the Kindreds
   const commands = useKCommands<KWrenRoomCommands>(ref, { blurOnUnmount: true, onViewAttach: () => reseed.current() });
   const bird = useBirdImageRef("official");
   const emptyBird = useBirdImageRef("officialCurious");
+  // her face as Kindreds' list shows it (KindredsNative WREN_AVATAR), so opening her room from the
+  // list keeps the same face (owner, 2026-11-13: "官方wren 头像点进去咋还是老的")
+  const avatar = useAssetImageRef(WREN_AVATAR);
 
   /* the reader's own new line: brought into view once its row is in */
   const ownPending = useRef(false);
@@ -304,6 +310,7 @@ export function WrenRoomNative({ onBack, paneWidth }: { /** held on the Kindreds
           strings={strings}
           bird={bird}
           emptyBird={emptyBird}
+          avatar={avatar}
           rows={rows}
           chips={chips}
           traces={traces}

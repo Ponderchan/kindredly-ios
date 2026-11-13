@@ -99,6 +99,8 @@ export type KWrenRoomViewProps = CommonViewModifierProps &
     bird: KImageRefProps | null;
     /** her curious official snapshot (the empty room) */
     emptyBird: KImageRefProps | null;
+    /** her avatar as Kindreds' list shows it, filling the header's round (a binary before it ignores it) */
+    avatar?: KImageRefProps | null;
     rows: KWrenRoomRow[];
     chips: KWrenRoomChip[];
     traces: KChatTrace[];
@@ -136,6 +138,7 @@ type NativeKWrenRoomViewProps = Omit<
   | "rev"
   | "bird"
   | "emptyBird"
+  | "avatar"
   | "rows"
   | "onBack"
   | "onText"
@@ -153,6 +156,7 @@ type NativeKWrenRoomViewProps = Omit<
     ref?: Ref<KScreenHandle>;
     bird: KImageRefProps;
     emptyBird: KImageRefProps;
+    avatar: KImageRefProps;
     rows: NativeRow[];
     onWrBack?: None;
     onWrText?: Ev<{ text: string }>;
@@ -178,11 +182,12 @@ const NativeKWrenRoomView = requireNativeView<NativeKWrenRoomViewProps>("Kindred
 
 /** The bare SwiftUI page. Only inside an @expo/ui <Host>. Give it useKCommands(...).ref. */
 export const KWrenRoomView = forwardRef<KScreenHandle, KWrenRoomViewProps>(function KWrenRoomView(
-  { modifiers, letterFont, insets, rev, bird, emptyBird, rows, onBack, onText, onSend, onModeClose, onHand, onPhoto, onLink, onCardCta, onNotIt, onChip, onMore, ...rest },
+  { modifiers, letterFont, insets, rev, bird, emptyBird, avatar, rows, onBack, onText, onSend, onModeClose, onHand, onPhoto, onLink, onCardCta, onNotIt, onChip, onMore, ...rest },
   ref,
 ) {
   const b = useMemo(() => imageOf(bird), [bird]);
   const eb = useMemo(() => imageOf(emptyBird), [emptyBird]);
+  const av = useMemo(() => imageOf(avatar ?? null), [avatar]);
   const nativeRows = useMemo(() => rows.map(nativeRow), [rows]);
   return (
     <NativeKWrenRoomView
@@ -194,6 +199,7 @@ export const KWrenRoomView = forwardRef<KScreenHandle, KWrenRoomViewProps>(funct
       insets={insets ?? NO_INSETS}
       rev={rev ?? 0}
       bird={b}
+      avatar={av}
       emptyBird={eb}
       rows={nativeRows}
       onWrBack={onBack ? () => onBack() : undefined}

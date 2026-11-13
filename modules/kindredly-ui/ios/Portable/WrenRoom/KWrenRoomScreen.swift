@@ -172,8 +172,11 @@ public struct KWrenRoomContent: Equatable, Sendable {
   /// her role, in capitals
   public var role = ""
   public var backLabel = ""
-  /// her official snapshot (the header's face)
+  /// her official snapshot (the header's face, where `avatar` is nil)
   public var bird: KImageRef?
+  /// her avatar as Kindreds' list shows it, the whole round (owner, 2026-11-13, opening her room
+  /// from the list: "官方wren 头像点进去咋还是老的"); nil on an older bundle: the snapshot
+  public var avatar: KImageRef?
   /// her curious official snapshot (the empty room)
   public var emptyBird: KImageRef?
   public var emptyLine = ""
@@ -328,10 +331,27 @@ public struct KWrenRoomScreen<Reel: View>: View {
     .dynamicTypeSize(...DynamicTypeSize.accessibility2)
   }
 
+  /// her face in the header: the avatar the list shows, filling the round, with the official badge;
+  /// the snapshot on a disc where the bundle sends none
+  @ViewBuilder private var headerFace: some View {
+    if let avatar = content.avatar {
+      KImage(avatar, size: CGSize(width: 46, height: 46), contentMode: .fill, placeholder: .clear)
+        .frame(width: 46, height: 46)
+        .clipShape(Circle())
+        .overlay(alignment: .bottomTrailing) {
+          KOfficialBadge(theme: theme, size: KFace.badgeSize(for: 46), ground: theme.bg)
+            .offset(x: 1, y: 1)
+        }
+        .accessibilityHidden(true)
+    } else {
+      KPersonBirdFace(theme: theme, bird: content.bird, size: 46, dim: false, badge: true)
+    }
+  }
+
   private var headerRow: some View {
     ZStack(alignment: .topLeading) {
       HStack(spacing: 11) {
-        KPersonBirdFace(theme: theme, bird: content.bird, size: 46, dim: false, badge: true)
+        headerFace
         VStack(alignment: .leading, spacing: 2) {
           Text(content.name)
             .kText(.system(19, .semibold))

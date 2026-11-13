@@ -113,6 +113,8 @@ final class KWrenRoomViewProps: KScreenProps {
   @Field var strings: KWrenRoomStringsRecord = KWrenRoomStringsRecord()
   @Field var bird: KImageRefRecord = KImageRefRecord()
   @Field var emptyBird: KImageRefRecord = KImageRefRecord()
+  /// her avatar as Kindreds' list shows it (an empty uri: none, the header keeps the snapshot)
+  @Field var avatar: KImageRefRecord = KImageRefRecord()
   @Field var rows: [KWrenRoomRowRecord] = []
   @Field var chips: [KWrenRoomChipRecord] = []
   @Field var traces: [KChatTraceRecord] = []
@@ -166,6 +168,7 @@ final class KWrenRoomViewProps: KScreenProps {
     c.backLabel = s.backLabel
     c.bird = bird.ref
     c.emptyBird = emptyBird.ref
+    c.avatar = avatar.ref
     c.emptyLine = s.emptyLine
     c.rows = cached("rows") { rows.map(\.row) }
     c.chipsHead = s.chipsHead
