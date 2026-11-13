@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { BOOK_ENTITLEMENT_ID, ownsBook, pickBookProduct, restoredWhat, type BookProduct } from "./iap-book-core";
+import { BOOK_ENTITLEMENT_ID, BOOK_SOLD_ALONE, ownsBook, pickBookProduct, restoredWhat, type BookProduct } from "./iap-book-core";
 
 export { BOOK_ENTITLEMENT_ID, BOOK_OFFERING_ID } from "./iap-book-core";
 export type { BookProduct } from "./iap-book-core";
@@ -196,6 +196,7 @@ const BOOK_PRODUCT_WAIT_MS = 4000;
     when the store has no such product for this build (not configured yet, no RevenueCat key,
     offline, a simulator without StoreKit, no answer in time). Never a made-up price. */
 export async function iapBookProduct(): Promise<BookProduct | null> {
+  if (!BOOK_SOLD_ALONE) return null; // 1.0.9: First Class only (iap-book-core)
   if (!IAP_READY) return null;
   const P = load();
   if (!P) return null;

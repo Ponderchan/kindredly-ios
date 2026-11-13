@@ -1,0 +1,26 @@
+hey app review 👋
+
+tl;dr kindredly = slow anonymous pen pals. you write one letter, strangers who write kinda like you get it, replies take hours or days. slow is the feature, not a bug lol
+
+sign in: demo acct is in the sign-in fields. "Continue with email" → type that address → the 6-digit code screen takes the password instead (that one address only). or skip accounts: "Not now" when it asks where replies should find you ("Just looking →" if you get the older first screen)
+
+1.0.9 diff:
++ 10 letters a day. read #10 → Today closes till 8:00 (mailbox / sunday receipt / bedtime after 8pm). "closed" = working as intended
++ a letter only comes once. read it, it's gone
++ Me opens on Wren's planet: 1 stamp per letter she carried + a flight log
++ Kindreds = an orbit. round face = has a name, square = still a stranger
++ journal → book (PDF, First Class). write 1 diary page first (+ button), then Settings → Export my journal. the preview is free, Make my book opens the paywall. "Just the words" exports plain text, free
++ new icon, new tab bar. iPhone Duo: unfold → two pages
+
+moderation (the important bit):
+- 18+ at signup
+- report + block on every letter, line, row and convo. block = instant + two-way
+- 3 diff ppl report the same writer → they can't send letters anymore, automatically
+- open letters + photo stamps go thru an automated safety check before strangers see them
+- hello@kindredly.io · https://kindredly.io/support
+
+delete acct: Me → gear (top right) → bottom of Settings → Delete account
+IAP: First Class monthly / annual (auto-renew) · Cofounder (one-time). nothing new to buy this version
+restore: Settings → Restore purchases
+
+thx for reviewing 🙏 ship it (jk. but pls)

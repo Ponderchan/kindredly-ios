@@ -26,6 +26,15 @@
      info. First Class is asked separately ("plus"); a member has the book through that
      (lib/entitlement bookOwned), not through this. */
 
+/* NOT SOLD ON ITS OWN IN 1.0.9 (owner, 2026-11-13: "日记导出那个 zine 这版本就还是归到 first class
+   吧 下个版本好好思考收费颗粒度的事情"). The book stays a First Class thing for this release: the
+   app never asks the store for the "book" offering, so no "Just the book" sheet can appear (not even
+   in App Review's sandbox, where a product the owner created but didn't submit can still answer),
+   and the key opens the paywall as it did before the smaller door existed. Everything else is kept
+   as it was — the entitlement still counts if anyone ever owns it, Restore still reads it — so the
+   next version turns this back on with one word once the pricing is decided. */
+export const BOOK_SOLD_ALONE = false;
+
 export const BOOK_ENTITLEMENT_ID = "journal_book";
 /** the RevenueCat offering that holds the one-time purchase, and nothing else */
 export const BOOK_OFFERING_ID = "book";
