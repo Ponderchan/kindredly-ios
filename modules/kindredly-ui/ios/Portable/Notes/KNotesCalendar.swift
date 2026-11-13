@@ -7,12 +7,12 @@ import SwiftUI
 
    ░░░░░░░░░░░░░░ dim (ink at .18): a tap closes ░░░░░░░░░░░░░░░░░░░░░░░   Midnight: black at .35
      ┌───────────────────────────────────────────────┐   58 under the status bar,
-     │  ‹            OCTOBER 2026               ›    │   16 from each side
+     │  October 2026                    ‹   ›   (✕)  │   16 from each side
      │  S    M    T    W    T    F    S              │   the language's letters, from its first day
      │            1    2    3    4    5              │
      │  6    7    8    9 ...                         │   the number small on top; under it,
-     │           [☺]                                  │   a day with pages wears its mood icon
-     └───────────────────────────────────────────────┘   a plain card, corners 22, soft shadow
+     │  ○    ○   (☺)   ○                             │   a round slot: a day's face, or empty
+     └───────────────────────────────────────────────┘   corners 28, a hairline, a light shadow
 
  One month at a time, and TS's: it pages through the 'month' command (KNotesDriver.month), one
  month record at a time, so no year of day records rides on props. The chevrons ask TS for the
@@ -21,13 +21,14 @@ import SwiftUI
  and dimmed for VoiceOver when off. The title, the letters, every count and every VoiceOver line
  are TS's words; the day numbers too.
 
- Every cell is the day's number (system 12) over a 28pt slot, so the numbers sit on one line like
- Apple's calendars. A day with pages fills the slot with its NEWEST page's mood icon (the same face
- the cards draw, KMoodChip .compact on its group's tint; owner 10-20: "直接心情 icon 放在日历里"), and
- a tap on it goes to that page (actions.onDayPick: the screen closes the overlay and the list goes
- to that note). A day without pages is the number alone (faint in the future), not tappable; today
- has a 2pt accent ring around its cell and its number in the accent. No footer (owner 10-20: the
- per-mood counts and "N NOTES" are gone; the month record still carries them).
+ Every cell is the day's number (system 13) over a 32pt round slot, so the numbers sit on one line
+ like Apple's calendars. A day with pages fills the slot with its NEWEST page's mood icon (the same
+ face the cards draw, on its group's tint, round; owner 10-20: "直接心情 icon 放在日历里"), and a tap
+ on it goes to that page (actions.onDayPick: the screen closes the overlay and the list goes to that
+ note). A past day without pages is a quiet empty circle, a future day the number alone (faint),
+ neither tappable; today's number is white on a small accent capsule (APPLE'S OWN MONTH below). No
+ footer (owner 10-20: the per-mood counts and "N NOTES" are gone; the month record still carries
+ them).
 
  VoiceOver: the overlay is one modal container (the notes under the dim can't be reached), the dim
  is a Close button, the escape gesture (two-finger Z) closes it, and focus moves to the month's
@@ -103,13 +104,36 @@ public struct KNotesMonth: Equatable, Sendable {
   }
 }
 
+/* APPLE'S OWN MONTH (owner, 2026-11-13, of the panel above: "这个日历点开感觉又有点山寨了 不想苹果设计师
+   的水准"). What read as a knock-off: a typewriter title in spaced capitals, chevrons and a ✕ in three
+   weights, square tinted tiles in a field of bare numbers, today boxed in a heavy indigo frame.
+   Now it is set as iOS sets a month (Calendar, Fitness's history):
+   - the title in sentence case, system 20 semibold, on the left ("November 2026"; TS sends it in
+     capitals, so only its first letter stays up: "Noviembre de 2026", "2026年11月" as it is);
+   - the month chevrons the system's, in the accent, faint when there is nowhere to go; the ✕ the
+     system's close button (a soft round key);
+   - the weekday letters system 12 semibold in the theme's mute;
+   - every day the same column: its number (system 13), and under it a round slot. A day with
+     pages wears its newest page's face in the slot, round now (the cards' face on its group's
+     tint, clipped to a circle); a past day without one is a quiet empty circle, so the month
+     reads as a rhythm, as Fitness's empty rings do; the future has no slot. Today's number is white
+     on a small accent capsule (Calendar's own mark for today), no frame round the cell;
+   - the card: corners 28, a hairline and a light soft shadow over the dim. */
 struct KNotesCalendar: View {
-  static let title = KTextStyle.mono(11, .semibold, tracking: 0.14)
-  static let weekday = KTextStyle.mono(10, .semibold)
-  static let dayOn = KTextStyle.system(12, .semibold)
-  static let dayOff = KTextStyle.system(12)
-  /// a cell: the number's line over the mood icon's 28pt slot
-  static let cellHeight: CGFloat = 50
+  static let title = KTextStyle.system(20, .semibold)
+  static let weekday = KTextStyle.system(12, .semibold)
+  static let dayOn = KTextStyle.system(13, .semibold)
+  static let dayOff = KTextStyle.system(13, .medium)
+  /// a cell: the number's 20 line over the 32 round slot
+  static let cellHeight: CGFloat = 56
+  /// a week wholly ahead: the numbers' line and a little air
+  static let aheadRow: CGFloat = 34
+  /// the round slot under a day's number, and its face
+  static let slot: CGFloat = 32
+  static let slotFace: CGFloat = 20
+  /// a tall day (the month as the Duo's page): the cards' own size
+  static let slotRoomy: CGFloat = 40
+  static let slotRoomyFace: CGFloat = 24
   static let dim = KBrand.inkOnBrand.opacity(0.18)
   /// Midnight's dim. The fixed dark ink at .18 comes out lighter than Midnight's page (#121020 on
   /// #0F0E1C), so nothing dimmed. Black at .35 fades the notes under the panel a little harder
@@ -198,10 +222,8 @@ struct KNotesCalendar: View {
 
   private func panel(_ month: KNotesMonth, cellHeight: CGFloat = KNotesCalendar.cellHeight) -> some View {
     VStack(spacing: 12) {
-      HStack(alignment: .center, spacing: 0) {
-        chevron(.chevronLeft, enabled: month.canPrev, label: strings.prevMonth) { actions.onCalendarMonth(-1) }
-        Spacer(minLength: 8)
-        Text(month.title)
+      HStack(alignment: .center, spacing: 2) {
+        Text(Self.sentence(month.title))
           .kText(Self.title)
           .foregroundStyle(theme.ink)
           .lineLimit(1)
@@ -209,31 +231,33 @@ struct KNotesCalendar: View {
           .accessibilityAddTraits(.isHeader)
           .accessibilityFocused($titleFocused)
         Spacer(minLength: 8)
-        chevron(.chevronRight, enabled: month.canNext, label: strings.nextMonth) { actions.onCalendarMonth(1) }
-        // (owner, 10-20) a way out you can see: the round grey ✕ the sheets wear
+        chevron(left: true, enabled: month.canPrev, label: strings.prevMonth) { actions.onCalendarMonth(-1) }
+        chevron(left: false, enabled: month.canNext, label: strings.nextMonth) { actions.onCalendarMonth(1) }
+        // (owner, 10-20) a way out you can see: the system's close button, a soft round key
         if !page {
-        SwiftUI.Button {
-          actions.onCalendarToggle(false)
-        } label: {
-          Image(systemName: "xmark")
-            .font(.system(size: 12, weight: .bold))
-            .foregroundStyle(theme.mute)
-            .frame(width: 28, height: 28)
-            .background(Circle().fill(theme.soft))
-            .contentShape(Circle())
-        }
-        .buttonStyle(KFadePressStyle())
-        .padding(.leading, 10)
-        .accessibilityLabel(strings.close)
+          SwiftUI.Button {
+            actions.onCalendarToggle(false)
+          } label: {
+            Image(systemName: "xmark")
+              .font(.system(size: 12, weight: .bold))
+              .foregroundStyle(theme.mute)
+              .frame(width: 30, height: 30)
+              .background(Circle().fill(theme.soft2))
+              .frame(width: 44, height: 44)
+              .contentShape(Rectangle())
+          }
+          .buttonStyle(KFadePressStyle())
+          .padding(.trailing, -7)
+          .accessibilityLabel(strings.close)
         }
       }
-      .padding(.horizontal, 4)
+      .padding(.leading, 6)
 
       HStack(spacing: 4) {
         ForEach(Array(strings.weekdays.prefix(7).enumerated()), id: \.offset) { _, letter in
           Text(letter)
             .kText(Self.weekday)
-            .foregroundStyle(theme.faint)
+            .foregroundStyle(theme.mute)
             .lineLimit(1)
             .frame(maxWidth: .infinity)
         }
@@ -242,9 +266,12 @@ struct KNotesCalendar: View {
 
       VStack(spacing: 4) {
         ForEach(Array(month.rows.enumerated()), id: \.offset) { _, row in
+          // a week wholly ahead has no slots: its row is the numbers' line alone, so the card
+          // doesn't end in rows of empty space (the Duo's page keeps every row alike, to fill it)
+          let ahead = !page && row.allSatisfy { $0 == nil || ($0?.future == true && $0?.group == nil) }
           HStack(spacing: 4) {
             ForEach(0..<7, id: \.self) { i in
-              cell(i < row.count ? row[i] : nil, height: cellHeight)
+              cell(i < row.count ? row[i] : nil, height: ahead ? Self.aheadRow : cellHeight)
             }
           }
         }
@@ -254,15 +281,16 @@ struct KNotesCalendar: View {
     .padding(.horizontal, 14)
     .padding(.bottom, 14)
     .background {
-      // (owner, 10-20: no black edges) a plain card with a soft shadow over the dim; as the left
-      // page, flat on a hairline (owner, 11-12: no thick shadows on cards)
-      let shape = RoundedRectangle(cornerRadius: page ? 24 : 22, style: .continuous)
+      // (owner, 10-20: no black edges) a card on a hairline over the dim, its shadow light; as the
+      // left page, flat on the hairline (owner, 11-12: no thick shadows on cards)
+      let shape = RoundedRectangle(cornerRadius: page ? 24 : 28, style: .continuous)
       if page {
         shape.fill(theme.sf).overlay(shape.strokeBorder(theme.line, lineWidth: 1))
       } else {
         shape
           .fill(theme.sf)
-          .shadow(color: .black.opacity(theme.isDark ? 0.4 : 0.12), radius: 18, y: 6)
+          .overlay(shape.strokeBorder(theme.line, lineWidth: 0.5))
+          .shadow(color: .black.opacity(theme.isDark ? 0.4 : 0.08), radius: 20, y: 8)
       }
     }
     .dynamicTypeSize(...DynamicTypeSize.accessibility2)
@@ -272,30 +300,39 @@ struct KNotesCalendar: View {
   private func cell(_ day: KNotesDay?, height: CGFloat) -> some View {
     let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
     // a tall day (the month as a page) has room for the cards' own face
-    let roomy = height >= 62
+    let roomy = height >= 66
+    let slot = roomy ? Self.slotRoomy : Self.slot
     if let day {
-      let ink: Color = day.today ? theme.ind : (day.future ? theme.faint : theme.ink)
+      // today: white (the dark themes' page colour, on their light accent) on the accent capsule
+      let ink: Color = day.today ? (theme.isDark ? theme.bg : Color.white) : (day.future ? theme.faint : theme.ink)
       let face = VStack(spacing: 4) {
         Text(day.label)
           .kText(day.group != nil || day.today ? Self.dayOn : Self.dayOff)
           .foregroundStyle(ink)
           .lineLimit(1)
           .minimumScaleFactor(0.6)
-          .frame(height: 14)
-        ZStack {
-          if let group = day.group {
-            // the cards' own face on its tint; a page dated ahead (a wrong clock) stays faded
-            KMoodChip(group: group, icon: day.icon, metrics: roomy ? .card : .compact)
-              .opacity(day.future ? 0.4 : 1)
+          .padding(.horizontal, day.today ? 6 : 0)
+          .frame(minWidth: day.today ? 26 : nil)
+          .frame(height: 20)
+          .background { if day.today { Capsule().fill(theme.ind) } }
+        // the future has no slot (the number alone, at the top of its cell)
+        if day.group != nil || !day.future {
+          ZStack {
+            if let group = day.group {
+              // the cards' own face on its tint, round; a page dated ahead (a wrong clock) stays faded
+              KMoodChip(group: group, icon: day.icon, metrics: .init(size: slot, cornerRadius: slot / 2, faceSize: roomy ? Self.slotRoomyFace : Self.slotFace))
+                .opacity(day.future ? 0.4 : 1)
+            } else {
+              // a past day without a page: a quiet empty circle (the light themes' coolest grey; on
+              // a dark card soft is the card itself, so the step up)
+              Circle().fill(theme.isDark ? theme.soft2 : theme.soft)
+            }
           }
+          .frame(width: slot, height: slot)
         }
-        .frame(width: roomy ? 36 : 28, height: roomy ? 36 : 28)
       }
       .frame(maxWidth: .infinity)
-      .frame(height: height)
-      .overlay {
-        if day.today { shape.strokeBorder(theme.ind, lineWidth: 2) } // today: the accent ring, never black (owner, 10-20)
-      }
+      .frame(height: height, alignment: .top)
       if let target = day.targetId {
         SwiftUI.Button {
           actions.onDayPick(target)
@@ -317,16 +354,25 @@ struct KNotesCalendar: View {
     }
   }
 
-  /// A month chevron: 18 at 2.2, ink, or faint and disabled; a 44pt target that takes no room.
-  private func chevron(_ glyph: KLineGlyph, enabled: Bool, label: String, action: @escaping () -> Void) -> some View {
+  /// A month chevron: the system's, 18 semibold in the accent, or faint and disabled; 40 × 44.
+  private func chevron(left: Bool, enabled: Bool, label: String, action: @escaping () -> Void) -> some View {
     SwiftUI.Button(action: action) {
-      KLineIcon(glyph, size: 18, lineWidth: 2.2, color: enabled ? theme.ink : theme.faint)
-        .padding(13)
+      Image(systemName: left ? "chevron.left" : "chevron.right")
+        .font(.system(size: 18, weight: .semibold))
+        .foregroundStyle(enabled ? theme.ind : theme.faint)
+        .frame(width: 40, height: 44)
         .contentShape(Rectangle())
     }
     .buttonStyle(KFadePressStyle())
-    .padding(-13)
     .disabled(!enabled)
     .accessibilityLabel(label)
+  }
+
+  /// The month's title in sentence case: TS sends it in capitals ("NOVEMBER 2026", "NOVIEMBRE DE
+  /// 2026"); only its first letter stays up. Scripts without case are as they were.
+  static func sentence(_ title: String) -> String {
+    let low = title.lowercased()
+    guard let first = low.first else { return title }
+    return first.uppercased() + low.dropFirst()
   }
 }
