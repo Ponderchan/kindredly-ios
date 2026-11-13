@@ -31,6 +31,10 @@ export const BIRDS = {
      hard triangle, which read as a carrot; with her belly, or without it (white needs no belly) */
   fine: { belly: "tile", beak: "#FF8197", eye: "#141A3D", shaped: true },
   clean: { belly: null, beak: "#FF8197", eye: "#141A3D", shaped: true },
+  /* the owner, of the wing hanging under the beak in the crop: "嘴下面的那个是什么" — without it,
+     or folded against her side where it reads as a wing */
+  nowing: { belly: null, beak: "#FF8197", eye: "#141A3D", shaped: true, wing: "none" },
+  tucked: { belly: null, beak: "#FF8197", eye: "#141A3D", shaped: true, wing: "tucked" },
 };
 
 const svg = (t, b, px) => {
@@ -48,7 +52,9 @@ const svg = (t, b, px) => {
  <path d="${BODY}" fill="${t.deep}" opacity="0.18" transform="translate(1.5 4)" filter="url(#lift)"/>
  <path d="${BODY}" fill="url(#white)"/>
 ${belly ? ` <ellipse cx="96.5" cy="133" rx="36" ry="24" fill="${belly}"/>` : ""}
- <ellipse cx="149" cy="121" rx="15" ry="28.5" fill="url(#wing)" transform="rotate(-22 149 121)"/>
+${b.wing === "none" ? "" : b.wing === "tucked"
+  ? ` <path d="M152,104C160,118 157,138 141,149C131,155 121,152 120,145C128,139 138,128 152,104Z" fill="url(#wing)"/>`
+  : ` <ellipse cx="149" cy="121" rx="15" ry="28.5" fill="url(#wing)" transform="rotate(-22 149 121)"/>`}
  <circle cx="90" cy="76" r="9.6" fill="${b.eye}"/><circle cx="92.6" cy="73.2" r="2.5" fill="#FFFFFF"/>
  <circle cx="125.5" cy="70" r="10.4" fill="${b.eye}"/><circle cx="128.3" cy="67" r="2.7" fill="#FFFFFF"/>
 ${b.shaped
