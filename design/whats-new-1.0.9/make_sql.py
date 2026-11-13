@@ -1,6 +1,6 @@
 # Wren's 1.0.9 desk post as SQL for the owner to run once 1.0.9 is live.
 # usage: python3 design/whats-new-1.0.9/make_sql.py design/whats-new-1.0.9/post.json design/whats-new-1.0.9/post.sql
-# post.json says "yellow" icon in every language: change those words first if the icon changes colour.
+# post.json names the icon's colour (blue, owner 2026-11-13) in every language: change those words if the icon changes.
 import json, sys
 p = json.load(open(sys.argv[1]))
 order = ["es", "pt", "id", "fr", "de", "it", "ja", "ko"]

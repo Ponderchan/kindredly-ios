@@ -1,7 +1,7 @@
 import { useEffect, useMemo, type ReactNode } from "react";
 import { Text, View, type StyleProp, type ViewStyle } from "react-native";
 import Animated, { Easing, ReduceMotion, useAnimatedStyle, useDerivedValue, useSharedValue, withDelay, withSequence, withTiming, type SharedValue } from "react-native-reanimated";
-import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from "react-native-svg";
+import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 import { useLoop, useOnce, type Reel } from "../guide-reel/kit";
 import { WrenBird, type WrenMood } from "../WrenBird";
 import { Frost } from "../Frost";
@@ -32,7 +32,7 @@ import "../../data/strings-today3d"; // ld.next, ld.replyBtn
      4. lights out — the night blooms behind her only (the reel stays a light picture), she falls
         asleep ("see you at 8."), and the view pulls back to her planet, a stamp for every letter
         she carried; at 3:04 am its lamps come on, one by one: each is someone your letter reached.
-     5. new icon — dawn runs the night through peach to the icon's yellow, the planet sets, the
+     5. new icon — dawn runs the night through a pale morning to the icon's blue, the planet sets, the
         disc squares off into the tile, she rises into her peek and the tile drops back into its
         slot on the home screen at 7:59 am: "new icon." / "it's me. checking if it's 8 yet."
    Only true things: bedtime is the page a desk finished after 8 pm gets (lib/after-fifteen-core);
@@ -69,8 +69,12 @@ const TILE_A = "#E3E1EA";
 const TILE_B = "#D9D7E3";
 const TILE_LABEL = "#DAD8E3";
 const PENCIL = "#6B6684";
-const ICON_YELLOW = "#FFD453"; // the icon's tile (design/app-icon-wren): change with the icon
-const DAWN = "#FBE3D6"; // her sky's morning (courier-card-model PALETTE.morning)
+/* the icon (design/app-icon-wren/blue/make-final.mjs, owner 2026-11-13: cobalt, a white Wren, her wing,
+   a butter belly): its tile runs from TILE_TOP to TILE_LOW */
+const TILE_TOP = "#3866FF";
+const TILE_LOW = "#2650EE";
+const MORNING = "#CFE6FB"; // the pale morning the night turns into before the sky deepens to the tile's blue
+const MORNING_LOW = "#9EC3FF";
 const NIGHT_TOP = "#24305E"; // the bedtime page's night, a little deeper at the top
 const NIGHT_LOW = "#46558F";
 const LAMP = "#FFD98A"; // the planet's lamps (KCourierCardMetrics.lamp)
@@ -243,21 +247,40 @@ function Bubble({ s, left, top, width, tailX, tailUp = false, text, size = 0.05,
   );
 }
 
-/* ── the icon (design/app-icon-wren/out/svg/icon-light.svg, as vectors) ── */
+/* ── the icon (design/app-icon-wren/blue/make-final.mjs, as vectors; its soft lift under her is
+   left out at this size) ── */
 
+const ICON_BODY = "M40.5,110C40.5,68 72,40 110.5,40C142,40 159.5,64.5 159.5,92.5C163,127.5 142,159 100,159C65,159 40.5,141.5 40.5,110Z";
+const ICON_BEAK = "M127,83.5C139,84.5 150,88.5 158.5,93C160.6,94.1 160.6,96.4 158.5,97.5C150,102 139,105.5 127,106.5C123.5,99 123.5,91 127,83.5Z";
 function IconArt({ size, tile = true, bird = true }: { size: number; tile?: boolean; bird?: boolean }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 200 200">
-      {tile && <Rect width={200} height={200} fill={ICON_YELLOW} />}
+      <Defs>
+        <LinearGradient id="it" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset={0} stopColor={TILE_TOP} />
+          <Stop offset={1} stopColor={TILE_LOW} />
+        </LinearGradient>
+        <LinearGradient id="iw" x1="0.25" y1="0.05" x2="0.6" y2="1">
+          <Stop offset={0} stopColor="#FFFFFF" />
+          <Stop offset={0.62} stopColor="#FFFFFF" />
+          <Stop offset={1} stopColor="#E7ECFF" />
+        </LinearGradient>
+        <LinearGradient id="ib" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset={0} stopColor="#FF96A8" />
+          <Stop offset={1} stopColor="#F26A86" />
+        </LinearGradient>
+      </Defs>
+      {tile && <Rect width={200} height={200} fill="url(#it)" />}
       {bird && (
-        <G transform="translate(-72 -32) scale(1.5)">
-          <Path d="M40.5,110C40.5,68 72,40 110.5,40C142,40 159.5,64.5 159.5,92.5C163,127.5 142,159 100,159C65,159 40.5,141.5 40.5,110Z" fill="#5757EC" />
-          <Path d="M59.5,132a37,25 0 1,0 74,0a37,25 0 1,0 -74,0" fill="#F6E7C9" />
-          <Circle cx={89} cy={75} r={10.4} fill="#1E1B33" />
-          <Circle cx={92.2} cy={71.6} r={3} fill="#FFFFFF" />
-          <Circle cx={126} cy={69} r={11.4} fill="#1E1B33" />
-          <Circle cx={129.4} cy={65.4} r={3.3} fill="#FFFFFF" />
-          <Path d="M128,85L161,94.5L128,104Z" fill="#F2A0B5" stroke="#F2A0B5" strokeWidth={10} strokeLinejoin="round" />
+        <G transform="translate(-64 -18) scale(1.45)">
+          <Path d={ICON_BODY} fill="url(#iw)" />
+          <Ellipse cx={96.5} cy={133} rx={36} ry={24} fill="#FFE08A" />
+          <Ellipse cx={149} cy={121} rx={15} ry={28.5} fill="#B8C6FF" transform="rotate(-22 149 121)" />
+          <Circle cx={90} cy={76} r={9.6} fill="#141A3D" />
+          <Circle cx={92.6} cy={73.2} r={2.5} fill="#FFFFFF" />
+          <Circle cx={125.5} cy={70} r={10.4} fill="#141A3D" />
+          <Circle cx={128.3} cy={67} r={2.7} fill="#FFFFFF" />
+          <Path d={ICON_BEAK} fill="url(#ib)" />
         </G>
       )}
     </Svg>
@@ -274,7 +297,7 @@ function IconTile({ s }: { s: number }) {
   );
 }
 
-/* THE HOME SCREEN: blank tiles in two pale greys with a grey bar for a name, so the yellow tile
+/* THE HOME SCREEN: blank tiles in two pale greys with a grey bar for a name, so the blue tile
    is the only colour; the slot that is hers has her name instead. `appear`: the tiles come in
    one after another from that moment (dawn, beat 5); otherwise they are there. */
 function HomeGrid({ s, appear, label = 0 }: { s: number; appear?: number; label?: number }) {
@@ -709,7 +732,7 @@ function JustOneMore({ s }: { s: number }) {
   const open = useOnce(450, B1.open, E_OUT);
   const w0 = s * TILE;
   const x0 = s * ICON.cx - w0 / 2, y0 = s * ICON.cy - w0 / 2;
-  // the app opening out of its icon: a plain yellow tile grows to the square and fades as it
+  // the app opening out of its icon: a plain blue tile grows to the square and fades as it
   // goes, onto the desk's paper (mixing the two colours went through a muddy beige); the icon's
   // picture is never scaled: it fades as the tile starts
   const grow = useAnimatedStyle(() => {
@@ -721,7 +744,7 @@ function JustOneMore({ s }: { s: number }) {
       width: w0 + (s - w0) * v,
       height: w0 + (s - w0) * v,
       borderRadius: w0 * ICON_R * (1 - v),
-      backgroundColor: ICON_YELLOW,
+      backgroundColor: TILE_TOP,
     };
   });
   return (
@@ -965,7 +988,7 @@ function NewIcon({ s }: { s: number }) {
     };
   });
   // morning comes up from the bottom of the disc, a band of her dawn sky rising through the night
-  // (a cross-fade of navy and peach went through grey), then the sun's yellow over it
+  // (a cross-fade of navy and a light colour went through grey), then the tile's blue over it
   const dawnSt = useAnimatedStyle(() => ({ transform: [{ translateY: (1 - dawn.value) * B.D * 1.02 - dawn.value * B.D * 0.33 }] }));
   const sunSt = useAnimatedStyle(() => ({ opacity: sun.value }));
   const setSt = useAnimatedStyle(() => ({ transform: [{ translateY: set.value * B.D * 0.85 }] }));
@@ -983,15 +1006,25 @@ function NewIcon({ s }: { s: number }) {
           <Svg width={B.D} height={B.D * 1.4}>
             <Defs>
               <LinearGradient id="d109" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset={0} stopColor={DAWN} stopOpacity={0} />
-                <Stop offset={0.22} stopColor={DAWN} />
-                <Stop offset={1} stopColor="#FFD9A8" />
+                <Stop offset={0} stopColor={MORNING} stopOpacity={0} />
+                <Stop offset={0.22} stopColor={MORNING} />
+                <Stop offset={1} stopColor={MORNING_LOW} />
               </LinearGradient>
             </Defs>
             <Rect width={B.D} height={B.D * 1.4} fill="url(#d109)" />
           </Svg>
         </Animated.View>
-        <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: B.D, height: B.D, backgroundColor: ICON_YELLOW }, sunSt]} />
+        <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: B.D, height: B.D }, sunSt]}>
+          <Svg width={B.D} height={B.D}>
+            <Defs>
+              <LinearGradient id="s109" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset={0} stopColor={TILE_TOP} />
+                <Stop offset={1} stopColor={TILE_LOW} />
+              </LinearGradient>
+            </Defs>
+            <Rect width={B.D} height={B.D} fill="url(#s109)" />
+          </Svg>
+        </Animated.View>
         <Animated.View style={[{ position: "absolute", left: B.D * PLANET.cx - P / 2, top: B.D * PLANET.cy - P / 2 - B.D * TINY * 0.82 }, setSt]}>
           <Planet D={B.D} lampsAt={null} dayFrom={B5.dawn} />
         </Animated.View>
