@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getFlags, setFlag } from "../../lib/flags";
 import { Alert, Linking } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -119,6 +120,8 @@ export type SettingsActions = {
 
 export type SettingsModel = {
   view: SettingsView;
+  /** the First Class card is put away: this reader isn't a member and has tapped it once */
+  bannerHidden: boolean;
   /** the exits' red for the React Native page (settings-model dangerInk; Swift mixes its own) */
   danger: string;
   /** the language sheet is up, and what it lists */
@@ -132,6 +135,9 @@ export type SettingsModel = {
   deleting: boolean;
   act: SettingsActions;
 };
+
+/** the First Class card at the top of Settings was tapped by a reader who isn't a member */
+const FC_BANNER_TAPPED = "settings_fc_tapped";
 
 export function useSettingsModel(): SettingsModel {
   const router = useRouter();
@@ -149,6 +155,15 @@ export function useSettingsModel(): SettingsModel {
   /* Notifications, one switch for this phone (owner, 2026-10-13) — null until read */
   const [notifyOn, setNotifyOnState] = useState<boolean | null>(null);
   const [restoring, setRestoring] = useState(false);
+  /* the First Class card at the top was tapped once (lib/flags, per account on this phone) */
+  const [fcTapped, setFcTapped] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    getFlags().then((f) => alive && setFcTapped(!!f[FC_BANNER_TAPPED]));
+    return () => {
+      alive = false;
+    };
+  }, []);
   const [picking, setPicking] = useState(false);
   const [askDelete, setAskDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -434,7 +449,17 @@ export function useSettingsModel(): SettingsModel {
   const act = useMemo<SettingsActions>(
     () => ({
       back: () => (router.canGoBack() ? router.back() : router.replace(SETTINGS_ROUTES.me as never)),
-      banner: () => router.push(SETTINGS_ROUTES.banner as never),
+      banner: () => {
+        /* ONE TAP AND IT STEPS ASIDE (owner, 2026-11-13: "first class 做个策略 如果用户点了 就消
+           失"): a reader who isn't a member has seen the offer by opening it, so the card at the
+           top of Settings goes for good (on this phone, for this account); First Class stays in
+           its own group below. A member's card is their membership, not an offer: it stays. */
+        if (!premium) {
+          void setFlag(FC_BANNER_TAPPED);
+          setFcTapped(true);
+        }
+        router.push(SETTINGS_ROUTES.banner as never);
+      },
       theme: (key) => {
         if (isAppearance(key)) setAppearance(key);
       },
@@ -461,11 +486,12 @@ export function useSettingsModel(): SettingsModel {
         if (!deletingRef.current) setAskDelete(false);
       },
     }),
-    [router, setAppearance, setLetterFont, row, onToggleKnock, onToggleNotify, onToggleEvening, turnOn, perm, confirmDelete],
+    [router, setAppearance, setLetterFont, row, onToggleKnock, onToggleNotify, onToggleEvening, turnOn, perm, confirmDelete, premium],
   );
 
   return {
     view,
+    bannerHidden: !premium && fcTapped,
     danger: dangerInk(tk.ink, P.post),
     picking,
     lang,

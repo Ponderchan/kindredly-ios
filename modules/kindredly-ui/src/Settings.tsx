@@ -80,6 +80,8 @@ export type KSettingsViewProps = CommonViewModifierProps &
   KScreenBaseProps & {
     strings: KSettingsStrings;
     banner: KSettingsBanner;
+    /** the First Class card put away (a binary before it ignores this and shows the card) */
+    bannerHidden?: boolean;
     swatches: KSettingsSwatch[];
     /** the reader's appearance (system / light / dark / lavender / paper), not the theme in effect */
     selectedTheme: string;

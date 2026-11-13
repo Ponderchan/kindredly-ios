@@ -137,6 +137,8 @@ struct KSettingsGroupRecord: Record {
 final class KSettingsViewProps: KScreenProps {
   @Field var strings: KSettingsStringsRecord = KSettingsStringsRecord()
   @Field var banner: KSettingsBannerRecord = KSettingsBannerRecord()
+  /// the card put away (an older bundle sends nothing: shown)
+  @Field var bannerHidden: Bool = false
   @Field var swatches: [KSettingsSwatchRecord] = []
   @Field var selectedTheme: String = ""
   @Field var fonts: [KSettingsFontRecord] = []
@@ -171,6 +173,7 @@ final class KSettingsViewProps: KScreenProps {
       c.title = strings.title
       c.backLabel = strings.backLabel
       c.banner = banner.banner
+      c.bannerHidden = bannerHidden
       var a = KSettingsAppearance()
       a.header = strings.appearanceHeader
       // keys are the grid's identity: a repeat (never sent by TS) is dropped, not drawn twice

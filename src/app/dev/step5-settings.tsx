@@ -167,6 +167,7 @@ function SettingsLab() {
     };
     return {
       view: buildSettingsView(facts, t),
+      bannerHidden: false,
       danger: dangerInk(tk.ink, P.post),
       picking: false,
       lang,

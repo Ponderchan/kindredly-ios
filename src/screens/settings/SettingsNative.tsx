@@ -90,6 +90,7 @@ export function SettingsNative({ model }: { model: SettingsModel }) {
         rev={rev}
         strings={strings}
         banner={banner}
+        bannerHidden={model.bannerHidden}
         swatches={swatches}
         selectedTheme={selectedTheme}
         fonts={fonts}

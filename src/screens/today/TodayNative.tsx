@@ -139,7 +139,8 @@ type Nav = { addListener?: (type: string, cb: () => void) => () => void; isFocus
 /** how long a letter asked for from the Kindreds tab may still open its reply (see the effect below) */
 const ASK_FRESH_MS = 8000;
 
-export function TodayNative({ model }: { model: TodayModel }) {
+/** pageAfter: the after-fifteen page takes the day's end (useAfterFifteen handsOff) */
+export function TodayNative({ model, pageAfter = false }: { model: TodayModel; pageAfter?: boolean }) {
   const { key: theme } = useTheme();
   const letterFont = useLetterFont();
   const insets = useScreenInsets();
@@ -341,6 +342,7 @@ export function TodayNative({ model }: { model: TodayModel }) {
           night={view.night}
           plus={view.plus}
           hideBand={view.hideBand}
+          pageAfter={pageAfter}
           wren={wren}
           undoId={view.undo}
           wrenCard={wrenCard}

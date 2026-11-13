@@ -72,6 +72,11 @@ export type AfterFifteen = {
       read): draw the page's colour and nothing else, so the old end of the day never flashes by.
       Gives way to the desk if the record doesn't answer */
   pending: boolean;
+  /** the page will take the day's end (owner, 2026-11-13, reading to the end: "怎么老的那个闪了一下 ？ 老的那个
+      就不要了"): the Swift desk plays none of its own evening (Wren's flight into the window, her letter
+      rising), so the last card leaves and the page comes with nothing of the old end between. False on a
+      day with nothing read (no page comes) and once the record hasn't answered (the desk's old end, at rest) */
+  handsOff: boolean;
   vm: AfterVM | null;
   look: KWrenLookData;
   act: {
@@ -388,7 +393,15 @@ export function useAfterFifteen(model: TodayModel): AfterFifteen {
   );
 
   const shown = show && wants && vm != null;
-  return { show: shown, pending: doneNow && !shown && !fromPass && !sawReading.current && !gaveUp, vm, look, act };
+  const emptyDay = view.phase === "done" && day.done && day.read === 0;
+  return {
+    show: shown,
+    pending: doneNow && !shown && !fromPass && !sawReading.current && !gaveUp,
+    handsOff: live && !gaveUp && !emptyDay,
+    vm,
+    look,
+    act,
+  };
 }
 
 /** the callbacks' names, for a host that only draws (the dev page) */

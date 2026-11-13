@@ -453,6 +453,8 @@ final class KTodayViewProps: KScreenProps {
   @Field var night: Bool = false
   @Field var plus: String = "closed"
   @Field var hideBand: Bool = false
+  /// the after-fifteen page takes the day's end (KTodayContent.pageAfter)
+  @Field var pageAfter: Bool = false
   @Field var wren: KTodayWrenRecord = KTodayWrenRecord()
   /// undo after Next: the letter just passed while its Undo capsule is up, "" otherwise
   @Field var undoId: String = ""
@@ -559,6 +561,7 @@ struct KTodayView: ExpoSwiftUI.View {
     content.night = props.night
     content.plus = KTodayPlus(rawValue: props.plus) ?? .closed
     content.hideBand = props.hideBand
+    content.pageAfter = props.pageAfter
     content.wren = props.wren.wren
     content.undoId = props.undoId
     return KTodayDesk(

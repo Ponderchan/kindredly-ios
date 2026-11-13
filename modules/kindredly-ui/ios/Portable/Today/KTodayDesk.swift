@@ -423,6 +423,12 @@ public struct KTodayDesk: View {
     }
     .onAppear { appear() }
     .onChange(of: content.phase) { old, now in phaseChanged(from: old, to: now) }
+    // the page's record never answered: the old end after all, at rest (no replay)
+    .onChange(of: content.pageAfter) { _, page in
+      if !page, content.phase == .done, flow.isReading {
+        flow.rest(canPlay: content.window.canPlay, reduceMotion: reduceMotion)
+      }
+    }
     .onChange(of: deck.beat) { _, beat in beatChanged(beat) }
     .onChange(of: content.window.canPlay) { _, can in
       flow.refresh(canPlay: can, reduceMotion: reduceMotion)
@@ -566,7 +572,8 @@ public struct KTodayDesk: View {
         deskAt: content.deskAt,
         enabled: content.phase == .reading || content.phase == .done,
         // (THE UNFOLD: the three come in once the sheet has landed under them)
-        hidden: content.hideBand || plus != .closed || unfolding,
+        // (THE DAY'S END IS A PAGE: they fade with the last card, and the page comes)
+        hidden: content.hideBand || plus != .closed || unfolding || (content.pageAfter && content.phase == .done),
         deck: deck,
         flow: flow,
         onNext: { [deck] in deck.requestNext() },
@@ -650,13 +657,17 @@ public struct KTodayDesk: View {
   private func appear() {
     box.confirmSerial &+= 1
     if content.phase == .done {
-      flow.rest(canPlay: content.window.canPlay, reduceMotion: reduceMotion)
+      // (the page's, when it takes the day's end: nothing of the old one is drawn)
+      if !content.pageAfter { flow.rest(canPlay: content.window.canPlay, reduceMotion: reduceMotion) }
     } else {
       flow.reset()
     }
   }
 
+  /// Her evening, unless the after-fifteen page takes the day's end (content.pageAfter): then the
+  /// desk only lets the last card go.
   private func play() {
+    guard !content.pageAfter else { return }
     flow.play(night: content.night, canPlay: content.window.canPlay, reduceMotion: reduceMotion)
   }
 
@@ -667,7 +678,7 @@ public struct KTodayDesk: View {
       // a desk that comes up done (a relaunch reading the kept day, a quiet day's first load)
       // is drawn at rest, never replayed
       box.confirmSerial &+= 1
-      guard flow.isReading else { return }
+      guard flow.isReading, !content.pageAfter else { return }
       if old == .reading {
         play()
       } else {

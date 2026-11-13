@@ -42,7 +42,9 @@ import "../../data/strings-step5-today";
    SwiftUI only). They stand where the desk stood, behind the same switch
    machinery (NativeSurface: the table, the binary having the view, the crash
    strikes), with the desk itself as the fallback; off, or before the day is
-   done, this route is exactly what it was. */
+   done, this route is exactly what it was. While the page will come, the
+   Swift desk plays none of its own evening (pageAfter): the last card goes
+   and the page takes its place, with nothing of the old end between. */
 export default function LettersTab() {
   const { t: tk } = useTheme();
   const model = useTodayDesk();
@@ -52,7 +54,7 @@ export default function LettersTab() {
       surface="today"
       view="KTodayView"
       mode="mount"
-      native={() => <TodayNative model={model} />}
+      native={() => <TodayNative model={model} pageAfter={after.handsOff} />}
       fallback={() => <TodayRN model={model} />}
     />
   );

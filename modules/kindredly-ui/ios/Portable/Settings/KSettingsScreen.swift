@@ -127,6 +127,9 @@ public struct KSettingsContent: Equatable, Sendable {
   public var backLabel = ""
   /// the First Class card at the top: Me's 4a card, the member state for members
   public var banner = KMeFirstClass()
+  /// the First Class card is put away: a reader who isn't a member has tapped it once (TS decides;
+  /// owner, 2026-11-13: "first class 做个策略 如果用户点了 就消失")
+  public var bannerHidden = false
   public var appearance = KSettingsAppearance()
   public var groups: [KSettingsGroupItem] = []
   /// KINDREDLY 1.0.5 · 1.3.0 (29) · MADE SLOWLY
@@ -191,8 +194,10 @@ public struct KSettingsScreen: View {
             onBack: { actions.onBack() }
           )
           .padding(.horizontal, -Self.gutter)
-          KMeFirstClassCard(card: content.banner) {
-            actions.onBanner()
+          if !content.bannerHidden {
+            KMeFirstClassCard(card: content.banner) {
+              actions.onBanner()
+            }
           }
           KSettingsAppearanceGroup(theme: theme, appearance: content.appearance, actions: actions)
           ForEach(content.groups) { group in

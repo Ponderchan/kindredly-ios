@@ -279,6 +279,10 @@ export type KTodayViewProps = CommonViewModifierProps &
     plus: KTodayPlus;
     /** NEXT and REPLY step aside: a send in flight, or the reader open */
     hideBand: boolean;
+    /** the after-fifteen page takes the day's end (owner, 2026-11-13: "老的那个就不要了"): the desk plays none
+        of its own evening, the last card leaves and NEXT and REPLY fade. Back to false, a done desk draws the
+        old end at rest. An older binary ignores it and plays the old evening under the page's arrival */
+    pageAfter?: boolean;
     wren: KTodayWren;
     /** undo after Next (owner's audit, 2026-11-10): the letter just passed while its Undo capsule is up (TS
         counts the five seconds and every reason it goes early), "" otherwise. The capsule's tap is

@@ -347,6 +347,13 @@ public struct KTodayContent: Equatable, Sendable {
   /// back (five seconds, and every reason it goes early, are TS's: today-cards undoOpen); "" for no
   /// offer. The desk stands the Undo capsule over the band while it is set (KUndoCapsule)
   public var undoId = ""
+  /// THE DAY'S END IS A PAGE (owner, 2026-11-13, after reading to the end: "怎么老的那个闪了一下 ？
+  /// 老的那个就不要了"). TS sets it while the after-fifteen page will take the desk's place once the
+  /// day is done: the desk then plays none of its own evening (no flight into the window, no letter
+  /// rising, no window); the last card leaves, NEXT and REPLY fade, and the page comes. Set back to
+  /// false (the page's record never answered), a done desk draws its old end at rest. A binary
+  /// without it plays the old evening under the page's arrival, as before.
+  public var pageAfter = false
   public var labels = KTodayLabels()
 
   public init() {}

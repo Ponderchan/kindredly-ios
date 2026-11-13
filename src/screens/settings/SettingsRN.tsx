@@ -35,7 +35,7 @@ export function SettingsRN({ model }: { model: SettingsModel }) {
       >
         <SecondaryHeader title={view.title} backLabel={view.backLabel} onBack={act.back} height={44} style={{ marginHorizontal: -16 }} />
 
-        <FirstClassCard card={view.banner} onPress={act.banner} />
+        {!model.bannerHidden && <FirstClassCard card={view.banner} onPress={act.banner} />}
 
         {/* APPEARANCE */}
         <SoftSection header={a.header}>
