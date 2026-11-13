@@ -42,7 +42,6 @@
     "expo-updates": "~57.0.26",
     "expo-video": "~57.0.4",
     "expo-web-browser": "~57.0.3",
-    "expo-widgets": "~57.0.20",
     "lucide-react-native": "^1.23.0",
     "react": "19.2.3",
     "react-native": "0.86.3",

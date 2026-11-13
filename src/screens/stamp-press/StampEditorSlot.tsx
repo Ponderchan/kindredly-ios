@@ -44,6 +44,7 @@ import {
 import { forgetReview, pressInReview, reviewOf } from "../../lib/custom-stamps";
 import type { KPressedPhoto } from "./StampPressNative";
 import "../../data/strings-stamps2";
+import "../../data/strings-make-face"; // mf.close: the close key's VoiceOver name, in all nine
 
 /* THE STAMP PRESS EDIT PAGE (build agent B "edit", 2026-10-19). Build agent A's seam: the
    /stamp-press route draws the camera until a photo is pressed, then this, in the same route, so
@@ -215,6 +216,7 @@ export function StampEditorSlot({ photo, onRetake, onClose, editing = null }: St
     return {
       title: editing ? t("cs2.ed.titleEdit") : t("cs2.ed.title"),
       retake: editing ? t("cs2.al.cancel") : t("cs2.ed.retake"),
+      close: t("mf.close"),
       eyebrow: t("cs2.ed.preview"),
       cardMeta: [cardDate(lang), (meName ?? "").toUpperCase()].filter(Boolean).join(" · "),
       firstLine: t("cs2.ed.sample"),
@@ -385,13 +387,16 @@ export function StampEditorSlot({ photo, onRetake, onClose, editing = null }: St
       void send(files);
       return;
     }
-    if (phase === "quota") {
+    /* "Not now" past the free three leaves (owner, TestFlight b44, 2026-11-13: "这个页面没有地方退出"):
+       back in the editor there was nothing it could make, and only Retake, back to the camera. Not
+       now on editing's First Class filter still goes back to editing, where the rest can change. */
+    if (phase === "quota" && problem === "editFc") {
       setProblem(null);
       setPhase("editing");
       return;
     }
     onClose();
-  }, [phase, draft, send, onClose]);
+  }, [phase, problem, draft, send, onClose]);
 
   const reset = useCallback(() => {
     setReject(null);
@@ -453,6 +458,7 @@ export function StampEditorSlot({ photo, onRetake, onClose, editing = null }: St
         // (an old look from 2026-10-19 starts on the nearest of today's)
         filter={editing && filterEditable ? nearestFilter(editing.filter) : "original"}
         onRetake={retake}
+        onClose={onClose}
         onSubmit={(s) => void send(s)}
         onUpgrade={upgrade}
         onReset={reset}

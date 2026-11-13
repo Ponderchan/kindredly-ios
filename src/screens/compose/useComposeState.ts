@@ -31,7 +31,6 @@ import { screen } from "../../lib/wren";
 import { refreshFingerprint } from "../../lib/aura";
 import { noteWrote } from "../../lib/local-push";
 import { track } from "../../lib/track";
-import { startLetterOut } from "../../lib/activities";
 import { setFlag } from "../../lib/flags";
 import { wrenStageDirty } from "../../lib/wren-stage";
 import { alertFail, type AlertFailOptions } from "../../lib/fail";
@@ -189,8 +188,6 @@ const DEFAULT_IO: Omit<ComposeIO, "goBack" | "push"> = {
   nextSpark,
   sent: ({ mode, body, stamp, id }) => {
     track("letter_sent", { kind: mode === "speak" ? "voice" : "text", weight: weightedCount(body) });
-    // her, on the lock screen, out with this letter — fire-and-forget
-    if (id) void startLetterOut(id, stamp);
     if (mode === "speak") void setFlag("voiceSent"); // growth stamp: Your Voice
     /* the vector that matching runs on moves with your writing — letters
        only, never the journal. A staler match is fine, a blocked send is not. */

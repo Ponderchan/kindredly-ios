@@ -91,13 +91,6 @@
           "color": "#6E5FD8"
         }
       ],
-      [
-        "expo-widgets",
-        {
-          "groupIdentifier": "group.io.kindredly.app",
-          "enablePushNotifications": true
-        }
-      ],
       "expo-image",
       "./plugins/with-scene-lifecycle",
       "./plugins/with-strip-framework-symbols"

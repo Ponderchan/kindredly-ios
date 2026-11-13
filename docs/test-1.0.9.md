@@ -34,6 +34,9 @@ Sim = can be checked on a simulator; Phone = only a real iPhone shows it.
       own; sign out and back in: all still there. (On the owner's phone: the guest Sol's pages appear in Pond's Notes
       at the first signed-in launch of this code.)
 - [ ] "Yes, at 9": the "on" line leaves by itself after about 2.5 s; Settings shows the evening switch.
+- [ ] No Live Activity on the lock screen after the last letter or a sent letter; the app opens and runs as before.
+- [ ] Making a stamp: the × at the top right leaves from the editor, the quota card and a rejection; past the free
+      three, Not now leaves too.
 - [ ] The tab bar and Next/Reply are the system glass: on a white Today in daylight the bar shows as a pale pane; in
       Dark, Lavender and Paper too; Next and Reply are 58 and their labels clear of the bar.
 

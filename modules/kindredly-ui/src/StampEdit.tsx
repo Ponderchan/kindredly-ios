@@ -18,6 +18,8 @@ import type { KInsets, KScreenBaseProps, KScreenHandle } from "./types";
 export type KStampEditStrings = {
   title: string;
   retake: string;
+  /** the close key's VoiceOver name; an older binary ignores it (no close key there) */
+  close?: string;
   eyebrow: string;
   cardMeta: string;
   firstLine: string;
@@ -71,6 +73,8 @@ export type KStampEditViewProps = CommonViewModifierProps &
     category: string;
     filter: string;
     onRetake?: () => void;
+    /** the close key at the top right: leave the whole flow */
+    onClose?: () => void;
     onSubmit?: (s: KStampEditSubmit) => void;
     onUpgrade?: () => void;
     onReset?: () => void;
@@ -85,11 +89,12 @@ type None = Ev<Record<string, never>>;
 
 type NativeKStampEditViewProps = Omit<
   KStampEditViewProps,
-  "letterFont" | "insets" | "rev" | "onRetake" | "onSubmit" | "onUpgrade" | "onReset" | "onFlown" | "onCardPrimary" | "onCardSecondary" | "onExportFailed"
+  "letterFont" | "insets" | "rev" | "onRetake" | "onClose" | "onSubmit" | "onUpgrade" | "onReset" | "onFlown" | "onCardPrimary" | "onCardSecondary" | "onExportFailed"
 > &
   Required<Pick<KStampEditViewProps, "letterFont" | "insets" | "rev">> & {
     ref?: Ref<KScreenHandle>;
     onStampEditRetake?: None;
+    onStampEditClose?: None;
     onStampEditSubmit?: Ev<KStampEditSubmit>;
     onStampEditUpgrade?: None;
     onStampEditReset?: None;
@@ -106,7 +111,7 @@ const NativeKStampEditView = requireNativeView<NativeKStampEditViewProps>("Kindr
 
 /** The bare SwiftUI page. Only inside an @expo/ui <Host>. */
 export const KStampEditView = forwardRef<KScreenHandle, KStampEditViewProps>(function KStampEditView(
-  { modifiers, letterFont, insets, rev, onRetake, onSubmit, onUpgrade, onReset, onFlown, onCardPrimary, onCardSecondary, onExportFailed, ...rest },
+  { modifiers, letterFont, insets, rev, onRetake, onClose, onSubmit, onUpgrade, onReset, onFlown, onCardPrimary, onCardSecondary, onExportFailed, ...rest },
   ref,
 ) {
   return (
@@ -119,6 +124,7 @@ export const KStampEditView = forwardRef<KScreenHandle, KStampEditViewProps>(fun
       insets={insets ?? NO_INSETS}
       rev={rev ?? 0}
       onStampEditRetake={onRetake ? () => onRetake() : undefined}
+      onStampEditClose={onClose ? () => onClose() : undefined}
       onStampEditSubmit={onSubmit ? (e) => onSubmit(e.nativeEvent) : undefined}
       onStampEditUpgrade={onUpgrade ? () => onUpgrade() : undefined}
       onStampEditReset={onReset ? () => onReset() : undefined}

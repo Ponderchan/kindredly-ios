@@ -171,7 +171,7 @@ export function demoDeps({ reply, blocked, fed }: { reply: () => DemoReply; bloc
     afterReply: () => fed(),
     seedDemo: () => {},
     sealed: async (day) => sealedDays.has(day),
-    // in the app the day is sealed here (lib/flags) and her DayClosed Live Activity goes up (lib/activities); here both stay in memory
+    // in the app the day is sealed here (lib/flags); here it stays in memory
     seal: (day, facts) => {
       sealedDays.add(day);
       console.log(`[step5-today] the desk is done: sealed ${day} in memory; DayClosed would show ${facts.read} read, ${facts.waiting} waiting`);

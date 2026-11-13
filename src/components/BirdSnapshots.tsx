@@ -40,8 +40,8 @@ import {
    offscreen strip, so the root layout mounts one component for both.
 
    Sizes are in points; the file comes out at the screen's scale, which is
-   why lib/activities names it @3x — the island refuses anything larger
-   than the point size it asked for — and why Swift always frames it. */
+   why Swift always frames it (the lock screen's Live Activity, removed
+   2026-11-13, named its copy @3x for the same reason). */
 
 export type { BirdPose } from "../lib/bird-images";
 

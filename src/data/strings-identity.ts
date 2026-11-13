@@ -61,7 +61,7 @@ import { strings } from "../lib/i18n";
      id.kd.theyFirst      the kindred page's WHO BEGAN line (wired: screens/chat/kindred-page whoBegan)
      id.th.goesStraight,
      id.th.replyGoesStraight  the reader's reply hint (wired: screens/chat/reader replyHint)
-     id.la.out.repliedHead    the Live Activity's head (wired: lib/activities)
+     id.la.out.repliedHead    the Live Activity's head (unused since the lock screen was removed, 2026-11-13)
    The blocked list's own comment (§11) is code, rewritten in
    app/(tabs)/me/blocked.tsx.
 

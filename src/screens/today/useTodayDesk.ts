@@ -25,7 +25,6 @@ import { SEND_BEAT_MS } from "../../lib/net";
 import { DAY_LETTERS, MAX_IN_FLIGHT, inFlight, rationPool, type FlightThread } from "../../lib/ration";
 import { letterOnceOn, noteLetterShown, seenLetterIds } from "../../lib/seen-letters";
 import { deskDay, isNightHour } from "../../lib/day";
-import { endDayClosed, startDayClosed } from "../../lib/activities";
 import { onYou } from "../../lib/waiting";
 import { subscribeAnswerRequest, takeAnswerRequest } from "../../lib/answer-request";
 import { useTodayFormat } from "./useTodayFormat";
@@ -583,15 +582,10 @@ export function useRealTodayDeps(): TodayDeps {
       },
       seedDemo: (letter, text) => void seedDemoThread(letter, text),
       sealed: isSealed,
-      seal: (day, facts) => {
-        void sealDay(day);
-        void startDayClosed(facts); // her, on the lock screen, till she's back
-      },
-      // the desk is open again (a new day, or the last pass brought back): she comes off the lock screen too
-      unseal: (day) => {
-        void unsealDay(day);
-        void endDayClosed();
-      },
+      // (her lock-screen Live Activity went with it till 2026-11-13; the lock screen is gone: owner, "不行就去了吧")
+      seal: (day) => void sealDay(day),
+      // the desk is open again (a new day, or the last pass brought back)
+      unseal: (day) => void unsealDay(day),
       openWindow: () => router.push("/courier?play=1"),
       openHelp: () => router.push("/me/help"),
       birthdayRead: birthdayLetterRead,

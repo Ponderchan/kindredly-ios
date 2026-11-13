@@ -332,6 +332,7 @@ struct KEditProfileView: ExpoSwiftUI.View {
 
  Events, with what nativeEvent carries:
  - onStampEditRetake {}                     Retake / Try another photo
+ - onStampEditClose {}                      the close key: leave the whole flow
  - onStampEditSubmit { image, original, topic, category, filter }   image = the filtered
                                             600 × 800 JPEG (file://), original = the unfiltered
                                             1200 × 1600 crop (file://, or "")
@@ -345,6 +346,7 @@ struct KEditProfileView: ExpoSwiftUI.View {
 struct KStampEditStringsRecord: Record {
   @Field var title: String = ""
   @Field var retake: String = ""
+  @Field var close: String = ""
   @Field var eyebrow: String = ""
   @Field var cardMeta: String = ""
   @Field var firstLine: String = ""
@@ -403,6 +405,7 @@ final class KStampEditViewProps: KScreenProps {
   @Field var filter: String = "original"
 
   var onStampEditRetake = EventDispatcher()
+  var onStampEditClose = EventDispatcher()
   var onStampEditSubmit = EventDispatcher()
   var onStampEditUpgrade = EventDispatcher()
   var onStampEditReset = EventDispatcher()
@@ -415,6 +418,7 @@ final class KStampEditViewProps: KScreenProps {
   private(set) lazy var actions: KStampEditActions = {
     let a = KStampEditActions()
     a.onRetake = { [weak self] in self?.onStampEditRetake() }
+    a.onClose = { [weak self] in self?.onStampEditClose() }
     a.onSubmit = { [weak self] image, original, topic, category, filter in
       self?.onStampEditSubmit(["image": image, "original": original, "topic": topic, "category": category, "filter": filter])
     }
@@ -432,6 +436,7 @@ final class KStampEditViewProps: KScreenProps {
     let s = strings
     c.title = s.title
     c.retake = s.retake
+    c.close = s.close
     c.eyebrow = s.eyebrow
     c.cardMeta = s.cardMeta
     c.firstLine = s.firstLine

@@ -20,7 +20,7 @@ export function deskDay(now: Date = new Date()): string {
 
 /* WHEN SHE'S BACK (Today 3d, 2026-10-16). One morning for everything that
    counts to it: her letter's countdown, the NOT YET chip, the window's
-   "back in", and the DayClosed Live Activity (lib/activities). Before this
+   "back in" (and, till 2026-11-13, the lock screen's DayClosed Live Activity). Before this
    there were two copies, one in activities and one in CloseOfDay. */
 
 /** the next MORNING_HOUR:00 local, strictly after `now` (between 00:00 and 08:00 that is today's, never "tomorrow's") */

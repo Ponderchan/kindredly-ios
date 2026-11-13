@@ -569,6 +569,8 @@ public enum KStampEditPhase: String, Sendable {
 public struct KStampEditContent: Equatable {
   public var title = ""
   public var retake = ""
+  /// the close key's VoiceOver name ("Close"); "" (a TS before it) draws no close key
+  public var close = ""
   public var eyebrow = ""
   public var cardMeta = ""
   public var firstLine = ""
@@ -626,6 +628,8 @@ public struct KStampEditSeed: Equatable {
 /// What the page asks of TS.
 public final class KStampEditActions {
   public var onRetake: () -> Void = {}
+  /// the close key at the top right: leave the whole flow (owner, TestFlight b44: "这个页面没有地方退出")
+  public var onClose: () -> Void = {}
   /// the stamp is ready: (filtered JPEG file://, unfiltered original file:// or "", topic, category, filter)
   public var onSubmit: (_ image: String, _ original: String, _ topic: String, _ category: String, _ filter: String) -> Void = { _, _, _, _, _ in }
   /// a locked filter's gold button
@@ -776,6 +780,19 @@ public struct KStampEditScreen: View {
         .buttonStyle(KPressScaleStyle(scale: 0.97))
         .disabled(busy)
         Spacer(minLength: 0)
+        // a way out of the whole flow from any state (owner, TestFlight b44, 2026-11-13: past the free
+        // three, Retake only went back to the camera and "Not now" back to the editor)
+        if !content.close.isEmpty {
+          Button(action: { typing = false; actions.onClose() }) {
+            Image(systemName: "xmark")
+              .font(.system(size: 15, weight: .semibold))
+              .foregroundStyle(theme.ink)
+              .frame(width: 44, height: 44, alignment: .trailing)
+              .contentShape(Rectangle())
+          }
+          .buttonStyle(KPressScaleStyle(scale: 0.97))
+          .accessibilityLabel(content.close)
+        }
       }
     }
     .dynamicTypeSize(...DynamicTypeSize.accessibility1)

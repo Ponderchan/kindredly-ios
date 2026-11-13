@@ -10,7 +10,6 @@ import { markWork, noteRoute, startStallProbe } from "../lib/stall-probe";
 import { registerForReplies } from "../lib/notify";
 import { ensurePushObject, lineKey, lineText, rememberMorningQuestion, replanLocal } from "../lib/local-push";
 import { leaveSpark } from "../lib/journal-handoff";
-import { syncActivities } from "../lib/activities";
 import { BirdSnapshots } from "../components/BirdSnapshots";
 import { launchInks } from "../components/LaunchAnimation";
 import * as Notifications from "expo-notifications";
@@ -162,17 +161,6 @@ function FingerprintOnLaunch() {
     });
     void registerForReplies();
   }, [user, isGuest]);
-  /* her lock-screen activities are reconciled on every foreground: the
-     closed window ends once its hour has passed, a letter out gets the
-     numbers the database has (lib/activities) */
-  useEffect(() => {
-    if (!user) return;
-    void syncActivities();
-    const sub = AppState.addEventListener("change", (st) => {
-      if (st === "active") void syncActivities();
-    });
-    return () => sub.remove();
-  }, [user]);
   return null;
 }
 

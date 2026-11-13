@@ -11,7 +11,6 @@ import { PFM } from "../../theme/post";
 import { POOL_CACHE_KEY } from "../../lib/db";
 import { deskDay } from "../../lib/day";
 import { unsealDay } from "../../lib/flags";
-import { endAllActivities } from "../../lib/activities";
 import { TabBarSpace, nativeTabBarReady, nativeTabBarRoom, nativeTabBarSpace } from "../../components/NativeTabBar";
 import { TabBarAway } from "../../lib/screen-insets";
 import { setDevIdentityPreview, useIdentityOn } from "../../lib/identity";
@@ -188,7 +187,6 @@ function TodayLab() {
               try {
                 await AsyncStorage.removeItem(POOL_CACHE_KEY);
                 await unsealDay(deskDay());
-                await endAllActivities();
                 restartRealDay();
               } catch (e) {
                 Alert.alert("Dev page", `The real day couldn't be reset: ${String((e as Error)?.message ?? e)}`);
