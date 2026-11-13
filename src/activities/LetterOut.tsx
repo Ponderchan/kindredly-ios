@@ -82,7 +82,7 @@ const LetterOut = (props: LetterOutProps, env: LiveActivityEnvironment) => {
             <Spacer />
             <Text modifiers={[font({ size: 13 })]}>{props.stamp}</Text>
           </HStack>
-          <Text modifiers={[font({ design: "serif", size: 16 }), foregroundStyle(ink), padding({ top: 5 })]}>{head}</Text>
+          <Text modifiers={[font({ size: 16 }), foregroundStyle(ink), padding({ top: 5 })]}>{head}</Text>
           {marks.length > 0 ? marksRow(6) : null}
           <VStack modifiers={[padding({ top: 5 })]}>{lineRow(props.replied ? BRASS : dim)}</VStack>
         </VStack>
@@ -106,7 +106,7 @@ const LetterOut = (props: LetterOutProps, env: LiveActivityEnvironment) => {
     expandedCenter: (
       <VStack alignment="leading" spacing={0} modifiers={[padding({ top: 6 })]}>
         <Text modifiers={[mono(9, "semibold"), foregroundStyle(props.replied ? BRASS : "#B6B0E0")]}>{eyebrow}</Text>
-        <Text modifiers={[font({ design: "serif", size: 17 }), foregroundStyle("#FFFFFF"), padding({ top: 3 })]}>{head}</Text>
+        <Text modifiers={[font({ size: 17 }), foregroundStyle("#FFFFFF"), padding({ top: 3 })]}>{head}</Text>
       </VStack>
     ),
     expandedTrailing: <VStack modifiers={[padding({ trailing: 4, top: 4 })]}><Text modifiers={[font({ size: 24 })]}>{props.stamp}</Text></VStack>,

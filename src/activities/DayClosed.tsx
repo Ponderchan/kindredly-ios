@@ -86,7 +86,7 @@ const DayClosed = (props: DayClosedProps, env: LiveActivityEnvironment) => {
           </HStack>
           {marks.length > 0 ? marksRow(7) : null}
           <HStack alignment="lastTextBaseline" spacing={0} modifiers={[padding({ top: 5 })]}>
-            <Text modifiers={[font({ design: "serif", size: 16 }), foregroundStyle(ink)]}>{props.read > 0 ? props.allRead : props.none}</Text>
+            <Text modifiers={[font({ size: 16 }), foregroundStyle(ink)]}>{props.read > 0 ? props.allRead : props.none}</Text>
             {props.waitingLine ? <Text modifiers={[mono(9, "semibold"), foregroundStyle(PEN), padding({ leading: 8 })]}>{props.waitingLine}</Text> : null}
             <Spacer />
             {clock(14, PEN)}
@@ -105,7 +105,7 @@ const DayClosed = (props: DayClosedProps, env: LiveActivityEnvironment) => {
     expandedCenter: (
       <VStack alignment="leading" spacing={0} modifiers={[padding({ top: 6 })]}>
         <Text modifiers={[mono(9, "semibold"), foregroundStyle("#B6B0E0")]}>{props.eyebrow}</Text>
-        <Text modifiers={[font({ design: "serif", size: 17 }), foregroundStyle("#FFFFFF"), padding({ top: 3 })]}>{props.read > 0 ? props.allRead : props.none}</Text>
+        <Text modifiers={[font({ size: 17 }), foregroundStyle("#FFFFFF"), padding({ top: 3 })]}>{props.read > 0 ? props.allRead : props.none}</Text>
       </VStack>
     ),
     expandedTrailing: (

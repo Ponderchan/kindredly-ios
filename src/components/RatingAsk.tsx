@@ -9,6 +9,7 @@ import { t, useLang } from "../lib/i18n";
 import { useWrenName } from "../lib/wren-name";
 import { fetchThreads } from "../lib/db";
 import { BRAND } from "../theme/themes";
+import { MONO_FAMILY } from "../theme/post";
 import type { RatingVariant } from "../lib/rating-ask-core";
 import { useNativeSurface } from "../lib/surfaces";
 import { useBirdImageRefs } from "../lib/bird-images";
@@ -28,7 +29,8 @@ import "../data/strings-rating-ask";
    away for lib/rating-ask's snooze. Under Reduce Motion nothing moves. Depth rule B: the paper and
    the card are physical things, a hard lavender shadow and no black edge. */
 
-const MONO = "Menlo";
+// SF Mono, the app's one mono face (owner, 2026-11-13: only the four faces); it was Menlo
+const MONO = MONO_FAMILY;
 
 function useStill(): boolean {
   const [still, setStill] = useState(false);

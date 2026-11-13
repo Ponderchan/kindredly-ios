@@ -230,7 +230,7 @@ struct KWrappedCardsA: View {
         .overlay(alignment: .topTrailing) {
           // the art's own grey z's vanish on the night: two white ones beside them
           if ctx.c.hourNight {
-            Text("z z").font(.system(size: 20, weight: .black, design: .rounded)).foregroundStyle(Color.white).rotationEffect(.degrees(-12)).offset(x: 6, y: 8).accessibilityHidden(true)
+            Text("z z").font(.system(size: 20, weight: .black)).foregroundStyle(Color.white).rotationEffect(.degrees(-12)).offset(x: 6, y: 8).accessibilityHidden(true)
           }
         }
         .offset(x: 10, y: 70).modifier(ctx.drop(0.4, from: -20, turn: 0))
