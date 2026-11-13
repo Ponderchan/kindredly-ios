@@ -1,0 +1,67 @@
+{
+ "yellow": {
+  "name": "now · yellow",
+  "stops": [
+   "#FFD453"
+  ],
+  "bodyVsTile": [
+   3.72
+  ]
+ },
+ "mist": {
+  "name": "A · mist",
+  "stops": [
+   "#DCEEFF"
+  ],
+  "bodyVsTile": [
+   4.45
+  ]
+ },
+ "sky": {
+  "name": "B · her day sky",
+  "stops": [
+   "#BFE3F8",
+   "#E3F3FB"
+  ],
+  "bodyVsTile": [
+   3.91,
+   4.64
+  ]
+ },
+ "clear": {
+  "name": "C · clear blue",
+  "stops": [
+   "#A9D6FF"
+  ],
+  "bodyVsTile": [
+   3.45
+  ]
+ },
+ "royal": {
+  "name": "D · big-app blue",
+  "stops": [
+   "#1877F2"
+  ],
+  "bodyVsTile": [
+   1.25
+  ]
+ },
+ "royalLight": {
+  "name": "D2 · same, paler Wren",
+  "stops": [
+   "#1877F2"
+  ],
+  "bodyVsTile": [
+   2.56
+  ]
+ },
+ "night": {
+  "name": "E · night blue",
+  "stops": [
+   "#1A2250"
+  ],
+  "bodyVsTile": [
+   2.87
+  ]
+ }
+}
