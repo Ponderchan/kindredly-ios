@@ -35,6 +35,11 @@ export const BIRDS = {
      or folded against her side where it reads as a wing */
   nowing: { belly: null, beak: "#FF8197", eye: "#141A3D", shaped: true, wing: "none" },
   tucked: { belly: null, beak: "#FF8197", eye: "#141A3D", shaped: true, wing: "tucked" },
+  /* the owner: "有翅膀配个黄色肚皮呢" — the wing kept, a yellow belly: soft cream, butter, and the old
+     icon's own yellow (so the yellow the icon had stays on her) */
+  cream: { belly: "#FFF0C7", beak: "#FF8197", eye: "#141A3D", shaped: true },
+  butter: { belly: "#FFE08A", beak: "#FF8197", eye: "#141A3D", shaped: true },
+  brand: { belly: "#FFD453", beak: "#FF8197", eye: "#141A3D", shaped: true },
 };
 
 const svg = (t, b, px) => {
