@@ -188,7 +188,7 @@ func report(_ state: String) -> KMeReport {
   return r
 }
 
-let SCENE_FILE = "/Users/redbeardlord/Desktop/claude-projects/kindredly-ios/assets/aura-scenes/01-quiet-observer.png"
+let SCENE_FILE = "/Users/redbeardlord/Desktop/claude-projects/kindredly-ios/assets/aura-scenes/01-quiet-observer.webp"
 
 /// the Aura tile's picture as the adapter lays it in the panel: the named scene filling it, or
 /// the ladder's desk whole, at its own shape

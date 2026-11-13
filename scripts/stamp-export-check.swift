@@ -8,7 +8,7 @@
        modules/kindredly-ui/ios/Portable/Kit/KImage.swift \
        modules/kindredly-ui/ios/Portable/Stamps/KStampExport.swift \
        scripts/stamp-export-check.swift -o "$TMPDIR/stamp-export-check" \
-       && "$TMPDIR/stamp-export-check" assets/aura-scenes/01-quiet-observer.png "$TMPDIR/stamp-export-out"
+       && "$TMPDIR/stamp-export-check" assets/aura-scenes/01-quiet-observer.webp "$TMPDIR/stamp-export-out"
 
    Its first argument is any picture (the sample "photo"), its second a folder for what it makes
    (the stickers, the sheets, and each sheet's first page as a PNG to look at). It checks:

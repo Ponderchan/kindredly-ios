@@ -235,7 +235,7 @@ const rowNumber = (row: KLabRow): number => Number(row.id.slice(1));
 
 /* ── what the lab shows ────────────────────────────────────────────────── */
 
-const PORTRAIT = require("../../../assets/aura-avatars/f-02-tender-thinker.png");
+const PORTRAIT = require("../../../assets/aura-avatars/f-02-tender-thinker.webp");
 /* a fixed picture and a short sample video, for the https and poster tiles (dev only) */
 const REMOTE_IMAGE: KImageRefProps = { uri: "https://picsum.photos/id/1025/600/600", key: "lab:remote:1025" };
 const REMOTE_VIDEO: KImageRefProps = { uri: "https://download.samplelib.com/mp4/sample-5s.mp4", key: "lab:poster:sample-5s", kind: "videoPoster" };

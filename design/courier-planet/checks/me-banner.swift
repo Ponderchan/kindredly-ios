@@ -366,7 +366,7 @@ func cover(_ pal: String) -> KCourierCover {
 }
 
 // ── round two: her card four more ways, none of them a sky, none changing with the hour ──
-let SCENE_FILE = "/Users/redbeardlord/Desktop/claude-projects/kindredly-ios/assets/aura-scenes/01-quiet-observer.png"
+let SCENE_FILE = "/Users/redbeardlord/Desktop/claude-projects/kindredly-ios/assets/aura-scenes/01-quiet-observer.webp"
 let INK2 = Color(hex: "#1E1B35")
 let SOFT2 = KTheme.classic.soft2
 let SUB2 = KTheme.classic.sub
