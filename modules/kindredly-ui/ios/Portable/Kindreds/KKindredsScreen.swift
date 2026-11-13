@@ -58,7 +58,9 @@ import SwiftUI
  the first row sits right under it rather than behind it.
 
  SEARCH (owner's audit, 2026-11-10: no way to find one correspondent in a long list). A
- magnifier chip (KSearchChip) sits right after the Orbit chip. Tapped, the chip row gives way to
+ magnifier key sits right after the Orbit key, the two in one key capsule (KGlassKeys, owner
+ 2026-11-13: "统一一下"; they were two outlined chips, KOrbitChip and KSearchChip, now gone). Tapped,
+ the chip row gives way to
  a search field of the same height (the system's look in the theme's colours: a rounded field
  on soft, the magnifier, the words, a × while there are any, and Cancel beside it), the keyboard
  comes up and the orbit folds; a pull can't open it while the reader is searching. The field is
@@ -836,6 +838,8 @@ struct KKindredsBand: View {
   @ObservedObject private var railTools = KRailTools.shared
 
   @State private var chipRowHeight: CGFloat = 58
+  /// a chip's height (a line of KFilterChip's type and its padding): the key capsule's
+  @State private var chipSide: CGFloat = 40
   @State private var legendHeight: CGFloat = 16
 
   /// 300, or taller when the legend wraps (critic-kindreds: a long language's legend would run
@@ -929,14 +933,14 @@ struct KKindredsBand: View {
       let hint = [content.legendCloser, content.legendTurn].filter { !$0.isEmpty }.joined(separator: ". ")
       tools.append(KRailTool(KKindredsTool.orbit) {
         KRailKey(theme: theme, on: on, label: content.orbitChipLabel, hint: hint, action: { driver.toggleBand() }) {
-          KLineIcon(.orbit, size: 22, lineWidth: 1.8, color: theme.ink)
+          KKindredsOrbitGlyph(theme: theme, on: on)
         }
       })
     }
     if hasSearch {
       tools.append(KRailTool(KKindredsTool.search) {
         KRailKey(theme: theme, label: content.searchLabel, action: { driver.beginSearch() }) {
-          KLineIcon(.noteSearch, size: 22, lineWidth: 2, color: theme.ink)
+          KGlassSymbol("magnifyingglass")
         }
       })
     }
@@ -946,19 +950,31 @@ struct KKindredsBand: View {
   private var chipRow: some View {
     ScrollView(.horizontal) {
       HStack(alignment: .center, spacing: 8) {
-        if !spread && !taken.contains(KKindredsTool.orbit) {
-          KOrbitChip(
-            theme: theme,
-            isOn: driver.bandOpen,
-            a11yLabel: content.orbitChipLabel,
-            a11yHint: [content.legendCloser, content.legendTurn].filter { !$0.isEmpty }.joined(separator: ". ")
-          ) {
-            driver.toggleBand()
-          }
-        }
-        if hasSearch && !taken.contains(KKindredsTool.search) {
-          KSearchChip(theme: theme, a11yLabel: content.searchLabel) {
-            driver.beginSearch()
+        // the orbit and the search share one key capsule, as Notes' and Me's keys do (owner,
+        // 2026-11-13: "统一一下"), white like the chips beside it and as tall as they are
+        let orbitKey = !spread && !taken.contains(KKindredsTool.orbit)
+        let searchKey = hasSearch && !taken.contains(KKindredsTool.search)
+        if orbitKey || searchKey {
+          KGlassGroup(theme: theme, side: chipSide) {
+            if orbitKey {
+              KGlassKey(
+                theme: theme,
+                side: chipSide,
+                on: driver.bandOpen,
+                a11yLabel: content.orbitChipLabel,
+                a11yHint: [content.legendCloser, content.legendTurn].filter { !$0.isEmpty }.joined(separator: ". "),
+                action: { driver.toggleBand() }
+              ) {
+                KKindredsOrbitGlyph(theme: theme, on: driver.bandOpen)
+              }
+              // a toggle: VoiceOver says on / off
+              .accessibilityAddTraits(.isToggle)
+            }
+            if searchKey {
+              KGlassKey(theme: theme, side: chipSide, a11yLabel: content.searchLabel, action: { driver.beginSearch() }) {
+                KGlassSymbol("magnifyingglass")
+              }
+            }
           }
         }
         ForEach(content.chips) { chip in
@@ -975,6 +991,16 @@ struct KKindredsBand: View {
             actions.onChip(chip.key)
           }
         }
+      }
+      // the chips' own height, read off a line of their type, for the key capsule
+      .background(alignment: .topLeading) {
+        Text(verbatim: " ")
+          .kText(KFilterChip.label)
+          .padding(.vertical, KFilterChip.padV)
+          .hidden()
+          .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+            if abs(h - chipSide) > 0.5 { chipSide = h }
+          }
       }
       // 24 from the screen's left (the band's 22 and the row's 2), to its right edge
       .padding(.leading, 24)
@@ -1142,6 +1168,18 @@ struct KKindredsFoldRule: View {
       .onChange(of: chrome.offset) { _, offset in
         driver.offsetChanged(offset)
       }
+      .accessibilityHidden(true)
+  }
+}
+
+/// The orbit's own mark (there is no system symbol for it), drawn at the weight of the system
+/// symbols beside it in the key capsule (17 medium), in ink; indigo while the orbit is open.
+struct KKindredsOrbitGlyph: View {
+  let theme: KTheme
+  let on: Bool
+
+  var body: some View {
+    KLineIcon(.orbit, size: 20, lineWidth: 1.9, color: on ? theme.ind : theme.ink)
       .accessibilityHidden(true)
   }
 }

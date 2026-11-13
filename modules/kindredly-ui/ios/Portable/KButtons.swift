@@ -601,8 +601,8 @@ public final class KRailTools: ObservableObject {
 }
 
 /// A page's round key as the band draws it, for a tool whose header form is not already one
-/// (Kindreds' chips, Me's Edit): 40 round on the theme's soft, lav while on, in a 44 square,
-/// as Notes' header keys are.
+/// (Kindreds' chips, Me's Edit): a 44 glass disc (KGlassKey solo), its lens lit while on, as
+/// Notes' keys are on the band.
 public struct KRailKey<Icon: View>: View {
   let theme: KTheme
   let on: Bool
@@ -621,17 +621,10 @@ public struct KRailKey<Icon: View>: View {
   }
 
   public var body: some View {
-    SwiftUI.Button(action: action) {
+    // a glass disc of its own, as the page's header keys are glass (KGlassKeys, owner 2026-11-13:
+    // "统一一下"); on, its lens is lit in indigo
+    KGlassKey(theme: theme, solo: true, on: on, a11yLabel: label, a11yHint: hint, action: action) {
       icon
-        .frame(width: 40, height: 40)
-        .background(Circle().fill(on ? theme.lav : theme.soft))
-        .frame(width: 44, height: 44)
-        .contentShape(Rectangle())
-        .animation(.easeInOut(duration: 0.18), value: on)
     }
-    .buttonStyle(KFadePressStyle())
-    .accessibilityLabel(label)
-    .accessibilityHint(hint)
-    .accessibilityAddTraits(on ? .isSelected : [])
   }
 }

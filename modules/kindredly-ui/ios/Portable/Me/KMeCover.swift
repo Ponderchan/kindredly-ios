@@ -277,38 +277,32 @@ struct KMeIdentity<Avatar: View>: View {
           .accessibilityAddTraits(.isButton)
         }
         Spacer(minLength: 0)
-        HStack(spacing: 8) {
-          if !taken.contains(KMeTool.edit) {
-          SwiftUI.Button(action: { actions.onEdit() }) {
-            HStack(spacing: 6) {
-              KLineIcon(.pen, size: 15, lineWidth: 1.9, color: theme.ink)
-              Text(me.edit)
-                .kText(.system(14, .semibold))
-                .foregroundStyle(theme.ink)
-                .lineLimit(1)
+        // Edit and the gear share one key capsule, white like Kindreds' chips, the bar's lens
+        // under the finger (KGlassKeys; owner, 2026-11-13: "统一一下")
+        HStack(spacing: 0) {
+        let editKey = !taken.contains(KMeTool.edit)
+        let gearKey = !taken.contains(KMeTool.settings)
+        if editKey || gearKey {
+          KGlassGroup(theme: theme) {
+            if editKey {
+              KGlassKey(theme: theme, wide: true, a11yLabel: profile.editLabel, action: { actions.onEdit() }) {
+                HStack(spacing: 6) {
+                  Image(systemName: "pencil")
+                    .font(.system(size: 15, weight: .semibold))
+                    .accessibilityHidden(true)
+                  Text(me.edit)
+                    .kText(.system(15, .semibold))
+                    .lineLimit(1)
+                }
+              }
             }
-            .padding(.leading, 14)
-            .padding(.trailing, 18)
-            .frame(height: 36)
-            .background(Capsule().strokeBorder(theme.line, lineWidth: 1))
-            .padding(.vertical, 4)
-            .contentShape(Rectangle())
-            .fixedSize()
+            if gearKey {
+              KGlassKey(theme: theme, a11yLabel: settingsLabel, action: { actions.onSettings() }) {
+                KGlassSymbol("gearshape")
+              }
+            }
           }
-          .buttonStyle(KFadePressStyle())
-          .accessibilityLabel(profile.editLabel)
-          }
-          if !taken.contains(KMeTool.settings) {
-          SwiftUI.Button(action: { actions.onSettings() }) {
-            KLineIcon(.gear, size: 19, lineWidth: 1.9, color: theme.ink)
-              .frame(width: 36, height: 36)
-              .background(Circle().strokeBorder(theme.line, lineWidth: 1))
-              .padding(4)
-              .contentShape(Rectangle())
-          }
-          .buttonStyle(KFadePressStyle())
-          .accessibilityLabel(settingsLabel)
-          }
+        }
         }
         // the row is as tall with them gone as with them there
         .frame(minHeight: 44)
@@ -377,6 +371,7 @@ struct KMeIdentity<Avatar: View>: View {
 /// What the cover folds into once it has scrolled away: the sky's own colours, your name, the
 /// pen and the gear.
 struct KMeCoverBar: View {
+  let theme: KTheme
   let palette: KCourierPalette
   let name: String
   let editLabel: String
@@ -397,29 +392,28 @@ struct KMeCoverBar: View {
           .foregroundStyle(palette.text)
           .lineLimit(1)
         Spacer(minLength: 8)
-        if !taken.contains(KMeTool.edit) {
-          SwiftUI.Button(action: { actions.onEdit() }) {
-            KLineIcon(.pen, size: 20, lineWidth: 1.9, color: palette.text)
-              .frame(width: 40, height: 44)
-              .contentShape(Rectangle())
+        // the pen and the gear in one key capsule, as on the page (KGlassKeys)
+        let editKey = !taken.contains(KMeTool.edit)
+        let gearKey = !taken.contains(KMeTool.settings)
+        if editKey || gearKey {
+          KGlassGroup(theme: theme, side: 40) {
+            if editKey {
+              KGlassKey(theme: theme, side: 40, a11yLabel: editLabel, action: { actions.onEdit() }) {
+                KGlassSymbol("pencil")
+              }
+            }
+            if gearKey {
+              KGlassKey(theme: theme, side: 40, a11yLabel: settingsLabel, action: { actions.onSettings() }) {
+                KGlassSymbol("gearshape")
+              }
+            }
           }
-          .buttonStyle(KFadePressStyle())
-          .accessibilityLabel(editLabel)
-        }
-        if !taken.contains(KMeTool.settings) {
-          SwiftUI.Button(action: { actions.onSettings() }) {
-            KLineIcon(.gear, size: 20, lineWidth: 1.9, color: palette.text)
-              .frame(width: 40, height: 44)
-              .contentShape(Rectangle())
-          }
-          .buttonStyle(KFadePressStyle())
-          .accessibilityLabel(settingsLabel)
         }
       }
       // the bar is as tall with them gone as with them there
       .frame(minHeight: 44)
       .padding(.leading, 16)
-      .padding(.trailing, 6)
+      .padding(.trailing, 16)
       .frame(height: KMeCoverMetrics.bar)
     }
     .background(LinearGradient(colors: [palette.sky0, palette.sky1], startPoint: .top, endPoint: .bottom))

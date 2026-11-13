@@ -707,12 +707,12 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
     KRailTools.shared.set(.me, [
       KRailTool(KMeTool.edit) {
         KRailKey(theme: theme, label: content.profile.editLabel, action: { actions.onEdit() }) {
-          KLineIcon(.pen, size: 20, lineWidth: 1.9, color: theme.ink)
+          KGlassSymbol("pencil")
         }
       },
       KRailTool(KMeTool.settings) {
         KRailKey(theme: theme, label: content.settingsLabel, action: { actions.onSettings() }) {
-          KLineIcon(.gear, size: 21, lineWidth: 1.9, color: theme.ink)
+          KGlassSymbol("gearshape")
         }
       },
     ])
@@ -883,6 +883,7 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
     .sensoryFeedback(.impact(weight: .light), trigger: armed) { _, now in now }
     .overlay(alignment: .top) {
       KMeCoverBar(
+        theme: theme,
         palette: planet.planet.palette,
         name: content.profile.name,
         editLabel: content.profile.editLabel,
