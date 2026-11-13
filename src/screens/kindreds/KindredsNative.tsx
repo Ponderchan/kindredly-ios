@@ -18,6 +18,7 @@ import { faceRecord, useFaceSources, type FaceInput, type FaceSource } from "../
 import { useAuth } from "../../lib/auth";
 import { getAvatarPhoto } from "../../lib/avatar-photo";
 import { useBirdImageRef } from "../../lib/bird-images";
+import { useAssetImageRef } from "../../lib/images";
 import type { ImageRefRecord } from "../../lib/images";
 import { t } from "../../lib/i18n";
 import { stampSpoken, useMemberStamps } from "../../lib/member-marks";
@@ -69,6 +70,18 @@ function birdFace(ref: ImageRefRecord | null): KKindredsFace {
   return { kind: "bird", uri: ref?.uri ?? "", key: ref?.key ?? "", overscan: 0, mask: 0, tint: "ink" };
 }
 
+/* WREN'S FACE IS HER APP ICON (owner, 2026-11-13, of the little bird on a grey disc: "官方wren 的头
+   像好难看没有背景而且和下面的头像不搭配"). The official account wears the icon people tap on their
+   home screen (assets/icon.png, the white Wren on cobalt, drawn small into assets/wren-avatar.png),
+   as a round picture like a kindred's face, with her check beside it as before. Until the picture
+   has resolved (a moment), the old bird on its disc. */
+const WREN_AVATAR = require("../../../assets/wren-avatar.png");
+
+function wrenFace(avatar: ImageRefRecord | null, official: ImageRefRecord | null): KKindredsFace {
+  if (!avatar) return birdFace(official);
+  return { kind: "image", uri: avatar.uri, key: avatar.key, overscan: 0, mask: 0, tint: "ink" };
+}
+
 /** A face for Swift. With the identity switch on a closed account's veil is the flat veil tile
     (a square, like the windows round it), not the mosaic's veil. */
 function sourceFace(s: FaceSource | undefined, identity: boolean): KKindredsFace {
@@ -101,6 +114,7 @@ export function nativeItems(
   mine: ImageRefRecord | null,
   identity = false,
   stampOf: StampOf = NO_STAMPS,
+  wrenAvatar: ImageRefRecord | null = null,
 ): KKindredsItem[] {
   return items.map((it): KKindredsItem => {
     switch (it.type) {
@@ -123,7 +137,7 @@ export function nativeItems(
           type: it.type,
           row: {
             id: r.id,
-            face: r.kind === "wren" ? birdFace(official) : { ...sourceFace(faces[r.id], identity), stamp },
+            face: r.kind === "wren" ? wrenFace(wrenAvatar, official) : { ...sourceFace(faces[r.id], identity), stamp },
             faceBadge: r.faceBadge,
             name: r.name,
             mark: r.mark,
@@ -238,12 +252,13 @@ export function KindredsNative({ model, single = false }: { model: KindredsModel
   const faces = useFaceSources(inputs);
   const official = useBirdImageRef("official");
   const mine = useBirdImageRef("content");
+  const wrenAvatar = useAssetImageRef(WREN_AVATAR);
 
   // C2: the members among them (member_marks_for; nobody before 0037 runs, or the dev fixture)
   const stampOf = useMemberStamps(useMemo(() => stampUids(view), [view]));
 
   const items = useSameContent(
-    useMemo(() => nativeItems(view.items, faces, official, mine, view.identity, stampOf), [view.items, faces, official, mine, view.identity, stampOf]),
+    useMemo(() => nativeItems(view.items, faces, official, mine, view.identity, stampOf, wrenAvatar), [view.items, faces, official, mine, view.identity, stampOf, wrenAvatar]),
   );
   const chips = useSameContent(useMemo(() => nativeChips(view.chips), [view.chips]));
   const orbit = useSameContent(useMemo(() => nativeOrbit(view.orbit, stampOf), [view.orbit, stampOf]));

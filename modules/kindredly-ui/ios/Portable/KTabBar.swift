@@ -160,12 +160,20 @@ public enum KTabBarMetrics {
      top edge in a 10pt hollow either side, so it is one outline and not a ring round a button.
      The bar's frame is `plusHeadroom` taller at the top to hold the swell; whoever sizes the
      Host adds the same (NativeTabBar.tsx PLUS_HEADROOM). While the bar is grown round its tray
-     the top edge is far above the row, so the swell sinks flat and the disc comes down to the
-     row's middle; both travel with the bar's growth. */
+     the top edge is far above the row, so the swell sinks flat.
+
+     LOWER, AND IT NEVER DROPS (owner, 2026-11-13: "底导航…太高了 把圈➕整体下移一些 … 点➕ 交互 他砸
+     自己向下弹"). The disc is 42 and rises 10 (44 and 14 before): its top meets the bar's top edge
+     and only the collar crests it, by 6, so the bar no longer reads as a tall block with a ball on
+     top. And opening no longer brings the disc down to the row's middle: it was the + falling 14
+     under the finger as the bar grew, a control running away from the touch that opened it. It
+     stays where it was tapped and turns into the x there; the glass grows up round it. The
+     headroom stays 12 (the swell now uses 6 of it), so the Host's size, which the JS sets, is the
+     same for every binary. */
   public static let plusHeadroom: CGFloat = 12
-  static let plusRaisedSize: CGFloat = 44
+  static let plusRaisedSize: CGFloat = 42
   static let plusSize: CGFloat = 44
-  static let plusRise: CGFloat = 14
+  static let plusRise: CGFloat = 10
   /// the + drawn on the disc: its frame (the arms are 14/24 of it, so 16.3 long) and its stroke.
   /// 22 and 2.6 until the owner asked for a bigger, bolder + (2026-11-12)
   static let plusMark: CGFloat = 28
@@ -611,7 +619,7 @@ public struct KTabBar: View {
           .accessibilityHidden(!grown)
           .padding(.trailing, side - 6)
       }
-      plus(lifted: false)
+      plus()
         .frame(width: side, height: side)
         .onTapGesture { onPlus() }
     }
@@ -658,7 +666,7 @@ public struct KTabBar: View {
         HStack(spacing: 0) {
           ForEach(0..<columnCount, id: \.self) { c in
             if c == leading {
-              plus(lifted: lifted)
+              plus()
             } else {
               let i = c < leading ? c : c - 1
               tab(i, items[i], on: i == shown, tone: tone)
@@ -807,7 +815,11 @@ public struct KTabBar: View {
     // red for an afternoon (2026-11-12, after a mock); the owner, the same evening, having
     // looked at both: "底部导航还是蓝色适合我们 类似线上的版本". Indigo is the colour of everything
     // else that asks to be tapped here (Reply, YOUR TURN, the unread counts in the list).
-    return KTabIcon(glyph: item.glyph, on: on, lineColor: on ? theme.ink : tone.rest, accentColor: on ? theme.ind : tone.rest, pick: pick, moves: on && !reduceMotion)
+    // The whole selected icon is ind, its outline too (owner, 2026-11-13: "底导图标点上后的蓝色变
+    // 化是不是有点浅"): the accents alone (two 3.2 eyes, a folded corner) were too little blue to
+    // read as the page you are on; iOS's own bar tints the whole selected icon. Unselected icons
+    // keep the bar's grey. To go back to ink outlines, lineColor `on ? theme.ink`.
+    return KTabIcon(glyph: item.glyph, on: on, lineColor: on ? theme.ind : tone.rest, accentColor: on ? theme.ind : tone.rest, pick: pick, moves: on && !reduceMotion)
       .animation(KMotion.tabTint, value: on)
       .frame(width: KTabBarMetrics.lensSize.width, height: KTabBarMetrics.lensSize.height)
       .overlay(alignment: .topTrailing) {
@@ -830,12 +842,12 @@ public struct KTabBar: View {
   }
 
   // ── the + (G Prompt 3) ──
-  private func plus(lifted: Bool) -> some View {
+  private func plus() -> some View {
     // the grown bar's + under Reduce Motion doesn't turn: the + and the x cross-fade
     KGlassPlus(theme: theme, isOpen: isPanelOpen, turn: reduceMotion ? .easeInOut(duration: 0.25) : plusTurn, turns: !(reduceMotion && tray != nil), size: rail ? KTabBarMetrics.railPlus : raised ? KTabBarMetrics.plusRaisedSize : KTabBarMetrics.plusSize)
-      // raised: up out of the row's middle, and back down into it while the bar is grown (it
-      // travels with the bar's growth, which wraps the whole bar)
-      .offset(y: !rail && raised && lifted ? -KTabBarMetrics.plusRise : 0)
+      // raised: up out of the row's middle, and kept there while the bar is grown round its tray
+      // (it used to come back down into the row as the bar grew: the + fell under the finger)
+      .offset(y: !rail && raised ? -KTabBarMetrics.plusRise : 0)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .contentShape(Rectangle())
       .accessibilityElement(children: .ignore)
