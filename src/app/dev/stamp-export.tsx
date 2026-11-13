@@ -42,10 +42,10 @@ import "../../data/strings-step5-kitrn"; // a11y.back
    words are English: a dev page. */
 
 const SAMPLES: { n: number; topic: string; hex: string; gold: boolean; state: "ok" | "rejected"; mod: number }[] = [
-  { n: 1, topic: "tiny win", hex: "#FFC93C", gold: false, state: "ok", mod: require("../../../assets/aura-scenes/01-quiet-observer.png") },
-  { n: 2, topic: "can’t sleep", hex: "#7C6CF2", gold: true, state: "ok", mod: require("../../../assets/aura-avatars/f-54-late-night-letterer.png") },
-  { n: 3, topic: "a song", hex: "#FF8FB1", gold: false, state: "ok", mod: require("../../../assets/aura-avatars/m-40-rhythm-rider.png") },
-  { n: 4, topic: "refused", hex: "#5BC8AF", gold: false, state: "rejected", mod: require("../../../assets/aura-avatars/f-50-still-water.png") },
+  { n: 1, topic: "tiny win", hex: "#FFC93C", gold: false, state: "ok", mod: require("../../../assets/aura-scenes/01-quiet-observer.webp") },
+  { n: 2, topic: "can’t sleep", hex: "#7C6CF2", gold: true, state: "ok", mod: require("../../../assets/aura-avatars/f-54-late-night-letterer.webp") },
+  { n: 3, topic: "a song", hex: "#FF8FB1", gold: false, state: "ok", mod: require("../../../assets/aura-avatars/m-40-rhythm-rider.webp") },
+  { n: 4, topic: "refused", hex: "#5BC8AF", gold: false, state: "rejected", mod: require("../../../assets/aura-avatars/f-50-still-water.webp") },
 ];
 
 const sampleId = (n: number) => `c:00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;

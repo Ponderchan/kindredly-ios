@@ -37,12 +37,16 @@ export const P = {
   keyVoice: "#D6EBFA",
 } as const;
 
-/* THE FACES ARE EMBEDDED. The thirteen files in assets/fonts, each named by
+/* THE FACES ARE EMBEDDED. The three files in assets/fonts (Newsreader Regular
+   and Italic, EB Garamond Regular: 0.44 MB), each named by
    its PostScript name, are listed under the expo-font plugin in app.json, so
    the build puts them in the app and iOS registers them before any JS runs —
    no runtime loading, no splash wait. They used to come from the Expo Google
    Fonts package roots, which ship every weight a package has: 68 files,
-   12.2 MB in the 1.2.3 app, for 12 faces actually set (now 2.6 MB). The family
+   12.2 MB in the 1.2.3 app, for 12 faces actually set. Those packages are
+   gone from package.json (2026-11-13), and no screen, sheet or Live Activity
+   names any face but the four (System, SF Mono, Newsreader, EB Garamond):
+   no Menlo, no New York (SwiftUI's design .serif), no SF Rounded. The family
    tokens here, in theme/tokens (F) and theme/y2k (F2) are those PostScript
    names, and so is every SwiftUI Font.custom in modules/kindredly-ui.
    Italic needs saying twice: fontFamily the italic face AND fontStyle
