@@ -8,6 +8,7 @@ import { t, useLang } from "../../lib/i18n";
 import { useWrenName } from "../../lib/wren-name";
 import { useScreenInsets } from "../../lib/screen-insets";
 import { useBirdImageRef } from "../../lib/bird-images";
+import { useAssetImageRef } from "../../lib/images";
 import { sinceShort } from "../../lib/format";
 import { OFFICIAL_NAME, WREN_ROOM } from "../../lib/wren-desk";
 import { TabHeader } from "../../components/TabHeader";
@@ -24,6 +25,9 @@ import { useCatchDesk } from "./useCatchDesk";
 import type { CatchSlip } from "./catch-model";
 // kc.title, kc.sub, kc.letGo (catch a line)
 import "../../data/strings-catch";
+import { WREN_AVATAR } from "../../lib/wren-avatar";
+
+
 
 /* NOBODY YET — the Kindreds tab before the first correspondence (and for a
    guest with no session). It stays React Native in 10a (spec-kindreds): no
@@ -80,6 +84,7 @@ function KindredsEmptyNative({ onWrite }: { onWrite: () => void }) {
   const wren = useWrenName();
   const { unread, lastLine, lastAt } = useWrenDesk();
   const official = useBirdImageRef("official");
+  const wrenAvatar = useAssetImageRef(WREN_AVATAR);
   const curious = useBirdImageRef("curious40");
   const focused = useIsFocused();
   const catchOn = useNativeSurface("kindredscatch") && kindredlyUIViewHasProp("KKindredsEmptyView", "slips");
@@ -118,6 +123,8 @@ function KindredsEmptyNative({ onWrite }: { onWrite: () => void }) {
           line,
           a11y: [OFFICIAL_NAME, t("wo.tag"), unread ? t("wo.new") : null, ago, line].filter(Boolean).join(", "),
           bird: official,
+          // her face as the list shows it, once there is someone in it (KindredsNative WREN_AVATAR)
+          avatar: wrenAvatar,
         }}
         bird={curious}
         slips={slips}

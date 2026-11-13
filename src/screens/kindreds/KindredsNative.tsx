@@ -24,6 +24,7 @@ import { t } from "../../lib/i18n";
 import { stampSpoken, useMemberStamps } from "../../lib/member-marks";
 import { faceInputs, orbitKinFaceInputs, type ChipVM, type ItemVM, type OrbitKinVM, type OrbitVM } from "./kindreds-model";
 import type { KindredsModel } from "./useKindredsModel";
+import { WREN_AVATAR } from "../../lib/wren-avatar";
 
 /* THE KINDREDS TAB IN SWIFTUI (10a step 5): one Host for the whole screen
    (SurfaceHost: flex 1, every safe area ignored, light or dark from the
@@ -75,7 +76,7 @@ function birdFace(ref: ImageRefRecord | null): KKindredsFace {
    home screen (assets/icon.png, the white Wren on cobalt, drawn small into assets/wren-avatar.png),
    as a round picture like a kindred's face, with her check beside it as before. Until the picture
    has resolved (a moment), the old bird on its disc. */
-const WREN_AVATAR = require("../../../assets/wren-avatar.png");
+
 
 function wrenFace(avatar: ImageRefRecord | null, official: ImageRefRecord | null): KKindredsFace {
   if (!avatar) return birdFace(official);

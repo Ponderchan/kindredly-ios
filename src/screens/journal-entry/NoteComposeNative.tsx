@@ -352,8 +352,10 @@ function useMonthPage(on: boolean, mood: string | null | undefined, pageDate: st
         if (alive) setPages(all);
       },
       (e) => {
-        // no pages read: the left page stays empty, the composer is untouched
-        if (__DEV__) console.warn("[note-compose] this month unread: no calendar beside the page", e);
+        // no pages read: the month without its faces, so the left page is never left blank (it is
+        // already a page of its own on the Duo; found in the pre-1.0.9 sweep, 2026-11-13)
+        console.warn("[note-compose] this month's pages weren't read: the month is drawn without them", e);
+        if (alive) setPages([]);
       },
     );
     return () => {

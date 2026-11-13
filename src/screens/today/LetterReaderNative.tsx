@@ -64,7 +64,10 @@ export function LetterReaderNative({ model, letter, card }: { model: TodayModel;
 
   // the send key and the hint for this letter's draft (the reader's letter may not be the desk's)
   const state = model.replyFor(letterId);
-  const hint = readerHint(state.hint, localeTag());
+  // as Today's reply box: only a hint about this send (pouch full, over the limit, headwind), never the
+  // resting "REPLY AND A THREAD OPENS" lines — the box's header names who you reply to (pre-1.0.9
+  // sweep, 2026-11-13: the long letter's box still showed them under the new box)
+  const hint = state.notice ? readerHint(state.hint, localeTag()) : "";
 
   const ref = useRef<KScreenHandle>(null);
   const draftFor = model.draftFor;

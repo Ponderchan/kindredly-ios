@@ -83,7 +83,8 @@ export function SettingsNative({ model, page = "main" }: { model: SettingsModel;
   );
   const { selectedTheme, selectedFont, inline } = view.appearance;
   // over every record AND the small values: Swift converts the whole page once per rev
-  const rev = useRev(strings, groups, swatches, fonts, banner, selectedTheme, selectedFont, inline, page);
+  // bannerHidden too: Swift converts the page once per rev, so a tap that puts the card away has to bump it
+  const rev = useRev(strings, groups, swatches, fonts, banner, selectedTheme, selectedFont, inline, page, model.bannerHidden);
 
   return (
     <SurfaceHost>

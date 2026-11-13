@@ -78,6 +78,8 @@ export type KKindredsEmptyDesk = {
   a11y: string;
   /** her official snapshot (bird-images "official"); null until captured */
   bird: KImageRefProps | null;
+  /** her avatar as Kindreds' list draws it (assets/wren-avatar.png); a binary before it ignores it */
+  avatar?: KImageRefProps | null;
 };
 
 export type KKindredsEmptyViewProps = CommonViewModifierProps &
@@ -97,7 +99,7 @@ export type KKindredsEmptyViewProps = CommonViewModifierProps &
   };
 
 type None = (e: { nativeEvent: Record<string, never> }) => void;
-type NativeDesk = Omit<KKindredsEmptyDesk, "bird"> & { bird: KImageRefProps };
+type NativeDesk = Omit<KKindredsEmptyDesk, "bird" | "avatar"> & { bird: KImageRefProps; avatar: KImageRefProps };
 type NativeSlip = Omit<KCatchSlip, "who"> & { who: { name: string; mark: string; sign: string; face: KCatchSlip["who"]["face"]; mask: number; frost: KFrost } };
 type NativeProps = Omit<KKindredsEmptyViewProps, "desk" | "bird" | "slips" | "strings" | "active" | "onWrite" | "onDesk" | "onAnswer"> & {
   strings: Required<KKindredsEmptyStrings>;
@@ -119,7 +121,7 @@ const NativeKKindredsEmptyView = requireNativeView<NativeProps>("KindredlyUI", "
 
 /** The bare SwiftUI page. Only inside an @expo/ui <Host> that fills the screen. */
 export function KKindredsEmptyView({ modifiers, desk, bird, insets, strings, slips, active, onWrite, onDesk, onAnswer, ...rest }: KKindredsEmptyViewProps) {
-  const d = useMemo<NativeDesk>(() => ({ ...desk, bird: imageOf(desk.bird) }), [desk]);
+  const d = useMemo<NativeDesk>(() => ({ ...desk, bird: imageOf(desk.bird), avatar: imageOf(desk.avatar ?? null) }), [desk]);
   const b = useMemo(() => imageOf(bird), [bird]);
   const words = useMemo<Required<KKindredsEmptyStrings>>(() => ({ catchTitle: "", catchSub: "", letGo: "", writeBack: "", ...strings }), [strings]);
   // a @Field can't take null: "" for no sign, NO_FROST for no window; the mark is never sent

@@ -28,9 +28,9 @@ import { OFFICIAL_NAME, postText, type WrenPostMedia } from "../../lib/wren-desk
 import "../../data/strings-step5-kitrn"; // a11y.back
 import { FIRST_CHIPS, wrenItemKey, wrenRoomRows, type WrenSpeakerWords } from "./wren-room-model";
 import { useWrenRoom, type WrenRoomUi } from "./useWrenRoom";
+import { WREN_AVATAR } from "../../lib/wren-avatar";
 
-/** her avatar, the same picture Kindreds' list draws (assets/wren-avatar.png) */
-const WREN_AVATAR = require("../../../assets/wren-avatar.png");
+
 
 /* WREN'S ROOM IN SWIFTUI (2026-10-27): one Host (keeping the keyboard's
    safe area) holding KWrenRoomView, behind the "wrenroom" switch

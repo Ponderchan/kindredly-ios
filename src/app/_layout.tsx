@@ -32,6 +32,7 @@ import { shareFoldFrame, swiftReadsFold, useFoldFrame } from "../lib/fold";
 import { FoldCornerKey } from "../components/FoldCornerKey";
 import { FOLD_TOP_AIR, isLaptop } from "../lib/fold-frame";
 import { fetchThreadMessages, readThreadDetailCache } from "../lib/db";
+import { prefetchWrenAvatar } from "../lib/wren-avatar";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -417,6 +418,8 @@ export default function RootLayout() {
     // which screens draw in SwiftUI (lib/surfaces): the cache now, the table
     // when it answers, again on every return to the front
     startSurfaces();
+    // Wren's avatar resolved once, so Kindreds and her room never start on her old bird
+    prefetchWrenAvatar();
   }, []);
 
   // the fonts are embedded (theme/post), so nothing waits on them

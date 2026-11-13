@@ -299,8 +299,10 @@ struct KNotesCalendar: View {
   @ViewBuilder
   private func cell(_ day: KNotesDay?, height: CGFloat) -> some View {
     let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
-    // a tall day (the month as a page) has room for the cards' own face
-    let roomy = height >= 66
+    // a tall day (the month as a page) has room for the cards' own face: the number (16), 4, the
+    // 40 slot. 62, as before the redesign: at 66 the Duo's page (its days 1.25 x their width, about
+    // 65 on the inner screen) never reached it (found in the pre-1.0.9 sweep, 2026-11-13)
+    let roomy = height >= 62
     let slot = roomy ? Self.slotRoomy : Self.slot
     if let day {
       // today: white (the dark themes' page colour, on their light accent) on the accent capsule

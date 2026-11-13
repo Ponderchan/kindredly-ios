@@ -83,6 +83,8 @@ struct KKindredsEmptyDeskRecord: Record {
   @Field var line: String = ""
   @Field var a11y: String = ""
   @Field var bird: KImageRefRecord = KImageRefRecord()
+  /// her avatar (Kindreds' list's picture); an empty uri: none
+  @Field var avatar: KImageRefRecord = KImageRefRecord()
 }
 
 final class KKindredsEmptyViewProps: KScreenProps {
@@ -117,6 +119,7 @@ final class KKindredsEmptyViewProps: KScreenProps {
     d.line = desk.line
     d.a11y = desk.a11y
     d.bird = desk.bird.uri.isEmpty ? nil : desk.bird.ref
+    d.avatar = desk.avatar.uri.isEmpty ? nil : desk.avatar.ref
     c.desk = d
     c.top = insets.top
     c.tabBarRoom = insets.tabBarRoom

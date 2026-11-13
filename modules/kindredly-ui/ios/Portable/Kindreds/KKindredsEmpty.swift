@@ -57,6 +57,8 @@ public struct KKindredsEmptyDesk: Equatable, Sendable {
   public var line = ""
   public var a11y = ""
   public var bird: KImageRef?
+  /// her avatar as Kindreds' list draws it, filling the round (nil: an older bundle, the snapshot)
+  public var avatar: KImageRef?
 
   public init() {}
 }
@@ -394,11 +396,23 @@ struct KKindredsEmptyDeskCard: View {
   /// OfficialBird size 44
   static let face: CGFloat = 44
 
+  /// her face: the avatar Kindreds' list shows (the whole round), or her snapshot on its disc
+  @ViewBuilder private var deskFace: some View {
+    if let avatar = desk.avatar {
+      KImage(avatar, size: CGSize(width: Self.face, height: Self.face), contentMode: .fill, placeholder: .clear)
+        .frame(width: Self.face, height: Self.face)
+        .clipShape(Circle())
+        .accessibilityHidden(true)
+    } else {
+      KPersonBirdFace(theme: theme, bird: desk.bird, size: Self.face, dim: false, badge: false)
+    }
+  }
+
   var body: some View {
     let shape = RoundedRectangle(cornerRadius: 22, style: .circular)
     SwiftUI.Button(action: onTap) {
       HStack(alignment: .center, spacing: 12) {
-        KPersonBirdFace(theme: theme, bird: desk.bird, size: Self.face, dim: false, badge: false)
+        deskFace
           .overlay(alignment: .bottomTrailing) {
             // the mark's edge cut in the card's sf (OfficialBird ground)
             KOfficialBadge(theme: theme, size: max(16, (Self.face * 0.34).rounded()), ground: theme.sf)

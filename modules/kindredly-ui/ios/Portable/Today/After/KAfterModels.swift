@@ -420,7 +420,9 @@ public struct KAfterPalette: Equatable, Sendable {
       p.windowBottom = Color(hex: "#1A1830")
       p.tape = Color(hex: "#F4D3CC").opacity(0.85)
       p.hint = Color(hex: "#FFB4A8")
-      p.sign = theme.soft2
+      // the card's own dark, a step under the shutter's greys (soft2 / line), so the sign is a plate
+      // on the slats (at soft2 it was the slats' own colour: pre-1.0.9 sweep, 2026-11-13)
+      p.sign = theme.sf
       p.signInk = theme.ink
       p.signMute = theme.mute
       p.cardShadow = theme.line

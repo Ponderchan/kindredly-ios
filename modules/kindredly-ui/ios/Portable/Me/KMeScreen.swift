@@ -919,6 +919,9 @@ public struct KMeScreen<Avatar: View, Courier: View, AuraArt: View>: View {
         }
       }
       .scrollIndicators(.hidden)
+      // Me pressed again (the scroll request) takes the right page to its top, as on a phone
+      // (pre-1.0.9 sweep, 2026-11-13: the spread's page had no position, so it did nothing)
+      .scrollPosition($position)
       .overlay(alignment: .bottom) {
         KBottomFade(theme: theme)
       }

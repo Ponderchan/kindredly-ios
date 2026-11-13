@@ -410,14 +410,17 @@ public struct KNotesScreen: View {
 
   public var body: some View {
     let spread = fold.frame.twoPages && !content.empty
+    // the empty page (no diary yet) on two pages keeps to the left one, as the empty Kindreds page
+    // does, never across the crease (its four moods were split by it; pre-1.0.9 sweep, 2026-11-13)
+    let onePage = fold.frame.twoPages && content.empty
     HStack(spacing: 0) {
       if spread {
         KNotesCalendar(theme: theme, strings: content.strings, topInset: topInset, driver: driver, actions: actions, page: true)
           .frame(width: fold.frame.crease)
       }
       notesPage(spread: spread)
-        .frame(width: spread ? max(0, fold.frame.rightEnd - fold.frame.crease) : nil)
-      if spread {
+        .frame(width: spread ? max(0, fold.frame.rightEnd - fold.frame.crease) : onePage ? fold.frame.crease : nil)
+      if spread || onePage {
         Spacer(minLength: 0)
       }
     }
