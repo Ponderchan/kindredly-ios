@@ -38,6 +38,10 @@ in-app what's-new reel (`src/components/news-reel/`) and the guide reels
 
 ## Unreleased
 
+A smaller app (owner, 2026-11-13: "现在的包大小都100mb了", then "字体就是我们app规定的那四种字体 别的字体都不要") [binary; branch `app-size`, docs/app-size-2026-11-13.md]
+- The app takes about 71 MB on the phone instead of about 96 MB, and the download is about 10 MB smaller. Every picture, screen and feature is the same.
+- Only the four faces are drawn anywhere: the rating sheet's small labels are SF Mono (they were Menlo), and the Live Activity's line on the Lock Screen and in the Dynamic Island is in the system font (it was New York).
+
 Ten letters a day, and a letter comes once (owner, 2026-11-12: "每天15份读信是不是有点多", "10 很好", then "好多信重复被推荐") [OTA 11-12 to 1.0.8 / binary 1.2.7: group 03fbca68, branch `ota-1.0.8-day-ten` 4ae541f] [server: 0054] [switch: letteronce, for the second line]
 - Today's desk holds ten letters a day instead of fifteen. The help page says ten in all nine languages, and the guide animation's desk is five by two. Your courier's count at the end of the day ("that's 10.") is always the real one, so it never goes past ten, and the lock screen's row of opened envelopes is ten long at most.
 - A letter you have read never comes back to your desk, on the iPhone or on the web; one you only flicked past doesn't come back on this phone either. When the newest letters are all read, the desk reaches back up to two months for ones you haven't seen, and only then deals fewer than ten.
